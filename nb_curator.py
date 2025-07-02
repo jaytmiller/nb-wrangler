@@ -1,50 +1,13 @@
 #! env python
 
 """This is the prototype of a notebook curation tool which enables a curator to
-specify a set of notebooks and which will then be used as the basis for defining
-a conda environment inputs suitable for running all of them.  In addition to
-defining a precise set of package versions to install,  it collects inputs for
-testinging the resulting environment and runners which execute the tests.  The
-long term goal of this tool is to provide inputs to build and test Jupyter
-notebook Docker images in a CI/CD enabling curators to deploy science platform
-notebook images with minimal interaction with platform administrators.
-
-To that end it has the following features:
-
-- Loads, validates, updates, and saves the notebook specifications.
-
-- Automaically clones the git repositories for the notebooks if a local clone
-does not already exist,  otherwise it updates the existing clones from their repos.
-
-- Searches for notebooks and package reuquirements.txt files in the specified
-directories and subdirectories based on regular expressions.
-
-If --clone is specified,  it will clone or update the specified repositories
-depdending on whether they already exist or not.
-
-If --init-env is specified,  it will initialize the target environment with
-packages required by nb-curator and also register the environment as a local
-jupyterlab kernel.
-
-If --compile is specified,  it will create both a conda environment .yml file
-and a locked pip requirements.txt file based on compiling the requirements.txt
-The resulting environment should be suitable for running all the notebook files
-found in the repositories,  modulo the completeness of their requirememts.txt files.
-
-If --install is specified,  it will install the packages in the conda
-environment,  which XXXXX again at this time is the runtime environment.
-After installation,  it will attempt to import any package which is explicitly
-listed in a notebook file as a basic sanity check.
-
-If --test-notebooks is specified, run notebooks matching any of the subsequent
-comma separated list of notebook names or regular expressions.  If no notebooks
-or regexps are specified,  it will run all notebooks.
-
-If --cleanup is specified,  it will remove all cloned repositories.
-
-Generates a trivial conda environment .yml file based on the Python version
-specified by the curator spec.   XXXX Currently this .yml output is unused and
-package installation and testing occur relative to the curator runtime environment.
+specify a set of notebooks which will then be used as the basis for defining a
+conda environment suitable for running all of them.  The tool is designed to
+support the overall workflow of compiling and installing the required environment,
+then testing selected notebooks and package imports in the environment.  Ultimately
+the goal of the tool is to fully populate an image spec which can be passed on
+to the notebook image build system for the science platforms which then automatically
+builds, tests, and deploys images on JupyterHub.
 """
 
 import argparse
