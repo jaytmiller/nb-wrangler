@@ -1,9 +1,0 @@
-#pipgrip
-#pip-tools
-ruamel.yaml
-uv
-mamba
-papermill
-ipykernel
-pipdeptree
-setuptools

@@ -1,0 +1,99 @@
+#! /bin/bash
+
+function setup_env {
+    export NBC_MM="$HOME/.nb-curator/mm"
+    export NBC_URL="https://github.com/spacetelescope/nb-curator"
+    export MAMBA_ROOT_PREFIX=${NBC_MM}
+    export PATH=${NBC_MM}/bin:${PATH}
+    export PATH=${NBC_MM}/envs/nbcurator/bin:${PATH}
+}
+
+function bootstrap {
+    export OS=$(uname -s | awk '{ print tolower($1); } ')
+    export ARCH=$(uname -m | awk '{ print tolower($1); }')
+    case "$OS-$ARCH" in
+	linux-x86_64)
+	    URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
+	    ;;
+	linux-arm|linux-arm64|linux-aarch64)
+	    URL=https://micro.mamba.pm/api/micromamba/linux-aarch64/latest
+	    ;;
+	darwin-x86_64)
+	    URL=https://micro.mamba.pm/api/micromamba/osx-64/latest
+	    ;;
+	darwin-arm64)
+	    URL=https://micro.mamba.pm/api/micromamba/osx-arm64/latest
+	    ;;
+	*) 
+	    ;;
+    esac
+    
+    # Git OS/CPU-specific micromamba binary
+    ( mkdir -p ${NBC_MM}; cd ${NBC_MM}; curl -Ls $URL | tar -xvj bin/micromamba )
+
+    eval "$($NBC_MM/bin/micromamba shell hook --shell bash)"
+
+    micromamba config append channels conda-forge
+    micromamba config set channel_priority strict
+    micromamba self-update
+    
+    micromamba activate  # this activates the base environment
+    micromamba create -n nbcurator -c conda-forge
+    micromamba activate nbcurator
+
+    # Just set up python and installer tools
+    micromamba install --quiet --yes  -c conda-forge python=3.11 pip mamba uv setuptools # ruamel.yaml papermill ipykernel jupyter
+    
+    # Install nb-curator packager from github source including dependencies
+    if [ ! -e bin/nb-curator ]; then
+	mkdir nbc-temp
+	( cd nbc-temp
+	  git clone $NBC_URL
+	  cd nb-curator
+	  micromamba run -n nbcurator pip install --quiet .
+	)
+	rm -rf nbc-temp
+    else
+	  micromamba run -n nbcurator pip install --quiet .
+    fi
+}
+
+if [ $# -eq 0 ]; then
+    echo "usage: nb-curator 'bootstrap' or  <yaml-spec> switches..."
+    echo
+    echo "To activate:  'source nb-curator environment'"
+    exit 2
+fi
+
+setup_env
+
+case $1 in
+    boot*)
+    	shift;
+	    rm -rf ${NBC_MM}
+    	bootstrap;
+        exit $?
+	;;
+    *)
+    ;;
+esac
+
+eval "$($NBC_MM/bin/micromamba shell hook --shell bash)"
+
+case $1 in
+    setup|environment)
+	micromamba activate nbcurator
+	;;
+    activate)
+        micromamba activate $2
+	;;
+    deactivate)
+        micromamba deactivate
+	;;
+    *)
+	micromamba activate nbcurator
+	python -m nb_curator $*
+	;;	
+esac
+
+

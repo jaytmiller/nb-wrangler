@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "nb-curator"
+dynamic = ["version"]
+description = "A notebook curation tool for managing Jupyter notebook environments"
+readme = "README.md"
+license-files = ["LICENSE"]
+requires-python = ">=3.11"
+authors = [
+    { name = "Todd Miller", email = "jmiller@stsci.edu" },
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+    "ipykernel>=6.0.0",
+    "jupyter",
+    "papermill>=2.4.0",
+    "ruamel.yaml>=0.17.0",
+    "uv",
+    "mamba",
+    "setuptools",
+    "pipdeptree",
+]
+
+[project.optional-dependencies]
+dev = [
+    "black>=22.0.0",
+    "flake8>=5.0.0",
+    "mypy>=1.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest>=7.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/spacetelescope/nb-curator"
+
+[tool.hatch.version]
+path = "nb_curator/__init__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/nb_curator",
+]

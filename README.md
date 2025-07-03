@@ -2,15 +2,62 @@
 
 ## Overview
 
-This is a prototype of a notebook curation tool which enables a curator to
-specify a set of notebooks and requirements which will then be used as the
-basis for defining a Python environment suitable for running all of them.  In
-addition to defining a precise set of package versions to install, it collects
-inputs for testing the resulting environment and runners which execute the
-tests.  The long term goal of this tool is to provide inputs to build and test
-Jupyter notebook Docker images in a CI/CD pipeline enabling curators to deploy
-science platform notebook images with minimal interaction with platform
-administrators.
+nb-curator is designed to streamline the process of curating JupyterLab notebooks,
+their associated runtime environments, and ultimately to support automatically
+building and testing Docker images focused the requirements of specific sets of
+notebooks.  Towards that end, nb-curator supports these functions:
+
+- bootstrapping a dedicated environment where nb-curator runs
+- loading, saving, and validating notebook curation specs
+- cloning associated notebook and image build repos
+- creating a dedicated target environment to install notebook package requirements
+- compiling loose notebook requirements.txt files into fully versioned dependency requirements for the target environment
+- installing notebook dependencies in the target environment
+- explicitly testing all top-level notebook imports in the installed target environment
+- running notebooks headless in the target environment
+- injecting relevant package, test, and notebook outputs into an external notebook image build system
+- submitting a completed spec and/or related image build PR to trigger an automatic build
+- various cleanup tasks removing clones, packages, environments, etc.
+
+There are a couple of relatively new foundational tools being used:
+
+- micromamba -- a self-contained little brother of mamba (the better free OSS version of conda)
+- uv -- a whole new pip-like system written in Rust leading to faster dependency solutions and package installs
+
+The intent of `nb-curator` is to install 2-3 dedicated environments under `$HOME/.nb-curator`:
+
+- micromamba -- self-contained minimalistic install tool, not a base environment 
+- nbcurator  -- a true micromamba environment in which nb-curator runs with required dependencies
+- <target environment> -- the notebook environment we're curating defined by the YAML spec (or, possibly, CLI)
+
+These environments are interdependent but fully independent of your other pre-existing Python environments.
+
+## Installing
+
+Bootstrapping the system will create the .nb-curator dir and nbcurator environment under $HOME.
+
+```
+git clone git+https://github.com/spacetelescope/nb-curator
+cd nb-curator
+bin/nb-curator bootstrap
+```
+
+After that, the nb-curator "curation" environment can be activated and re-activated using (all literal words):
+
+```
+source nb-curator environment
+```
+
+Assuming you do not want nb-curator to be your primary Python environment,  a workable strategy is to place
+the nb-curator management script somewhere on your PATH and then activate the curation environment when needed.
+
+Once initialized, compiled, and installed,  from the curation environment the target environment can be activated with:
+
+```
+micromamba activate <target-env/kernel-name>
+```
+
+Once initialized, the target environment / kernel should be visible in (any?) JupyterLab
 
 ## Example Usage
 
@@ -18,21 +65,13 @@ Curator prepares custom version of prototype_protocol.yaml
 Curator prepares a curation Python environment with the spec'ed version of Python
 Then:
 ```
-./nb_curator.py  spec.yaml  --create-env
-
 ./nb_curator.py  spec.yaml  --init-env
-
-./nb_curator.py  spec.yaml  --clone  [ --repos-dir notebook-repos ]
 
 ./nb_curator.py  spec.yaml   --compile
 
 ./nb_curator.py  spec.yaml   --install
 
 ./nb_curator.py  spec.yaml   --test
-
-./nb_curator.py  spec.yaml   --cleanup
-
-./nb_curator.py  spec.yaml   --wipe-env
 
 ./nb_curator.py  spec.yaml   --submit-for-build
 
@@ -100,14 +139,6 @@ subsequent comma separated list of notebook names or regular expressions.  If
 no notebooks or regexps are specified, it will run all notebooks.  This is a
 headless crash test which runs up to --jobs [n] notebooks in parallel using a
 --timeout [seconds] to kill runaway notebooks.
-
-- If --revise-spec is specified,  saves various products to the "out" section of
-  the YAML spec:
-      - List of discovered notebooks
-      - Combined package vesion requirements
-      - List of test imports
-      - Basic conda spec .yml file for Python environment
-  If --revise-spec is not specified,  it will not modify the input spec.
 
 - If --cleanup is specified,  it will remove all cloned repositories.
 
