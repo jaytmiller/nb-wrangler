@@ -52,6 +52,10 @@ class NotebookCurator:
         return self.spec_manager.extra_pip_requirements if self.spec_manager else None
 
     @property
+    def mamba_spec_file(self):
+        return self.config.output_dir / f"{self.spec_manager.moniker}-mamba.txt"
+
+    @property
     def pip_output_file(self):
         return self.config.output_dir / f"{self.spec_manager.moniker}-pip.txt"
 
