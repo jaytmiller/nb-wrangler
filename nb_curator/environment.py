@@ -31,18 +31,29 @@ class EnvironmentManager:
         command: List[str],
         check=True,
         timeout=300,
-        capture_output=True,
         text=True,
+        output_mode="separate",
         **extra_parameters,
     ) -> str | CompletedProcess[Any] | None:
         """Run a command in the current environment."""
         command = [str(word) for word in command]
         parameters = dict(
-            capture_output=capture_output,
             text=text,
             check=check,
             timeout=timeout,
         )
+        if output_mode == "combined":
+            parameters.update(dict(                
+                capture_output=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            ))
+        elif output_mode == "separate":
+            parameters.update(dict(                
+                capture_output=True,
+            ))
+        else:
+            raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
         self.logger.debug(
             f"Running command with no shell: {command} {extra_parameters}"
@@ -93,11 +104,11 @@ class EnvironmentManager:
         """Create a new environment."""
         self.logger.info(f"Creating environment: {environment_name}")
         mm_prefix = [self.micromamba_path, "create", "--yes", "-n", environment_name]
-        command = mm_prefix + ["-c", "conda-forge"] + ["-f", str(micromamba_specfile)]
+        command = mm_prefix + ["-f", str(micromamba_specfile)]
         result = self.curator_run(command, check=False)
         return self.handle_result(
             result,
-            f"Failed to create environment {environment_name}",
+            f"Failed to create environment {environment_name}: \n",
             f"Environment {environment_name} created",
         )
 

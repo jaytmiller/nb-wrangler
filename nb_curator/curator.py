@@ -53,7 +53,7 @@ class NotebookCurator:
 
     @property
     def mamba_spec_file(self):
-        return self.config.output_dir / f"{self.spec_manager.moniker}-mamba.txt"
+        return self.config.output_dir / f"{self.spec_manager.moniker}-mamba.yml"
 
     @property
     def pip_output_file(self):

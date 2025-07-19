@@ -137,13 +137,13 @@ class NotebookTester:
 
             result = self.env_manager.curator_run(
                 cmd,
+                output_mode="combined",
                 timeout=timeout,
                 check=False,
             )
-
             # Even for errors, we want to return the output, including stderr
             err = result.returncode != 0
-            return err, "STDOUT:\n" + result.stdout + "\nSTDERR:\n" + result.stderr
+            return err, result.stdout
 
     def _print_divider(self, title: str, char: str = "*", width: int = 100) -> str:
         """Create a divider string with centered title."""

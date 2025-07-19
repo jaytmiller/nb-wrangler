@@ -9,7 +9,7 @@ from typing import Optional
 DEFAULT_MICROMAMBA_PATH = os.environ.get("NBC_MM", "") + "/bin/" + "micromamba"
 
 NOTEBOOK_TEST_MAX_SECS = 30 * 60
-NOTEBOOK_TEST_JOBS = 1
+NOTEBOOK_TEST_JOBS = 4
 
 
 @dataclass
