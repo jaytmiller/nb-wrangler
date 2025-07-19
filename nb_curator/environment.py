@@ -1,6 +1,7 @@
 """Environment management for package installation and testing."""
 
 import sys
+import json
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
@@ -36,6 +37,7 @@ class EnvironmentManager:
         **extra_parameters,
     ) -> str | CompletedProcess[Any] | None:
         """Run a command in the current environment."""
+        command = [str(word) for word in command]
         parameters = dict(
             capture_output=capture_output,
             text=text,
@@ -47,7 +49,7 @@ class EnvironmentManager:
             f"Running command with no shell: {command} {extra_parameters}"
         )
         self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
-        result = subprocess.run(command, **extra_parameters)
+        result = subprocess.run(command, **parameters)
         # self.logger.debug(f"Command output: {result.stdout}")
         if check:
             return result.stdout
@@ -132,7 +134,6 @@ class EnvironmentManager:
             "uv",
             "pip",
             "install",
-            "--quiet",
         ]
         for path in requirements_paths:
             cmd += ["-r", str(path)]
@@ -167,16 +168,40 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             "Package un-installation failed:",
-            "Package un-installation completed successfully:",
+            "Package un-installation completed successfully.",
         )
 
     def test_imports(self, environment_name: str, imports: list[str]) -> bool:
         """Test package imports."""
         self.logger.info(f"Testing {len(imports)} imports")
-        import_test_script = sys.executable.replace("python", "test-imports")
+        # Use inline Python to avoid path contamination between environments
+        import_code = f"""
+import sys
+import traceback
+
+imports = {imports!r}
+errs = []
+for pkg in imports:
+    if pkg.startswith("#"):
+        print("Skipping", pkg)
+        continue
+    try:
+        print("Importing", pkg, "... ", end="")
+        __import__(pkg)
+        print("ok")
+    except Exception:
+        traceback.print_exc()
+        print("FAIL")
+        errs.append(pkg)
+    sys.stdout.flush()
+    sys.stderr.flush()
+print("=" * 80)
+print(f" Failing imports: {{len(errs)}} ".center(80, "=") + "\\n", "\\n".join(errs), sep="")
+sys.exit(int(len(errs) != 0))
+"""
         result = self.env_run(
             environment_name,
-            ["python", import_test_script] + imports,
+            ["python", "-c", import_code],
             check=False,
         )
         return self.handle_result(
@@ -221,3 +246,24 @@ class EnvironmentManager:
         return self.handle_result(
             result, f"Failed to unregister environment {environment_name}: "
         )
+
+    def environment_exists(self, environment_name: str) -> bool:
+        """Return True IFF `environment_name` exists."""
+        cmd = [
+            self.micromamba_path,
+            "env",
+            "list",
+            "--json"
+        ]
+        try:
+            result = self.curator_run(cmd, check=True)
+        except:
+            return self.logger.error(f"Checking for existence of environment '{environment_name}' completely failed. You may need to use 'nb-curator bootstrap' to set up.")
+        else:
+            envs = json.loads(result)["envs"]
+            for env in envs:
+                self.logger.debug(f"Checking existence of {environment_name} against {env}.")
+                if env.endswith(environment_name):
+                    return self.logger.info(f"Environment '{environment_name}' already exists. Skipping auto-init. Use --init-env to force.")
+            self.logger.info(f"Environment '{environment_name}' does not exist.  Auto-initing basic empty environment.")
+            return False

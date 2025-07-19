@@ -73,7 +73,8 @@ class NotebookCurator:
             return self.log.error("Basic repo notebook setup and selection failed.")
 
         # Set up basic empty target/test environment and kernel
-        if self.config.init_env:
+        target_env_exists = self.env_manager.environment_exists(self.environment_name)
+        if self.config.init_env or not target_env_exists:
             if not self._initialize_environment():
                 return False
 
