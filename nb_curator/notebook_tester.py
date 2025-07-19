@@ -136,8 +136,7 @@ class NotebookTester:
             else:
                 raise ValueError(f"Unhandled test file extension: {notebook}")
 
-            result = self.env_manager.env_run(
-                environment,
+            result = self.env_manager.curator_run(
                 cmd,
                 timeout=timeout,
                 check=False,

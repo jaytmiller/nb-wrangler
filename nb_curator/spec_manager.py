@@ -170,6 +170,11 @@ class SpecManager:
         return self._spec["selected_notebooks"]
 
     @property
+    def extra_pip_requirements(self) -> List[str]:
+        self._ensure_validated()
+        return self._spec["extra_pip_requirements"]
+
+    @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
         self._ensure_validated()
@@ -194,13 +199,23 @@ class SpecManager:
             "deployment_name",
             "kernel_name",
         ],
+        "extra_pip_requirements": [],
         "selected_notebooks": [
             "nb_repo",
             "root_nb_directory",
             "include_subdirs",
             "exclude_subdirs",
         ],
-        "out": {},
+        "out": [
+            "notebook_repo_urls",
+            "test_notebooks",
+            "test_imports",
+            "injector_urls",
+            "mamba_requirement_files",
+            "mamba_spec",
+            "pip_requirement_files",
+            "package_versions",
+        ],
     }
 
     def validate(self) -> bool:
@@ -366,7 +381,7 @@ class SpecManager:
     ) -> list[str]:
         notebook_paths = []
         for nb_path in included_notebooks:
-            if re.search(r"(.ipynb_|-)checkpoints", str(nb_path)):
+            if re.search(r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)", str(nb_path)):
                 self.logger.debug(f"Skipping checkpoint(s): {nb_path}")
                 continue
             for exclude in exclude_subdirs:

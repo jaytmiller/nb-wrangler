@@ -228,7 +228,7 @@ sys.exit(int(len(errs) != 0))
             "--display-name",
             display_name or environment_name,
         ]
-        result = self.curator_run(cmd, check=False)
+        result = self.env_run(environment_name, cmd, check=False)
         return self.handle_result(
             result, f"Failed to register environment {environment_name}: "
         )
@@ -242,7 +242,7 @@ sys.exit(int(len(errs) != 0))
             "--yes",
             environment_name,
         ]
-        result = self.curator_run(cmd, check=False)
+        result = self.env_run(environment_name, cmd, check=False)
         return self.handle_result(
             result, f"Failed to unregister environment {environment_name}: "
         )

@@ -160,16 +160,21 @@ class RequirementsCompiler:
 
     def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict):
         """Write mamba spec dictionary to YAML file."""
-        with filepath.open("w+") as f:
-            get_yaml().dump(mamba_spec, f)
-        return self.logger.debug(f"Wrote mamba spec to '{filepath}'") or True
+        try:
+            with filepath.open("w+") as f:
+                get_yaml().dump(mamba_spec, f)
+        except Exception as e:
+            return self.logger.exception(e, f"Failed writing mamba spec {filepath}")
+        self.logger.debug(f"Wrote mamba spec to '{filepath}'")
+        return True
 
     def write_pip_requirements_file(self, filepath: str, package_versions: list):
         """Write package versions to pip requirements file."""
-        with filepath.open("w+") as f:
-            for package_version in package_versions:
-                f.write(f"{package_version}\n")
-        return (
-            self.logger.debug(f"Wrote pip target env package versions to '{filepath}'")
-            or True
-        )
+        try:
+            with filepath.open("w+") as f:
+                for package_version in package_versions:
+                    f.write(f"{package_version}\n")
+        except Exception as e:
+            return self.logger.exception(e, f"Failed writing pip requirements to '{filepath}'.")
+        self.logger.debug(f"Wrote pip target env package versions to '{filepath}'")
+        return True
