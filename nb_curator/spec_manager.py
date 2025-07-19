@@ -381,7 +381,9 @@ class SpecManager:
     ) -> list[str]:
         notebook_paths = []
         for nb_path in included_notebooks:
-            if re.search(r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)", str(nb_path)):
+            if re.search(
+                r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)", str(nb_path)
+            ):
                 self.logger.debug(f"Skipping checkpoint(s): {nb_path}")
                 continue
             for exclude in exclude_subdirs:

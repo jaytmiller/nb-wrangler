@@ -1,6 +1,6 @@
 """Main NotebookCurator class orchestrating the curation process."""
 
-from typing import List, Optional
+from typing import Optional
 
 from .config import CuratorConfig
 from .logging import CuratorLogger
@@ -185,8 +185,7 @@ class NotebookCurator:
         if not requirements_files:
             return False
         if not self.compiler.write_pip_requirements_file(
-            self.extra_pip_output_file,
-            self.extra_pip_requirements
+            self.extra_pip_output_file, self.extra_pip_requirements
         ):
             return False
         requirements_files.append(self.extra_pip_output_file)

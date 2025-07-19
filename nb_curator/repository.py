@@ -67,4 +67,4 @@ class RepositoryManager:
                 shutil.rmtree(self.repos_dir)
             return True
         except Exception as e:
-            return self.logger.exception(e, f"Error during cleanup.")
+            return self.logger.exception(e, "Error during repository deletion.")

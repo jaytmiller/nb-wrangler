@@ -175,6 +175,8 @@ class RequirementsCompiler:
                 for package_version in package_versions:
                     f.write(f"{package_version}\n")
         except Exception as e:
-            return self.logger.exception(e, f"Failed writing pip requirements to '{filepath}'.")
+            return self.logger.exception(
+                e, f"Failed writing pip requirements to '{filepath}'."
+            )
         self.logger.debug(f"Wrote pip target env package versions to '{filepath}'")
         return True

@@ -37,27 +37,32 @@ These environments are interdependent but fully independent of your other pre-ex
 Bootstrapping the system will create the .nb-curator dir and nbcurator environment under $HOME.
 
 ```
-git clone git+https://github.com/spacetelescope/nb-curator
-cd nb-curator
-bin/nb-curator bootstrap
+# cd $SOMEPLACE_ON_YOUR_PATH
+curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
+chmod +x nb-curator
+nb-curator bootstrap
+source nb-curator environment
 ```
 
-After that, the nb-curator "curation" environment can be activated and re-activated using (all literal words):
+After that, the nb-curator "curation" environment can be re-activated by:
 
 ```
 source nb-curator environment
 ```
 
-Assuming you do not want nb-curator to be your primary Python environment,  a workable strategy is to place
-the nb-curator management script somewhere on your PATH and then activate the curation environment when needed.
+Consider putting that in your shell RC file.
 
-Once initialized, compiled, and installed,  from the curation environment the target environment can be activated with:
+The target environment can be activated by:
 
 ```
-micromamba activate <target-env/kernel-name>
+source nb-curator activate ENVIRONMENT_NAME
 ```
 
-Once initialized, the target environment / kernel should be visible in (any?) JupyterLab
+and either nbcurator or the target environment can be deactivated by:
+
+```
+source nb-curator deactivate
+```
 
 ## Example Usage
 
@@ -72,10 +77,6 @@ Then:
 ./nb_curator.py  spec.yaml   --install
 
 ./nb_curator.py  spec.yaml   --test
-
-./nb_curator.py  spec.yaml   --submit-for-build
-
-./nb_curator.py  spec.yaml   --generate-deployment
 ```
 
 ## Basic Flow
@@ -140,10 +141,12 @@ no notebooks or regexps are specified, it will run all notebooks.  This is a
 headless crash test which runs up to --jobs [n] notebooks in parallel using a
 --timeout [seconds] to kill runaway notebooks.
 
-- If --cleanup is specified,  it will remove all cloned repositories.
+- If --delete-clones is specified,  it will remove all cloned repositories.
 
-- If a proposed/not-implemented --wipe-env is specified,  it will remove the
-  target environment.   This dedicated environment approach prevents contamination
+- If --reset-spec is specified it will remove the output section of the spec.
+
+- If --delete-env is specified,  it will remove the entire target environment.
+  This dedicated environment approach prevents contamination
   between iterations of the tool as packages come-and-go from the spec but are
   never removed from the target environment.
 

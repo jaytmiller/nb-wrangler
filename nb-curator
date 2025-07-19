@@ -81,7 +81,7 @@ esac
 eval "$($NBC_MM/bin/micromamba shell hook --shell bash)"
 
 case $1 in
-    setup|environment)
+    environment)
 	micromamba activate nbcurator
 	;;
     activate)

@@ -5,7 +5,6 @@ import glob
 import os
 import shutil
 import stat
-import subprocess
 import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor

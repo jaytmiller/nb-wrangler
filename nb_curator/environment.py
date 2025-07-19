@@ -1,6 +1,5 @@
 """Environment management for package installation and testing."""
 
-import sys
 import json
 import subprocess
 from subprocess import CompletedProcess
@@ -249,21 +248,25 @@ sys.exit(int(len(errs) != 0))
 
     def environment_exists(self, environment_name: str) -> bool:
         """Return True IFF `environment_name` exists."""
-        cmd = [
-            self.micromamba_path,
-            "env",
-            "list",
-            "--json"
-        ]
+        cmd = [self.micromamba_path, "env", "list", "--json"]
         try:
             result = self.curator_run(cmd, check=True)
-        except:
-            return self.logger.error(f"Checking for existence of environment '{environment_name}' completely failed. You may need to use 'nb-curator bootstrap' to set up.")
+        except Exception as e:
+            return self.logger.exception(
+                e,
+                f"Checking for existence of environment '{environment_name}' completely failed. See README.md for info on bootstrapping.",
+            )
         else:
             envs = json.loads(result)["envs"]
             for env in envs:
-                self.logger.debug(f"Checking existence of {environment_name} against {env}.")
+                self.logger.debug(
+                    f"Checking existence of {environment_name} against {env}."
+                )
                 if env.endswith(environment_name):
-                    return self.logger.info(f"Environment '{environment_name}' already exists. Skipping auto-init. Use --init-env to force.")
-            self.logger.info(f"Environment '{environment_name}' does not exist.  Auto-initing basic empty environment.")
+                    return self.logger.info(
+                        f"Environment '{environment_name}' already exists. Skipping auto-init. Use --init-env to force."
+                    )
+            self.logger.info(
+                f"Environment '{environment_name}' does not exist.  Auto-initing basic empty environment."
+            )
             return False
