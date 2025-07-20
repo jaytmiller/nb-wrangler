@@ -59,35 +59,15 @@ out:
     - s3fs
   injector_urls:
     - https://github.com/spacetelescope/science-platform-images.git
-  mamba_requirements_files:
-    - references/science-platform-images/deployments/common/common-env/common.conda
-  mamba_spec:
-    name: tess
-    channels:
-      - conda-forge
-    dependencies:
-      - python=3.11
-      - pip
-      - pip-tools
-      - setuptools
-      - jupyter-packaging
-      - nodejs>=22.0
-      - uv
-      - mamba
-      - papermill
-      - ipykernel
-      - jupyter
-      - setuptools
-      - pip: []
   pip_requirements_files:
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-    - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
+    - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
     - references/tike_content/content/notebooks/tglc/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - references/tike_content/content/notebooks/data-access/requirements.txt
+    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
     - output/tike-2025.07-beta-tess-extra-pip.txt
   package_versions:
     - aiobotocore==2.23.1
@@ -203,7 +183,7 @@ out:
     - jupyter-rfb==0.5.3
     - jupyter-server==2.16.0
     - jupyter-server-terminals==0.5.3
-    - jupyterlab==4.4.4
+    - jupyterlab==4.4.5
     - jupyterlab-pygments==0.3.0
     - jupyterlab-server==2.27.3
     - jupyterlab-widgets==3.0.15

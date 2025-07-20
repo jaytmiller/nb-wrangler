@@ -1,4 +1,13 @@
-"""Environment management for package installation and testing."""
+"""Environment management for package installation and testing.
+
+The basic model is that micromamba is used to bootstrap and manage
+both the curation and target environments.
+
+micromamba is used to install only pre-required mamba packages.
+uv is used to manage pip packages in the target environment.
+
+environmentsinstall non-pip Python packages
+"""
 
 import json
 import subprocess
@@ -13,14 +22,33 @@ from .logging import CuratorLogger
 class EnvironmentManager:
     """Manages Python environment setup and package installation."""
 
-    CURATOR_PACKAGES = [
+    # Currently limited to uv, older build tools for packages not yet
+    # updated to pyproject.toml, and jupyter kernel management packages
+    # ipykernel and jupyter.
+    TARGET_PACKAGES = [
         "uv",
-        "mamba",
-        "papermill",
+        "pip",
+        
         "ipykernel",
         "jupyter",
+
+        "cython",
         "setuptools",
+        "wheel",
     ]
+
+    # The target environment does not currently require papermill to
+    # support notebook testing,  it can be run from the curator 
+    # environment so don't make it a TARGET dependency.
+    CURATOR_PACKAGES = [
+        "papermill",
+    ] + TARGET_PACKAGES
+
+    # IMPORTANT: see also the nb-curator bash script used for bootstrapping
+    # the basic nbcurator environment and inlines the above requirements
+    # for CURATOR_PACKAGES.
+
+    # ------------------------------------------------------------------------------
 
     def __init__(self, logger: CuratorLogger, micromamba_path: str = "micromamba"):
         self.logger = logger

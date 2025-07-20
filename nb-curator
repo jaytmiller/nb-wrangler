@@ -1,6 +1,9 @@
 #! /bin/bash
 
+set -e
+
 function setup_env {
+    export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
     export NBC_MM="$HOME/.nb-curator/mm"
     export NBC_URL="https://github.com/spacetelescope/nb-curator"
     export MAMBA_ROOT_PREFIX=${NBC_MM}
@@ -42,19 +45,21 @@ function bootstrap {
     micromamba activate nbcurator
 
     # Just set up python and installer tools
-    micromamba install --quiet --yes  -c conda-forge python=3.11 pip mamba uv setuptools # ruamel.yaml papermill ipykernel jupyter
+    micromamba install --quiet --yes  -c conda-forge python=${NBC_PYTHON_VERSION} uv 
+    uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel cython
     
     # Install nb-curator packager from github source including dependencies
     if [ ! -e bin/nb-curator ]; then
-	mkdir nbc-temp
-	( cd nbc-temp
-	  git clone $NBC_URL
-	  cd nb-curator
-	  micromamba run -n nbcurator pip install --quiet .
-	)
-	rm -rf nbc-temp
+        rm -rf nbc-temp
+        mkdir nbc-temp
+        ( cd nbc-temp
+            git clone $NBC_URL
+            cd nb-curator
+            uv pip install --quiet .
+        )
+        rm -rf nbc-temp
     else
-	  micromamba run -n nbcurator pip install --quiet .
+	    uv pip install --quiet .
     fi
 }
 

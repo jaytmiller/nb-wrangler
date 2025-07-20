@@ -50,6 +50,10 @@ class CuratorConfig:
         self.repos_dir = (
             Path(self.repos_dir) if self.repos_dir else Path.cwd() / "repos"
         )
+        if self.curate:
+            self.compile_packages = True
+            self.install_packages = True
+            self.test_notebooks = ".*"
 
     @property
     def spec_file_out(self) -> Path:

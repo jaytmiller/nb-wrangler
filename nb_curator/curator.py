@@ -155,7 +155,7 @@ class NotebookCurator:
 
     def _initialize_environment(self) -> bool:
         """Initialize the target environment."""
-        mamba_spec = self._generate_mamba_spec()
+        mamba_spec = self._generate_target_mamba_spec()
         if not mamba_spec:
             return False
         if not self.compiler.write_mamba_spec_file(self.mamba_spec_file, mamba_spec):
@@ -166,7 +166,7 @@ class NotebookCurator:
             return False
         return self.env_manager.register_environment(self.environment_name)
 
-    def _generate_mamba_spec(self) -> Optional[str]:
+    def _generate_target_mamba_spec(self) -> Optional[str]:
         """Generate mamba environment specification."""
         mamba_files = self.injector.find_spi_mamba_requirements_files()
         mamba_spec = self.compiler.generate_mamba_spec(
