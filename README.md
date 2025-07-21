@@ -1,5 +1,7 @@
 # nb-curator
 
+DRAFT DRAFT DRAFT  -- subject to weekly/daily change top to bottom
+
 ## Overview
 
 nb-curator is designed to streamline the process of curating JupyterLab notebooks,
@@ -26,7 +28,7 @@ There are a couple of relatively new foundational tools being used:
 
 The intent of `nb-curator` is to install 2-3 dedicated environments under `$HOME/.nb-curator`:
 
-- micromamba -- self-contained minimalistic install tool, not a base environment 
+- micromamba -- self-contained minimalistic install tool, not a base environment
 - nbcurator  -- a true micromamba environment in which nb-curator runs with required dependencies
 - <target environment> -- the notebook environment we're curating defined by the YAML spec (or, possibly, CLI)
 
@@ -106,22 +108,18 @@ switches.
   constraints at a granular level of single notebooks.  Exactly what to include
   is a WIP,  but at a minimum one optional requirements.txt per notebook.
 
-- Optionally creates a basic Python environment in which packages will be
+- Automatically creates a basic Python environment in which packages will be
   installed and tested.   The overall paradigm of the nb-curator tool is
   that it installs packages and tests notebooks with respect to the current
-  Python environment.  The --create-env [envname] switch creates virtual
-  environment dedicated to the development of this particular curation spec.
-  In addition to supporting development and test,  it supports complete cleanup
-  and guarantees a pristine environment relative to which notebook requirements
-  should be resolved and installed.  (not implemented yet)
+  Python environment.
 
 - Optionally initializes (--init-env) a target environment to support
   compilation of requirements, package installation, and testing.  In addition
   to installing a handful of utility packages, it creates a JupyterLab kernel
   for the environment that is required for notebook testing or using it in
   JupyterLab.  This is useful even if the curator chooses to use their own
-  custom environment as the target since these packages and kernel setup
-  are required regardless.
+  custom environment (TBD supported or not) as the target since these packages
+  and kernel setup are required regardless.
 
 - If --compile is specified, it will create both a conda environment .yml file
   and a locked pip requirements.txt file based on compiling all the discovered
@@ -154,3 +152,8 @@ headless crash test which runs up to --jobs [n] notebooks in parallel using a
   to the CI chain,  key information is supplied to the build framework, and a
   corresponding image is automatically built and pushed to the hub assuming all
   goes well.   This is all still TBD pending interest/approval of the above.
+
+- If --spi-inject is specified,  writes key output information from spec like
+mamba and pip requirements, import tests, and supported notebooks into a clone
+of the science platform images build enabling a manual build as if a dev had
+manually updated all the input requirements.
