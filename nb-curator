@@ -1,17 +1,31 @@
 #! /bin/bash
 
-set -e
-
-function setup_env {
+setup_env() {
     export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
     export NBC_MM="$HOME/.nb-curator/mm"
     export NBC_URL="https://github.com/spacetelescope/nb-curator"
     export MAMBA_ROOT_PREFIX=${NBC_MM}
     export PATH=${NBC_MM}/bin:${PATH}
     export PATH=${NBC_MM}/envs/nbcurator/bin:${PATH}
+    
+    # Detect current shell for micromamba hook
+    if [ -n "$ZSH_VERSION" ]; then
+        export NBC_SHELL="zsh"
+    elif [ -n "$BASH_VERSION" ]; then
+        export NBC_SHELL="bash"
+    elif [ -n "$FISH_VERSION" ]; then
+        export NBC_SHELL="fish"
+    else
+        # Fallback to detecting from $SHELL or $0
+        case "${SHELL##*/}" in
+            zsh) export NBC_SHELL="zsh" ;;
+            fish) export NBC_SHELL="fish" ;;
+            *) export NBC_SHELL="bash" ;;
+        esac
+    fi
 }
 
-function bootstrap {
+bootstrap() {
     export OS=$(uname -s | awk '{ print tolower($1); } ')
     export ARCH=$(uname -m | awk '{ print tolower($1); }')
     case "$OS-$ARCH" in
@@ -34,7 +48,13 @@ function bootstrap {
     # Git OS/CPU-specific micromamba binary
     ( mkdir -p ${NBC_MM}; cd ${NBC_MM}; curl -Ls $URL | tar -xvj bin/micromamba )
 
-    eval "$($NBC_MM/bin/micromamba shell hook --shell bash)"
+    # Before using the shell hook, verify it's supported
+    if ! $NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL >/dev/null 2>&1; then
+        echo "Warning: Shell '$NBC_SHELL' may not be fully supported by micromamba"
+        export NBC_SHELL="bash"  # fallback
+    fi
+
+    eval "$($NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL)"
 
     micromamba config append channels conda-forge
     micromamba config set channel_priority strict
@@ -83,7 +103,7 @@ case $1 in
     ;;
 esac
 
-eval "$($NBC_MM/bin/micromamba shell hook --shell bash)"
+eval "$($NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL)"
 
 case $1 in
     environment)

@@ -169,7 +169,7 @@ class NotebookCurator:
     def _generate_target_mamba_spec(self) -> Optional[str]:
         """Generate mamba environment specification."""
         mamba_files = self.injector.find_spi_mamba_requirements_files()
-        mamba_spec = self.compiler.generate_mamba_spec(
+        mamba_spec = self.compiler.generate_target_mamba_spec(
             self.spec_manager.kernel_name, mamba_files
         )
         if not mamba_spec:
