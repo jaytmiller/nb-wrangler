@@ -99,7 +99,6 @@ case $1 in
     	shift;
 	    rm -rf ${NBC_MM}
     	bootstrap;
-        exit $?
 	;;
     *)
     ;;
@@ -108,8 +107,17 @@ esac
 eval "$($NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL)"
 
 case $1 in
+    boot*)
+        if [ $# -gt 0 ]; then
+            micromamba activate nbcurator
+            python -m nb_curator --install $*
+            exit $?
+        else
+            exit $?
+        fi
+    ;;
     environment)
-	micromamba activate nbcurator
+        micromamba activate nbcurator
 	;;
     activate)
         micromamba activate $2
@@ -118,8 +126,8 @@ case $1 in
         micromamba deactivate
 	;;
     *)
-	micromamba activate nbcurator
-	python -m nb_curator $*
+        micromamba activate nbcurator
+	    python -m nb_curator $*
 	;;	
 esac
 

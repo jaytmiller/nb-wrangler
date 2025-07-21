@@ -20,6 +20,7 @@ from .logging import CuratorLogger
 
 DEFAULT_TIMEOUT = 300
 
+
 class EnvironmentManager:
     """Manages Python environment setup and package installation."""
 
@@ -47,6 +48,7 @@ class EnvironmentManager:
     # the basic nbcurator environment and inlines the above requirements
     # for CURATOR_PACKAGES.
     DEFAULT_TIMEOUT = 300
+    REPO_CLONE_TIMEOUT = 300
     ENV_INSTALL__TIMEOUT = 600
     ENV_CREATE_TIMEOUT = 600
     INSTALL_PACKAGES_TIMEOUT = 1200
