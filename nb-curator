@@ -1,7 +1,5 @@
 #! /bin/bash
 
-set -x
-
 setup_env() {
     export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
     export NBC_ROOT=${NBC_ROOT:-"$HOME/.nb-curator"}
@@ -98,7 +96,6 @@ setup_env
 
 case $1 in
     boot*)
-        shift;
         rm -rf ${NBC_MM}
         bootstrap;
         ;;
