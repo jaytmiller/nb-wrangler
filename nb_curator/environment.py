@@ -18,6 +18,7 @@ from typing import List, Any
 
 from .logging import CuratorLogger
 
+DEFAULT_TIMEOUT = 300
 
 class EnvironmentManager:
     """Manages Python environment setup and package installation."""
@@ -28,17 +29,15 @@ class EnvironmentManager:
     TARGET_PACKAGES = [
         "uv",
         "pip",
-        
         "ipykernel",
         "jupyter",
-
         "cython",
         "setuptools",
         "wheel",
     ]
 
     # The target environment does not currently require papermill to
-    # support notebook testing,  it can be run from the curator 
+    # support notebook testing,  it can be run from the curator
     # environment so don't make it a TARGET dependency.
     CURATOR_PACKAGES = [
         "papermill",
@@ -47,6 +46,12 @@ class EnvironmentManager:
     # IMPORTANT: see also the nb-curator bash script used for bootstrapping
     # the basic nbcurator environment and inlines the above requirements
     # for CURATOR_PACKAGES.
+    DEFAULT_TIMEOUT = 300
+    ENV_INSTALL__TIMEOUT = 600
+    ENV_CREATE_TIMEOUT = 600
+    INSTALL_PACKAGES_TIMEOUT = 1200
+    PIP_COMPILE_TIMEOUT = 600
+    IMPORT_TEST_TIMEOUT = 300
 
     # ------------------------------------------------------------------------------
 
@@ -58,7 +63,7 @@ class EnvironmentManager:
         self,
         command: List[str],
         check=True,
-        timeout=300,
+        timeout=DEFAULT_TIMEOUT,
         text=True,
         output_mode="separate",
         **extra_parameters,
@@ -68,18 +73,22 @@ class EnvironmentManager:
         parameters = dict(
             text=text,
             check=check,
-            timeout=timeout,
+            timeout=DEFAULT_TIMEOUT,
         )
         if output_mode == "combined":
-            parameters.update(dict(                
-                capture_output=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-            ))
+            parameters.update(
+                dict(
+                    capture_output=False,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT,
+                )
+            )
         elif output_mode == "separate":
-            parameters.update(dict(                
-                capture_output=True,
-            ))
+            parameters.update(
+                dict(
+                    capture_output=True,
+                )
+            )
         else:
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
@@ -133,7 +142,7 @@ class EnvironmentManager:
         self.logger.info(f"Creating environment: {environment_name}")
         mm_prefix = [self.micromamba_path, "create", "--yes", "-n", environment_name]
         command = mm_prefix + ["-f", str(micromamba_specfile)]
-        result = self.curator_run(command, check=False)
+        result = self.curator_run(command, check=False, timeout=self.ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to create environment {environment_name}: \n",
@@ -153,7 +162,7 @@ class EnvironmentManager:
             "-n",
             environment_name,
         ]
-        result = self.curator_run(command, check=False)
+        result = self.curator_run(command, check=False, timeout=self.ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to delete environment {environment_name}",
@@ -177,7 +186,9 @@ class EnvironmentManager:
             cmd += ["-r", str(path)]
 
         # Install packages using uv running in the target environment
-        result = self.env_run(environment_name, cmd, check=False)
+        result = self.env_run(
+            environment_name, cmd, check=False, timeout=self.INSTALL_PACKAGES_TIMEOUT
+        )
         return self.handle_result(
             result,
             "Package installation failed:",
@@ -202,7 +213,9 @@ class EnvironmentManager:
             cmd += ["-r", str(path)]
 
         # Install packages using uv
-        result = self.env_run(environment_name, cmd, check=False)
+        result = self.env_run(
+            environment_name, cmd, check=False, timeout=self.INSTALL_PACKAGES_TIMEOUT
+        )
         return self.handle_result(
             result,
             "Package un-installation failed:",
@@ -241,6 +254,7 @@ sys.exit(int(len(errs) != 0))
             environment_name,
             ["python", "-c", import_code],
             check=False,
+            timeout=self.IMPORT_TEST_TIMEOUT,
         )
         return self.handle_result(
             result,

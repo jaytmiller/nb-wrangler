@@ -2,11 +2,13 @@
 
 setup_env() {
     export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
-    export NBC_MM="$HOME/.nb-curator/mm"
-    export NBC_URL="https://github.com/spacetelescope/nb-curator"
+    export NBC_ROOT=${NBC_ROOT:-"$HOME/.nb-curator"}
+    
+    export NBC_MM="${NBC_ROOT}/mm"
     export MAMBA_ROOT_PREFIX=${NBC_MM}
+    export NBC_URL="https://github.com/spacetelescope/nb-curator"
     export PATH=${NBC_MM}/bin:${PATH}
-    export PATH=${NBC_MM}/envs/nbcurator/bin:${PATH}
+    # export PATH=${NBC_MM}/envs/nbcurator/bin:${PATH}
     
     # Detect current shell for micromamba hook
     if [ -n "$ZSH_VERSION" ]; then

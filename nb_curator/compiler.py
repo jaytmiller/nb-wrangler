@@ -87,7 +87,9 @@ class RequirementsCompiler:
         # if self.logger.verbose:
         #    cmd.append("--verbose")
 
-        result = self.env_manager.curator_run(cmd, check=False)
+        result = self.env_manager.curator_run(
+            cmd, check=False, timeout=self.env_manager.PIP_COMPILE_TIMEOUT
+        )
         return self.env_manager.handle_result(result, "uv pip compile failed:")
 
     def read_package_versions(self, requirements_files: List[Path]) -> List[str]:
@@ -128,7 +130,9 @@ class RequirementsCompiler:
         result = sorted(result)
         return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
 
-    def generate_target_mamba_spec(self, kernel_name: str, mamba_files: List[str]) -> dict:
+    def generate_target_mamba_spec(
+        self, kernel_name: str, mamba_files: List[str]
+    ) -> dict:
         """Generate mamba environment specification and return dict for YAML."""
         try:
             self.logger.debug("Generating spec for empty mamba environment.")
@@ -148,6 +152,7 @@ class RequirementsCompiler:
         spi_packages = self.read_package_versions(mamba_files)
         dependencies += spi_packages
         dependencies += EnvironmentManager.TARGET_PACKAGES
+        dependencies = sorted(list(set(dependencies)))
         dependencies += [
             {"pip": []},
         ]

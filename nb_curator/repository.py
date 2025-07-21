@@ -54,7 +54,7 @@ class RepositoryManager:
         self.env_manager.curator_run(
             ["git", "clone", "--single-branch", repo_url, str(repo_dir)],
             check=True,
-            timeout=300,
+            timeout=self.env_manager.CLONE_TIMEOUT,
         )
         self.logger.info(f"Successfully cloned repository to {repo_dir}.")
         return repo_dir
