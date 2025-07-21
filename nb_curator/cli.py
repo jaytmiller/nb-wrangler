@@ -44,6 +44,11 @@ def parse_args():
         help="Enable debugging with pdb on exceptions.",
     )
     parser.add_argument(
+        "--log-times",
+        action="store_true",
+        help="Include ISO timestamps in log messages.",
+    )
+    parser.add_argument(
         "--init-env",
         action="store_true",
         help="Create and kernelize the target environment before curation run. See also --delete-env.",
@@ -135,6 +140,7 @@ def main():
         output_dir=args.output_dir,
         verbose=args.verbose,
         debug=args.debug,
+        log_times=args.log_times,
         micromamba_path=args.micromamba_path,
         repos_dir=args.repos_dir,
         delete_repos=args.delete_repos,

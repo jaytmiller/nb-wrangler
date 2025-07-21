@@ -22,6 +22,7 @@ class CuratorConfig:
     output_dir: Path = Path("./output")
     verbose: bool = False
     debug: bool = False
+    log_times: bool = False  # Add the new log_times parameter
 
     repos_dir: Optional[Path] = None
     delete_repos: bool = False
@@ -54,6 +55,10 @@ class CuratorConfig:
             self.compile_packages = True
             self.install_packages = True
             self.test_notebooks = ".*"
+        
+        # Validate log_times parameter
+        if not isinstance(self.log_times, bool):
+            raise ValueError("log_times must be a boolean value")
 
     @property
     def spec_file_out(self) -> Path:

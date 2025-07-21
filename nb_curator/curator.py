@@ -14,11 +14,12 @@ from .injector import get_injector
 
 
 class NotebookCurator:
-    """Main class orchestrating the notebook curation process."""
+    """Main curator class for processing notebooks."""
 
     def __init__(self, config: CuratorConfig):
         self.config = config
-        self.logger = CuratorLogger(config.verbose, config.debug)
+        # Create logger from configuration
+        self.logger = CuratorLogger.from_config(config)
         self.spec_manager = SpecManager.load_and_validate(
             self.logger,
             self.config.spec_file,
@@ -64,7 +65,9 @@ class NotebookCurator:
         return self.config.output_dir / f"{self.spec_manager.moniker}-extra-pip.txt"
 
     def main(self) -> bool:
-        """Main execution method."""
+        """Main processing method."""
+        self.logger.info("Starting notebook curation process")
+        self.logger.debug(f"Configuration: {self.config}")
         try:
             return self._main_uncaught_core()
         except Exception as e:
@@ -234,5 +237,5 @@ class NotebookCurator:
         return self.env_manager.delete_environment(self.environment_name)
 
     def print_log_counters(self):
-        """Print summary of logged messages."""
+        """Print log counters - delegate to logger."""
         self.logger.print_log_counters()
