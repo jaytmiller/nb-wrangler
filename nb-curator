@@ -1,15 +1,17 @@
 #! /bin/bash
 
+set -x
+
 setup_env() {
     export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
     export NBC_ROOT=${NBC_ROOT:-"$HOME/.nb-curator"}
-    
+
     export NBC_MM="${NBC_ROOT}/mm"
     export MAMBA_ROOT_PREFIX=${NBC_MM}
     export NBC_URL="https://github.com/spacetelescope/nb-curator"
     export PATH=${NBC_MM}/bin:${PATH}
     # export PATH=${NBC_MM}/envs/nbcurator/bin:${PATH}
-    
+
     # Detect current shell for micromamba hook
     if [ -n "$ZSH_VERSION" ]; then
         export NBC_SHELL="zsh"
@@ -31,22 +33,22 @@ bootstrap() {
     export OS=$(uname -s | awk '{ print tolower($1); } ')
     export ARCH=$(uname -m | awk '{ print tolower($1); }')
     case "$OS-$ARCH" in
-	linux-x86_64)
-	    URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
-	    ;;
-	linux-arm|linux-arm64|linux-aarch64)
-	    URL=https://micro.mamba.pm/api/micromamba/linux-aarch64/latest
-	    ;;
-	darwin-x86_64)
-	    URL=https://micro.mamba.pm/api/micromamba/osx-64/latest
-	    ;;
-	darwin-arm64)
-	    URL=https://micro.mamba.pm/api/micromamba/osx-arm64/latest
-	    ;;
-	*) 
-	    ;;
+        linux-x86_64)
+            URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
+            ;;
+        linux-arm|linux-arm64|linux-aarch64)
+            URL=https://micro.mamba.pm/api/micromamba/linux-aarch64/latest
+            ;;
+        darwin-x86_64)
+            URL=https://micro.mamba.pm/api/micromamba/osx-64/latest
+            ;;
+        darwin-arm64)
+            URL=https://micro.mamba.pm/api/micromamba/osx-arm64/latest
+            ;;
+        *)
+            ;;
     esac
-    
+
     # Git OS/CPU-specific micromamba binary
     ( mkdir -p ${NBC_MM}; cd ${NBC_MM}; curl -Ls $URL | tar -xvj bin/micromamba )
 
@@ -61,15 +63,15 @@ bootstrap() {
     micromamba config append channels conda-forge
     micromamba config set channel_priority strict
     micromamba self-update
-    
+
     micromamba activate  # this activates the base environment
     micromamba create -n nbcurator -c conda-forge
     micromamba activate nbcurator
 
     # Just set up python and installer tools
-    micromamba install --quiet --yes  -c conda-forge python=${NBC_PYTHON_VERSION} uv 
+    micromamba install --quiet --yes  -c conda-forge python=${NBC_PYTHON_VERSION} uv
     uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel cython
-    
+
     # Install nb-curator packager from github source including dependencies
     if [ ! -e bin/nb-curator ]; then
         rm -rf nbc-temp
@@ -81,7 +83,7 @@ bootstrap() {
         )
         rm -rf nbc-temp
     else
-	    uv pip install --quiet .
+        uv pip install --quiet .
     fi
 }
 
@@ -96,39 +98,53 @@ setup_env
 
 case $1 in
     boot*)
-    	shift;
-	    rm -rf ${NBC_MM}
-    	bootstrap;
-	;;
+        shift;
+        rm -rf ${NBC_MM}
+        bootstrap;
+        ;;
     *)
     ;;
 esac
 
 eval "$($NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL)"
 
-case $1 in
+NBC_COMMAND=$1
+shift;
+
+case $NBC_COMMAND in
     boot*)
-        if [ $# -gt 0 ]; then
+        echo '--------------------------------------------------------------------------------------------------------------------'
+        echo 'nb-curator is installed.  To use it, type "source nb-curator activate" or "source nb-curator activate <environment>"'
+        echo '--------------------------------------------------------------------------------------------------------------------'
+        if [ $# -eq 0 ]; then
+            echo "Proceeding with nb-curator installation of notebook spec $1"
+            echo '--------------------------------------------------------------------------------------------------------------------'
             micromamba activate nbcurator
-            python -m nb_curator --install $*
-            exit $?
+            SPEC=$1; shift;
+            if python -m nb_curator ${SPEC} --install $*; then
+                echo "Bootstrapping nb-curator COMPLETE and installing notebook spec $1 COMPLETE.  To use:  'source nb-curator activate <environment>'"
+                echo '--------------------------------------------------------------------------------------------------------------------'
+                exit 0
+            else
+                echo "Bootstrapping nb-curator COMPLETE BUT installing notebook spec $1 FAILED.  nb-curator's base environment should still be usable."
+                echo '--------------------------------------------------------------------------------------------------------------------'
+                exit $?
+            fi
         else
             exit $?
         fi
     ;;
     environment)
         micromamba activate nbcurator
-	;;
+        ;;
     activate)
-        micromamba activate $2
-	;;
+        micromamba activate $1
+        ;;
     deactivate)
         micromamba deactivate
-	;;
+        ;;
     *)
         micromamba activate nbcurator
-	    python -m nb_curator $*
-	;;	
+        python -m nb_curator $NBC_COMMAND q$*
+        ;;
 esac
-
-

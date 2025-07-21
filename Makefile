@@ -27,7 +27,8 @@ endef
 export PRINT_HELP_PYSCRIPT
 
 define TEST_OUTPUTS
-outputs references
+output
+references
 endef
 export TEST_OUTPUTS
 
@@ -82,6 +83,18 @@ lint: lint/flake8  lint/mypy  lint/black  lint/bandit ## check style, type annot
 test-all: setup lint local-test
 
 test: local-test
+
+test-bootstrap: test-bootstrap-only test-bootstrap-spec
+
+test-bootstrap-only:
+	rm -rf $NBC_ROOT
+	make clean
+	./nb-curator bootstrap
+
+test-bootstrap-spec:
+	rm -rf $NBC_ROOT
+	make clean
+	./nb-curator bootstrap ./tike-2025-07-beta.yaml
 
 local-test:  clean-test   ## run tests quickly with the default Python
 	./local-test pytest

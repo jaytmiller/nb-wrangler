@@ -227,42 +227,28 @@ class EnvironmentManager:
     def test_imports(self, environment_name: str, imports: list[str]) -> bool:
         """Test package imports."""
         self.logger.info(f"Testing {len(imports)} imports")
-        # Use inline Python to avoid path contamination between environments
-        import_code = f"""
-import sys
-import traceback
-
-imports = {imports!r}
-errs = []
-for pkg in imports:
-    if pkg.startswith("#"):
-        print("Skipping", pkg)
-        continue
-    try:
-        print("Importing", pkg, "... ", end="")
-        __import__(pkg)
-        print("ok")
-    except Exception:
-        traceback.print_exc()
-        print("FAIL")
-        errs.append(pkg)
-    sys.stdout.flush()
-    sys.stderr.flush()
-print("=" * 80)
-print(f" Failing imports: {{len(errs)}} ".center(80, "=") + "\\n", "\\n".join(errs), sep="")
-sys.exit(int(len(errs) != 0))
-"""
-        result = self.env_run(
-            environment_name,
-            ["python", "-c", import_code],
-            check=False,
-            timeout=self.IMPORT_TEST_TIMEOUT,
-        )
-        return self.handle_result(
-            result,
-            "Failed to import notebook packages:",
-            "All imports succeeded.",
-        )
+        failed_imports = []
+        for import_ in imports:
+            self.logger.debug(f"Testing import: {import_}")
+            result = self.env_run(
+                environment_name,
+                ["python", "-c", f"import {import_}"],
+                check=False,
+                timeout=20,
+            )
+            succeeded = self.handle_result(
+                result,
+                f"Failed to import {import_}:",
+                f"Import of {import_} succeeded.",
+            )
+            if not succeeded:
+                failed_imports.append(import_)
+        if failed:
+            self.logger.error(f"Failed to import {len(failed_imports)}: {failed_imports}")
+            return False
+        else:
+            self.logger.info("All imports succeeded.")
+            return True
 
     def register_environment(self, environment_name: str, display_name=None) -> bool:
         """Register Jupyter environment for the environment.

@@ -323,17 +323,14 @@ out:
     channels:
       - conda-forge
     dependencies:
-      - python=3.11
-      - pip
-      - pip-tools
-      - setuptools
-      - jupyter-packaging
-      - nodejs>=22.0
-      - uv
-      - pip
+      - cython
       - ipykernel
       - jupyter
-      - cython
+      - jupyter-packaging
+      - nodejs>=22.0
+      - pip
+      - pip-tools
+      - python=3.11
       - setuptools
+      - uv
       - wheel
-      - pip: []

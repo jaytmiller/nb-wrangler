@@ -153,9 +153,6 @@ class RequirementsCompiler:
         dependencies += spi_packages
         dependencies += EnvironmentManager.TARGET_PACKAGES
         dependencies = sorted(list(set(dependencies)))
-        dependencies += [
-            {"pip": []},
-        ]
         mamba_spec = {
             "name": kernel_name,
             "channels": ["conda-forge"],
