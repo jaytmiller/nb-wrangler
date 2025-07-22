@@ -243,7 +243,7 @@ class EnvironmentManager:
             )
             if not succeeded:
                 failed_imports.append(import_)
-        if failed:
+        if failed_imports:
             self.logger.error(f"Failed to import {len(failed_imports)}: {failed_imports}")
             return False
         else:

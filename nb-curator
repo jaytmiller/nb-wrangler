@@ -98,6 +98,9 @@ case $1 in
     boot*)
         rm -rf ${NBC_MM}
         bootstrap;
+        echo '--------------------------------------------------------------------------------------------------------------------------'
+        echo 'nb-curator is installed.  To use it, type "source nb-curator activate".  Put the nb-curator somewhere script on your PATH.'
+        echo '--------------------------------------------------------------------------------------------------------------------------'
         ;;
     *)
     ;;
@@ -110,10 +113,7 @@ shift;
 
 case $NBC_COMMAND in
     boot*)
-        echo '--------------------------------------------------------------------------------------------------------------------'
-        echo 'nb-curator is installed.  To use it, type "source nb-curator activate" or "source nb-curator activate <environment>"'
-        echo '--------------------------------------------------------------------------------------------------------------------'
-        if [ $# -eq 0 ]; then
+        if [ $# -gt 0 ]; then
             echo "Proceeding with nb-curator installation of notebook spec $1"
             echo '--------------------------------------------------------------------------------------------------------------------'
             micromamba activate nbcurator
@@ -142,6 +142,6 @@ case $NBC_COMMAND in
         ;;
     *)
         micromamba activate nbcurator
-        python -m nb_curator $NBC_COMMAND q$*
+        python -m nb_curator $NBC_COMMAND $*
         ;;
 esac

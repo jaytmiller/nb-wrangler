@@ -38,31 +38,31 @@ These environments are interdependent but fully independent of your other pre-ex
 
 Bootstrapping the system will create the .nb-curator dir and nbcurator environment under $HOME.
 
-```
-# cd $SOMEPLACE_ON_YOUR_PATH
+```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
 chmod +x nb-curator
-nb-curator bootstrap
-source nb-curator environment
+./nb-curator bootstrap
+source ./nb-curator environment
 ```
 
 After that, the nb-curator "curation" environment can be re-activated by:
 
-```
-source nb-curator environment
+```bash
+source ./nb-curator environment
 ```
 
+Consider putting the nb-curator bash script in your path.
 Consider putting that in your shell RC file.
 
 The target environment can be activated by:
 
-```
+```bash
 source nb-curator activate ENVIRONMENT_NAME
 ```
 
 and either nbcurator or the target environment can be deactivated by:
 
-```
+```bash
 source nb-curator deactivate
 ```
 
@@ -71,14 +71,15 @@ source nb-curator deactivate
 Curator prepares custom version of prototype_protocol.yaml
 Curator prepares a curation Python environment with the spec'ed version of Python
 Then:
-```
-./nb_curator.py  spec.yaml  --init-env
 
-./nb_curator.py  spec.yaml   --compile
+```bash
+nb-curator  spec.yaml  --init-env
 
-./nb_curator.py  spec.yaml   --install
+nb-curator  spec.yaml   --compile
 
-./nb_curator.py  spec.yaml   --test
+nb-curator  spec.yaml   --install
+
+nb-curator  spec.yaml   --test
 ```
 
 ## Basic Flow
