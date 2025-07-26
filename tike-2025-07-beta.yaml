@@ -34,21 +34,23 @@ selected_notebooks:
     include_subdirs:
       - identifying_transiting_planet_signals
       - instrumental_noise_4_electronic_noise
-extra_pip_requirements:
+extra_mamba_packages:
+  - pip
+extra_pip_packages:
   - boto3
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
     - https://github.com/spacetelescope/tike_content
   test_notebooks:
-    - references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb
-    - references/tike_content/content/notebooks/tglc/tglc.ipynb
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb
+    - references/tike_content/content/notebooks/tglc/tglc.ipynb
     - references/tike_content/content/notebooks/data-access/data-access.ipynb
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb
+    - references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb
     - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
+    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb
     - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
+    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
   test_imports:
     - astropy
     - astroquery

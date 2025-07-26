@@ -8,6 +8,7 @@ from .config import (
     DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
+    NBC_ROOT,
 )
 from .curator import NotebookCurator
 
@@ -23,7 +24,7 @@ def parse_args():
     parser.add_argument(
         "--output-dir",
         type=str,
-        default="./output",
+        default=NBC_ROOT / "output",
         help="Directory to store output files",
     )
     parser.add_argument(

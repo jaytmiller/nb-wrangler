@@ -131,27 +131,26 @@ class RequirementsCompiler:
         return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
 
     def generate_target_mamba_spec(
-        self, kernel_name: str, mamba_files: List[str]
+        self, kernel_name: str, dependencies: List[str]
     ) -> dict:
         """Generate mamba environment specification and return dict for YAML."""
         try:
             self.logger.debug("Generating spec for empty mamba environment.")
-            return self._generate_mamba_spec_core(kernel_name, mamba_files)
+            return self._generate_mamba_spec_core(kernel_name, dependencies)
         except Exception as e:
             return self.logger.exception(
                 f"Failed generating spec for empty mamba environment: {e}:"
             )
 
     def _generate_mamba_spec_core(
-        self, kernel_name: str, mamba_files: List[str]
+        self, kernel_name: str, dependencies_in: List[str]
     ) -> dict:
         """Uncaught core processing of generate_mamba_spec."""
         dependencies = [
             f"python={self.python_version}" if self.python_version else "3",
         ]
-        spi_packages = self.read_package_versions(mamba_files)
-        dependencies += spi_packages
         dependencies += EnvironmentManager.TARGET_PACKAGES
+        dependencies += dependencies_in
         dependencies = sorted(list(set(dependencies)))
         mamba_spec = {
             "name": kernel_name,

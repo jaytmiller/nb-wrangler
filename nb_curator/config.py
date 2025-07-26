@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+NBC_ROOT = Path(
+    os.environ.get("NBC_ROOT", Path(os.environ.get("HOME", ".")) / ".nb-curator")
+)
+
+NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", NBC_ROOT / "nbc-pantry"))
+
 DEFAULT_MICROMAMBA_PATH = os.environ.get("NBC_MM", "") + "/bin/" + "micromamba"
 
 NOTEBOOK_TEST_MAX_SECS = 30 * 60
@@ -34,6 +40,10 @@ class CuratorConfig:
     install_packages: bool = False
     uninstall_packages: bool = False
 
+    pack_environment: bool = False
+    unpack_environment: bool = False
+    compact_curator: bool = False
+
     test_notebooks: str | None = None
     jobs: int = NOTEBOOK_TEST_JOBS
     timeout: int = NOTEBOOK_TEST_MAX_SECS
@@ -55,7 +65,7 @@ class CuratorConfig:
             self.compile_packages = True
             self.install_packages = True
             self.test_notebooks = ".*"
-        
+
         # Validate log_times parameter
         if not isinstance(self.log_times, bool):
             raise ValueError("log_times must be a boolean value")
@@ -63,4 +73,4 @@ class CuratorConfig:
     @property
     def spec_file_out(self) -> Path:
         """Output path for the spec file."""
-        return self.output_dir / os.path.basename(self.spec_file)
+        return os.path.basename(self.spec_file)

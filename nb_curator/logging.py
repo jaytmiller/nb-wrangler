@@ -12,7 +12,9 @@ if TYPE_CHECKING:
 class CuratorLogger:
     """Enhanced logging with error tracking and debug support."""
 
-    def __init__(self, verbose: bool = False, debug_mode: bool = False, log_times: bool = False):
+    def __init__(
+        self, verbose: bool = False, debug_mode: bool = False, log_times: bool = False
+    ):
         self.verbose = verbose
         self.debug_mode = debug_mode
         self.log_times = log_times
@@ -35,13 +37,15 @@ class CuratorLogger:
             level=logging.DEBUG if self.verbose else logging.INFO,
             format=log_format,
             datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
-            force=True  # Override any existing configuration
+            force=True,  # Override any existing configuration
         )
         self.logger = logging.getLogger("curator")
 
-    def reconfigure_logging(self, verbose: bool = None, debug_mode: bool = None, log_times: bool = None):
+    def reconfigure_logging(
+        self, verbose: bool = None, debug_mode: bool = None, log_times: bool = None
+    ):
         """Reconfigure logging settings dynamically.
-        
+
         Args:
             verbose: If provided, update verbose setting
             debug_mode: If provided, update debug_mode setting
@@ -53,20 +57,18 @@ class CuratorLogger:
             self.debug_mode = debug_mode
         if log_times is not None:
             self.log_times = log_times
-        
+
         # Reconfigure with new settings
         self._configure_logging()
 
     def update_from_config(self, config: "CuratorConfig"):
         """Update logger settings from CuratorConfig.
-        
+
         Args:
             config: CuratorConfig instance with logging settings
         """
         self.reconfigure_logging(
-            verbose=config.verbose,
-            debug_mode=config.debug,
-            log_times=config.log_times
+            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times
         )
 
     def _lformat(self, *args) -> str:
@@ -94,6 +96,7 @@ class CuratorLogger:
     def debug(self, *args) -> None:
         """Log a debug message."""
         self.logger.debug(self._lformat(*args))
+        return None  # falsy,  but neither True nor False
 
     def exception(self, e: Exception, *args) -> bool:
         """Handle an exception with optional debugging."""
@@ -120,15 +123,13 @@ class CuratorLogger:
     @classmethod
     def from_config(cls, config: "CuratorConfig") -> "CuratorLogger":
         """Create a CuratorLogger from a CuratorConfig.
-        
+
         Args:
             config: CuratorConfig instance
-            
+
         Returns:
             CuratorLogger instance configured from the config
         """
         return cls(
-            verbose=config.verbose,
-            debug_mode=config.debug,
-            log_times=config.log_times
+            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times
         )

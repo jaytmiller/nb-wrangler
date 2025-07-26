@@ -170,9 +170,14 @@ class SpecManager:
         return self._spec["selected_notebooks"]
 
     @property
-    def extra_pip_requirements(self) -> List[str]:
+    def extra_mamba_packages(self) -> List[str]:
         self._ensure_validated()
-        return self._spec["extra_pip_requirements"]
+        return self._spec["extra_mamba_packages"]
+
+    @property
+    def extra_pip_packages(self) -> List[str]:
+        self._ensure_validated()
+        return self._spec["extra_pip_packages"]
 
     @property
     def moniker(self) -> str:
@@ -199,7 +204,8 @@ class SpecManager:
             "deployment_name",
             "kernel_name",
         ],
-        "extra_pip_requirements": [],
+        "extra_mamba_packages": [],
+        "extra_pip_packages": [],
         "selected_notebooks": [
             "nb_repo",
             "root_nb_directory",

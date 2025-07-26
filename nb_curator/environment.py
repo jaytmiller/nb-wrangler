@@ -9,7 +9,10 @@ uv is used to manage pip packages in the target environment.
 environmentsinstall non-pip Python packages
 """
 
+import os
 import json
+import shutil
+import shlex
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
@@ -17,6 +20,7 @@ from typing import List, Any
 
 
 from .logging import CuratorLogger
+from .config import NBC_ROOT, NBC_PANTRY
 
 DEFAULT_TIMEOUT = 300
 
@@ -61,21 +65,68 @@ class EnvironmentManager:
         self.logger = logger
         self.micromamba_path = micromamba_path
 
+    @property
+    def nbc_root_dir(self) -> Path:
+        return NBC_ROOT
+
+    @property
+    def nbc_mm_dir(self) -> Path:
+        return NBC_ROOT / "mm"
+
+    @property
+    def nbc_pantry_dir(self) -> Path:
+        return NBC_PANTRY
+
+    @property
+    def mm_envs_dir(self) -> Path:
+        return self.nbc_mm_dir / "envs"
+
+    @property
+    def mm_pkgs_dir(self) -> Path:
+        return self.nbc_mm_dir / "pkgs"
+
+    @property
+    def nbc_cache_dir(self) -> Path:
+        return os.environ.get("NBC_CACHE", self.nbc_root_dir / "cache")
+
+    @property
+    def env_store_path(self, environment_name: str) -> Path:
+        return self.pantry_dir / "envs" / environment_name.tolower() + ".zst"
+
+    @property
+    def env_live_path(self, environment_name: str) -> Path:
+        return self.mm_envs_dir / environment_name
+
+    def _condition_cmd(self, cmd: List[str] | str) -> list[str]:
+        """Condition the command into a list of UNIX CLI 'words'.
+
+        If command is already a string,  split it into string "words".
+        If it is a list,  make sure every element is a string.
+        """
+        if isinstance(cmd, (list, tuple)):
+            return [str(word) for word in cmd]
+        elif isinstance(cmd, str):
+            return shlex.split(cmd)
+        else:
+            raise TypeError("cmd must be a list or str")
+
     def curator_run(
         self,
-        command: List[str],
+        command: List[str] | str,
         check=True,
+        cwd=None,
         timeout=DEFAULT_TIMEOUT,
         text=True,
         output_mode="separate",
         **extra_parameters,
     ) -> str | CompletedProcess[Any] | None:
         """Run a command in the current environment."""
-        command = [str(word) for word in command]
+        command = self._condition_cmd(command)
         parameters = dict(
             text=text,
             check=check,
-            timeout=DEFAULT_TIMEOUT,
+            cwd=cwd,
+            timeout=timeout,
         )
         if output_mode == "combined":
             parameters.update(
@@ -127,12 +178,13 @@ class EnvironmentManager:
             return self.logger.info(success) if success else True
 
     def env_run(
-        self, environment, command: List[str], **keys
+        self, environment, command: List[str] | str, **keys
     ) -> str | CompletedProcess[Any] | None:
         """Run a command in the specified environment.
 
         See EnvironmentManager.run for **keys optional settings.
         """
+        command = self._condition_cmd(command)
         self.logger.debug(f"Running command {command} in environment: {environment}")
         mm_prefix = [self.micromamba_path, "run", "-n", environment]
         return self.curator_run(mm_prefix + command, **keys)
@@ -205,14 +257,9 @@ class EnvironmentManager:
         """Uninstall the compiled package lists."""
         self.logger.info(f"Uninstalling packages from: {requirements_paths}")
 
-        cmd = [
-            "uv",
-            "pip",
-            "uninstall",
-            "--yes",
-        ]
+        cmd = "uv pip uninstall --yes"
         for path in requirements_paths:
-            cmd += ["-r", str(path)]
+            cmd += " -r " + str(path)
 
         # Install packages using uv
         result = self.env_run(
@@ -232,7 +279,7 @@ class EnvironmentManager:
             self.logger.debug(f"Testing import: {import_}")
             result = self.env_run(
                 environment_name,
-                ["python", "-c", f"import {import_}"],
+                f"python -c 'import {import_}'",
                 check=False,
                 timeout=20,
             )
@@ -244,7 +291,9 @@ class EnvironmentManager:
             if not succeeded:
                 failed_imports.append(import_)
         if failed_imports:
-            self.logger.error(f"Failed to import {len(failed_imports)}: {failed_imports}")
+            self.logger.error(
+                f"Failed to import {len(failed_imports)}: {failed_imports}"
+            )
             return False
         else:
             self.logger.info("All imports succeeded.")
@@ -257,17 +306,12 @@ class EnvironmentManager:
         files under $HOME related to *any* jupyter environment the
         user has.
         """
-        cmd = [
-            "python",
-            "-m",
-            "ipykernel",
-            "install",
-            "--user",
-            "--name",
-            environment_name,
-            "--display-name",
-            display_name or environment_name,
-        ]
+        cmd = self._condition_cmd(
+            f"python -m ipykernel install --user --name {environment_name} --display-name "
+        )
+        cmd += [
+            display_name or environment_name
+        ]  # display name may be multi-word,  string splits break quoting
         result = self.env_run(environment_name, cmd, check=False)
         return self.handle_result(
             result, f"Failed to register environment {environment_name}: "
@@ -275,13 +319,7 @@ class EnvironmentManager:
 
     def unregister_environment(self, environment_name: str) -> bool:
         """Unregister Jupyter environment for the environment."""
-        cmd = [
-            "jupyter",
-            "kernelspec",
-            "uninstall",
-            "--yes",
-            environment_name,
-        ]
+        cmd = f"jupyter kernelspec uninstall --yes {environment_name}"
         result = self.env_run(environment_name, cmd, check=False)
         return self.handle_result(
             result, f"Failed to unregister environment {environment_name}: "
@@ -289,7 +327,7 @@ class EnvironmentManager:
 
     def environment_exists(self, environment_name: str) -> bool:
         """Return True IFF `environment_name` exists."""
-        cmd = [self.micromamba_path, "env", "list", "--json"]
+        cmd = self.micromamba_path + " env list --json"
         try:
             result = self.curator_run(cmd, check=True)
         except Exception as e:
@@ -311,3 +349,51 @@ class EnvironmentManager:
                 f"Environment '{environment_name}' does not exist.  Auto-initing basic empty environment."
             )
             return False
+
+    def archive(self, source_dirpath: Path, archive_filepath: Path) -> bool:
+        Path(archive_filepath).mkdir(parents=True, exist_ok=True)
+        Path(source_dirpath).mkdir(parents=True, exist_ok=True)
+        cmd = f"tar -acf {archive_filepath} ."
+        result = self.curator_run(cmd, cwd=source_dirpath, check=False)
+        return self.handle_result(
+            result, f"Failed to pack {source_dirpath} into {archive_filepath}:"
+        )
+
+    def unarchive(
+        self, archive_filepath: str | Path, destination_dirpath: str | Path
+    ) -> bool:
+        Path(destination_dirpath).mkdir(parents=True, exist_ok=True)
+        cmd = f"tar -axf {archive_filepath} ."
+        result = self.curator_run(cmd, cwd=destination_dirpath, check=False)
+        return self.handle_result(
+            result, f"Failed to unpack {archive_filepath} into {destination_dirpath}:"
+        )
+
+    def pack_environment(self, environment_name: str):
+        return self.archive(
+            self.env_live_path(environment_name), self.env_store_path(environment_name)
+        )
+
+    def unpack_environment(self, environment_name: str):
+        return self.archive(
+            self.env_live_path(environment_name), self.env_store_path(environment_name)
+        )
+
+    def pack_curator(self, archive_filepath: Path | str) -> bool:
+        archive_filepath.parent.mkdir(parents=True, exist_ok=True)
+        return self.archive(self.nbc_root_dir, archive_filepath)
+
+    def unpack_curator(self, archive_filepath: Path | str):
+        self.nbc_root_dir.mkdir(parents=True, exist_ok=True)
+        return self.unarchive(archive_filepath, self.nbc_root_dir)
+
+    def compact_curator(self) -> bool:
+        try:
+            if self.mm_pkgs_dir.exist():
+                shutil.rmtree(str(self.mm_pkgs_dir))
+            if self.nbc_cache_dir.exists():
+                shutil.rmtree(str(self.nbc_cache_dir))
+            self.logger.debug("Curator compacted successfully")
+            return True
+        except Exception as e:
+            return self.logger.exception(f"Failed to compact curator: {e}")

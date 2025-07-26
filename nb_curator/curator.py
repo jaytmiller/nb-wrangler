@@ -49,10 +49,6 @@ class NotebookCurator:
         return self.spec_manager.kernel_name if self.spec_manager else None
 
     @property
-    def extra_pip_requirements(self):
-        return self.spec_manager.extra_pip_requirements if self.spec_manager else None
-
-    @property
     def mamba_spec_file(self):
         return self.config.output_dir / f"{self.spec_manager.moniker}-mamba.yml"
 
@@ -76,26 +72,29 @@ class NotebookCurator:
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow."""
 
+        # Delete the output section of the spec.
         if self.config.reset_spec:
-            self.spec_manager.reset_spec()
+            if not self.spec_manager.reset_spec():
+                return False
 
         # Setup repositories
         if not self._clone_setup():
-            return self.log.error("Basic repo notebook setup and selection failed.")
+            return self.logger.error("Basic repo notebook setup and selection failed.")
 
         # Set up basic empty target/test environment and kernel
-        target_env_exists = self.env_manager.environment_exists(self.environment_name)
-        if self.config.init_env or not target_env_exists:
+        if self.config.init_env:
             if not self._initialize_environment():
                 return False
 
-        # Handle target environment pip requirements file locations and constraint resolution
         if self.config.compile_packages:
             if not self._compile_requirements():
                 return False
 
         # Install compiled pip package versions into the target environment, test explicit notebook imports
         if self.config.install_packages:
+            target_env_exists = self.env_manager.environment_exists(self.environment_name)
+            if not target_env_exists:
+                self._initialize_environment()
             if not self._install_packages():
                 return False
 
@@ -124,6 +123,18 @@ class NotebookCurator:
         # Remove all notebook and/or build environment repo clones.
         if self.config.delete_repos:
             if not self.repo_manager.delete_repos():
+                return False
+
+        if self.config.compact_curator:
+            if not self.env_manager.compact_environment():
+                return False
+
+        if self.config.pack_environment:
+            if not self.env_manager.pack_environment(self.environment_name):
+                return False
+
+        if self.config.unpack_environment:
+            if not self.env_manager.unpack_environment(self.environment_name):
                 return False
 
         return True
@@ -171,15 +182,18 @@ class NotebookCurator:
 
     def _generate_target_mamba_spec(self) -> Optional[str]:
         """Generate mamba environment specification."""
-        mamba_files = self.injector.find_spi_mamba_requirements_files()
+        spi_files = self.injector.find_spi_mamba_files()
+        spi_packages = self.compiler.read_package_versions(spi_files)
+        extra_mamba_packages = self.spec_manager.extra_mamba_packages
+        mamba_packages = spi_packages + extra_mamba_packages
         mamba_spec = self.compiler.generate_target_mamba_spec(
-            self.spec_manager.kernel_name, mamba_files
+            self.spec_manager.kernel_name, mamba_packages
         )
         if not mamba_spec:
             return None
         self.spec_manager.revise_and_save(
             output_dir=self.config.output_dir,
-            mamba_requirements_files=mamba_files,
+            mamba_requirements_files=spi_files,
             mamba_spec=mamba_spec,
             injector_urls=self.injector.urls,
         )
@@ -192,7 +206,7 @@ class NotebookCurator:
         if not requirements_files:
             return False
         if not self.compiler.write_pip_requirements_file(
-            self.extra_pip_output_file, self.extra_pip_requirements
+            self.extra_pip_output_file, self.spec_manager.extra_pip_packages
         ):
             return False
         requirements_files.append(self.extra_pip_output_file)
@@ -202,7 +216,6 @@ class NotebookCurator:
         if not package_versions:
             return False
         return self.spec_manager.revise_and_save(
-            output_dir=self.config.output_dir,
             pip_requirements_files=requirements_files,
             package_versions=package_versions,
         )
