@@ -200,7 +200,7 @@ class SpecManager:
             "expires_on",
             "python_version",
             "nb_repo",
-            "root_nb_directory",
+            "nb_root_directory",
             "deployment_name",
             "kernel_name",
         ],
@@ -208,7 +208,7 @@ class SpecManager:
         "extra_pip_packages": [],
         "selected_notebooks": [
             "nb_repo",
-            "root_nb_directory",
+            "nb_root_directory",
             "include_subdirs",
             "exclude_subdirs",
         ],
@@ -318,7 +318,7 @@ class SpecManager:
     def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
         """Collect paths to all notebooks specified by the spec."""
         notebook_paths = []
-        header_root = self._spec["image_spec_header"].get("root_nb_directory", "")
+        header_root = self._spec["image_spec_header"].get("nb_root_directory", "")
         for entry in self._spec["selected_notebooks"]:
             selection_repo = entry.get(
                 "nb_repo", self._spec["image_spec_header"]["nb_repo"]
@@ -327,7 +327,7 @@ class SpecManager:
             if not clone_dir:
                 self.logger.error(f"Repository not set up: {clone_dir}")
                 continue
-            entry_root = entry.get("root_nb_directory")
+            entry_root = entry.get("nb_root_directory")
             final_notebook_root = entry_root or header_root
             entry_paths = self._process_directory_entry(
                 entry, clone_dir, final_notebook_root
@@ -344,12 +344,12 @@ class SpecManager:
         return repos_dir / basename
 
     def _process_directory_entry(
-        self, entry: dict, repo_dir: Path, root_nb_directory: str
+        self, entry: dict, repo_dir: Path, nb_root_directory: str
     ) -> List[str]:
         """Process a directory entry from the spec file."""
         base_path = repo_dir
-        if root_nb_directory:
-            base_path = base_path / root_nb_directory
+        if nb_root_directory:
+            base_path = base_path / nb_root_directory
         possible_notebooks = base_path.glob("**/*.ipynb")
 
         include_subdirs = entry.get("include_subdirs", [r"."])

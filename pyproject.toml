@@ -30,6 +30,7 @@ dependencies = [
     "mamba",
     "setuptools",
     "pipdeptree",
+    "boto3",
 ]
 
 [project.optional-dependencies]

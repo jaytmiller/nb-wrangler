@@ -2,6 +2,7 @@
 
 import sys
 import argparse
+import logging
 
 from .config import (
     CuratorConfig,
@@ -9,10 +10,11 @@ from .config import (
     REPOS_DIR,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
-    NBC_ROOT,
 )
 
 from .curator import NotebookCurator
+from . import utils
+
 
 def parse_args():
     """Parse command line arguments."""
@@ -20,7 +22,9 @@ def parse_args():
         description="Process notebook image specification YAML and prepare notebook environment and tests."
     )
     parser.add_argument(
-        "spec_file", type=str, help="Path to the YAML specification file."
+        "spec_uri",
+        type=str,
+        help="URI to the YAML specification file:  simple path, file:// path, https://, http://, or s3://",
     )
     parser.add_argument(
         "-v",
@@ -149,39 +153,32 @@ def parse_args():
 
 def main():
     """Main entry point for the CLI."""
-    args = parse_args()
-    # Create configuration
-    config = CuratorConfig(
-        spec_file=args.spec_file,
-        verbose=args.verbose,
-        debug=args.debug,
-        log_times=args.log_times,
-        clone_repos=args.clone_repos,
-        repos_dir=args.repos_dir,
-        delete_repos=args.delete_repos,
-        init_env=args.init_env,
-        delete_env=args.delete_env,
-        compile_packages=args.compile_packages,
-        omit_spi_packages=args.omit_spi_packages,
-        install_packages=args.install_packages,
-        uninstall_packages=args.uninstall_packages,
-        test_notebooks=args.test_notebooks,
-        jobs=args.jobs,
-        timeout=args.timeout,
-        reset_spec=args.reset_spec,
-        inject_spi=args.inject_spi,
-        submit_for_build=args.submit_for_build,
-        curate=args.curate,
-        pack_env=args.pack_env,
-        unpack_env=args.unpack_env,
-    )
+    try:
+        args = parse_args()
 
-    # Create and run curator
-    curator = NotebookCurator(config)
-    success = curator.main()
-    curator.print_log_counters()
+        # Convert URI to local path
+        spec_file = utils.uri_to_local_path(args.spec_uri)
 
-    sys.exit(0 if success else 1)
+        # Create configuration using simplified factory method
+        config = CuratorConfig.from_args(args, spec_file)
+
+        # Create and run curator
+        curator = NotebookCurator(config)
+        success = curator.main()
+        curator.print_log_counters()
+
+        sys.exit(0 if success else 1)
+
+    except KeyboardInterrupt:
+        print("\nOperation cancelled by user", file=sys.stderr)
+        sys.exit(1)
+    except Exception as e:
+        logging.error(f"Fatal error: {e}")
+        if hasattr(args, "debug") and args.debug:
+            import traceback
+
+            traceback.print_exc()
+        sys.exit(1)
 
 
 if __name__ == "__main__":

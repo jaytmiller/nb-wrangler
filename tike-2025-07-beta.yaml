@@ -9,7 +9,7 @@ image_spec_header:
   expires_on: 2025-10-02
   python_version: 3.11
   nb_repo: https://github.com/spacetelescope/tike_content
-  root_nb_directory: content/notebooks/
+  nb_root_directory: content/notebooks/
 # these are the useful tike_content notebooks
 selected_notebooks:
   - include_subdirs:
@@ -24,13 +24,13 @@ selected_notebooks:
   # -------------------------------------------------
   # include TESS notebooks
   - nb_repo: https://github.com/spacetelescope/mast_notebooks
-    root_nb_directory: notebooks/TESS
+    nb_root_directory: notebooks/TESS
     include_subdirs:
       - beginner_how_to_use_lc
       - beginner_tour_lc_tp
   # include Kepler notebooks
   - nb_repo: https://github.com/spacetelescope/mast_notebooks
-    root_nb_directory: notebooks/Kepler
+    nb_root_directory: notebooks/Kepler
     include_subdirs:
       - identifying_transiting_planet_signals
       - instrumental_noise_4_electronic_noise
