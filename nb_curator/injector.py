@@ -59,7 +59,7 @@ class SpiInjector:
             self.kernel_path / "*.mamba",
         ]
 
-    def inject(self) -> None:
+    def inject(self) -> bool:
         """
         Performs a placeholder injection of the SPI.
         In a real implementation, this would gather information about
@@ -74,7 +74,7 @@ class SpiInjector:
         self._inject("package_versions", self.env_pip)
         self._inject("test_imports", self.test_path / "imports")
         self._inject("test_notebooks", self.test_path / "notebooks")
-        self.logger.info("SPI injection complete.")
+        return self.logger.info("SPI injection complete.")
 
     def _inject(self, field: str, where: str | Path) -> None:
         self.logger.info(f"Injecting field {field} to {where}")

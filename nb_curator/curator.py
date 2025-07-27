@@ -78,8 +78,9 @@ class NotebookCurator:
                 return False
 
         # Setup repositories
-        if not self._clone_setup():
-            return self.logger.error("Basic repo notebook setup and selection failed.")
+        if self.config.clone_repos:
+            if not self._clones_setup():
+                return self.logger.error("Basic repo notebook setup and selection failed.")
 
         # Set up basic empty target/test environment and kernel
         if self.config.init_env:
@@ -92,21 +93,20 @@ class NotebookCurator:
 
         # Install compiled pip package versions into the target environment, test explicit notebook imports
         if self.config.install_packages:
-            target_env_exists = self.env_manager.environment_exists(self.environment_name)
-            if not target_env_exists:
-                self._initialize_environment()
+            self._requires_compilation()
+            self._requires_environment()
             if not self._install_packages():
                 return False
 
         # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
         if self.config.test_notebooks:
-            if not self._test_notebooks():
-                return False
+            self._requires_test_notebooks()
 
         # Inject critical output fields from the finished spec into the build environment clone.
         # The clone should then be requirements complete for a manual or automated notebook image build.
         if self.config.inject_spi:
-            self.injector.inject()
+            if not self.injector.inject():
+                return False
 
         # Remove the compiled list of packages but leave behind the basic target environment.
         if self.config.uninstall_packages:
@@ -139,28 +139,55 @@ class NotebookCurator:
 
         return True
 
-    def _clone_setup(self):
+    def _requires_repos(self):
+        """Ensure notebook and other repos relevant to the spec have been cloned."""
+
+    def _requires_environment(self):
+        """xxx"""
+        target_env_exists = self.env_manager.environment_exists(self.environment_name)
+        if not target_env_exists:
+            self._initialize_environment()
+    
+    def _requires_compilation(self):
+        """"xxx"""
+        self._requires_repos()
+
+    def _requires_installation(self):
+        """xxx"""
+        self._requires_compilation()
+        self._requires_environment()
+
+    def _requires_test(self):
+        """xxx"""
+        self._requires_compilation()
+        self._requires_installation()
+        if not self._test_notebooks():
+            return False
+        return True
+
+    def _repo_setup(self):
         """Based on the spec and cloned repos, collect specified notebook paths
         and scrape them for package imports.
         """
         notebook_repo_urls = self.spec_manager.get_repository_urls()
-        if not self.repo_manager.setup_repos(notebook_repo_urls + self.injector.urls):
+        if self.config.omit_spi_packages and not self.config.inject_spi:
+            injector_urls = []
+        else:
+            injector_urls = self.injector.urls
+        if not self.repo_manager.setup_repos(notebook_repo_urls + injector_urls):
             return False
-
         notebook_paths = self.spec_manager.collect_notebook_paths(
             self.config.repos_dir, notebook_repo_urls
         )
         if not notebook_paths:
-            return False
-
+            self.logger.warning("No notebooks found in specified repositories using spec'd patterns.")
         test_imports = self.notebook_import_processor.extract_imports(notebook_paths)
         if not test_imports:
             self.logger.warning(
                 "No imports found in notebooks. Import tests will be skipped."
             )
-
         return self.spec_manager.revise_and_save(
-            output_dir=self.config.output_dir,
+            self.config.output_dir,
             notebook_repo_urls=notebook_repo_urls,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
@@ -182,29 +209,27 @@ class NotebookCurator:
 
     def _generate_target_mamba_spec(self) -> Optional[str]:
         """Generate mamba environment specification."""
-        spi_files = self.injector.find_spi_mamba_files()
-        spi_packages = self.compiler.read_package_versions(spi_files)
-        extra_mamba_packages = self.spec_manager.extra_mamba_packages
-        mamba_packages = spi_packages + extra_mamba_packages
+        mamba_packages = list(self.spec_manager.extra_mamba_packages)
+        spec_out = dict(injector_urls=self.injector.urls)
+        if not self.config.omit_spi_packages:
+            spec_out["spi_files"] = spi_files = self.injector.find_spi_mamba_files()
+            spec_out["spi_packages"] = spi_packages = self.compiler.read_package_versions(spi_files)
+            mamba_packages += spi_packages
         mamba_spec = self.compiler.generate_target_mamba_spec(
             self.spec_manager.kernel_name, mamba_packages
         )
         if not mamba_spec:
-            return None
+            return self.log.error("Failed to generate mamba spec for environment.")
         self.spec_manager.revise_and_save(
-            output_dir=self.config.output_dir,
-            mamba_requirements_files=spi_files,
-            mamba_spec=mamba_spec,
-            injector_urls=self.injector.urls,
+            self.config.output_dir,
+            **spec_out
         )
         return mamba_spec
 
     def _compile_requirements(self) -> bool:
         """Compile requirements and update spec."""
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
-        requirements_files = self.compiler.find_requirements_files(notebook_paths)
-        if not requirements_files:
-            return False
+        requirements_files = notebook_requirements_files = self.compiler.find_requirements_files(notebook_paths)
         if not self.compiler.write_pip_requirements_file(
             self.extra_pip_output_file, self.spec_manager.extra_pip_packages
         ):
@@ -214,9 +239,10 @@ class NotebookCurator:
             requirements_files, self.pip_output_file
         )
         if not package_versions:
-            return False
+            self.logger.warning("Combined packages defined by notebooks and spec are empty.")
         return self.spec_manager.revise_and_save(
-            pip_requirements_files=requirements_files,
+            self.config.output_dir,
+            pip_requirements_files=notebook_requirements_files,
             package_versions=package_versions,
         )
 
@@ -225,16 +251,19 @@ class NotebookCurator:
         package_versions, test_imports = self.spec_manager.get_outputs(
             "package_versions", "test_imports"
         )
-        if not package_versions:
-            return False
-        self.compiler.write_pip_requirements_file(
-            self.pip_output_file, package_versions
-        )
-        if not self.env_manager.install_packages(
-            self.environment_name, [self.pip_output_file]
-        ):
-            return False
-        return self.env_manager.test_imports(self.environment_name, test_imports)
+        if package_versions:
+            self.compiler.write_pip_requirements_file(
+                self.pip_output_file, package_versions
+            )
+            if not self.env_manager.install_packages(
+                self.environment_name, [self.pip_output_file]
+            ):
+        else:
+            self.logger.warning("Found no pip requirements to install.")
+        if test_imports:
+            return self.env_manager.test_imports(self.environment_name, test_imports)
+        else:
+            return self.logger.warning("Found imports to check in spec'd notebooks.")
 
     def _test_notebooks(self) -> bool:
         """Test notebooks matching the configured pattern."""

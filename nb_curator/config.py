@@ -6,13 +6,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+HOME = Path(os.environ.get("HOME", "."))
+
 NBC_ROOT = Path(
-    os.environ.get("NBC_ROOT", Path(os.environ.get("HOME", ".")) / ".nb-curator")
+    os.environ.get("NBC_ROOT",  HOME / ".nb-curator")
 )
 
-NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", NBC_ROOT / "nbc-pantry"))
+NBC_MM = NBC_ROOT / "mm"
 
-DEFAULT_MICROMAMBA_PATH = os.environ.get("NBC_MM", "") + "/bin/" + "micromamba"
+NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nb-pantry"))
+
+REPOS_DIR = Path("./references")
+
+DEFAULT_MICROMAMBA_PATH = NBC_MM / "bin" / "micromamba"
 
 NOTEBOOK_TEST_MAX_SECS = 30 * 60
 NOTEBOOK_TEST_JOBS = 4
@@ -24,30 +30,32 @@ class CuratorConfig:
 
     spec_file: str
 
-    micromamba_path: str = "micromamba"
-    output_dir: Path = Path("./output")
+    micromamba_path: str = DEFAULT_MICRO_MAMBA_PATH
+    output_dir: Path = NBC_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
     log_times: bool = False  # Add the new log_times parameter
 
-    repos_dir: Optional[Path] = None
+    repos_dir: Optional[Path] = Path("./references")
+    clone_repos: bool = False
     delete_repos: bool = False
 
     init_env: bool = False
+    pack_env: bool = False
+    unpack_env: bool = False
     delete_env: bool = False
 
     compile_packages: bool = False
     install_packages: bool = False
     uninstall_packages: bool = False
 
-    pack_environment: bool = False
-    unpack_environment: bool = False
     compact_curator: bool = False
 
     test_notebooks: str | None = None
     jobs: int = NOTEBOOK_TEST_JOBS
     timeout: int = NOTEBOOK_TEST_MAX_SECS
 
+    omimt_spi_packages = False
     inject_spi: bool = False
     submit_for_build: bool = False
 

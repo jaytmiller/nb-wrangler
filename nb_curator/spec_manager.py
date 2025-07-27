@@ -134,7 +134,7 @@ class SpecManager:
         else:
             return False
 
-    # ---------------------------- Property-based read access to spec data -------------------
+    # ---------------------------- Property-based read/write access to spec data -------------------
     @property
     def deployment_name(self) -> str:
         self._ensure_validated()
@@ -217,7 +217,8 @@ class SpecManager:
             "test_notebooks",
             "test_imports",
             "injector_urls",
-            "mamba_requirement_files",
+            "spi_files",
+            "spi_packages",
             "mamba_spec",
             "pip_requirement_files",
             "package_versions",

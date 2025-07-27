@@ -34,3 +34,16 @@ def remove_common_prefix(strings: List[str]) -> List[str]:
 def create_divider(title: str, char: str = "*", width: int = 100) -> str:
     """Create a divider string with centered title."""
     return f" {title} ".center(width, char) + "\n"
+
+
+def uri_to_local_path(uri: str) -> Optional[str]:
+    """Convert URI to local path if possible."""
+    # Implement logic to convert URI to local path  
+    # Cases
+    #   Existing local files
+    #     URLS like "file:///path/to/file"
+    #     Normal relative or absolute file paths
+    #   https:// or http:// URLs for remote files
+    #   s3:// or S3 bucket and key for file
+
+    
