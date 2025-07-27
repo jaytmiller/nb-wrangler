@@ -1,7 +1,6 @@
 from pathlib import Path
-from typing import List
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .spec_manager import SpecManager
 from .utils import get_yaml
 
@@ -89,7 +88,7 @@ class SpiInjector:
             else:
                 raise ValueError(f"Unsupported type {type(obj)} for field {field}")
 
-    def get_spi_requirements(self, glob_patterns: List[Path], kind: str) -> List[Path]:
+    def get_spi_requirements(self, glob_patterns: list[Path], kind: str) -> list[Path]:
         """Find extra mamba or pip requirements files required by SPI environments such as those
         included in the common/common-env directory. mamba packages are typically non-Python packages
         such as C libraries and compiles and install tools.  For Python packages,  using
@@ -108,12 +107,12 @@ class SpiInjector:
         )
         return spi_extra_requirements
 
-    def find_spi_pip_files(self) -> List[Path]:
+    def find_spi_pip_files(self) -> list[Path]:
         self._init_patterns()
         self.env_pip.unlink(missing_ok=True)
         return self.get_spi_requirements(self.pip_patterns, "pip")
 
-    def find_spi_mamba_files(self) -> List[Path]:
+    def find_spi_mamba_files(self) -> list[Path]:
         self._init_patterns()
         self.env_yml.unlink(missing_ok=True)
         return self.get_spi_requirements(self.mamba_patterns, "mamba")

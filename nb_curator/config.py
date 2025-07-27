@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Optional
 import argparse
 
+from .logger import CuratorLogger
+
 HOME = Path(os.environ.get("HOME", "."))
 
 NBC_ROOT = Path(os.environ.get("NBC_ROOT", HOME / ".nb-curator"))
@@ -29,7 +31,7 @@ class CuratorConfig:
 
     spec_file: str
 
-    micromamba_path: str = DEFAULT_MICROMAMBA_PATH
+    micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
     output_dir: Path = NBC_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
@@ -62,8 +64,11 @@ class CuratorConfig:
 
     curate: bool = False
 
+    logger: Optional[CuratorLogger] = None
+
     def __post_init__(self):
         """Post-initialization processing."""
+        self.logger = CuratorLogger(self.verbose, self.debug, self.log_times)
         self.repos_dir = Path(self.repos_dir)
         if self.curate:
             self.compile_packages = True
@@ -75,10 +80,10 @@ class CuratorConfig:
             raise ValueError("log_times must be a boolean value")
 
     @classmethod
-    def from_args(cls, args: argparse.Namespace, spec_file: str) -> "CuratorConfig":
+    def from_args(cls, args: argparse.Namespace) -> "CuratorConfig":
         """Create CuratorConfig from argparse Namespace and spec file."""
         return cls(
-            spec_file=spec_file,
+            spec_file=args.spec_uri,
             micromamba_path=args.micromamba_path,
             verbose=args.verbose,
             debug=args.debug,

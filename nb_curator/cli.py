@@ -2,7 +2,6 @@
 
 import sys
 import argparse
-import logging
 
 from .config import (
     CuratorConfig,
@@ -65,7 +64,7 @@ def parse_args():
     parser.add_argument(
         "--curate",
         action="store_true",
-        help="Sets options for a core nb-curator workflow: --compile --install --test-notebooks",
+        help="sets options for a core nb-curator workflow: --compile --install --test-notebooks",
     )
     parser.add_argument(
         "-c",
@@ -153,14 +152,15 @@ def parse_args():
 
 def main():
     """Main entry point for the CLI."""
+    
+    args = parse_args()
+
+    # Create configuration using simplified factory method
+    config = CuratorConfig.from_args(args)
+
     try:
-        args = parse_args()
-
         # Convert URI to local path
-        spec_file = utils.uri_to_local_path(args.spec_uri)
-
-        # Create configuration using simplified factory method
-        config = CuratorConfig.from_args(args, spec_file)
+        config.spec_file = utils.uri_to_local_path(args.spec_uri)
 
         # Create and run curator
         curator = NotebookCurator(config)
@@ -168,16 +168,11 @@ def main():
         curator.print_log_counters()
 
         sys.exit(0 if success else 1)
-
     except KeyboardInterrupt:
-        print("\nOperation cancelled by user", file=sys.stderr)
+        self.error("Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        logging.error(f"Fatal error: {e}")
-        if hasattr(args, "debug") and args.debug:
-            import traceback
-
-            traceback.print_exc()
+        config.logger.exception(e, f"Fatal error:")
         sys.exit(1)
 
 

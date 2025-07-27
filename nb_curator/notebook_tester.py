@@ -8,9 +8,8 @@ import stat
 import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
-from typing import List, Tuple
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .config import CuratorConfig
 from .environment import EnvironmentManager
 
@@ -29,8 +28,8 @@ class NotebookTester:
         self.env_manager = env_manager
 
     def filter_notebooks(
-        self, notebook_paths: List[str], test_patterns: str
-    ) -> List[str]:
+        self, notebook_paths: list[str], test_patterns: str
+    ) -> list[str]:
         """Filter notebooks based on test patterns."""
         import re
 
@@ -44,7 +43,7 @@ class NotebookTester:
         self.logger.info(f"Filtered notebook list to {len(filtered)} entries")
         return filtered
 
-    def test_notebooks(self, environment: str, notebook_paths: List[str]) -> bool:
+    def test_notebooks(self, environment: str, notebook_paths: list[str]) -> bool:
         """Test multiple notebooks in parallel."""
         self.logger.info(
             f"Testing {len(notebook_paths)} notebooks with {self.config.jobs} jobs"
@@ -76,7 +75,7 @@ class NotebookTester:
 
     def _test_single_notebook(
         self, notebook: str, environment: str
-    ) -> Tuple[bool, str, str]:
+    ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
         if notebook.startswith("#"):
             return False, notebook, self._print_divider(f"Skipping {notebook}")
@@ -106,7 +105,7 @@ class NotebookTester:
 
     def _test_single_notebook_core(
         self, notebook: str, environment: str, timeout: int
-    ) -> Tuple[bool, str, str]:
+    ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -115,7 +114,7 @@ class NotebookTester:
             shutil.copytree(source_path, test_dir)
             os.chdir(test_dir)
 
-            # Set permissions
+            # set permissions
             os.chmod(test_dir, stat.S_IRWXU)
             for path in glob.glob("*"):
                 os.chmod(path, stat.S_IRWXU)

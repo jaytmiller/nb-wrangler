@@ -1,10 +1,10 @@
 import os.path
 import re
-from typing import Dict, Any, List, Optional
+from typing import Any, Optional
 from pathlib import Path
 import copy
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .utils import get_yaml
 
 
@@ -13,7 +13,7 @@ class SpecManager:
 
     def __init__(self, logger: CuratorLogger):
         self.logger = logger
-        self._spec: Dict[str, Any] = {}
+        self._spec: dict[str, Any] = {}
         self._is_validated = False
         self._source_file: Optional[Path] = None
 
@@ -35,7 +35,7 @@ class SpecManager:
         """Get data from the output section."""
         return self._spec.get("out", {}).get(key, default)
 
-    def get_outputs(self, *output_names) -> List[Any]:
+    def get_outputs(self, *output_names) -> list[Any]:
         """Get data from the spec output section and return a tuple in order."""
         self.logger.debug("Retrieving prior outputs from spec:", output_names)
         if "out" not in self._spec:
@@ -57,6 +57,14 @@ class SpecManager:
             return output_values[0]
         else:
             raise RuntimeError(f"No output values were found for '{output_names}'.")
+
+    def outputs_exist(self, *output_names: tuple[str, ...]) -> bool:
+        """Check if all specified outputs exist in the spec already."""
+        return all(name in self._spec["out"] for name in output_names)
+
+    def files_exist(self, *filepaths: tuple[str | Path, ...]) -> bool:
+        """Check if all specified files exist in the filesystem."""
+        return all(Path(filepath).exists() for filepath in filepaths)
 
     def load_spec(self, spec_file: str | Path) -> bool:
         """Load YAML specification file."""
@@ -106,13 +114,13 @@ class SpecManager:
             return self.logger.exception(e, f"Error revising spec file: {e}")
 
     def set_output_data(self, key: str, value: Any) -> None:
-        """Set data in the output section."""
+        """set data in the output section."""
         if "out" not in self._spec:
             self._spec["out"] = {}
         if isinstance(value, list):
             value = [str(item) for item in value]
         self._spec["out"][key] = value
-        self.logger.debug(f"Setting output data: {key} -> {value}")
+        self.logger.debug(f"setting output data: {key} -> {value}")
 
     def reset_spec(self) -> bool:
         """Delete the output field of the spec and make sure the source file reflects it."""
@@ -165,17 +173,17 @@ class SpecManager:
         return self._spec["image_spec_header"]["nb_repo"]
 
     @property
-    def selected_notebooks(self) -> List[Dict[str, Any]]:
+    def selected_notebooks(self) -> list[dict[str, Any]]:
         self._ensure_validated()
         return self._spec["selected_notebooks"]
 
     @property
-    def extra_mamba_packages(self) -> List[str]:
+    def extra_mamba_packages(self) -> list[str]:
         self._ensure_validated()
         return self._spec["extra_mamba_packages"]
 
     @property
-    def extra_pip_packages(self) -> List[str]:
+    def extra_pip_packages(self) -> list[str]:
         self._ensure_validated()
         return self._spec["extra_pip_packages"]
 
@@ -186,7 +194,7 @@ class SpecManager:
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
 
     # Raw read/write access for backward compatibility or special cases
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Return the raw spec dictionary."""
         return copy.deepcopy(self._spec)
 
@@ -305,7 +313,7 @@ class SpecManager:
 
     # -------------------------------- notebook and repository collection --------------------------------------
 
-    def get_repository_urls(self) -> List[str]:
+    def get_repository_urls(self) -> list[str]:
         """Get all unique repository URLs from the spec."""
         self._ensure_validated()
         urls = [self.nb_repo]
@@ -345,7 +353,7 @@ class SpecManager:
 
     def _process_directory_entry(
         self, entry: dict, repo_dir: Path, nb_root_directory: str
-    ) -> List[str]:
+    ) -> list[str]:
         """Process a directory entry from the spec file."""
         base_path = repo_dir
         if nb_root_directory:

@@ -16,10 +16,10 @@ import shlex
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
-from typing import List, Any
+from typing import Any
 
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .config import NBC_ROOT, NBC_PANTRY
 
 DEFAULT_TIMEOUT = 300
@@ -61,9 +61,11 @@ class EnvironmentManager:
 
     # ------------------------------------------------------------------------------
 
-    def __init__(self, logger: CuratorLogger, micromamba_path: str = "micromamba"):
+    def __init__(
+        self, logger: CuratorLogger, micromamba_path: str | Path = "micromamba"
+    ):
         self.logger = logger
-        self.micromamba_path = micromamba_path
+        self.micromamba_path = str(micromamba_path)
 
     @property
     def nbc_root_dir(self) -> Path:
@@ -87,17 +89,16 @@ class EnvironmentManager:
 
     @property
     def nbc_cache_dir(self) -> Path:
-        return os.environ.get("NBC_CACHE", self.nbc_root_dir / "cache")
+        cache_path = os.environ.get("NBC_CACHE")
+        return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
 
-    @property
     def env_store_path(self, environment_name: str) -> Path:
-        return self.pantry_dir / "envs" / environment_name.tolower() + ".zst"
+        return self.nbc_pantry_dir / "envs" / (environment_name.lower() + ".zst")
 
-    @property
     def env_live_path(self, environment_name: str) -> Path:
         return self.mm_envs_dir / environment_name
 
-    def _condition_cmd(self, cmd: List[str] | str) -> list[str]:
+    def _condition_cmd(self, cmd: list[str] | str) -> list[str]:
         """Condition the command into a list of UNIX CLI 'words'.
 
         If command is already a string,  split it into string "words".
@@ -112,7 +113,7 @@ class EnvironmentManager:
 
     def curator_run(
         self,
-        command: List[str] | str,
+        command: list[str] | str,
         check=True,
         cwd=None,
         timeout=DEFAULT_TIMEOUT,
@@ -148,7 +149,7 @@ class EnvironmentManager:
         self.logger.debug(
             f"Running command with no shell: {command} {extra_parameters}"
         )
-        self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
+        # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
         # self.logger.debug(f"Command output: {result.stdout}")
         if check:
@@ -178,7 +179,7 @@ class EnvironmentManager:
             return self.logger.info(success) if success else True
 
     def env_run(
-        self, environment, command: List[str] | str, **keys
+        self, environment, command: list[str] | str, **keys
     ) -> str | CompletedProcess[Any] | None:
         """Run a command in the specified environment.
 
@@ -226,7 +227,7 @@ class EnvironmentManager:
     def install_packages(
         self,
         environment_name: str,
-        requirements_paths: List[Path],
+        requirements_paths: list[Path],
     ) -> bool:
         """Install the compiled package lists."""
         self.logger.info(f"Installing packages from: {requirements_paths}")
@@ -252,7 +253,7 @@ class EnvironmentManager:
     def uninstall_packages(
         self,
         environment_name: str,
-        requirements_paths: List[Path],
+        requirements_paths: list[Path],
     ) -> bool:
         """Uninstall the compiled package lists."""
         self.logger.info(f"Uninstalling packages from: {requirements_paths}")
@@ -336,7 +337,8 @@ class EnvironmentManager:
                 f"Checking for existence of environment '{environment_name}' completely failed. See README.md for info on bootstrapping.",
             )
         else:
-            envs = json.loads(result)["envs"]
+            result_str = result.stdout if hasattr(result, 'stdout') else str(result)
+            envs = json.loads(result_str)["envs"]
             for env in envs:
                 self.logger.debug(
                     f"Checking existence of {environment_name} against {env}."
@@ -380,8 +382,9 @@ class EnvironmentManager:
         )
 
     def pack_curator(self, archive_filepath: Path | str) -> bool:
-        archive_filepath.parent.mkdir(parents=True, exist_ok=True)
-        return self.archive(self.nbc_root_dir, archive_filepath)
+        archive_path = Path(archive_filepath)
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        return self.archive(self.nbc_root_dir, archive_path)
 
     def unpack_curator(self, archive_filepath: Path | str):
         self.nbc_root_dir.mkdir(parents=True, exist_ok=True)
@@ -389,11 +392,11 @@ class EnvironmentManager:
 
     def compact_curator(self) -> bool:
         try:
-            if self.mm_pkgs_dir.exist():
+            if self.mm_pkgs_dir.exists():
                 shutil.rmtree(str(self.mm_pkgs_dir))
             if self.nbc_cache_dir.exists():
                 shutil.rmtree(str(self.nbc_cache_dir))
             self.logger.debug("Curator compacted successfully")
             return True
         except Exception as e:
-            return self.logger.exception(f"Failed to compact curator: {e}")
+            return self.logger.exception(e, f"Failed to compact curator: {e}")

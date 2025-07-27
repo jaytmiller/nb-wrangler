@@ -2,9 +2,9 @@
 
 import sys
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .environment import EnvironmentManager
 from .utils import get_yaml
 
@@ -24,7 +24,7 @@ class RequirementsCompiler:
         self.python_path = python_path
         self.python_version = python_version
 
-    def find_requirements_files(self, notebook_paths: List[str]) -> List[Path]:
+    def find_requirements_files(self, notebook_paths: list[str]) -> list[Path]:
         """Find requirements.txt files in notebook directories."""
         requirements_files = []
         notebook_dirs = {Path(nb_path).parent for nb_path in notebook_paths}
@@ -39,8 +39,8 @@ class RequirementsCompiler:
         return requirements_files
 
     def compile_requirements(
-        self, requirements_files: List[Path], output_path: Path
-    ) -> Optional[List[str]]:
+        self, requirements_files: list[Path], output_path: Path
+    ) -> Optional[list[str]]:
         """Compile requirements files into pinned versions,  outputs
         the result to a file at `output_path` and then loads the
         output and returns a list of package versions for insertion
@@ -64,7 +64,7 @@ class RequirementsCompiler:
         return package_versions
 
     def _run_uv_compile(
-        self, output_file: Path, requirements_files: List[Path]
+        self, output_file: Path, requirements_files: list[Path]
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
         cmd = [
@@ -92,7 +92,7 @@ class RequirementsCompiler:
         )
         return self.env_manager.handle_result(result, "uv pip compile failed:")
 
-    def read_package_versions(self, requirements_files: List[Path]) -> List[str]:
+    def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
         """Read package versions from a list of requirements files omitting blank
         and comment lines.
         """
@@ -102,7 +102,7 @@ class RequirementsCompiler:
             package_versions.extend(lines)
         return package_versions
 
-    def read_package_lines(self, requirements_file: Path) -> List[str]:
+    def read_package_lines(self, requirements_file: Path) -> list[str]:
         """Read package lines from requirements file omitting blank and comment lines.
         Should work with most forms of requirements.txt file,
         input or compiled,  and reduce it to a pure list of package versions.
@@ -115,7 +115,7 @@ class RequirementsCompiler:
                     lines.append(line)
         return lines
 
-    def annotated_requirements(self, requirements_files: List[Path]) -> str:
+    def annotated_requirements(self, requirements_files: list[Path]) -> str:
         """Create an annotated input requirements listing to correlate version
         constraints with the notebooks which impose them,  primarily as an aid
         for direct conflict resolution.   Strictly speaking this is a WIP since
@@ -131,7 +131,7 @@ class RequirementsCompiler:
         return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
 
     def generate_target_mamba_spec(
-        self, kernel_name: str, dependencies: List[str]
+        self, kernel_name: str, dependencies: list[str]
     ) -> dict:
         """Generate mamba environment specification and return dict for YAML."""
         try:
@@ -139,11 +139,11 @@ class RequirementsCompiler:
             return self._generate_mamba_spec_core(kernel_name, dependencies)
         except Exception as e:
             return self.logger.exception(
-                f"Failed generating spec for empty mamba environment: {e}:"
+                e, f"Failed generating spec for empty mamba environment: {e}:"
             )
 
     def _generate_mamba_spec_core(
-        self, kernel_name: str, dependencies_in: List[str]
+        self, kernel_name: str, dependencies_in: list[str]
     ) -> dict:
         """Uncaught core processing of generate_mamba_spec."""
         dependencies = [
@@ -172,7 +172,7 @@ class RequirementsCompiler:
     def write_pip_requirements_file(self, filepath: str, package_versions: list):
         """Write package versions to pip requirements file."""
         try:
-            with filepath.open("w+") as f:
+            with Path(filepath).open("w+") as f:
                 for package_version in package_versions:
                     f.write(f"{package_version}\n")
         except Exception as e:

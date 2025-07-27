@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 from .environment import EnvironmentManager
 
 
@@ -22,8 +22,8 @@ class RepositoryManager:
         self.env_manager = env_manager
 
     def setup_repos(self, repo_urls: list[str]) -> bool:
-        """Set up all specified repositories."""
-        self.logger.debug(f"Setting up repos. urls={repo_urls}.")
+        """set up all specified repositories."""
+        self.logger.debug(f"setting up repos. urls={repo_urls}.")
         for repo_url in repo_urls:
             repo_path = self._setup_remote_repo(repo_url)
             if not repo_path:
@@ -36,7 +36,7 @@ class RepositoryManager:
         return self.repos_dir / repo_name
 
     def _setup_remote_repo(self, repo_url: str) -> Optional[Path]:
-        """Set up a remote repository by cloning or updating."""
+        """set up a remote repository by cloning or updating."""
         repo_path = self._repo_path(repo_url)
         if repo_path.exists():
             self.logger.info(f"Using existing local clone at {repo_path}")

@@ -2,9 +2,9 @@
 
 import json
 import re
-from typing import Dict, List, Set, Optional
+from typing import Optional
 
-from .logging import CuratorLogger
+from .logger import CuratorLogger
 
 
 class NotebookImportProcessor:
@@ -16,28 +16,28 @@ class NotebookImportProcessor:
             r"^(?:import\s+([a-zA-Z0-9_\.]+))|(?:from\s+([a-zA-Z0-9_\.]+)\s+import)"
         )
 
-    def extract_imports(self, notebook_paths: List[str]) -> Dict[str, List[str]]:
+    def extract_imports(self, notebook_paths) -> tuple[list[str], list[str], list[dict[str, list[str]]]]:
         """Extract import statements from notebooks."""
-        import_to_nb: Dict[str, List[str]] = {}
-        unique_notebooks = set(notebook_paths)
+        nb_to_imports: list[dict[str, list[str]]] = []
+        unique_notebooks: set(str) = set(notebook_paths)
+        total_imports: set(str) = set()
         self.logger.info(
             f"Processing {len(unique_notebooks)} unique notebooks for imports."
         )
-        for nb_path_str in unique_notebooks:
+        for nb_path_str in sorted(list(unique_notebooks)):
             nb_dict = self._read_notebook_json(nb_path_str)
             if nb_dict:
                 imports = self._extract_imports_from_notebook(nb_dict)
                 for imp in imports:
-                    if imp not in import_to_nb:
-                        import_to_nb[imp] = []
-                    import_to_nb[imp].append(nb_path_str)
+                    nb_to_imports.append({ nb_path_str : imports})
+                    total_imports.add(imp)
                 self.logger.debug(
-                    f"Extracted {len(imports)} package imports from notebook {nb_path_str}: \n{sorted(list(imports))}"
+                    f"Extracted {len(imports)} package imports from notebook {nb_path_str}: {imports}"
                 )
         self.logger.info(
-            f"Extracted {len(import_to_nb)} package imports from {len(unique_notebooks)} notebooks."
+            f"Extracted {len(total_imports)} package imports from {len(unique_notebooks)} notebooks."
         )
-        return sorted(list(import_to_nb.keys()))
+        return total_imports, nb_to_imports
 
     def _read_notebook_json(self, nb_path: str) -> Optional[dict]:
         """Read and parse a notebook file as JSON."""
@@ -48,7 +48,7 @@ class NotebookImportProcessor:
             self.logger.warning(f"Could not parse notebook {nb_path} as JSON")
             return None
 
-    def _extract_imports_from_notebook(self, notebook: dict) -> Set[str]:
+    def _extract_imports_from_notebook(self, notebook: dict) -> list[str]:
         """Extract import statements from a notebook."""
         imports = set()
         for cell in notebook.get("cells", []):
@@ -61,7 +61,7 @@ class NotebookImportProcessor:
                         root_package = self._extract_root_package(match)
                         if root_package:
                             imports.add(root_package)
-        return imports
+        return sorted(list(imports))
 
     def _get_cell_source(self, cell: dict) -> str:
         """Get the source code from a notebook cell."""

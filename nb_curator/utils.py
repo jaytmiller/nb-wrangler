@@ -2,7 +2,7 @@
 
 import os
 import urllib.parse
-from typing import Optional, List
+from typing import Optional
 
 import requests
 import boto3
@@ -19,7 +19,7 @@ def get_yaml() -> YAML:
     return yaml
 
 
-def remove_common_prefix(strings: List[str]) -> List[str]:
+def remove_common_prefix(strings: list[str]) -> list[str]:
     """Remove common prefix from a list of strings."""
     if not strings:
         return []
@@ -46,7 +46,9 @@ def create_divider(title: str, char: str = "*", width: int = 100) -> str:
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
     """Convert URI to local path if possible. Perform any required
     downloads based on the URI, nominally: none, HTTP, HTTPS, or S3.
-    
+
+    For S3,  you must already have any required AWS credentials.
+
     Return the local path.
     """
     # Check for file:// URI
@@ -81,10 +83,17 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             bucket_name = parsed_uri.netloc
             object_key = parsed_uri.path.lstrip("/")
 
+            # Create a boto3 S3 client
+            s3_client = boto3.client("s3")
+
+            # Download the object from S3
+            response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
+            data = response["Body"].read().decode("utf-8")
+
             # Generate a filename from the last element of the URI
             filename = os.path.basename(object_key)
             with open(filename, "w+") as f:
-                f.write(response.text)
+                f.write(data)
             return filename
         except (NoCredentialsError, PartialCredentialsError) as e:
             print(f"AWS credentials error: {e}")
@@ -100,5 +109,3 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return os.path.abspath(uri)
         else:
             return None
-
-    
