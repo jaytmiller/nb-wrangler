@@ -3,6 +3,7 @@
 import logging
 import pdb
 import traceback
+import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -21,6 +22,7 @@ class CuratorLogger:
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.exceptions: list[str] = []
+        self.start_time = datetime.datetime.now()
 
         # Configure logger with the current settings
         self._configure_logger()
@@ -114,11 +116,27 @@ class CuratorLogger:
             raise e
         return False
 
+    @property
+    def elapsed_time(self, start_time=None):
+        start_time = start_time or self.start_time
+        delta = (datetime.datetime.now() - start_time)
+        total_seconds = int(delta.total_seconds())
+        days = delta.days
+        hours = total_seconds // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        microseconds = delta.microseconds
+        if days:
+            return f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+        else:
+            return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+
     def print_log_counters(self):
         """Print summary of logged messages."""
         print(f"Exceptions: {len(self.exceptions)}")
         print(f"Errors: {len(self.errors)}")
         print(f"Warnings: {len(self.warnings)}")
+        print(f"Elapsed: {self.elapsed_time[:-4]}")
 
     @classmethod
     def from_config(cls, config: "CuratorConfig") -> "CuratorLogger":
