@@ -142,10 +142,6 @@ class NotebookCurator:
 
         return True
 
-    def _requires_repos(self):
-        """Ensure notebook and other repos relevant to the spec have been cloned."""
-        return self._clone_repos()
-
     def _requires_environment(self):
         """"""
         if self.env_manager.environment_exists(self.environment_name):
@@ -187,20 +183,20 @@ class NotebookCurator:
         else:
             return False
 
-    def _require_repos(self) -> bool:
+    def _requires_repos(self) -> bool:
         if not self.spec_manager.outputs_exist(
             "notebook_repo_urls", "injector_urls", "test_notebooks", "test_imports"
         ):
             return self._clone_repos()
         else:
-            self.debug("""Repository setup already completed.  Skipping.""")
+            self.logger.debug("""Repository setup already completed.  Skipping.""")
             return True
 
     def _clone_repos(self) -> bool:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
         and scrape notebooks for package imports.
         """
-        self.logger.info("setting up repository clones unconditionally.")
+        self.logger.info("Setting up repository clones unconditionally.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         if self.config.omit_spi_packages and not self.config.inject_spi:
             injector_urls = []
@@ -272,6 +268,9 @@ class NotebookCurator:
         ):
             return False
         requirements_files.append(self.extra_pip_output_file)
+        if not self.config.omit_spi_packages:
+            spi_requirements_files = self.injector.find_spi_pip_files()
+            requirements_files.extend(spi_requirements_files)
         package_versions = self.compiler.compile_requirements(
             requirements_files, self.pip_output_file
         )
@@ -307,7 +306,7 @@ class NotebookCurator:
             return True
 
     def _test_notebooks(self) -> bool:
-        """Test notebooks matching the configured pattern."""
+        """Unconditionally test notebooks matching the configured pattern."""
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
         filtered_notebooks = self.tester.filter_notebooks(
             notebook_paths, self.config.test_notebooks
