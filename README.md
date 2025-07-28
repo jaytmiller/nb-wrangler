@@ -26,7 +26,7 @@ There are a couple of relatively new foundational tools being used:
 - micromamba -- a self-contained little brother of mamba (the better free OSS version of conda)
 - uv -- a whole new pip-like system written in Rust leading to faster dependency solutions and package installs
 
-The intent of `nb-curator` is to install 2-3 dedicated environments under `$HOME/.nb-curator`:
+The intent of `nb-curator` is to install 2-3 dedicated environments under `$HOME/.nbc-live`:
 
 - micromamba -- self-contained minimalistic install tool, not a base environment
 - nbcurator  -- a true micromamba environment in which nb-curator runs with required dependencies
@@ -36,7 +36,7 @@ These environments are interdependent but fully independent of your other pre-ex
 
 ## Installing
 
-Bootstrapping the system will create the .nb-curator dir and nbcurator environment under $HOME.
+Bootstrapping the system will create the $HOME/.nbc-live dir and nbcurator environment under $HOME.
 
 ```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator

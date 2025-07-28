@@ -4,8 +4,8 @@
 
 setup_env() {
     export NBC_PYTHON_VERSION=${NBC_PYTHON_VERSION:-"3.11"}
-    export NBC_ROOT=${NBC_ROOT:-"$HOME/.nb-curator"}
-
+    export NBC_ROOT=${NBC_ROOT:-"$HOME/.nbc-live"}
+    export NBC_PANTRY=${NBC_PANTRY:-"$HOME/.nbc-pantry"}
     export NBC_MM="${NBC_ROOT}/mm"
     export NBC_CACHE="${NBC_ROOT}/cache"
     export UV_CACHE_DIR="${NBC_CACHE}/uv"

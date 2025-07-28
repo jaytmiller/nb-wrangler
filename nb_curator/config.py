@@ -11,11 +11,11 @@ from .logger import CuratorLogger
 
 HOME = Path(os.environ.get("HOME", "."))
 
-NBC_ROOT = Path(os.environ.get("NBC_ROOT", HOME / ".nb-curator"))
+NBC_ROOT = Path(os.environ.get("NBC_ROOT", HOME / ".nbc-live"))
 
 NBC_MM = NBC_ROOT / "mm"
 
-NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nb-pantry"))
+NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nbc-pantry"))
 
 REPOS_DIR = Path("./references")
 

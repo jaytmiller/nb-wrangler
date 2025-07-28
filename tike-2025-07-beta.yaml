@@ -39,6 +39,32 @@ extra_mamba_packages:
 extra_pip_packages:
   - boto3
 out:
+  injector_urls:
+    - https://github.com/spacetelescope/science-platform-images.git
+  spi_files:
+    - references/science-platform-images/deployments/common/common-env/common.conda
+  spi_packages:
+    - pip
+    - pip-tools
+    - setuptools
+    - jupyter-packaging
+    - nodejs>=22.0
+  mamba_spec:
+    name: tess
+    channels:
+      - conda-forge
+    dependencies:
+      - cython
+      - ipykernel
+      - jupyter
+      - jupyter-packaging
+      - nodejs>=22.0
+      - pip
+      - pip-tools
+      - python=3.11
+      - setuptools
+      - uv
+      - wheel
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
     - https://github.com/spacetelescope/tike_content
@@ -52,25 +78,76 @@ out:
     - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
   test_imports: !!set
+    numpy:
     lcviz:
+    astroquery:
+    matplotlib:
     astropy:
     lightkurve:
     s3fs:
-    numpy:
-    matplotlib:
-    astroquery:
-  injector_urls:
-    - https://github.com/spacetelescope/science-platform-images.git
+  nb_to_imports:
+    - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
+      ['lightkurve', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
+      ['lightkurve', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
+      ['lightkurve', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
+      ['lightkurve', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
+      ['lightkurve', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
+      ['astropy', 'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
+      ['astroquery', 'lcviz', 'lightkurve']}"
+    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
+      ['astroquery', 'lcviz', 'lightkurve']}"
+    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
+      ['astroquery', 'lcviz', 'lightkurve']}"
+    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
+      'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
+      'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
+      'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
+      'matplotlib', 'numpy']}"
+    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
+    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
+    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
+    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
+      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
   pip_requirements_files:
     - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-    - references/tike_content/content/notebooks/tglc/requirements.txt
     - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - references/tike_content/content/notebooks/data-access/requirements.txt
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
     - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-    - /home/ai/.nb-curator/temps/tike-2025.07-beta-tess-extra-pip.txt
+    - references/tike_content/content/notebooks/tglc/requirements.txt
+    - /home/ai/.nbc-live/temps/tike-2025.07-beta-tess-extra-pip.txt
   package_versions:
     - aiobotocore==2.23.2
     - aiohappyeyeballs==2.6.1
@@ -90,7 +167,7 @@ out:
     - asdf-wcs-schemas==0.5.0
     - asteval==1.0.6
     - astropy==7.1.0
-    - astropy-iers-data==0.2025.7.21.0.41.39
+    - astropy-iers-data==0.2025.7.28.0.41.50
     - astroquery==0.4.10
     - asttokens==3.0.0
     - async-lru==2.0.5
@@ -318,80 +395,3 @@ out:
     - xyzservices==2025.4.0
     - yarl==1.20.1
     - zipp==3.23.0 ; python_full_version < '3.12'
-  nb_to_imports:
-    - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
-      ['lightkurve', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
-      ['lightkurve', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
-      ['lightkurve', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
-      ['lightkurve', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb':
-      ['lightkurve', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb':
-      ['astropy', 'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/data-access/data-access.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
-      ['astroquery', 'lcviz', 'lightkurve']}"
-    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
-      ['astroquery', 'lcviz', 'lightkurve']}"
-    - "{'references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb':
-      ['astroquery', 'lcviz', 'lightkurve']}"
-    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
-      'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
-      'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
-      'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/tglc/tglc.ipynb': ['astropy', 'astroquery',
-      'matplotlib', 'numpy']}"
-    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
-    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
-    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
-    - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
-      ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
-  spi_files:
-    - references/science-platform-images/deployments/common/common-env/common.conda
-  spi_packages:
-    - pip
-    - pip-tools
-    - setuptools
-    - jupyter-packaging
-    - nodejs>=22.0
-  mamba_spec:
-    name: tess
-    channels:
-      - conda-forge
-    dependencies:
-      - cython
-      - ipykernel
-      - jupyter
-      - jupyter-packaging
-      - nodejs>=22.0
-      - pip
-      - pip-tools
-      - python=3.11
-      - setuptools
-      - uv
-      - wheel

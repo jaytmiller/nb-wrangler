@@ -66,6 +66,7 @@ class EnvironmentManager:
     ):
         self.logger = logger
         self.micromamba_path = str(micromamba_path)
+        self.nbc_pantry_dir.mkdir(exist_ok=True, parents=True)
 
     @property
     def nbc_root_dir(self) -> Path:
@@ -92,7 +93,7 @@ class EnvironmentManager:
         cache_path = os.environ.get("NBC_CACHE")
         return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
 
-    def env_store_path(self, environment_name: str) -> Path:
+    def env_archive_path(self, environment_name: str) -> Path:
         return self.nbc_pantry_dir / "envs" / (environment_name.lower() + ".zst")
 
     def env_live_path(self, environment_name: str) -> Path:
@@ -126,7 +127,7 @@ class EnvironmentManager:
         parameters = dict(
             text=text,
             check=check,
-            cwd=cwd,
+            cwd=str(cwd) if cwd else cwd,
             timeout=timeout,
         )
         if output_mode == "combined":
@@ -147,7 +148,7 @@ class EnvironmentManager:
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
         self.logger.debug(
-            f"Running command with no shell: {command} {extra_parameters}"
+            f"Running command with no shell: {command} {parameters}"
         )
         # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
@@ -256,9 +257,9 @@ class EnvironmentManager:
         requirements_paths: list[Path],
     ) -> bool:
         """Uninstall the compiled package lists."""
-        self.logger.info(f"Uninstalling packages from: {requirements_paths}")
+        self.logger.info(f"Uninstalling packages from: {[str(p) for p in requirements_paths]}")
 
-        cmd = "uv pip uninstall --yes"
+        cmd = "uv pip uninstall"
         for path in requirements_paths:
             cmd += " -r " + str(path)
 
@@ -352,43 +353,39 @@ class EnvironmentManager:
             )
             return False
 
-    def archive(self, source_dirpath: Path, archive_filepath: Path) -> bool:
-        Path(archive_filepath).mkdir(parents=True, exist_ok=True)
-        Path(source_dirpath).mkdir(parents=True, exist_ok=True)
-        cmd = f"tar -acf {archive_filepath} ."
-        result = self.curator_run(cmd, cwd=source_dirpath, check=False)
+    def archive(self, archive_filepath: Path, source_dirpath: Path) -> bool:
+        archive_filepath.parent.mkdir(parents=True, exist_ok=True)
+        cmd = f"tar -acf {archive_filepath} {source_dirpath.name}"
+        result = self.curator_run(cmd, cwd=source_dirpath.parent, check=False)
         return self.handle_result(
             result, f"Failed to pack {source_dirpath} into {archive_filepath}:"
         )
 
     def unarchive(
-        self, archive_filepath: str | Path, destination_dirpath: str | Path
-    ) -> bool:
-        Path(destination_dirpath).mkdir(parents=True, exist_ok=True)
-        cmd = f"tar -axf {archive_filepath} ."
-        result = self.curator_run(cmd, cwd=destination_dirpath, check=False)
+        self, archive_filepath: Path, destination_dirpath: Path) -> bool:
+        destination_dirpath.mkdir(parents=True, exist_ok=True)
+        cmd = f"tar -axf {archive_filepath} {destination_dirpath.name}"
+        result = self.curator_run(cmd, cwd=destination_dirpath.parent, check=False)
         return self.handle_result(
-            result, f"Failed to unpack {archive_filepath} into {destination_dirpath}:"
+            result, f"Failed to unpack {archive_filepath} into {destination_dirpath}: "
         )
 
     def pack_environment(self, environment_name: str):
         return self.archive(
-            self.env_live_path(environment_name), self.env_store_path(environment_name)
-        )
+            self.env_archive_path(environment_name), self.env_live_path(environment_name))
 
     def unpack_environment(self, environment_name: str):
-        return self.archive(
-            self.env_live_path(environment_name), self.env_store_path(environment_name)
-        )
+        return self.unarchive(
+             self.env_archive_path(environment_name), self.env_live_path(environment_name))
 
     def pack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
         archive_path.parent.mkdir(parents=True, exist_ok=True)
-        return self.archive(self.nbc_root_dir, archive_path)
+        return self.archive(archive_path, self.nbc_root_dir)
 
     def unpack_curator(self, archive_filepath: Path | str):
-        self.nbc_root_dir.mkdir(parents=True, exist_ok=True)
-        return self.unarchive(archive_filepath, self.nbc_root_dir)
+        archive_path = Path(archive_filepath)
+        return self.unarchive(archive_path, self.nbc_root_dir)
 
     def compact_curator(self) -> bool:
         try:
