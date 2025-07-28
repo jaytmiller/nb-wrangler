@@ -85,7 +85,7 @@ class NotebookCurator:
 
         # set up basic empty target/test environment and kernel
         if self.config.init_env:
-            if not self._initialize_environment():
+            if not self._requires_mamba_spec() or not self._initialize_environment():
                 return False
 
         if self.config.compile_packages:
@@ -95,7 +95,7 @@ class NotebookCurator:
 
         # Install compiled pip package versions into the target environment, test explicit notebook imports
         if self.config.install_packages:
-            if not self._requires_environment() or not self._requires_compiled() or not self._install_packages():
+            if not self._requires_mamba_spec() or not self._requires_environment() or not self._requires_compiled() or not self._install_packages():
                 return False
 
         # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
@@ -152,17 +152,18 @@ class NotebookCurator:
             self.logger.debug(f"Environment {self.environment_name} exists.  Skipping creation...")
             return True
         else:
+            self.logger.debug(f"Environment {self.environment_name} does not exist. Creating...")
             return self._initialize_environment()
 
     def _requires_mamba_spec(self) -> bool:
         """Compute the mamba spec for the target environment if it dosn't already exist
         in spec outputs.   Since the full spec is inline, that is all that is needed.
         """
-        if self.env_manager.outputs_exist("mamba_spec"):
+        if self.spec_manager.outputs_exist("mamba_spec") and self.mamba_spec_file.exists():
             self.logger.debug("Mamba_spec already exists.  Skipping generation...")
             return True
         else:
-            return self._generate_mamba_spec()
+            return self._generate_target_mamba_spec()
 
     def _requires_compiled(self):
         """Perform steps needed to obtaine outputs produced by compilation, but only as-needed."""
@@ -238,6 +239,7 @@ class NotebookCurator:
 
     def _generate_target_mamba_spec(self) -> Optional[str]:
         """Unconditionally generate mamba environment .yml spec."""
+        self.logger.info(f"Generating mamba spec for target environment {self.mamba_spec_file}.")
         mamba_packages = list(self.spec_manager.extra_mamba_packages)
         spec_out = dict(injector_urls=self.injector.urls)
         if not self.config.omit_spi_packages:
@@ -246,7 +248,6 @@ class NotebookCurator:
                 self.compiler.read_package_versions(spi_files)
             )
             mamba_packages += spi_packages
-        self.logger.info(f"Generating mamba spec for target environment {self.mamba_spec_file}.")
         mamba_spec = self.compiler.generate_target_mamba_spec(
             self.spec_manager.kernel_name, mamba_packages
         )
@@ -256,7 +257,7 @@ class NotebookCurator:
             spec_out["mamba_spec"] = mamba_spec
 
         if not self.compiler.write_mamba_spec_file(self.mamba_spec_file, mamba_spec):
-            return False
+            return self.logger.error("Failed to write mamba spec file.")
 
         return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
 

@@ -53,23 +53,23 @@ out:
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
   test_imports: !!set
     lcviz:
-    numpy:
-    lightkurve:
-    astroquery:
-    matplotlib:
     astropy:
+    lightkurve:
     s3fs:
+    numpy:
+    matplotlib:
+    astroquery:
   injector_urls:
     - https://github.com/spacetelescope/science-platform-images.git
   pip_requirements_files:
+    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+    - references/tike_content/content/notebooks/tglc/requirements.txt
     - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
+    - references/tike_content/content/notebooks/data-access/requirements.txt
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-    - references/tike_content/content/notebooks/data-access/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-    - references/tike_content/content/notebooks/tglc/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - /home/ai/.nb-curator/temps/tike-2025.07-beta-tess-extra-pip.txt
   package_versions:
     - aiobotocore==2.23.2
@@ -318,32 +318,6 @@ out:
     - xyzservices==2025.4.0
     - yarl==1.20.1
     - zipp==3.23.0 ; python_full_version < '3.12'
-  mamba_requirements_files:
-    - references/science-platform-images/deployments/common/common-env/common.conda
-  mamba_spec:
-    name: tess
-    channels:
-      - conda-forge
-    dependencies:
-      - cython
-      - ipykernel
-      - jupyter
-      - jupyter-packaging
-      - nodejs>=22.0
-      - pip
-      - pip-tools
-      - python=3.11
-      - setuptools
-      - uv
-      - wheel
-  spi_files:
-    - references/science-platform-images/deployments/common/common-env/common.conda
-  spi_packages:
-    - pip
-    - pip-tools
-    - setuptools
-    - jupyter-packaging
-    - nodejs>=22.0
   nb_to_imports:
     - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
       ['lightkurve', 'numpy']}"
@@ -397,3 +371,27 @@ out:
       ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
     - "{'references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb':
       ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
+  spi_files:
+    - references/science-platform-images/deployments/common/common-env/common.conda
+  spi_packages:
+    - pip
+    - pip-tools
+    - setuptools
+    - jupyter-packaging
+    - nodejs>=22.0
+  mamba_spec:
+    name: tess
+    channels:
+      - conda-forge
+    dependencies:
+      - cython
+      - ipykernel
+      - jupyter
+      - jupyter-packaging
+      - nodejs>=22.0
+      - pip
+      - pip-tools
+      - python=3.11
+      - setuptools
+      - uv
+      - wheel
