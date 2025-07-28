@@ -3,40 +3,38 @@
 DRAFT DRAFT DRAFT  -- subject to weekly/daily change top to bottom
 
 ## Overview
+nb-curator streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports automatically building and testing Docker images based on notebook requirements. It achieves this by:
 
-nb-curator is designed to streamline the process of curating JupyterLab notebooks,
-their associated runtime environments, and ultimately to support automatically
-building and testing Docker images focused the requirements of specific sets of
-notebooks.  Towards that end, nb-curator supports these functions:
+- Bootstrapping a dedicated environment for nb-curator.
+- Loading, saving, and validating notebook curation specifications.
+- Cloning associated notebook and image build repositories.
+- Creating a dedicated environment to manage notebook package dependencies.
+- Compiling loose `requirements.txt` files into versioned dependencies for the target environment.
+- Installing notebook dependencies in the target environment.
+- Explicitly testing all top-level notebook imports in the installed environment.
+- Running notebooks headless within the target environment.
+- Injecting relevant package, test, and notebook output into an external notebook image build system.
+- Submitting completed specifications and/or related image build pull requests to trigger automatic builds.
+- Performing various cleanup tasks, such as removing clones, packages, and environments.
 
-- bootstrapping a dedicated environment where nb-curator runs
-- loading, saving, and validating notebook curation specs
-- cloning associated notebook and image build repos
-- creating a dedicated target environment to install notebook package requirements
-- compiling loose notebook requirements.txt files into fully versioned dependency requirements for the target environment
-- installing notebook dependencies in the target environment
-- explicitly testing all top-level notebook imports in the installed target environment
-- running notebooks headless in the target environment
-- injecting relevant package, test, and notebook outputs into an external notebook image build system
-- submitting a completed spec and/or related image build PR to trigger an automatic build
-- various cleanup tasks removing clones, packages, environments, etc.
+The project utilizes foundational tools:
 
-There are a couple of relatively new foundational tools being used:
+- **micromamba:** A lightweight, self-contained version of mamba (a free, open-source alternative to conda).
+- **uv:** A new, fast pip-like package installer written in Rust.
 
-- micromamba -- a self-contained little brother of mamba (the better free OSS version of conda)
-- uv -- a whole new pip-like system written in Rust leading to faster dependency solutions and package installs
+nb-curator aims to install 2-3 dedicated environments under `$HOME/.nbc-live`:
 
-The intent of `nb-curator` is to install 2-3 dedicated environments under `$HOME/.nbc-live`:
+- **micromamba:** A self-contained installation tool, not a base environment.
+- **nbcurator:** A full micromamba environment containing nb-curator and its dependencies.
+- **spec defined environment:** The notebook environment being curated.
 
-- micromamba -- self-contained minimalistic install tool, not a base environment
-- nbcurator  -- a true micromamba environment in which nb-curator runs with required dependencies
-- <target environment> -- the notebook environment we're curating defined by the YAML spec (or, possibly, CLI)
+These environments are independent of your existing Python environments and can be easily registered as notebook kernels in JupyterHub.
 
-These environments are interdependent but fully independent of your other pre-existing Python environments.
+The location of nb-curator files can be changed by setting the `NBC_ROOT` environment variable. This is useful for team environments or relocating to faster storage.
 
 ## Installing
 
-Bootstrapping the system will create the $HOME/.nbc-live dir and nbcurator environment under $HOME.
+Bootstrapping the system creates the `$HOME/.nbc-live` directory and the nbcurator environment under `$HOME`.
 
 ```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
@@ -45,116 +43,56 @@ chmod +x nb-curator
 source ./nb-curator environment
 ```
 
-After that, the nb-curator "curation" environment can be re-activated by:
+Afterward, the nbcurator "curation" environment can be re-activated using:
 
 ```bash
 source ./nb-curator environment
 ```
 
-Consider putting the nb-curator bash script in your path.
-Consider putting that in your shell RC file.
+Consider adding the nb-curator bash script to your shell's PATH or RC file.
 
-The target environment can be activated by:
+The target environment can be activated with:
 
 ```bash
 source nb-curator activate ENVIRONMENT_NAME
 ```
 
-and either nbcurator or the target environment can be deactivated by:
+Deactivate either nbcurator or the target environment with:
 
 ```bash
 source nb-curator deactivate
 ```
 
-## Example Usage
+## Curation
 
-Curator prepares custom version of prototype_protocol.yaml
-Curator prepares a curation Python environment with the spec'ed version of Python
-Then:
+The curator prepares a custom version of the `spec.yaml` file. Then, run:
 
 ```bash
-nb-curator  spec.yaml  --init-env
-
-nb-curator  spec.yaml   --compile
-
-nb-curator  spec.yaml   --install
-
-nb-curator  spec.yaml   --test
+nb-curator spec.yaml --curate [--verbose]
 ```
 
 ## Basic Flow
 
-The basic flow of the curator is to command different steps of the overall
-process to execute or not on a per-run basis.  Eventually this enables skipping
-over aspects of the process which have already been successfully completed and
-iterating on the current task, e.g. not constantly recompiling and
-re-installing pacackages while iterating over failing notebook tests and
-notebook updates.  If any step in the sequence fails, the process will exit
-with an error status.  The following features/steps are generally gated by CLI
-switches.
+The curator executes steps in a sequence, allowing for skipping steps that have already completed. This enables iteration without repeatedly recompiling and reinstalling packages. If any step fails, the process exits with an error. Most features are controlled by command-line options.
 
-- Loads, validates, updates, and saves the YAML notebook specification.
-  Validation is currently incomplete but checks for required keywords.
+- **Spec Management:** Loads, validates, updates, and saves the YAML notebook specification. Validation is currently incomplete but checks for required keywords.
+- **Repository Management:** Optionally clones Git repositories for notebooks if a local clone doesn't exist; otherwise, it updates existing clones. `--repos-dir` specifies the directory for cloning, defaulting to a `notebook-repos` subdirectory of the current directory.
+- **Notebook Discovery:** Searches for notebooks based on directory paths and include/exclude patterns.
+- **Requirements Gathering:** Locates `requirements.txt` files within notebooks to specify Python package version constraints.
+- **Environment Creation:** Automatically creates a basic Python environment for package installation and testing.
+- **Target Environment Initialization:** Optionally initializes a target environment to facilitate requirement compilation, package installation, and testing. This includes creating a JupyterLab kernel required for notebook testing or use in JupyterLab.
+- **Package Compilation:** If `--compile` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile` is not specified, it uses the last compiled package set from the specification.
+- **Package Installation:** If `--install` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
+- **Notebook Testing:** If `--test-notebooks` is specified, runs notebooks matching a comma-separated list of names or regular expressions. If no notebooks or regexps are provided, it runs all notebooks. This is a headless crash test that runs up to `--jobs [n]` notebooks in parallel, with a `--timeout [seconds]` to terminate runaway notebooks.
+- **Repository Cleanup:** If `--delete-clones` is specified, removes all cloned repositories.
+- **Spec Reset:** If `--reset-spec` is specified, removes the output section from the `spec.yaml` file.
+- **Environment Deletion:** If `--delete-env` is specified, removes the entire target environment. This dedicated environment approach prevents contamination between iterations.
+- **CI Submission:** If `--submit-for-build` is specified, the specification is forwarded to the CI pipeline, key information is provided to the build framework, and a corresponding image is automatically built and pushed to the hub (pending further development).
+- **Output Injection:** If `--spi-inject` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
 
-- Optionally clones the git repositories for the notebooks if a
-  local clone does not already exist,  otherwise it updates the existing clones
-  from their repos or does nothing if --clone is not specified.  --repos-dir is
-  used to specify the directory where the git repositories are cloned and/or
-  already exist, defaulting to a notebook-repos subdir of the current directory.
+## Missing Topics
 
-- Searches for relevant notebooks based on the notebook directory paths and
-  include/exclude patterns.
-
-- Searches for requirements.txt files which specify Python package version
-  constraints at a granular level of single notebooks.  Exactly what to include
-  is a WIP,  but at a minimum one optional requirements.txt per notebook.
-
-- Automatically creates a basic Python environment in which packages will be
-  installed and tested.   The overall paradigm of the nb-curator tool is
-  that it installs packages and tests notebooks with respect to the current
-  Python environment.
-
-- Optionally initializes (--init-env) a target environment to support
-  compilation of requirements, package installation, and testing.  In addition
-  to installing a handful of utility packages, it creates a JupyterLab kernel
-  for the environment that is required for notebook testing or using it in
-  JupyterLab.  This is useful even if the curator chooses to use their own
-  custom environment (TBD supported or not) as the target since these packages
-  and kernel setup are required regardless.
-
-- If --compile is specified, it will create both a conda environment .yml file
-  and a locked pip requirements.txt file based on compiling all the discovered
-  notebook requirements.txt simultaneously, with the goal of creating a package
-  version spec suitable for running ALL of the notebooks.  If --compile is not
-  specified it will continue to use the last set of compiled packages from the
-  spec.
-
-- If --install is specified, it will install the compiled versions of packages
-  in the conda environment, which XXXXX again at this time is the runtime
-  environment. After installation, it will attempt to import any package which
-  is explicitlylisted in a notebook file as a basic sanity check.
-
-- If --test-notebooks is specified, run notebooks matching any of the
-subsequent comma separated list of notebook names or regular expressions.  If
-no notebooks or regexps are specified, it will run all notebooks.  This is a
-headless crash test which runs up to --jobs [n] notebooks in parallel using a
---timeout [seconds] to kill runaway notebooks.
-
-- If --delete-clones is specified,  it will remove all cloned repositories.
-
-- If --reset-spec is specified it will remove the output section of the spec.
-
-- If --delete-env is specified,  it will remove the entire target environment.
-  This dedicated environment approach prevents contamination
-  between iterations of the tool as packages come-and-go from the spec but are
-  never removed from the target environment.
-
-- If optional/proposed --submit-for-build is specified,  the spec is forwarded
-  to the CI chain,  key information is supplied to the build framework, and a
-  corresponding image is automatically built and pushed to the hub assuming all
-  goes well.   This is all still TBD pending interest/approval of the above.
-
-- If --spi-inject is specified,  writes key output information from spec like
-mamba and pip requirements, import tests, and supported notebooks into a clone
-of the science platform images build enabling a manual build as if a dev had
-manually updated all the input requirements.
+- **Detailed explanation of `spec.yaml` structure:** While mentioned, a more detailed breakdown of the YAML file's sections and their purpose would be beneficial.
+- **Configuration options:** A more comprehensive list of available configuration options and their effects.
+- **Error handling:** More information on how the tool handles various errors and provides feedback to the user.
+- **Advanced usage:** Potential use cases beyond basic curation, such as automated testing workflows or integration with other tools.
