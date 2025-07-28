@@ -57,10 +57,7 @@ out:
       - cython
       - ipykernel
       - jupyter
-      - jupyter-packaging
-      - nodejs>=22.0
       - pip
-      - pip-tools
       - python=3.11
       - setuptools
       - uv
@@ -78,13 +75,13 @@ out:
     - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
   test_imports: !!set
-    numpy:
-    lcviz:
     astroquery:
-    matplotlib:
-    astropy:
     lightkurve:
+    matplotlib:
+    numpy:
     s3fs:
+    astropy:
+    lcviz:
   nb_to_imports:
     - "{'references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb':
       ['lightkurve', 'numpy']}"
@@ -140,13 +137,13 @@ out:
       ['astropy', 'astroquery', 'matplotlib', 's3fs']}"
   pip_requirements_files:
     - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-    - references/tike_content/content/notebooks/data-access/requirements.txt
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
     - references/tike_content/content/notebooks/tglc/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
+    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+    - references/tike_content/content/notebooks/data-access/requirements.txt
     - /home/ai/.nbc-live/temps/tike-2025.07-beta-tess-extra-pip.txt
   package_versions:
     - aiobotocore==2.23.2
@@ -310,7 +307,7 @@ out:
     - prometheus-client==0.22.1
     - prompt-toolkit==3.0.51
     - propcache==0.3.2
-    - psutil==7.0.0
+    - psutil==5.9.8
     - ptyprocess==0.7.0 ; os_name != 'nt' or (sys_platform != 'emscripten' and 
       sys_platform != 'win32')
     - pure-eval==0.2.3

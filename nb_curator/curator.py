@@ -85,11 +85,13 @@ class NotebookCurator:
 
         # set up basic empty target/test environment and kernel
         if self.config.init_env:
-            if not self._requires_mamba_spec() or not self._initialize_environment():
+            if not self._initialize_environment():
                 return False
 
         if self.config.compile_packages:
-            self._requires_repos()
+            if not self._requires_repos(
+                "notebook_repo_urls", "injector_urls", "test_notebooks", "test_imports"):
+                return False
             if not self._compile_requirements():
                 return False
 
@@ -100,9 +102,7 @@ class NotebookCurator:
 
         # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
         if self.config.test_notebooks:
-            self._requires_installed()
-            self._requires_repos()
-            if not self._test_notebooks():
+            if not self._requires_installed() or not self._requires_repos() or not self._test_notebooks():
                 return False
 
         # Inject critical output fields from the finished spec into the build environment clone.
@@ -164,9 +164,10 @@ class NotebookCurator:
     def _requires_compiled(self):
         """Perform steps needed to obtaine outputs produced by compilation, but only as-needed."""
         return (
-            self.spec_manager.outputs_exist("package_versions", "pip_package_files")
-            and self.spec_manager.files_exist(*self.pip_package_files)
-            or (self._requires_repos() and self._compile_requirements())
+            self.spec_manager.outputs_exist("mamba_spec", "package_versions", "pip_package_files")
+            and self.spec_manager.files_exist(self.mamba_spec_file, *self.pip_package_files)
+            or (self._requires_repos("package_versions", "pip_package_files", "mamba_spec") 
+                and self._compile_requirements())
         )
 
     def _requires_installed(self):
@@ -183,10 +184,8 @@ class NotebookCurator:
         else:
             return False
 
-    def _requires_repos(self) -> bool:
-        if not self.spec_manager.outputs_exist(
-            "notebook_repo_urls", "injector_urls", "test_notebooks", "test_imports"
-        ):
+    def _requires_repos(self, *for_outputs) -> bool:
+        if not self.spec_manager.outputs_exist(*for_outputs):
             return self._clone_repos()
         else:
             self.logger.debug("""Repository setup already completed.  Skipping.""")
@@ -227,7 +226,7 @@ class NotebookCurator:
 
     def _initialize_environment(self) -> bool:
         """Unconditionally initialize the target environment."""
-        if not self.env_manager.create_environment(
+        if self.env_manager.create_environment(
             self.environment_name, self.mamba_spec_file
         ):
             return False
@@ -258,7 +257,11 @@ class NotebookCurator:
         return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
 
     def _compile_requirements(self) -> bool:
-        """Unconditionally identify notebooks, compile requirements, and update spec outputs."""
+        """Unconditionally identify notebooks, compile requirements, and update spec outputs
+        for both mamba and pip.
+        """
+        if not self._generate_target_mamba_spec():
+            return False
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
         requirements_files = notebook_requirements_files = (
             self.compiler.find_requirements_files(notebook_paths)
