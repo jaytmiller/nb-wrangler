@@ -38,3 +38,47 @@ Each shelf contains several read-only assets intended for shared use by all user
 Each shelf also contains frozen assets, designed to be unpacked onto faster storage media for quicker access. These include:
 
 - **Cans**: A compressed archive of a single, curated environment.  Because cans are single compressed files, they unpack very quickly, even when transferred from EFS.  This speed is crucial for reducing installation times during both curation and later operations. Using cans enables faster installations on local storage compared to EFS.
+
+### Pantry Scenarios / Configurations
+
+Depending on how two environment variables (NBC_ROOT and NBC_PANTRY) are set, the nbc-live runtime and nbc-pantry
+shelf archive can be stored in different locations. In containerized environments, the pantry
+is typically stored on long-lived storage and the curator runtime and installed environments may
+or may not be on volatile storage.
+
+#### Personal Installations on Laptop
+
+For personal installations on a laptop, the curator runtime and installed environments are stored on local storage. 
+The pantryboth curation and live environments,  as well as the pantry, nominally are stored in fast,
+non-volatile storage. This is typically the case for
+
+```/bin/bash
+NBC_ROOT=${HOME}/.nbc-live
+NBC_PANTRY=${HOME}/.nbc-pantry
+```
+
+#### Science Platform System Installations
+
+```/bin/bash
+NBC_ROOT=/opt/nbc-live  (located in "image" space)
+NBC_PANTRY=/teams/users/nbc-pantry
+```
+
+#### Science Platform Team Installations
+
+NBC_ROOT=/opt/nbc-live  (located in "image" space)
+NBC_PANTRY=/teams/<your-team>/nbc-pantry
+
+#### Science Platform Personal Environments
+
+NBC_ROOT=/opt/nbc-live  (located in "image" space)
+NBC_PANTRY=${HOME}/.nbc-pantry
+
+
+### Deployment Scenarios
+
+#### Install from spec inputs / curate
+
+#### Install from spec outputs / reproduce
+
+#### Re-install from Can / binary archive
