@@ -33,14 +33,26 @@ In addition to the environment specification, creation, and test functions
 the curator was initially designed for,  the NbcPantry class
 """
 
+from pathlib import Path
+
+from .logger import CuratorLogger
+from .spec_manager import SpecManager
+from .environment import EnvironmentManager
+
+
 class NbcPantry:
-    def __init__(self, logger: CuratorLogger, spec_manager: SpecManager, env_manager: EnvironmentManager):
+    def __init__(
+        self,
+        logger: CuratorLogger,
+        spec_manager: SpecManager,
+        env_manager: EnvironmentManager,
+    ):
         """
         Initialize the NbcPantry with a logger and a spec manager.
         The pantry is responsible for managing shelves, cans, and the overall environment store.
         """
         pass
-    
+
     def create_pantry(self) -> Path:
         """
         Create the central environment store directory structure.
@@ -49,7 +61,7 @@ class NbcPantry:
         """
         pass
 
-    def create_shelf(self, spec_path: str|Path) -> Path:
+    def create_shelf(self, spec_path: str | Path) -> Path:
         """
         Create a new shelf based on the provided specification.
         The shelf will have subdirectories for cans, notebooks, and data.
@@ -57,7 +69,7 @@ class NbcPantry:
         """
         pass
 
-    def delete_shelf(self, spec_path: str|Path) -> bool:
+    def delete_shelf(self, spec_path: str | Path) -> bool:
         """
         Delete an existing shelf.
         This operation should be cautious and may require confirmation.
@@ -65,14 +77,14 @@ class NbcPantry:
         """
         pass
 
-    def install_shelf(self, spec_path: str|Path) -> bool:
+    def install_shelf(self, spec_path: str | Path) -> bool:
         """
         Install a shelf from its specification, possibly by unpacking a tarball or cloning notebooks.
         Returns True if installation was successful, False otherwise.
         """
         pass
 
-    def archive_shelf(self, spec_path: str|Path) -> Path:
+    def archive_shelf(self, spec_path: str | Path) -> Path:
         """
         Archive a shelf into a compressed file for backup or distribution.
         Returns the path to the archived file.
@@ -93,6 +105,7 @@ class NbcShelf:
     A shelf contains multiple cans (environments), notebook repositories, and data directories.
     This class may provide methods to manage the contents of a shelf.
     """
+
     pass
 
 
@@ -102,4 +115,5 @@ class NbcCan:
     A can is typically a tarball containing an environment, and may include notebooks and data.
     This class may provide methods to interact with the environment contained in the can.
     """
+
     pass

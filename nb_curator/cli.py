@@ -152,7 +152,7 @@ def parse_args():
 
 def main():
     """Main entry point for the CLI."""
-    
+
     args = parse_args()
 
     # Create configuration using simplified factory method
@@ -169,10 +169,10 @@ def main():
 
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        self.error("Operation cancelled by user")
+        config.logger.error("Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        config.logger.exception(e, f"Fatal error:")
+        config.logger.exception(e, "Fatal error:")
         sys.exit(1)
 
 

@@ -60,7 +60,9 @@ class SpecManager:
 
     def outputs_exist(self, *output_names: tuple[str, ...]) -> bool:
         """Check if all specified outputs exist in the spec already."""
-        return "out" in self._spec and all(name in self._spec["out"] for name in output_names)
+        return "out" in self._spec and all(
+            name in self._spec["out"] for name in output_names
+        )
 
     def files_exist(self, *filepaths: tuple[str | Path, ...]) -> bool:
         """Check if all specified files exist in the filesystem."""

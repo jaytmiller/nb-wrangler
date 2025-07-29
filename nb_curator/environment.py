@@ -147,9 +147,7 @@ class EnvironmentManager:
         else:
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
-        self.logger.debug(
-            f"Running command with no shell: {command} {parameters}"
-        )
+        self.logger.debug(f"Running command with no shell: {command} {parameters}")
         # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
         # self.logger.debug(f"Command output: {result.stdout}")
@@ -257,7 +255,9 @@ class EnvironmentManager:
         requirements_paths: list[Path],
     ) -> bool:
         """Uninstall the compiled package lists."""
-        self.logger.info(f"Uninstalling packages from: {[str(p) for p in requirements_paths]}")
+        self.logger.info(
+            f"Uninstalling packages from: {[str(p) for p in requirements_paths]}"
+        )
 
         cmd = "uv pip uninstall"
         for path in requirements_paths:
@@ -338,7 +338,7 @@ class EnvironmentManager:
                 f"Checking for existence of environment '{environment_name}' completely failed. See README.md for info on bootstrapping.",
             )
         else:
-            result_str = result.stdout if hasattr(result, 'stdout') else str(result)
+            result_str = result.stdout if hasattr(result, "stdout") else str(result)
             envs = json.loads(result_str)["envs"]
             for env in envs:
                 self.logger.debug(
@@ -361,8 +361,7 @@ class EnvironmentManager:
             result, f"Failed to pack {source_dirpath} into {archive_filepath}:"
         )
 
-    def unarchive(
-        self, archive_filepath: Path, destination_dirpath: Path) -> bool:
+    def unarchive(self, archive_filepath: Path, destination_dirpath: Path) -> bool:
         destination_dirpath.mkdir(parents=True, exist_ok=True)
         cmd = f"tar -axf {archive_filepath} {destination_dirpath.name}"
         result = self.curator_run(cmd, cwd=destination_dirpath.parent, check=False)
@@ -372,11 +371,15 @@ class EnvironmentManager:
 
     def pack_environment(self, environment_name: str):
         return self.archive(
-            self.env_archive_path(environment_name), self.env_live_path(environment_name))
+            self.env_archive_path(environment_name),
+            self.env_live_path(environment_name),
+        )
 
     def unpack_environment(self, environment_name: str):
         return self.unarchive(
-             self.env_archive_path(environment_name), self.env_live_path(environment_name))
+            self.env_archive_path(environment_name),
+            self.env_live_path(environment_name),
+        )
 
     def pack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)

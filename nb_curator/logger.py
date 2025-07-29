@@ -44,7 +44,10 @@ class CuratorLogger:
         self.logger = logging.getLogger("curator")
 
     def reconfigure_logger(
-        self, verbose: bool | None = None, debug_mode: bool | None = None, log_times: bool | None = None
+        self,
+        verbose: bool | None = None,
+        debug_mode: bool | None = None,
+        log_times: bool | None = None,
     ):
         """Reconfigure logger settings dynamically.
 
@@ -119,7 +122,7 @@ class CuratorLogger:
     @property
     def elapsed_time(self, start_time=None):
         start_time = start_time or self.start_time
-        delta = (datetime.datetime.now() - start_time)
+        delta = datetime.datetime.now() - start_time
         total_seconds = int(delta.total_seconds())
         days = delta.days
         hours = total_seconds // 3600
