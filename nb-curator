@@ -104,7 +104,7 @@ case $1 in
         rm -rf ${NBC_MM}
         bootstrap;
         echo '--------------------------------------------------------------------------------------------------------------------------'
-        echo 'nb-curator is installed.  To use it, type "source nb-curator activate".  Put the nb-curator somewhere script on your PATH.'
+        echo 'nb-curator is installed.  To use it, type "source nb-curator environment".  Put the nb-curator somewhere script on your PATH.'
         echo '--------------------------------------------------------------------------------------------------------------------------'
         ;;
     *)
