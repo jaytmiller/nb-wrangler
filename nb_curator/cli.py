@@ -5,8 +5,12 @@ import argparse
 
 from . import curator
 from . import utils
-from . import logger
 from . import config
+from .constants import (
+    VALID_LOG_TIME_MODES, DEFAULT_LOG_TIMES_MODE,
+    VALID_COLOR_MODE, DEFAULT_USE_COLOR_MODE,
+    REPOS_DIR, DEFAULT_MICROMAMBA_PATH, NOTEBOOK_TEST_MAX_SECS, NOTEBOOK_TEST_JOBS
+)
 
 
 def parse_args():
@@ -33,14 +37,14 @@ def parse_args():
     parser.add_argument(
         "--log-times",
         type=str,
-        choices=logger.VALID_LOG_TIMES_MODES,
-        default=logger.DEFAULT_LOG_TIMES_MODE,
+        choices=VALID_LOG_TIME_MODES,
+        default=DEFAULT_LOG_TIMES_MODE,
         help="Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.",
     )
     parser.add_argument(
         "--use-color",
-        choices=logger.VALID_USE_COLOR_MODES,
-        default=logger.DEFAULT_USE_COLOR,
+        choices=VALID_COLOR_MODE,
+        default=DEFAULT_USE_COLOR_MODE,
         help="Colorize the log.",
     )
     parser.add_argument(
@@ -102,13 +106,13 @@ def parse_args():
     parser.add_argument(
         "-j",
         "--jobs",
-        default=config.NOTEBOOK_TEST_JOBS,
+        default=NOTEBOOK_TEST_JOBS,
         type=int,
         help="Number of parallel jobs for notebook testing.",
     )
     parser.add_argument(
         "--timeout",
-        default=config.NOTEBOOK_TEST_MAX_SECS,
+        default=NOTEBOOK_TEST_MAX_SECS,
         type=int,
         help="Timeout in seconds for notebook tests.",
     )
@@ -130,7 +134,7 @@ def parse_args():
     parser.add_argument(
         "--repos-dir",
         type=str,
-        default=config.REPOS_DIR,
+        default=REPOS_DIR,
         help="Directory where notebook and other repos will be cloned.",
     )
     parser.add_argument(
@@ -141,7 +145,7 @@ def parse_args():
     parser.add_argument(
         "--micromamba-path",
         type=str,
-        default=config.DEFAULT_MICROMAMBA_PATH,
+        default=DEFAULT_MICROMAMBA_PATH,
         help="Path to micromamba program to use for curator environment management.",
     )
     parser.add_argument(

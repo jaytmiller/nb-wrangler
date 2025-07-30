@@ -20,9 +20,10 @@ from typing import Any
 
 
 from .logger import CuratorLogger
-from .config import NBC_ROOT, NBC_PANTRY
-
-DEFAULT_TIMEOUT = 300
+from .constants import NBC_ROOT, NBC_PANTRY
+from .constants import (
+    DEFAULT_TIMEOUT, ENV_CREATE_TIMEOUT, INSTALL_PACKAGES_TIMEOUT
+)
 
 
 class EnvironmentManager:
@@ -31,33 +32,12 @@ class EnvironmentManager:
     # Currently limited to uv, older build tools for packages not yet
     # updated to pyproject.toml, and jupyter kernel management packages
     # ipykernel and jupyter.
-    TARGET_PACKAGES = [
-        "uv",
-        "pip",
-        "ipykernel",
-        "jupyter",
-        "cython",
-        "setuptools",
-        "wheel",
-    ]
-
-    # The target environment does not currently require papermill to
-    # support notebook testing,  it can be run from the curator
-    # environment so don't make it a TARGET dependency.
-    CURATOR_PACKAGES = [
-        "papermill",
-    ] + TARGET_PACKAGES
+    # Package definitions moved to constants.py
 
     # IMPORTANT: see also the nb-curator bash script used for bootstrapping
     # the basic nbcurator environment and inlines the above requirements
     # for CURATOR_PACKAGES.
-    DEFAULT_TIMEOUT = 300
-    REPO_CLONE_TIMEOUT = 300
-    ENV_INSTALL__TIMEOUT = 600
-    ENV_CREATE_TIMEOUT = 600
-    INSTALL_PACKAGES_TIMEOUT = 1200
-    PIP_COMPILE_TIMEOUT = 600
-    IMPORT_TEST_TIMEOUT = 300
+    # Timeout constants moved to constants.py
 
     # ------------------------------------------------------------------------------
 
@@ -196,7 +176,7 @@ class EnvironmentManager:
         self.logger.info(f"Creating environment: {environment_name}")
         mm_prefix = [self.micromamba_path, "create", "--yes", "-n", environment_name]
         command = mm_prefix + ["-f", str(micromamba_specfile)]
-        result = self.curator_run(command, check=False, timeout=self.ENV_CREATE_TIMEOUT)
+        result = self.curator_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to create environment {environment_name}: \n",
@@ -216,7 +196,7 @@ class EnvironmentManager:
             "-n",
             environment_name,
         ]
-        result = self.curator_run(command, check=False, timeout=self.ENV_CREATE_TIMEOUT)
+        result = self.curator_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to delete environment {environment_name}",
@@ -241,7 +221,7 @@ class EnvironmentManager:
 
         # Install packages using uv running in the target environment
         result = self.env_run(
-            environment_name, cmd, check=False, timeout=self.INSTALL_PACKAGES_TIMEOUT
+            environment_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
         return self.handle_result(
             result,
@@ -265,7 +245,7 @@ class EnvironmentManager:
 
         # Install packages using uv
         result = self.env_run(
-            environment_name, cmd, check=False, timeout=self.INSTALL_PACKAGES_TIMEOUT
+            environment_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
         return self.handle_result(
             result,

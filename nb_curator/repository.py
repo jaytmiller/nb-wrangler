@@ -6,6 +6,7 @@ from typing import Optional
 
 from .logger import CuratorLogger
 from .environment import EnvironmentManager
+from .constants import REPO_CLONE_TIMEOUT
 
 
 class RepositoryManager:
@@ -54,7 +55,7 @@ class RepositoryManager:
         self.env_manager.curator_run(
             ["git", "clone", "--single-branch", repo_url, str(repo_dir)],
             check=True,
-            timeout=self.env_manager.REPO_CLONE_TIMEOUT,
+            timeout=REPO_CLONE_TIMEOUT,
         )
         self.logger.info(f"Successfully cloned repository to {repo_dir}.")
         return repo_dir

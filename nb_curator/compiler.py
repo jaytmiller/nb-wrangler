@@ -6,6 +6,7 @@ from typing import Optional
 
 from .logger import CuratorLogger
 from .environment import EnvironmentManager
+from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
 from .utils import get_yaml
 
 
@@ -88,7 +89,7 @@ class RequirementsCompiler:
         #    cmd.append("--verbose")
 
         result = self.env_manager.curator_run(
-            cmd, check=False, timeout=self.env_manager.PIP_COMPILE_TIMEOUT
+            cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
         return self.env_manager.handle_result(result, "uv pip compile failed:")
 
@@ -149,7 +150,7 @@ class RequirementsCompiler:
         dependencies = [
             f"python={self.python_version}" if self.python_version else "3",
         ]
-        dependencies += EnvironmentManager.TARGET_PACKAGES
+        dependencies += TARGET_PACKAGES
         dependencies += dependencies_in
         dependencies = sorted(list(set(dependencies)))
         mamba_spec = {

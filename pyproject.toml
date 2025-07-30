@@ -46,7 +46,7 @@ dev = [
 Homepage = "https://github.com/spacetelescope/nb-curator"
 
 [tool.hatch.version]
-path = "nb_curator/__init__.py"
+path = "nb_curator/constants.py"
 
 [tool.hatch.build.targets.sdist]
 include = [

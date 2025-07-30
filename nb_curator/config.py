@@ -1,28 +1,17 @@
 """Configuration management for nb-curator."""
 
-import os.path
-import os
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import argparse
 
 from . import logger
-
-HOME = Path(os.environ.get("HOME", "."))
-
-NBC_ROOT = Path(os.environ.get("NBC_ROOT", HOME / ".nbc-live"))
-
-NBC_MM = NBC_ROOT / "mm"
-
-NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nbc-pantry"))
-
-REPOS_DIR = Path("./references")
-
-DEFAULT_MICROMAMBA_PATH = NBC_MM / "bin" / "micromamba"
-
-NOTEBOOK_TEST_MAX_SECS = 30 * 60
-NOTEBOOK_TEST_JOBS = 4
+from .constants import (
+    NBC_ROOT, 
+    DEFAULT_MICROMAMBA_PATH, NOTEBOOK_TEST_MAX_SECS, NOTEBOOK_TEST_JOBS,
+    DEFAULT_LOG_TIMES_MODE, DEFAULT_USE_COLOR_MODE, VALID_LOG_TIME_MODES
+)
 
 
 @dataclass
@@ -32,13 +21,12 @@ class CuratorConfig:
     spec_file: str
 
     logger = None
-    
     micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
     output_dir: Path = NBC_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
-    log_times: str = logger.DEFAULT_LOG_TIMES_MODE
-    use_color: str = logger.DEFAULT_USE_COLOR_MODE
+    log_times: str = DEFAULT_LOG_TIMES_MODE
+    use_color: str = DEFAULT_USE_COLOR_MODE
 
     repos_dir: Optional[Path] = Path("./references")
     clone_repos: bool = False
@@ -77,8 +65,8 @@ class CuratorConfig:
             self.test_notebooks = ".*"
 
         # Validate log_times parameter
-        if self.log_times not in logger.VALID_LOG_TIMES_MODES:
-            raise ValueError(f"log_times must be one of {logger.VALID_LOG_TIMES_MODES}")
+        if self.log_times not in VALID_LOG_TIME_MODES:
+            raise ValueError(f"log_times must be one of {VALID_LOG_TIME_MODES}")
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "CuratorConfig":

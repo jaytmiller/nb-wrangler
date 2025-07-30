@@ -7,77 +7,11 @@ import traceback
 import datetime
 
 from . import utils
-
-ANSI_COLORS = {
-    "black-foreground": "\033[0;30m",
-    "black-background": "\033[0;40m",
-    "red-foreground": "\033[0;31m",
-    "red-background": "\033[0;41m",
-    "green-foreground": "\033[0;32m",
-    "green-background": "\033[0;42m",
-    "yellow-foreground": "\033[0;33m",
-    "yellow-background": "\033[0;43m",
-    "blue-foreground": "\033[0;34m",
-    "blue-background": "\033[0;44m",
-    "magenta-foreground": "\033[0;35m",
-    "magenta-background": "\033[0;45m",
-    "cyan-foreground": "\033[0;36m",
-    "cyan-background": "\033[0;46m",
-    "white-foreground": "\033[0;37m",
-    "white-background": "\033[0;47m",
-    "bright-black-foreground": "\033[1;30m",
-    "bright-black-background": "\033[1;40m",
-    "bright-red-foreground": "\033[1;31m",
-    "bright-red-background": "\033[1;41m",
-    "bright-green-foreground": "\033[1;32m",
-    "bright-green-background": "\033[1;42m",
-    "bright-yellow-foreground": "\033[1;33m",
-    "bright-yellow-background": "\033[1;43m",
-    "bright-blue-foreground": "\033[1;34m",
-    "bright-blue-background": "\033[1;44m",
-    "bright-magenta-foreground": "\033[1;35m",
-    "bright-magenta-background": "\033[1;45m",
-    "bright-cyan-foreground": "\033[1;36m",
-    "bright-cyan-background": "\033[1;46m",
-    "bright-white-foreground": "\033[1;37m",
-    "bright-white-background": "\033[1;47m",
-    "gray-foreground": "\033[0;90m",
-    "gray-background": "\033[0;100m",
-    "bright-gray-foreground": "\033[1;90m",
-    "bright-gray-background": "\033[1;100m",
-    "light-red-foreground": "\033[0;91m",
-    "light-red-background": "\033[0;101m",
-    "light-green-foreground": "\033[0;92m",
-    "light-green-background": "\033[0;102m",
-    "reset": "\x1b[0m",
-    "none": "",
-}
-
-LEVEL_COLORS = {
-    logging.DEBUG: "magenta-foreground",
-    logging.INFO: "green-foreground",
-    logging.WARNING: "yellow-foreground",
-    logging.ERROR: "red-foreground",
-    logging.CRITICAL: "bright-red-foreground",
-}
-
-TIME_COLORS = {
-    "normal": "blue-foreground",
-    "elapsed": "cyan-foreground",
-    "both": "light-green-foreground",
-    "none": "none",
-}
-
-NORMAL_COLOR = ANSI_COLORS["blue-foreground"]
-ELAPSED_COLOR = ANSI_COLORS["cyan-foreground"]
-MESSAGE_COLOR = ANSI_COLORS["bright-black-background"]
-RESET_COLOR = ANSI_COLORS["reset"]
-
-VALID_LOG_TIME_MODES = ["none", "normal", "elapsed", "both"]
-DEFAULT_LOG_TIMES_MODE = "elapsed"
-
-VALID_COLOR_MODE = ["auto", "on", "off"]
-DEFAULT_USE_COLOR_MODE = "auto"
+from .constants import (
+    ANSI_COLORS, LEVEL_COLORS, NORMAL_COLOR, ELAPSED_COLOR,
+    MESSAGE_COLOR, RESET_COLOR, VALID_LOG_TIME_MODES, DEFAULT_LOG_TIMES_MODE,
+    DEFAULT_USE_COLOR_MODE
+)
 
 
 class ColorAndTimeFormatter(logging.Formatter):
@@ -104,13 +38,17 @@ class ColorAndTimeFormatter(logging.Formatter):
         self._start_time = datetime.datetime.now()
         level_color = ANSI_COLORS[LEVEL_COLORS.get(record.levelno, "reset")]
         if not self.use_color:
-            NORMAL_COLOR = ELAPSED_COLOR = MESSAGE_COLOR = level_color = ""
+            normal_color = elapsed_color = message_color = level_color = ""
+        else:
+            normal_color = NORMAL_COLOR
+            elapsed_color = ELAPSED_COLOR
+            message_color = MESSAGE_COLOR
         log_fmt = level_color + "%(levelname)s: "
         if self.log_times in ["normal", "both"]:
-            log_fmt += NORMAL_COLOR + "%(asctime)s%(msecs)03d "
+            log_fmt += normal_color + "%(asctime)s%(msecs)03d "
         if self.log_times in ["elapsed", "both"]:
-            log_fmt += ELAPSED_COLOR + elapsed + " "
-        log_fmt += RESET_COLOR + MESSAGE_COLOR + "%(message)s"
+            log_fmt += elapsed_color + elapsed + " "
+        log_fmt += RESET_COLOR + message_color + "%(message)s"
         formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%d-%H:%M:%S")
         return formatter.format(record)
 
