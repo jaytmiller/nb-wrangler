@@ -127,7 +127,7 @@ class RequirementsCompiler:
         result = []
         for req_file in requirements_files:
             lines = self.read_package_lines(req_file)
-            result.append([(pkg, str(req_file)) for pkg in lines])  # note difference
+            result.extend((pkg, str(req_file)) for pkg in lines)  # note difference
         result = sorted(result)
         return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
 

@@ -24,7 +24,7 @@ class ColorAndTimeFormatter(logging.Formatter):
 
     @property
     def use_color(self):
-        if self.color == "auto" and not sys.stderr.isatty() and not sys.stdout.isatty():
+        if self.color == "auto" or sys.stderr.isatty():
             return True
         elif self.color == "on":
             return True

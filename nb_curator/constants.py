@@ -83,14 +83,9 @@ LEVEL_COLORS = {
     logging.CRITICAL: "bright-red-foreground",
 }
 
-TIME_COLORS = {
-    "normal": ANSI_COLORS["blue-foreground"],
-    "elapsed": ANSI_COLORS["cyan-foreground"],
-}
-
 NORMAL_COLOR = ANSI_COLORS["blue-foreground"]
 ELAPSED_COLOR = ANSI_COLORS["cyan-foreground"]
-MESSAGE_COLOR = ANSI_COLORS["bright-black-background"]
+MESSAGE_COLOR = ANSI_COLORS["black-background"]
 RESET_COLOR = ANSI_COLORS["reset"]
 
 # Logger configuration constants
