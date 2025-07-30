@@ -73,7 +73,7 @@ bootstrap() {
 
     # Just set up python and installer tools
     micromamba install --quiet --yes  -c conda-forge python=${NBC_PYTHON_VERSION} uv
-    uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel cython boto3
+    uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel yq boto3
 
     # Install nb-curator packager from github source including dependencies
     if [ ! -e nb-curator ]; then
@@ -104,7 +104,9 @@ case $1 in
         rm -rf ${NBC_MM}
         bootstrap;
         echo '--------------------------------------------------------------------------------------------------------------------------'
-        echo 'nb-curator is installed.  To use it, type "source nb-curator environment".  Put the nb-curator somewhere script on your PATH.'
+        echo "OK nb-curator is installed. It's recommended to put the nb-curator wrapper script on your PATH."
+        echo 'To use nb-curator: "source nb-curator activate". Then type "nb-curator [command]".'
+        echo 'To stop using nb-curator: "source nb-curator deactivate".'
         echo '--------------------------------------------------------------------------------------------------------------------------'
         ;;
     *)
@@ -116,6 +118,8 @@ eval "$($NBC_MM/bin/micromamba shell hook --shell $NBC_SHELL)"
 NBC_COMMAND=$1
 shift;
 
+
+
 case $NBC_COMMAND in
     boot*)
         if [ $# -gt 0 ]; then
@@ -123,8 +127,12 @@ case $NBC_COMMAND in
             echo '--------------------------------------------------------------------------------------------------------------------'
             micromamba activate nbcurator
             SPEC=$1; shift;
+            CURATED_ENV=$(yq .image_spec_header.image_name $SPEC)
             if python -m nb_curator ${SPEC} --install $*; then
-                echo "Installing notebook spec $SPEC COMPLETE.  To use:  'source nb-curator activate <environment>'"
+                echo '--------------------------------------------------------------------------------------------------------------------------'
+                echo "OK Spec $SPEC installation complete."
+                echo "To use the environment: 'source nb-curator activate ${CURATED_ENV}'."
+                echo "To stop using the environment: 'source deactivate'."
                 echo '--------------------------------------------------------------------------------------------------------------------'
                 exit 0
             else
@@ -136,13 +144,10 @@ case $NBC_COMMAND in
             exit 0
         fi
     ;;
-    environment)
-        micromamba activate nbcurator
+    env*|act*)
+        micromamba activate ${*:-nbcurator}
         ;;
-    activate)
-        micromamba activate $1
-        ;;
-    deactivate)
+    deact*)
         micromamba deactivate
         ;;
     *)
