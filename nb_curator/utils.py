@@ -3,12 +3,16 @@
 import os
 import urllib.parse
 from typing import Optional
+import datetime
 
 import requests
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
 from ruamel.yaml import YAML
+
+
+# NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
 
 
 def get_yaml() -> YAML:
@@ -41,6 +45,22 @@ def remove_common_prefix(strings: list[str]) -> list[str]:
 def create_divider(title: str, char: str = "*", width: int = 100) -> str:
     """Create a divider string with centered title."""
     return f" {title} ".center(width, char) + "\n"
+
+
+def elapsed_time(start_time: datetime.datetime):
+    delta = datetime.datetime.now() - start_time
+    total_seconds = int(delta.total_seconds())
+    days = delta.days
+    hours = total_seconds // 3600
+    minutes = (total_seconds % 3600) // 60
+    seconds = total_seconds % 60
+    microseconds = delta.microseconds
+    if days:
+        return (
+            f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+        )
+    else:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
 
 
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:

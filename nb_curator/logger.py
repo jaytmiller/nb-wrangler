@@ -1,80 +1,153 @@
 """Logging utilities for nb-curator."""
 
+import sys
 import logging
 import pdb
 import traceback
 import datetime
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from nb_curator.config import CuratorConfig
+from . import utils
+
+ANSI_COLORS = {
+    "black-foreground": "\033[0;30m",
+    "black-background": "\033[0;40m",
+    "red-foreground": "\033[0;31m",
+    "red-background": "\033[0;41m",
+    "green-foreground": "\033[0;32m",
+    "green-background": "\033[0;42m",
+    "yellow-foreground": "\033[0;33m",
+    "yellow-background": "\033[0;43m",
+    "blue-foreground": "\033[0;34m",
+    "blue-background": "\033[0;44m",
+    "magenta-foreground": "\033[0;35m",
+    "magenta-background": "\033[0;45m",
+    "cyan-foreground": "\033[0;36m",
+    "cyan-background": "\033[0;46m",
+    "white-foreground": "\033[0;37m",
+    "white-background": "\033[0;47m",
+    "bright-black-foreground": "\033[1;30m",
+    "bright-black-background": "\033[1;40m",
+    "bright-red-foreground": "\033[1;31m",
+    "bright-red-background": "\033[1;41m",
+    "bright-green-foreground": "\033[1;32m",
+    "bright-green-background": "\033[1;42m",
+    "bright-yellow-foreground": "\033[1;33m",
+    "bright-yellow-background": "\033[1;43m",
+    "bright-blue-foreground": "\033[1;34m",
+    "bright-blue-background": "\033[1;44m",
+    "bright-magenta-foreground": "\033[1;35m",
+    "bright-magenta-background": "\033[1;45m",
+    "bright-cyan-foreground": "\033[1;36m",
+    "bright-cyan-background": "\033[1;46m",
+    "bright-white-foreground": "\033[1;37m",
+    "bright-white-background": "\033[1;47m",
+    "gray-foreground": "\033[0;90m",
+    "gray-background": "\033[0;100m",
+    "bright-gray-foreground": "\033[1;90m",
+    "bright-gray-background": "\033[1;100m",
+    "light-red-foreground": "\033[0;91m",
+    "light-red-background": "\033[0;101m",
+    "light-green-foreground": "\033[0;92m",
+    "light-green-background": "\033[0;102m",
+    "reset": "\x1b[0m",
+    "none": "",
+}
+
+LEVEL_COLORS = {
+    logging.DEBUG: "magenta-foreground",
+    logging.INFO: "green-foreground",
+    logging.WARNING: "yellow-foreground",
+    logging.ERROR: "red-foreground",
+    logging.CRITICAL: "bright-red-foreground",
+}
+
+TIME_COLORS = {
+    "normal": "blue-foreground",
+    "elapsed": "cyan-foreground",
+    "both": "light-green-foreground",
+    "none": "none",
+}
+
+NORMAL_COLOR = ANSI_COLORS["blue-foreground"]
+ELAPSED_COLOR = ANSI_COLORS["cyan-foreground"]
+MESSAGE_COLOR = ANSI_COLORS["bright-black-background"]
+RESET_COLOR = ANSI_COLORS["reset"]
+
+VALID_LOG_TIME_MODES = ["none", "normal", "elapsed", "both"]
+DEFAULT_LOG_TIMES_MODE = "elapsed"
+
+VALID_COLOR_MODE = ["auto", "on", "off"]
+DEFAULT_USE_COLOR_MODE = "auto"
+
+
+class ColorAndTimeFormatter(logging.Formatter):
+    def __init__(self, log_times: str = "none", color: str = "auto", *args, **keys):
+        assert (
+            log_times in VALID_LOG_TIME_MODES
+        ), f"Invalid log_times value {log_times}."
+        self.log_times = log_times
+        self.color = color
+
+    @property
+    def use_color(self):
+        if self.color == "auto" and not sys.stderr.isatty() and not sys.stdout.isatty():
+            return True
+        elif self.color == "on":
+            return True
+        else:
+            return False
+
+    def format(self, record):
+        elapsed = utils.elapsed_time(
+            getattr(self, "_start_time", datetime.datetime.now())
+        )
+        self._start_time = datetime.datetime.now()
+        level_color = ANSI_COLORS[LEVEL_COLORS.get(record.levelno, "reset")]
+        if not self.use_color:
+            NORMAL_COLOR = ELAPSED_COLOR = MESSAGE_COLOR = level_color = ""
+        log_fmt = level_color + "%(levelname)s: "
+        if self.log_times in ["normal", "both"]:
+            log_fmt += NORMAL_COLOR + "%(asctime)s%(msecs)03d "
+        if self.log_times in ["elapsed", "both"]:
+            log_fmt += ELAPSED_COLOR + elapsed + " "
+        log_fmt += RESET_COLOR + MESSAGE_COLOR + "%(message)s"
+        formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%d-%H:%M:%S")
+        return formatter.format(record)
 
 
 class CuratorLogger:
     """Enhanced logger with error tracking and debug support."""
 
     def __init__(
-        self, verbose: bool = False, debug_mode: bool = False, log_times: bool = False
+        self,
+        verbose: bool = False,
+        debug_mode: bool = False,
+        log_times: str = DEFAULT_LOG_TIMES_MODE,
+        use_color: str = DEFAULT_USE_COLOR_MODE,
     ):
         self.verbose = verbose
         self.debug_mode = debug_mode
         self.log_times = log_times
+        self.use_color = use_color
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.exceptions: list[str] = []
         self.start_time = datetime.datetime.now()
-
-        # Configure logger with the current settings
         self._configure_logger()
 
     def _configure_logger(self):
         """Configure logger based on current settings."""
-        # Configure log format based on log_times setting
-        log_format = "%(levelname)s - %(message)s"
-        if self.log_times:
-            log_format = "%(asctime)s " + log_format
-
-        # set up logger
+        color_and_time_formatter = ColorAndTimeFormatter(self.log_times)
+        color_and_time_handler = logging.StreamHandler()
+        color_and_time_handler.setFormatter(color_and_time_formatter)
         logging.basicConfig(
             level=logging.DEBUG if self.verbose else logging.INFO,
-            format=log_format,
-            datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
+            handlers=[color_and_time_handler],
             force=True,  # Override any existing configuration
+            # format="%(levelname)s - %(message)s",
+            # datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
         )
         self.logger = logging.getLogger("curator")
-
-    def reconfigure_logger(
-        self,
-        verbose: bool | None = None,
-        debug_mode: bool | None = None,
-        log_times: bool | None = None,
-    ):
-        """Reconfigure logger settings dynamically.
-
-        Args:
-            verbose: If provided, update verbose setting
-            debug_mode: If provided, update debug_mode setting
-            log_times: If provided, update log_times setting
-        """
-        if verbose is not None:
-            self.verbose = verbose
-        if debug_mode is not None:
-            self.debug_mode = debug_mode
-        if log_times is not None:
-            self.log_times = log_times
-
-        # Reconfigure with new settings
-        self._configure_logger()
-
-    def update_from_config(self, config: "CuratorConfig"):
-        """Update logger settings from CuratorConfig.
-
-        Args:
-            config: CuratorConfig instance with logger settings
-        """
-        self.reconfigure_logger(
-            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times
-        )
 
     def _lformat(self, *args) -> str:
         return " ".join(map(str, args))
@@ -120,19 +193,8 @@ class CuratorLogger:
         return False
 
     @property
-    def elapsed_time(self, start_time=None):
-        start_time = start_time or self.start_time
-        delta = datetime.datetime.now() - start_time
-        total_seconds = int(delta.total_seconds())
-        days = delta.days
-        hours = total_seconds // 3600
-        minutes = (total_seconds % 3600) // 60
-        seconds = total_seconds % 60
-        microseconds = delta.microseconds
-        if days:
-            return f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
-        else:
-            return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+    def elapsed_time(self):
+        return utils.elapsed_time(self.start_time)
 
     def print_log_counters(self):
         """Print summary of logged messages."""
@@ -142,7 +204,7 @@ class CuratorLogger:
         print(f"Elapsed: {self.elapsed_time[:-4]}")
 
     @classmethod
-    def from_config(cls, config: "CuratorConfig") -> "CuratorLogger":
+    def from_config(cls, config) -> "CuratorLogger":
         """Create a CuratorLogger from a CuratorConfig.
 
         Args:

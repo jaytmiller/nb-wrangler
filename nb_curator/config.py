@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Optional
 import argparse
 
-from .logger import CuratorLogger
+from . import logger
 
 HOME = Path(os.environ.get("HOME", "."))
 
@@ -31,11 +31,14 @@ class CuratorConfig:
 
     spec_file: str
 
+    logger = None
+    
     micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
     output_dir: Path = NBC_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
-    log_times: bool = False  # Add the new log_times parameter
+    log_times: str = logger.DEFAULT_LOG_TIMES_MODE
+    use_color: str = logger.DEFAULT_USE_COLOR_MODE
 
     repos_dir: Optional[Path] = Path("./references")
     clone_repos: bool = False
@@ -64,11 +67,9 @@ class CuratorConfig:
 
     curate: bool = False
 
-    logger: Optional[CuratorLogger] = None
-
     def __post_init__(self):
         """Post-initialization processing."""
-        self.logger = CuratorLogger(self.verbose, self.debug, self.log_times)
+        self.logger = logger.CuratorLogger(self.verbose, self.debug, self.log_times)
         self.repos_dir = Path(self.repos_dir)
         if self.curate:
             self.compile_packages = True
@@ -76,8 +77,8 @@ class CuratorConfig:
             self.test_notebooks = ".*"
 
         # Validate log_times parameter
-        if not isinstance(self.log_times, bool):
-            raise ValueError("log_times must be a boolean value")
+        if self.log_times not in logger.VALID_LOG_TIMES_MODES:
+            raise ValueError(f"log_times must be one of {logger.VALID_LOG_TIMES_MODES}")
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "CuratorConfig":
@@ -88,6 +89,7 @@ class CuratorConfig:
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,
+            use_color=args.use_color,
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,

@@ -3,16 +3,10 @@
 import sys
 import argparse
 
-from .config import (
-    CuratorConfig,
-    DEFAULT_MICROMAMBA_PATH,
-    REPOS_DIR,
-    NOTEBOOK_TEST_MAX_SECS,
-    NOTEBOOK_TEST_JOBS,
-)
-
-from .curator import NotebookCurator
+from . import curator
 from . import utils
+from . import logger
+from . import config
 
 
 def parse_args():
@@ -38,8 +32,16 @@ def parse_args():
     )
     parser.add_argument(
         "--log-times",
-        action="store_true",
-        help="Include ISO timestamps in log messages.",
+        type=str,
+        choices=logger.VALID_LOG_TIMES_MODES,
+        default=logger.DEFAULT_LOG_TIMES_MODE,
+        help="Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.",
+    )
+    parser.add_argument(
+        "--use-color",
+        choices=logger.VALID_USE_COLOR_MODES,
+        default=logger.DEFAULT_USE_COLOR,
+        help="Colorize the log.",
     )
     parser.add_argument(
         "--init-env",
@@ -100,13 +102,13 @@ def parse_args():
     parser.add_argument(
         "-j",
         "--jobs",
-        default=NOTEBOOK_TEST_JOBS,
+        default=config.NOTEBOOK_TEST_JOBS,
         type=int,
         help="Number of parallel jobs for notebook testing.",
     )
     parser.add_argument(
         "--timeout",
-        default=NOTEBOOK_TEST_MAX_SECS,
+        default=config.NOTEBOOK_TEST_MAX_SECS,
         type=int,
         help="Timeout in seconds for notebook tests.",
     )
@@ -128,7 +130,7 @@ def parse_args():
     parser.add_argument(
         "--repos-dir",
         type=str,
-        default=REPOS_DIR,
+        default=config.REPOS_DIR,
         help="Directory where notebook and other repos will be cloned.",
     )
     parser.add_argument(
@@ -139,7 +141,7 @@ def parse_args():
     parser.add_argument(
         "--micromamba-path",
         type=str,
-        default=DEFAULT_MICROMAMBA_PATH,
+        default=config.DEFAULT_MICROMAMBA_PATH,
         help="Path to micromamba program to use for curator environment management.",
     )
     parser.add_argument(
@@ -156,23 +158,23 @@ def main():
     args = parse_args()
 
     # Create configuration using simplified factory method
-    config = CuratorConfig.from_args(args)
+    curator_config = config.CuratorConfig.from_args(args)
 
     try:
         # Convert URI to local path
         config.spec_file = utils.uri_to_local_path(args.spec_uri)
 
         # Create and run curator
-        curator = NotebookCurator(config)
-        success = curator.main()
-        curator.print_log_counters()
+        notebook_curator = curator.NotebookCurator(curator_config)
+        success = notebook_curator.main()
+        notebook_curator.print_log_counters()
 
         sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        config.logger.error("Operation cancelled by user")
+        curator_config.logger.error("Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        config.logger.exception(e, "Fatal error:")
+        curator_config.logger.exception(e, "Fatal error:")
         sys.exit(1)
 
 
