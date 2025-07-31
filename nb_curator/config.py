@@ -1,6 +1,5 @@
 """Configuration management for nb-curator."""
 
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -8,9 +7,13 @@ import argparse
 
 from . import logger
 from .constants import (
-    NBC_ROOT, 
-    DEFAULT_MICROMAMBA_PATH, NOTEBOOK_TEST_MAX_SECS, NOTEBOOK_TEST_JOBS,
-    DEFAULT_LOG_TIMES_MODE, DEFAULT_USE_COLOR_MODE, VALID_LOG_TIME_MODES
+    NBC_ROOT,
+    DEFAULT_MICROMAMBA_PATH,
+    NOTEBOOK_TEST_MAX_SECS,
+    NOTEBOOK_TEST_JOBS,
+    DEFAULT_LOG_TIMES_MODE,
+    DEFAULT_USE_COLOR_MODE,
+    VALID_LOG_TIME_MODES,
 )
 
 

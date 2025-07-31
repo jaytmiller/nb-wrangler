@@ -21,9 +21,7 @@ from typing import Any
 
 from .logger import CuratorLogger
 from .constants import NBC_ROOT, NBC_PANTRY
-from .constants import (
-    DEFAULT_TIMEOUT, ENV_CREATE_TIMEOUT, INSTALL_PACKAGES_TIMEOUT
-)
+from .constants import DEFAULT_TIMEOUT, ENV_CREATE_TIMEOUT, INSTALL_PACKAGES_TIMEOUT
 
 
 class EnvironmentManager:
