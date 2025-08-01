@@ -1,3 +1,4 @@
+# nb_curator/curator.py
 """Main NotebookCurator class orchestrating the curation process."""
 
 from typing import Optional
@@ -68,8 +69,39 @@ class NotebookCurator:
             return self.logger.exception(e, f"Error during curation: {e}")
 
     def _main_uncaught_core(self) -> bool:
-        """Execute the complete curation workflow."""
+        """Execute the complete curation workflow based on configured workflow type."""
+        
+        # Determine workflow type
+        workflow_type = self._determine_workflow()
+        
+        if workflow_type == "development":
+            return self._run_development_workflow()
+        elif workflow_type == "from_spec":
+            return self._run_from_spec_workflow()
+        elif workflow_type == "from_binary":
+            return self._run_from_binary_workflow()
+        elif workflow_type == "test_only":
+            return self._run_test_workflow()
+        else:
+            raise ValueError(f"Unknown workflow type: {workflow_type}")
 
+    def _determine_workflow(self):
+        """Determine which workflow to execute based on config flags."""
+        if self.config.compile_packages and self.config.install_packages and self.config.test_notebooks:
+            return "development"
+        elif not self.config.compile_packages and self.config.install_packages and self.config.test_notebooks:
+            return "from_spec"
+        elif self.config.unpack_env:
+            return "from_binary"
+        elif not self.config.compile_packages and not self.config.install_packages and self.config.test_notebooks:
+            return "test_only"
+        else:
+            # Default to development workflow
+            return "development"
+
+    def _run_development_workflow(self) -> bool:
+        """Execute steps for spec/notebook development workflow."""
+        
         # Delete the output section of the spec.
         if self.config.reset_spec:
             if not self.spec_manager.reset_spec():
@@ -145,8 +177,58 @@ class NotebookCurator:
             if not self.env_manager.pack_environment(self.environment_name):
                 return False
 
+        return True
+
+    def _run_from_spec_workflow(self) -> bool:
+        """Execute steps for environment recreation from spec workflow."""
+        
+        # set up basic empty target/test environment and kernel
+        if self.config.init_env:
+            if not self._initialize_environment():
+                return False
+
+        # Install packages based on spec outputs
+        if self.config.install_packages:
+            if (
+                not self._requires_mamba_spec()
+                or not self._requires_environment()
+                or not self._requires_compiled()
+                or not self._install_packages()
+            ):
+                return False
+
+        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
+        if self.config.test_notebooks:
+            if (
+                not self._requires_installed()
+                or not self._requires_repos()
+                or not self._test_notebooks()
+            ):
+                return False
+
+        return True
+
+    def _run_from_binary_workflow(self) -> bool:
+        """Execute steps for environment restoration from binary workflow."""
+        
+        # Unpack environment from archive
         if self.config.unpack_env:
             if not self.env_manager.unpack_environment(self.environment_name):
+                return False
+
+        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
+        if self.config.test_notebooks:
+            if not self._test_notebooks():
+                return False
+
+        return True
+
+    def _run_test_workflow(self) -> bool:
+        """Execute steps for testing existing environment workflow."""
+        
+        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
+        if self.config.test_notebooks:
+            if not self._test_notebooks():
                 return False
 
         return True
