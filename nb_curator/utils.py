@@ -4,12 +4,14 @@ import os
 import urllib.parse
 from typing import Optional
 import datetime
+import functools
+
 
 import requests
 import boto3
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML, scalarstring
 
 
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
@@ -17,10 +19,13 @@ from ruamel.yaml import YAML
 
 def get_yaml() -> YAML:
     """Return configured ruamel.yaml instance."""
-    yaml = YAML()
+    yaml = YAML(typ="rtsc")
     yaml.preserve_quotes = True
     yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml
+
+def yaml_block(s):
+    return scalarstring.LiteralScalarString(s)
 
 
 def remove_common_prefix(strings: list[str]) -> list[str]:
@@ -129,3 +134,23 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return os.path.abspath(uri)
         else:
             return None
+
+
+def once(func):
+    """
+    A decorator that ensures a function is executed only once.
+    Subsequent calls return the cached result.
+    """
+    _has_run = False
+    _result = None
+
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        nonlocal _has_run, _result
+        if not _has_run:
+            _result = func(*args, **kwargs)
+            _has_run = True
+        return _result
+    return wrapper
+
+

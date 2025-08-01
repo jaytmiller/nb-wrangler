@@ -5,6 +5,8 @@ import logging
 import pdb
 import traceback
 import datetime
+from pprint import pformat
+
 
 from . import utils
 from .constants import (
@@ -146,6 +148,10 @@ class CuratorLogger:
         print(f"Errors: {len(self.errors)}")
         print(f"Warnings: {len(self.warnings)}")
         print(f"Elapsed: {self.elapsed_time[:-4]}")
+
+    @classmethod
+    def pformat(cls, *args, **keys):
+        return pformat(*args, **keys)
 
     @classmethod
     def from_config(cls, config) -> "CuratorLogger":

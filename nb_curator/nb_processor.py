@@ -39,7 +39,7 @@ class NotebookImportProcessor:
         self.logger.info(
             f"Extracted {len(total_imports)} package imports from {len(unique_notebooks)} notebooks."
         )
-        return total_imports, nb_to_imports
+        return sorted(list(total_imports)), nb_to_imports
 
     def _read_notebook_json(self, nb_path: str) -> Optional[dict]:
         """Read and parse a notebook file as JSON."""

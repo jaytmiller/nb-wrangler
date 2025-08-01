@@ -3,6 +3,7 @@
 
 from typing import Optional
 
+from .utils import once
 from .config import CuratorConfig
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
@@ -294,13 +295,7 @@ class NotebookCurator:
         else:
             return False
 
-    def _requires_repos(self, *for_outputs) -> bool:
-        if not self.spec_manager.outputs_exist(*for_outputs):
-            return self._clone_repos()
-        else:
-            self.logger.debug("""Repository setup already completed.  Skipping.""")
-            return True
-
+    @once
     def _clone_repos(self) -> bool:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
         and scrape notebooks for package imports.
@@ -357,7 +352,7 @@ class NotebookCurator:
                 self.compiler.read_package_versions(spi_files)
             )
             mamba_packages += spi_packages
-        mamba_spec = self.compiler.generate_target_mamba_spec(
+        mamba_spec = self.compiler._generate_target_mamba_spec(
             self.spec_manager.kernel_name, mamba_packages
         )
         if not mamba_spec:
@@ -365,11 +360,9 @@ class NotebookCurator:
                 "Failed to generate mamba spec for target environment."
             )
         else:
-            spec_out["mamba_spec"] = mamba_spec
-
+            spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
         if not self.compiler.write_mamba_spec_file(self.mamba_spec_file, mamba_spec):
             return self.logger.error("Failed to write mamba spec file.")
-
         return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
 
     def _compile_requirements(self) -> bool:
@@ -401,6 +394,7 @@ class NotebookCurator:
             self.config.output_dir,
             pip_requirements_files=notebook_requirements_files,
             package_versions=package_versions,
+            pip_compiler_output=open(self.pip_output_file).read(),
         )
 
     def _install_packages(self) -> bool:
