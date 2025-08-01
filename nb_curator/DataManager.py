@@ -20,10 +20,10 @@ class DataManager:
     def create_data_item(data_name):
         pass
 
-    def add_to_spec(... see YAML above ):
+    def add_to_spec():
         pass
 
-    def add_to_shelf(... see YAML above): # needed?
+    def add_to_shelf(): # needed?
         pass
 
     def delete_data_setup(data_name):
