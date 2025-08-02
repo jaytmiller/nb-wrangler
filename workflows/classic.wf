@@ -1,0 +1,11 @@
+The original workflow used to deploy software environments to the spacetelescope science platform
+involved an iteration between 3 tighter workflow loops:
+
+1. Notebook and envirionment definition and local testing
+
+In this loop a notebook repo curator or class instructor chooses the notebooks they wish
+this environment to support, installs a corresponding Python environment,
+
+2. Platform ehancement and Docker image building and local testing
+
+3. Image deployment to JupyterHub for use by users
