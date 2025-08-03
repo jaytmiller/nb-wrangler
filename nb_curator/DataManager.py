@@ -12,6 +12,7 @@ data:
       unpack_to_live: bool
 """
 
+
 class DataManager:
 
     def setup_data_item(data_name):
@@ -23,7 +24,7 @@ class DataManager:
     def add_to_spec():
         pass
 
-    def add_to_shelf(): # needed?
+    def add_to_shelf():  # needed?
         pass
 
     def delete_data_setup(data_name):

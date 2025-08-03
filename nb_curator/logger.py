@@ -29,6 +29,7 @@ class ColorAndTimeFormatter(logging.Formatter):
         ), f"Invalid log_times value {log_times}."
         self.log_times = log_times
         self.color = color
+        self.start_time = datetime.datetime.now()  # message-to-message init
 
     @property
     def use_color(self):
@@ -39,11 +40,8 @@ class ColorAndTimeFormatter(logging.Formatter):
         else:
             return False
 
-    def format(self, record):
-        elapsed = utils.elapsed_time(
-            getattr(self, "_start_time", datetime.datetime.now())
-        )
-        self._start_time = datetime.datetime.now()
+    def _build_format_string(self, record, elapsed):
+        """Build the log format string with appropriate colors."""
         level_color = ANSI_COLORS[LEVEL_COLORS.get(record.levelno, "reset")]
         if not self.use_color:
             normal_color = elapsed_color = message_color = level_color = ""
@@ -51,12 +49,18 @@ class ColorAndTimeFormatter(logging.Formatter):
             normal_color = NORMAL_COLOR
             elapsed_color = ELAPSED_COLOR
             message_color = MESSAGE_COLOR
+
         log_fmt = level_color + "%(levelname)s: "
         if self.log_times in ["normal", "both"]:
             log_fmt += normal_color + "%(asctime)s%(msecs)03d "
         if self.log_times in ["elapsed", "both"]:
             log_fmt += elapsed_color + elapsed + " "
         log_fmt += RESET_COLOR + message_color + "%(message)s"
+        return log_fmt
+
+    def format(self, record):
+        self.start_time, elapsed_str = utils.elapsed_time(self.start_time)
+        log_fmt = self._build_format_string(record, elapsed_str)
         formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%d-%H:%M:%S")
         return formatter.format(record)
 

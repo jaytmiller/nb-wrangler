@@ -24,6 +24,7 @@ def get_yaml() -> YAML:
     yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml
 
+
 def yaml_block(s):
     return scalarstring.LiteralScalarString(s)
 
@@ -52,8 +53,9 @@ def create_divider(title: str, char: str = "*", width: int = 100) -> str:
     return f" {title} ".center(width, char) + "\n"
 
 
-def elapsed_time(start_time: datetime.datetime):
-    delta = datetime.datetime.now() - start_time
+def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]:
+    now = datetime.datetime.now()
+    delta = now - start_time
     total_seconds = int(delta.total_seconds())
     days = delta.days
     hours = total_seconds // 3600
@@ -62,10 +64,14 @@ def elapsed_time(start_time: datetime.datetime):
     microseconds = delta.microseconds
     if days:
         return (
-            f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+            now,
+            f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds/1000:03d}",
         )
     else:
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds:06d}"
+        return (
+            now,
+            f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds//1000:03d}",
+        )
 
 
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
@@ -101,7 +107,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return None
 
     # Check for S3 URI
-    elif uri.startswith("s3://"):
+    elif uri.startswith("s3://"):  # XXXX untested
         try:
             # Parse the S3 URI
             parsed_uri = urllib.parse.urlparse(uri)
@@ -151,6 +157,5 @@ def once(func):
             _result = func(*args, **kwargs)
             _has_run = True
         return _result
+
     return wrapper
-
-

@@ -158,7 +158,9 @@ class RequirementsCompiler:
             "channels": ["conda-forge"],
             "dependencies": dependencies,
         }
-        self.logger.debug("Generated mamba_spec:", "\n" + self.logger.pformat(mamba_spec) )
+        self.logger.debug(
+            "Generated mamba_spec:", "\n" + self.logger.pformat(mamba_spec)
+        )
         return mamba_spec
 
     def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict):

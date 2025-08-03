@@ -39,12 +39,11 @@ class CuratorConfig:
     pack_env: bool = False
     unpack_env: bool = False
     delete_env: bool = False
+    compact_env: bool = False
 
     compile_packages: bool = False
     install_packages: bool = False
     uninstall_packages: bool = False
-
-    compact_curator: bool = False
 
     test_notebooks: str | None = None
     jobs: int = NOTEBOOK_TEST_JOBS
@@ -55,6 +54,7 @@ class CuratorConfig:
     submit_for_build: bool = False
 
     reset_spec: bool = False
+    validate_spec: bool = False
 
     curate: bool = False
 
@@ -91,7 +91,7 @@ class CuratorConfig:
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,
             uninstall_packages=args.uninstall_packages,
-            compact_curator=getattr(args, "compact_curator", False),
+            compact_env=getattr(args, "compact_env", False),
             test_notebooks=args.test_notebooks,
             jobs=args.jobs,
             timeout=args.timeout,
@@ -99,5 +99,6 @@ class CuratorConfig:
             inject_spi=args.inject_spi,
             submit_for_build=args.submit_for_build,
             reset_spec=args.reset_spec,
+            validate_spec=args.validate_spec,
             curate=args.curate,
         )

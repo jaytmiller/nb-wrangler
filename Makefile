@@ -62,10 +62,10 @@ fnc-install: fnc-curate fnc-uninstall
 	./nb-curator  tike-2025-07-beta.yaml --install
 
 fnc-pack-env: fnc-install
-	/nb-curator  tike-2025-07-beta.yaml --pack-env
+	./nb-curator  tike-2025-07-beta.yaml --pack-env
 
 fnc-unpack-env:  fnc-uninstall
-	/nb-curator  tike-2025-07-beta.yaml --unpack-env
+	./nb-curator  tike-2025-07-beta.yaml --unpack-env
 
 # ==========================================================================================================
 

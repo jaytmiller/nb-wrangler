@@ -368,7 +368,7 @@ class EnvironmentManager:
         archive_path = Path(archive_filepath)
         return self.unarchive(archive_path, self.nbc_root_dir)
 
-    def compact_curator(self) -> bool:
+    def compact_environment(self) -> bool:
         try:
             if self.mm_pkgs_dir.exists():
                 shutil.rmtree(str(self.mm_pkgs_dir))

@@ -158,34 +158,39 @@ def parse_args():
         action="store_true",
         help="Reset spec to its original state by deleting output fields.",
     )
+    parser.add_argument(
+        "--compact-env",
+        action="store_true",
+        help="Compact the target environment after installation by deleting package caches, etc.",
+    )
+    parser.add_argument(
+        "--validate-spec",
+        action="store_true",
+        help="Validate the specification file without performing any curation actions.",
+    )
     return parser.parse_args()
 
 
 def main():
     """Main entry point for the CLI."""
-
     args = parse_args()
-
-    # Create configuration using simplified factory method
-    curator_config = config.CuratorConfig.from_args(args)
-
     try:
+        # Create configuration using simplified factory method
+        curator_config = config.CuratorConfig.from_args(args)
+
         # Convert URI to local path
         config.spec_file = utils.uri_to_local_path(args.spec_uri)
 
         # Create and run curator
         notebook_curator = curator.NotebookCurator(curator_config)
         success = notebook_curator.main()
-        notebook_curator.print_log_counters()
-
-        sys.exit(0 if success else 1)
     except KeyboardInterrupt:
-        curator_config.logger.error("Operation cancelled by user")
-        sys.exit(1)
+        success = curator_config.logger.error("Operation cancelled by user")
     except Exception as e:
-        curator_config.logger.exception(e, "Fatal error:")
-        sys.exit(1)
+        success = curator_config.logger.exception(e, "Failed:")
+    notebook_curator.print_log_counters()
+    return success
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(int(main()))
