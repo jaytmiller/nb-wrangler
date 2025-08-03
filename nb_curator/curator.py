@@ -120,12 +120,7 @@ class NotebookCurator:
             if not self._initialize_environment():
                 return False
 
-        if self.config.compile_packages:
-            if not self._requires_repos(
-                "notebook_repo_urls", "injector_urls", "test_notebooks", "test_imports"
-            ):
-                return False
-            if not self._compile_requirements():
+        if self.config.compile_packages and not self._compile_requirements():
                 return False
 
         # Install compiled pip package versions into the target environment, test explicit notebook imports
@@ -142,7 +137,6 @@ class NotebookCurator:
         if self.config.test_notebooks:
             if (
                 not self._requires_installed()
-                or not self._requires_repos()
                 or not self._test_notebooks()
             ):
                 return False
@@ -183,6 +177,13 @@ class NotebookCurator:
     def _run_from_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
         
+        # setup repositories
+        if self.config.clone_repos:
+            if not self._clone_repos():
+                return self.logger.error(
+                    "Basic repo notebook setup and selection failed."
+                )
+
         # set up basic empty target/test environment and kernel
         if self.config.init_env:
             if not self._initialize_environment():
@@ -202,7 +203,6 @@ class NotebookCurator:
         if self.config.test_notebooks:
             if (
                 not self._requires_installed()
-                or not self._requires_repos()
                 or not self._test_notebooks()
             ):
                 return False
@@ -212,6 +212,13 @@ class NotebookCurator:
     def _run_from_binary_workflow(self) -> bool:
         """Execute steps for environment restoration from binary workflow."""
         
+        # setup repositories
+        if self.config.clone_repos:
+            if not self._clone_repos():
+                return self.logger.error(
+                    "Basic repo notebook setup and selection failed."
+                )
+
         # Unpack environment from archive
         if self.config.unpack_env:
             if not self.env_manager.unpack_environment(self.environment_name):
@@ -352,7 +359,7 @@ class NotebookCurator:
                 self.compiler.read_package_versions(spi_files)
             )
             mamba_packages += spi_packages
-        mamba_spec = self.compiler._generate_target_mamba_spec(
+        mamba_spec = self.compiler.generate_target_mamba_spec(
             self.spec_manager.kernel_name, mamba_packages
         )
         if not mamba_spec:

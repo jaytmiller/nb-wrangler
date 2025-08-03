@@ -1,14 +1,16 @@
-flowchart LR
-    Curator[Laptop] -->|defines YAML spec| nb-curator_tool[Tool];
-    nb-curator_tool -->|downloads notebooks & requirements| GitHub[notebook repositories];
-    GitHub -->|notebooks & requirements| nb-curator_tool;
-    nb-curator_tool -->|creates environment| conda-forge[conda-forge];
-    nb-curator_tool -->|creates environment| pypi[pypi];
-    conda-forge -->|packages| nb-curator_tool;
-    pypi -->|packages| nb-curator_tool;
-    nb-curator_tool -->|runs notebooks & tests| Papermill[Papermill];
-    Papermill -->|test results| nb-curator_tool;
-    nb-curator_tool -->|builds Docker image| science-platform-images[science-platform-images GitHub repo];
-    science-platform-images -->|Docker image| AWS_ECR[AWS ECR];
-    AWS_ECR -->|Docker image| JupyterHubs[Science Platform JupyterHubs];
-
+flowchart TD
+    A[Start] --> B{Notebooks Defined?}
+    B -->|Yes| C[Download Notebooks]
+    B -->|No| D[Define Notebooks]
+    C --> E[Download Requirements]
+    D --> E
+    E --> F{Requirements Resolved?}
+    F -->|Yes| G[Create Environment]
+    F -->|No| H[Resolve Conflicts]
+    G --> I[Run Notebooks]
+    H --> G
+    I --> J{Notebooks Execute Successfully?}
+    J -->|Yes| K[Environment Ready]
+    J -->|No| L[Debug Environment]
+    K --> M[End]
+    L --> M

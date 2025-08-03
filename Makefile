@@ -36,7 +36,38 @@ help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 setup:
-	pip install -r requirements.txt  -r test_requirements.txt
+	pip install .[dev]
+
+# ==========================================================================================================
+
+functional: fnc-preclean fnc-bootstrap functional-2
+
+functional-2: fnc-curate fnc-uninstall fnc-install fnc-pack-env fnc-unpack-env
+
+fnc-preclean:
+	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry
+
+fnc-bootstrap: fnc-preclean
+	# curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
+	# chmod +x nb-curator
+	./nb-curator bootstrap
+
+fnc-curate:
+	./nb-curator tike-2025-07-beta.yaml --curate
+
+fnc-uninstall: fnc-curate
+	./nb-curator tike-2025-07-beta.yaml --uninstall
+
+fnc-install: fnc-curate fnc-uninstall
+	./nb-curator  tike-2025-07-beta.yaml --install
+
+fnc-pack-env: fnc-install
+	/nb-curator  tike-2025-07-beta.yaml --pack-env
+
+fnc-unpack-env:  fnc-uninstall
+	/nb-curator  tike-2025-07-beta.yaml --unpack-env
+
+# ==========================================================================================================
 
 clean: clean-build clean-pyc clean-test clean-other ## remove all build, test, coverage and Python artifacts
 
