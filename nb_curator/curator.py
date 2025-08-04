@@ -73,200 +73,113 @@ class NotebookCurator:
 
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow based on configured workflow type."""
+        match self.config.workflow:
+            case "develop":
+                return self._run_development_workflow()
+            case "install-compiled-spec":
+                return self._run_from_spec_workflow()
+            case "restore-binary":
+                return self._run_from_binary_workflow()
+            case "test":
+                return self._run_test_workflow()
+            case "_":
+                return self._run_explicit_steps()
 
-        # Determine workflow type
-        workflow_type = self._determine_workflow()
-
-        if workflow_type == "development":
-            return self._run_development_workflow()
-        elif workflow_type == "from_spec":
-            return self._run_from_spec_workflow()
-        elif workflow_type == "from_binary":
-            return self._run_from_binary_workflow()
-        elif workflow_type == "test_only":
-            return self._run_test_workflow()
-        else:
-            raise ValueError(f"Unknown workflow type: {workflow_type}")
-
-    def _determine_workflow(self):
-        """Determine which workflow to execute based on config flags."""
-        if (
-            self.config.compile_packages
-            and self.config.install_packages
-            and self.config.test_notebooks
-        ):
-            return "development"
-        elif (
-            not self.config.compile_packages
-            and self.config.install_packages
-            and self.config.test_notebooks
-        ):
-            return "from_spec"
-        elif self.config.unpack_env:
-            return "from_binary"
-        elif (
-            not self.config.compile_packages
-            and not self.config.install_packages
-            and self.config.test_notebooks
-        ):
-            return "test_only"
-        else:
-            # Default to development workflow
-            return "development"
+    def run_workflow(name, steps):
+        self.logger.info("Running workflow", name)
+        for step in steps:
+            self.logger.debug(f"Running step {step.__name__}")
+            if not step():
+                return False
+        self.logger.info("Workflow", name, "completed.")
+        return True
 
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
-
-        self.logger.info("Running development workflow.")
-
-        # setup repositories
-        if self.config.clone_repos and not self._clone_repos():
-            return self.logger.error("Basic repo notebook setup and selection failed.")
-
-        # set up basic empty target/test environment and kernel
-        if self.config.init_env and not self._initialize_environment():
-            return False
-
-        if self.config.compile_packages and not self._compile_requirements():
-            return False
-
-        # Install compiled pip package versions into the target environment, test explicit notebook imports
-        if self.config.install_packages:
-            if (
-                not self._requires_mamba_spec()
-                or not self._requires_environment()
-                or not self._requires_compiled()
-                or not self._install_packages()
-            ):
-                return False
-
-        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
-        if self.config.test_notebooks:
-            if not self._requires_installed() or not self._test_notebooks():
-                return False
-
-        # Inject critical output fields from the finished spec into the build environment clone.
-        # The clone should then be requirements complete for a manual or automated notebook image build.
-        if self.config.inject_spi and not self.injector.inject():
-            return False
-
-        return self._standalone_actions()
-
-    def _standalone_actions(self):
-        self.logger.debug("Checking standalone actions...")
-
-        # Delete the output section of the spec.
-        if self.config.reset_spec and not self.spec_manager.reset_spec():
-            return False
-
-        if self.config.validate_spec and not self.spec_manager.validate():
-            return False
-
-        if self.config.uninstall_packages and not self.env_manager.uninstall_packages(
-            self.environment_name, [self.pip_output_file]
+        if self.run_workflow(
+            "spec development / curation",
+            [
+                self._clone_repos,
+                self._generate_target_mamba_spec,
+                self._compile_requirements,
+                self._initialize_environment,
+                self._install_packages,
+                self._test_imports,
+                self._test_notebooks,
+            ],
         ):
-            return False
-
-        # Delete all aspects of the basic target environment defined by the spec.
-        if self.config.delete_env and not self._delete_environment():
-            return False
-
-        # Remove all notebook and/or build environment repo clones.
-        if self.config.delete_repos and not self.repo_manager.delete_repos():
-            return False
-
-        if self.config.compact_env and not self.env_manager.compact_environment():
-            return False
-
-        if self.config.pack_env and not self.env_manager.pack_environment(
-            self.environment_name
-        ):
-            return False
-
-        return True
+            return self._run_explicit_steps()
+        return False
 
     def _run_from_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
-
         self.logger.info("Running install-from-precompiled-spec workflow.")
+        required_outputs = "mamba_spec", "package_versions", "pip_package_files"
+        if not self.spec_manager.outputs_exist(*required_outputs):
+            return self.logger.error(
+                "This workflow requires a precompiled spec with outputs for",
+                required_outputs,
+            )
+        if not self.run_workflow(
+            "install-compiled-spec",
+            [
+                self._clone_repos,
+                self._initialize_environment,
+                self._install_packages,
+                self._test_imports,
+                self._test_notebooks,
+            ],
+        ):
+            return False
+        return self._run_explicit_steps()
 
-        # setup repositories
-        if self.config.clone_repos:
-            if not self._clone_repos():
-                return self.logger.error(
-                    "Basic repo notebook setup and selection failed."
-                )
-
-        # set up basic empty target/test environment and kernel
-        if self.config.init_env:
-            if not self._initialize_environment():
-                return False
-
-        # Install packages based on spec outputs
-        if self.config.install_packages:
-            if (
-                not self._requires_mamba_spec()
-                or not self._requires_environment()
-                or not self._requires_compiled()
-                or not self._install_packages()
-            ):
-                return False
-
-        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
-        if self.config.test_notebooks:
-            if not self._requires_installed() or not self._test_notebooks():
-                return False
-
-        return self._standalone_actions()
-
-    def _run_from_binary_workflow(self) -> bool:
-        """Execute steps for environment restoration from binary workflow."""
-
-        self.logger.info("Running install-from-binary workflow.")
-
-        # setup repositories
-        if self.config.clone_repos:
-            if not self._clone_repos():
-                return self.logger.error(
-                    "Basic repo notebook setup and selection failed."
-                )
-
-        # Unpack environment from archive
-        if self.config.unpack_env:
-            if not self.env_manager.unpack_environment(self.environment_name):
-                return False
-
-        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
-        if self.config.test_notebooks:
-            if not self._test_notebooks():
-                return False
-
-        return self._standalone_actions()
+    def _run_explicit_steps(self) -> bool:
+        """Execute steps for spec/notebook development workflow."""
+        self.logger.info("Running explicitly selected steps.")
+        flags_and_steps = [
+            (self.config.clone_repos, self._clone_repos),
+            (self.config.compile_packages, self._compile_requirements),
+            (self.config.init_env, self._initialize_environment),
+            (self.config.install_packages, self._install_packages),
+            (self.config.test_imports, self._test_imports),
+            (self.config.test_notebooks, self._test_notebooks),
+            (self.config.inject_spi, self.injector.inject),
+            (self.config.reset_spec, self.spec_manager.reset_spec),
+            (self.config.validate_spec, self.spec_manager.validate),
+            (self.config.uninstall_packages, self.env_manager.uninstall_packages),
+            (self.config.delete_env, self._delete_environment),
+            (self.config.delete_repos, self.repo_manager.delete_repos),
+            (self.config.compact_env, self.env_manager.compact_environment),
+            (self.config.pack_env, self.env_manager.pack_environment),
+            (self.config.unpack_env, self.env_manager.unpack_environment),
+        ]
+        for flag, step in flags_and_steps:
+            if flag:
+                self.logger.info("Running step", step.__name__)
+                if not step():
+                    self.logger.debug("FAILED step", step.__name__, "... stopping...")
+                    return False
+        return True
 
     def _run_test_workflow(self) -> bool:
-        """Execute steps for testing existing environment workflow."""
-
-        self.logger.info("Running test workflow.")
-
-        # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
-        if self.config.test_notebooks:
-            if not self._test_notebooks():
-                return False
-
-        return self._standalone_actions()
-
-    def _requires_environment(self):
-        """"""
-        if self.env_manager.environment_exists(self.environment_name):
-            self.logger.debug(
-                f"Environment {self.environment_name} exists.  Skipping creation..."
+        """Execute steps for environment recreation from spec workflow."""
+        self.logger.info("Running install-from-precompiled-spec workflow.")
+        required_outputs = "mamba_spec", "package_versions", "pip_package_files"
+        if not self.spec_manager.outputs_exist(*required_outputs):
+            return self.logger.error(
+                "This workflow requires a precompiled spec with outputs for",
+                required_outputs,
             )
-            return True
-        else:
-            self.logger.debug(
-                f"Environment {self.environment_name} does not exist. Creating..."
-            )
-            return self._initialize_environment()
+        if self.run_workflow(
+            "test-imports-and-notebooks",
+            [
+                self._clone_repos,
+                self._test_imports,
+                self._test_notebooks,
+            ],
+        ):
+            return False
+        return self._run_explicit_steps()
 
     def _requires_mamba_spec(self) -> bool:
         """Compute the mamba spec for the target environment if it dosn't already exist
@@ -409,26 +322,25 @@ class NotebookCurator:
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             pip_requirements_files=notebook_requirements_files,
-            package_versions=package_versions,
             pip_compiler_output=utils.yaml_block(open(self.pip_output_file).read()),
         )
 
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
-        package_versions, test_imports = self.spec_manager.get_outputs(
-            "package_versions", "test_imports"
-        )
+        pip_compiler_output = self.spec_manager.get_outputs("pip_compiler_output")
         if package_versions:
-            self.compiler.write_pip_requirements_file(
-                self.pip_output_file, package_versions
-            )
+            with open(self.pip_output_file, "w+") as pkgs:
+                pkgs.write(pip_compiler_output)
             if not self.env_manager.install_packages(
                 self.environment_name, [self.pip_output_file]
             ):
                 return False
         else:
             self.logger.warning("Found no pip requirements to install.")
-        if test_imports:
+
+    def _test_imports(self) -> bool:
+        """Unconditionally run import checks if test_imports are defined."""
+        if test_imports := self.spec_manager.get_outputs("test_imports"):
             return self.env_manager.test_imports(self.environment_name, test_imports)
         else:
             self.logger.warning("Found no imports to check in spec'd notebooks.")
@@ -441,6 +353,12 @@ class NotebookCurator:
             notebook_paths, self.config.test_notebooks
         )
         return self.tester.test_notebooks(self.environment_name, filtered_notebooks)
+
+    def _unpack_environment(self):
+        return self.env_manager.unpack_environment(self.environment_name)
+
+    def _pack_environment(self):
+        return self.env_manager.pack_environment(self.environment_name)
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""

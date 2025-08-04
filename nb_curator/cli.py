@@ -31,6 +31,21 @@ def parse_args():
         help="URI to the YAML specification file:  simple path, file:// path, https://, http://, or s3://",
     )
     parser.add_argument(
+        "--develop",
+        dest="workflow",
+        action="store_const",
+        const="develop",
+        help="Execute the curation workflow for spec development to add compiled requirements.",
+    )
+    parser.add_argument(
+        "--reinstall",
+        dest="workflow",
+        action="store_const",
+        const="reinstall",
+        help="Install requirements defined by a pre-compiled spec.",
+    )
+
+    parser.add_argument(
         "-v",
         "--verbose",
         action="store_true",
@@ -73,11 +88,6 @@ def parse_args():
         "--unpack-env",
         action="store_true",
         help="Unpack a previously packed environment compressed tarball into the target directory.",
-    )
-    parser.add_argument(
-        "--curate",
-        action="store_true",
-        help="sets options for a core nb-curator workflow: --compile --install --test-notebooks",
     )
     parser.add_argument(
         "-c",
@@ -181,7 +191,7 @@ def parse_args():
 def main():
     """Main entry point for the CLI."""
     args = parse_args()
-    
+
     # Profile if requested
     if args.profile:
         with cProfile.Profile() as pr:
@@ -191,6 +201,7 @@ def main():
         success = _main(args)
 
     return success
+
 
 def _main(args):
     """Main entry point for the CLI."""
@@ -210,6 +221,7 @@ def _main(args):
         success = curator_config.logger.exception(e, "Failed:")
     notebook_curator.print_log_counters()
     return success
+
 
 if __name__ == "__main__":
     sys.exit(int(main()))
