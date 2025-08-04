@@ -31,10 +31,10 @@ def parse_args():
         help="URI to the YAML specification file:  simple path, file:// path, https://, http://, or s3://",
     )
     parser.add_argument(
-        "--develop",
+        "--curate",
         dest="workflow",
         action="store_const",
-        const="develop",
+        const="curation",
         help="Execute the curation workflow for spec development to add compiled requirements.",
     )
     parser.add_argument(
@@ -44,7 +44,26 @@ def parse_args():
         const="reinstall",
         help="Install requirements defined by a pre-compiled spec.",
     )
-
+    parser.add_argument(
+        "-t",
+        "--test-all",
+        dest="test_all",
+        action="store_true",
+        help="Test both imports and all notebooks.",
+    )
+    parser.add_argument(
+        "--test-imports",
+        action="store_true",
+        help="Attempt to import every package explicitly imported by one of the spec'd notebooks.",
+    )
+    parser.add_argument(
+        "--test-notebooks",
+        default=None,
+        const=".*",
+        nargs="?",
+        type=str,
+        help="Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*",
+    )
     parser.add_argument(
         "-v",
         "--verbose",
@@ -90,6 +109,11 @@ def parse_args():
         help="Unpack a previously packed environment compressed tarball into the target directory.",
     )
     parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Compact the curator installation by deleting package caches, etc.",
+    )
+    parser.add_argument(
         "-c",
         "--compile-packages",
         action="store_true",
@@ -110,15 +134,6 @@ def parse_args():
         "--uninstall-packages",
         action="store_true",
         help="Remove the compiled packages from the target environment after processing.",
-    )
-    parser.add_argument(
-        "-t",
-        "--test-notebooks",
-        default=None,
-        const=".*",
-        nargs="?",
-        type=str,
-        help="Test notebooks matching patterns (comma-separated regexes) in target environment.",
     )
     parser.add_argument(
         "-j",
@@ -169,11 +184,6 @@ def parse_args():
         "--reset-spec",
         action="store_true",
         help="Reset spec to its original state by deleting output fields.",
-    )
-    parser.add_argument(
-        "--compact-env",
-        action="store_true",
-        help="Compact the target environment after installation by deleting package caches, etc.",
     )
     parser.add_argument(
         "--validate-spec",

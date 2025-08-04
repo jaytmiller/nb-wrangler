@@ -133,7 +133,7 @@ class RequirementsCompiler:
 
     def generate_target_mamba_spec(
         self, kernel_name: str, dependencies: list[str]
-    ) -> dict:
+    ) -> str:
         """Generate mamba environment specification and return dict for YAML."""
         try:
             self.logger.debug("Generating spec for empty mamba environment.")
@@ -145,7 +145,7 @@ class RequirementsCompiler:
 
     def _generate_mamba_spec_core(
         self, kernel_name: str, dependencies_in: list[str]
-    ) -> dict:
+    ) -> str:
         """Uncaught core processing of generate_mamba_spec."""
         dependencies = [
             f"python={self.python_version}" if self.python_version else "3",
@@ -161,7 +161,7 @@ class RequirementsCompiler:
         self.logger.debug(
             "Generated mamba_spec:", "\n" + self.logger.pformat(mamba_spec)
         )
-        return mamba_spec
+        return get_yaml().dump_to_string(mamba_spec)
 
     def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict):
         """Write mamba spec dictionary to YAML file."""

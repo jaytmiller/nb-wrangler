@@ -27,7 +27,8 @@ class SpecManager:
         manager = cls(logger)
         if manager.load_spec(spec_file) and manager.validate():
             return manager
-        return None
+        else:
+            return logger.error("Failed to load and validate", spec_file)
 
     # ----------------------------- load, save, outputs  ---------------------------
 
@@ -74,7 +75,7 @@ class SpecManager:
             self._source_file = Path(spec_file)
             with self._source_file.open("r") as f:
                 self._spec = get_yaml().load(f)
-            return self.logger.info(f"Loaded spec from {str(spec_file)}.")
+            return self.logger.debug(f"Loaded spec from {str(spec_file)}.") or True
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
 
@@ -90,10 +91,10 @@ class SpecManager:
     def _save_spec(self, output_filepath: Path | str) -> bool:
         """Save the current YAML spec to a file."""
         try:
-            self.logger.info(f"Saving spec file to {output_filepath}.")
+            self.logger.debug(f"Saving spec file to {output_filepath}.")
             with output_filepath.open("w") as f:
                 get_yaml().dump(self._spec, f)
-            return self.logger.info(f"Spec file saved to {output_filepath}.")
+            return self.logger.debug(f"Spec file saved to {output_filepath}.")
         except Exception as e:
             return self.logger.exception(
                 e, f"Error saving YAML spec file to {output_filepath}: {e}"
@@ -107,7 +108,7 @@ class SpecManager:
         """Update spec with computed outputs and save to file."""
         try:
             self.logger.info(
-                f"Revising spec file {self._source_file} -> {self.output_spec(output_dir)}."
+                f"Revising spec file {self._source_file}."
             )
             for key, value in additional_outputs.items():
                 self.set_output_data(key, value)
@@ -130,8 +131,8 @@ class SpecManager:
             del self._spec["out"]
             self.logger.info("Deleted output section of spec file added by nb-curator.")
         except KeyError:
-            self.logger.warning(
-                "The output section of spec file that would be added by nb-curator does not exist."
+            return self.logger.warning(
+                "The output section of spec file does not exist. Nothing to reset."
             )
         return self.validate() and self._save_spec(
             self._source_file

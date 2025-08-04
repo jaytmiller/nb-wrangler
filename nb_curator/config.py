@@ -46,6 +46,9 @@ class CuratorConfig:
     uninstall_packages: bool = False
 
     test_notebooks: str | None = None
+    test_imports: bool = False
+    test_all: bool = False
+
     jobs: int = NOTEBOOK_TEST_JOBS
     timeout: int = NOTEBOOK_TEST_MAX_SECS
 
@@ -56,20 +59,20 @@ class CuratorConfig:
     reset_spec: bool = False
     validate_spec: bool = False
 
-    curate: bool = False
+    workflow: str = "explicit"
 
     def __post_init__(self):
         """Post-initialization processing."""
         self.logger = logger.CuratorLogger(self.verbose, self.debug, self.log_times)
         self.repos_dir = Path(self.repos_dir)
-        if self.curate:
-            self.compile_packages = True
-            self.install_packages = True
-            self.test_notebooks = ".*"
 
         # Validate log_times parameter
         if self.log_times not in VALID_LOG_TIME_MODES:
             raise ValueError(f"log_times must be one of {VALID_LOG_TIME_MODES}")
+
+        if self.test_all:
+            self.test_imports = True
+            self.test_notebooks = ".*"
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "CuratorConfig":
@@ -93,6 +96,8 @@ class CuratorConfig:
             uninstall_packages=args.uninstall_packages,
             compact_env=getattr(args, "compact_env", False),
             test_notebooks=args.test_notebooks,
+            test_imports=args.test_imports,
+            test_all=args.test_all,
             jobs=args.jobs,
             timeout=args.timeout,
             omit_spi_packages=args.omit_spi_packages,
@@ -100,5 +105,5 @@ class CuratorConfig:
             submit_for_build=args.submit_for_build,
             reset_spec=args.reset_spec,
             validate_spec=args.validate_spec,
-            curate=args.curate,
+            workflow=args.workflow,
         )

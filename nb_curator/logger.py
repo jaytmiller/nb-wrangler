@@ -144,7 +144,7 @@ class CuratorLogger:
 
     @property
     def elapsed_time(self):
-        return utils.elapsed_time(self.start_time)
+        return utils.elapsed_time(self.start_time)[1]
 
     def print_log_counters(self):
         """Print summary of logged messages."""

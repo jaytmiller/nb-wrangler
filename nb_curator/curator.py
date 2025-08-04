@@ -64,8 +64,7 @@ class NotebookCurator:
 
     def main(self) -> bool:
         """Main processing method."""
-        self.logger.info("Starting notebook curation process")
-        self.logger.debug(f"Configuration: {self.config}")
+        self.logger.debug(f"Starting curator configuration: {self.config}")
         try:
             return self._main_uncaught_core()
         except Exception as e:
@@ -74,19 +73,15 @@ class NotebookCurator:
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow based on configured workflow type."""
         match self.config.workflow:
-            case "develop":
+            case "curation":
                 return self._run_development_workflow()
-            case "install-compiled-spec":
+            case "reinstall":
                 return self._run_from_spec_workflow()
-            case "restore-binary":
-                return self._run_from_binary_workflow()
-            case "test":
-                return self._run_test_workflow()
-            case "_":
+            case _:
                 return self._run_explicit_steps()
 
-    def run_workflow(name, steps):
-        self.logger.info("Running workflow", name)
+    def run_workflow(self, name: str, steps: list):
+        self.logger.info("Running", name, "workflow")
         for step in steps:
             self.logger.debug(f"Running step {step.__name__}")
             if not step():
@@ -100,12 +95,9 @@ class NotebookCurator:
             "spec development / curation",
             [
                 self._clone_repos,
-                self._generate_target_mamba_spec,
                 self._compile_requirements,
                 self._initialize_environment,
                 self._install_packages,
-                self._test_imports,
-                self._test_notebooks,
             ],
         ):
             return self._run_explicit_steps()
@@ -114,7 +106,7 @@ class NotebookCurator:
     def _run_from_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
         self.logger.info("Running install-from-precompiled-spec workflow.")
-        required_outputs = "mamba_spec", "package_versions", "pip_package_files"
+        required_outputs = "mamba_spec", "package_versions",
         if not self.spec_manager.outputs_exist(*required_outputs):
             return self.logger.error(
                 "This workflow requires a precompiled spec with outputs for",
@@ -126,8 +118,6 @@ class NotebookCurator:
                 self._clone_repos,
                 self._initialize_environment,
                 self._install_packages,
-                self._test_imports,
-                self._test_notebooks,
             ],
         ):
             return False
@@ -144,7 +134,7 @@ class NotebookCurator:
             (self.config.test_imports, self._test_imports),
             (self.config.test_notebooks, self._test_notebooks),
             (self.config.inject_spi, self.injector.inject),
-            (self.config.reset_spec, self.spec_manager.reset_spec),
+            (self.config.reset_spec, self._reset_spec),
             (self.config.validate_spec, self.spec_manager.validate),
             (self.config.uninstall_packages, self.env_manager.uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -155,76 +145,12 @@ class NotebookCurator:
         ]
         for flag, step in flags_and_steps:
             if flag:
-                self.logger.info("Running step", step.__name__)
+                self.logger.debug("Running step", step.__name__)
                 if not step():
-                    self.logger.debug("FAILED step", step.__name__, "... stopping...")
+                    self.logger.error("FAILED step", step.__name__, "... stopping...")
                     return False
         return True
 
-    def _run_test_workflow(self) -> bool:
-        """Execute steps for environment recreation from spec workflow."""
-        self.logger.info("Running install-from-precompiled-spec workflow.")
-        required_outputs = "mamba_spec", "package_versions", "pip_package_files"
-        if not self.spec_manager.outputs_exist(*required_outputs):
-            return self.logger.error(
-                "This workflow requires a precompiled spec with outputs for",
-                required_outputs,
-            )
-        if self.run_workflow(
-            "test-imports-and-notebooks",
-            [
-                self._clone_repos,
-                self._test_imports,
-                self._test_notebooks,
-            ],
-        ):
-            return False
-        return self._run_explicit_steps()
-
-    def _requires_mamba_spec(self) -> bool:
-        """Compute the mamba spec for the target environment if it dosn't already exist
-        in spec outputs.   Since the full spec is inline, that is all that is needed.
-        """
-        if (
-            self.spec_manager.outputs_exist("mamba_spec")
-            and self.mamba_spec_file.exists()
-        ):
-            self.logger.debug("Mamba_spec already exists.  Skipping generation...")
-            return True
-        else:
-            return self._generate_target_mamba_spec()
-
-    def _requires_compiled(self):
-        """Perform steps needed to obtaine outputs produced by compilation, but only as-needed."""
-        return (
-            self.spec_manager.outputs_exist(
-                "mamba_spec", "package_versions", "pip_package_files"
-            )
-            and self.spec_manager.files_exist(
-                self.mamba_spec_file, *self.pip_package_files
-            )
-            or self._compile_requirements()
-        )
-
-    def _requires_installed(self):
-        """Perform steps needed to obtain a fully installed environment, but only as-needed."""
-        if (
-            self._requires_compiled()
-            and self._requires_environment()
-            and self._install_packages()
-        ):
-            return True
-        else:
-            return False
-
-    def _requires_test(self):
-        """Perform steps needed to run notebook tests, but only as-needed."""
-        if self._requires_installed() and self._test_notebooks():
-            return True
-        else:
-            return False
-
-    @once
     def _clone_repos(self) -> bool:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
         and scrape notebooks for package imports.
@@ -260,14 +186,6 @@ class NotebookCurator:
             nb_to_imports=nb_to_imports,
         )
 
-    def _initialize_environment(self) -> bool:
-        """Unconditionally initialize the target environment."""
-        if self.env_manager.create_environment(
-            self.environment_name, self.mamba_spec_file
-        ):
-            return False
-        return self.env_manager.register_environment(self.environment_name)
-
     def _generate_target_mamba_spec(self) -> Optional[str]:
         """Unconditionally generate mamba environment .yml spec."""
         self.logger.info(
@@ -290,9 +208,7 @@ class NotebookCurator:
             )
         else:
             spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
-        if not self.compiler.write_mamba_spec_file(self.mamba_spec_file, mamba_spec):
-            return self.logger.error("Failed to write mamba spec file.")
-        return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
+            return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
 
     def _compile_requirements(self) -> bool:
         """Unconditionally identify notebooks, compile requirements, and update spec outputs
@@ -325,6 +241,19 @@ class NotebookCurator:
             pip_compiler_output=utils.yaml_block(open(self.pip_output_file).read()),
         )
 
+    def _initialize_environment(self) -> bool:
+        """Unconditionally initialize the target environment."""
+        if self.env_manager.environment_exists(self.environment_name):
+            return self.logger.info("Environment already exists, skipping re-install.  Use --delete-env to remove.")
+        mamba_spec = self.spec_manager.get_outputs("mamba_spec")
+        with open(self.mamba_spec_file, "w+") as spec_file:
+            spec_file.write(mamba_spec)
+        if not self.env_manager.create_environment(
+            self.environment_name, self.mamba_spec_file
+        ):
+            return False
+        return self.env_manager.register_environment(self.environment_name)
+
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
         pip_compiler_output = self.spec_manager.get_outputs("pip_compiler_output")
@@ -354,16 +283,29 @@ class NotebookCurator:
         )
         return self.tester.test_notebooks(self.environment_name, filtered_notebooks)
 
+    def _reset_spec(self):
+        self.logger.info("Resetting/clearing spec outputs.")
+        return self.spec_manager.reset_spec()
+
     def _unpack_environment(self):
-        return self.env_manager.unpack_environment(self.environment_name)
+        if self.env_manager.unpack_environment(self.environment_name):
+            return self.logger.info("Unpacked environment", self.environment_name)
+        else:
+            return self.logger.error("Failed unpacking environment", self.environment_name)
 
     def _pack_environment(self):
-        return self.env_manager.pack_environment(self.environment_name)
+        if self.env_manager.pack_environment(self.environment_name):
+            return self.logger.info("Packed environment", self.environment_name)
+        else:
+            return self.logger.error("Failed packing environment", self.environment_name)
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
         self.env_manager.unregister_environment(self.environment_name)
-        return self.env_manager.delete_environment(self.environment_name)
+        if self.env_manager.delete_environment(self.environment_name):
+            return self.logger.info("Deleted environment", self.environment_name)
+        else:
+            return self.logger.error("Failed deleting environment", self.environment_name)
 
     def print_log_counters(self):
         """Print log counters - delegate to logger."""
