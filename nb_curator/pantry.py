@@ -59,7 +59,7 @@ class NbcPantry:
         This includes metadata, specs, shelves, and archives directories.
         Returns the path to the created pantry.
         """
-        pass
+        raise NotImplementedError("create_pantry not yet implemented")
 
     def create_shelf(self, spec_path: str | Path) -> Path:
         """
@@ -67,7 +67,7 @@ class NbcPantry:
         The shelf will have subdirectories for cans, notebooks, and data.
         Returns the path to the newly created shelf.
         """
-        pass
+        raise NotImplementedError("create_shelf not yet implemented")
 
     def delete_shelf(self, spec_path: str | Path) -> bool:
         """
@@ -75,28 +75,28 @@ class NbcPantry:
         This operation should be cautious and may require confirmation.
         Returns True if deletion was successful, False otherwise.
         """
-        pass
+        raise NotImplementedError("delete_shelf not yet implemented")
 
     def install_shelf(self, spec_path: str | Path) -> bool:
         """
         Install a shelf from its specification, possibly by unpacking a tarball or cloning notebooks.
         Returns True if installation was successful, False otherwise.
         """
-        pass
+        raise NotImplementedError("install_shelf not yet implemented")
 
     def archive_shelf(self, spec_path: str | Path) -> Path:
         """
         Archive a shelf into a compressed file for backup or distribution.
         Returns the path to the archived file.
         """
-        pass
+        raise NotImplementedError("archive_shelf not yet implemented")
 
     def list_shelves(self) -> list[str]:
         """
         List all shelves present in the pantry.
         Returns a list of shelf names.
         """
-        pass
+        raise NotImplementedError("list_shelves not yet implemented")
 
 
 class NbcShelf:

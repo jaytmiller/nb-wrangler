@@ -1,8 +1,6 @@
 # nb_curator/curator.py
 """Main NotebookCurator class orchestrating the curation process."""
 
-from typing import Optional
-
 from .config import CuratorConfig
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
@@ -11,7 +9,6 @@ from .environment import EnvironmentManager
 from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
-from .utils import once
 from . import utils
 
 
@@ -20,27 +17,36 @@ class NotebookCurator:
 
     def __init__(self, config: CuratorConfig):
         self.config = config
+        if config.logger is None:
+            raise RuntimeError("Logger not initialized in config")
         self.logger = config.logger
         self.logger.info("Loading and validating spec", self.config.spec_file)
-        self.spec_manager = SpecManager.load_and_validate(
+        spec_manager = SpecManager.load_and_validate(
             self.logger,
             self.config.spec_file,
         )
+        if spec_manager is None:
+            raise RuntimeError("Failed to load and validate spec")
+        self.spec_manager = spec_manager
         self.env_manager = EnvironmentManager(
             self.logger,
             self.config.micromamba_path,
         )
+        if config.repos_dir is None:
+            raise RuntimeError("repos_dir not configured")
         self.repo_manager = RepositoryManager(
             self.logger, config.repos_dir, self.env_manager
         )
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
-        self.injector = get_injector(self.logger, config.repos_dir, self.spec_manager)
+        self.injector = get_injector(
+            self.logger, str(config.repos_dir), self.spec_manager
+        )
 
         # Create output directories
-        config.output_dir.mkdir(parents=True, exist_ok=True)
-        config.repos_dir.mkdir(parents=True, exist_ok=True)
+        self.config.output_dir.mkdir(parents=True, exist_ok=True)
+        self.config.repos_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def deployment_name(self):
@@ -83,11 +89,10 @@ class NotebookCurator:
     def run_workflow(self, name: str, steps: list):
         self.logger.info("Running", name, "workflow")
         for step in steps:
-            self.logger.debug(f"Running step {step.__name__}")
+            self.logger.debug(f"Running step {step.__name__}.")
             if not step():
-                return False
-        self.logger.info("Workflow", name, "completed.")
-        return True
+                return self.logger.error(f"FAILED running step {step.__name__}.")
+        return self.logger.info("Workflow", name, "completed.")
 
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
@@ -106,7 +111,11 @@ class NotebookCurator:
     def _run_from_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
         self.logger.info("Running install-from-precompiled-spec workflow.")
-        required_outputs = "mamba_spec", "package_versions",
+        required_outputs = (
+            "mamba_spec",
+            "package_versions",
+        )
+        assert self.spec_manager is not None  # guaranteed by __init__
         if not self.spec_manager.outputs_exist(*required_outputs):
             return self.logger.error(
                 "This workflow requires a precompiled spec with outputs for",
@@ -139,9 +148,9 @@ class NotebookCurator:
             (self.config.delete_repos, self.repo_manager.delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
-            (self.config.compact_env, self._compact_environment),
             (self.config.pack_env, self._pack_environment),
             (self.config.unpack_env, self._unpack_environment),
+            (self.config.compact, self._compact),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -186,7 +195,7 @@ class NotebookCurator:
             nb_to_imports=nb_to_imports,
         )
 
-    def _generate_target_mamba_spec(self) -> Optional[str]:
+    def _generate_target_mamba_spec(self) -> str | bool:
         """Unconditionally generate mamba environment .yml spec."""
         self.logger.info(
             f"Generating mamba spec for target environment {self.mamba_spec_file}."
@@ -194,9 +203,10 @@ class NotebookCurator:
         mamba_packages = list(self.spec_manager.extra_mamba_packages)
         spec_out = dict(injector_urls=self.injector.urls)
         if not self.config.omit_spi_packages:
-            spec_out["spi_files"] = spi_files = self.injector.find_spi_mamba_files()
+            spi_file_paths = self.injector.find_spi_mamba_files()
+            spec_out["spi_files"] = [str(p) for p in spi_file_paths]
             spec_out["spi_packages"] = spi_packages = (
-                self.compiler.read_package_versions(spi_files)
+                self.compiler.read_package_versions(spi_file_paths)
             )
             mamba_packages += spi_packages
         mamba_spec = self.compiler.generate_target_mamba_spec(
@@ -208,14 +218,17 @@ class NotebookCurator:
             )
         else:
             spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
-            return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
+            result = self.spec_manager.revise_and_save(
+                self.config.output_dir, **spec_out
+            )
+            return str(result) if result else False
 
     def _compile_requirements(self) -> bool:
         """Unconditionally identify notebooks, compile requirements, and update spec outputs
         for both mamba and pip.
         """
         if not self._generate_target_mamba_spec():
-            return False
+            return self.logger.error("Failed generating mamba spec.")
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
         requirements_files = notebook_requirements_files = (
             self.compiler.find_requirements_files(notebook_paths)
@@ -237,6 +250,7 @@ class NotebookCurator:
             )
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
+            package_versions=package_versions,
             pip_requirements_files=notebook_requirements_files,
             pip_compiler_output=utils.yaml_block(open(self.pip_output_file).read()),
         )
@@ -244,10 +258,12 @@ class NotebookCurator:
     def _initialize_environment(self) -> bool:
         """Unconditionally initialize the target environment."""
         if self.env_manager.environment_exists(self.environment_name):
-            return self.logger.info("Environment already exists, skipping re-install.  Use --delete-env to remove.")
+            return self.logger.info(
+                "Environment already exists, skipping re-install.  Use --delete-env to remove."
+            )
         mamba_spec = self.spec_manager.get_outputs("mamba_spec")
         with open(self.mamba_spec_file, "w+") as spec_file:
-            spec_file.write(mamba_spec)
+            spec_file.write(str(mamba_spec))
         if not self.env_manager.create_environment(
             self.environment_name, self.mamba_spec_file
         ):
@@ -257,23 +273,29 @@ class NotebookCurator:
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
         pip_compiler_output = self.spec_manager.get_outputs("pip_compiler_output")
-        if package_versions:
+        if pip_compiler_output:
             with open(self.pip_output_file, "w+") as pkgs:
-                pkgs.write(pip_compiler_output)
+                pkgs.write(str(pip_compiler_output))
             if not self.env_manager.install_packages(
                 self.environment_name, [self.pip_output_file]
             ):
                 return False
         else:
             self.logger.warning("Found no pip requirements to install.")
+        return True
 
     def _uninstall_packages(self) -> bool:
         """Unconditionally uninstall pip packages from target environment."""
-        if not self.env_manager.uninstall_packages(self.environment_name):
-            return self.log.error("Failed to uninstall packages for environment",
-                self.environment_name)
+        if not self.env_manager.uninstall_packages(self.environment_name, []):
+            self.logger.error(
+                "Failed to uninstall packages for environment", self.environment_name
+            )
+            return False
         else:
-            return self.info("Removed pip packages from environment", self.environment_name)
+            self.logger.info(
+                "Removed pip packages from environment", self.environment_name
+            )
+            return True
 
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
@@ -287,7 +309,7 @@ class NotebookCurator:
         """Unconditionally test notebooks matching the configured pattern."""
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
         filtered_notebooks = self.tester.filter_notebooks(
-            notebook_paths, self.config.test_notebooks
+            notebook_paths, self.config.test_notebooks or ""
         )
         return self.tester.test_notebooks(self.environment_name, filtered_notebooks)
 
@@ -297,28 +319,34 @@ class NotebookCurator:
 
     def _unpack_environment(self) -> bool:
         if self.env_manager.unpack_environment(self.environment_name):
-            return self.logger.info("Unpacked environment", self.environment_name)
+            self.logger.info("Unpacked environment", self.environment_name)
+            return True
         else:
-            return self.logger.error("Failed unpacking environment", self.environment_name)
+            self.logger.error("Failed unpacking environment", self.environment_name)
+            return False
 
     def _pack_environment(self) -> bool:
         if self.env_manager.pack_environment(self.environment_name):
-            return self.logger.info("Packed environment", self.environment_name)
+            self.logger.info("Packed environment", self.environment_name)
+            return True
         else:
-            return self.logger.error("Failed packing environment", self.environment_name)
+            self.logger.error("Failed packing environment", self.environment_name)
+            return False
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
         self.env_manager.unregister_environment(self.environment_name)
         if self.env_manager.delete_environment(self.environment_name):
-            return self.logger.info("Deleted environment", self.environment_name)
+            self.logger.info("Deleted environment", self.environment_name)
+            return True
         else:
-            return self.logger.error("Failed deleting environment", self.environment_name)
+            self.logger.error("Failed deleting environment", self.environment_name)
+            return False
 
-    def _delete_environment(self) -> bool:
-        """Unregister its kernel and delete the test environment."""
-        self.env_manager.compact_environment(self.environment_name)
-        if self.env_manager.delete_environment(self.environment_name):
-            return self.logger.info("Deleted environment", self.environment_name)
+    def _compact(self) -> bool:
+        if self.env_manager.compact():
+            self.logger.info("Compacted curator, removing install caches, etc.")
+            return True
         else:
-            return self.logger.error("Failed deleting environment", self.environment_name)
+            self.logger.error("Failed compacting curator.")
+            return False

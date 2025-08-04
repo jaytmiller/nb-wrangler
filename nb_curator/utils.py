@@ -8,10 +8,10 @@ import functools
 
 
 import requests
-import boto3
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError
+import boto3  # type: ignore
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # type: ignore
 
-from ruamel.yaml import YAML, scalarstring
+from ruamel.yaml import YAML, scalarstring  # type: ignore
 
 
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
@@ -119,7 +119,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
 
             # Download the object from S3
             response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
-            data = response["Body"].read().decode("utf-8")
+            data = response["Body"].read().decode("utf-8")  # type: ignore[index]
 
             # Generate a filename from the last element of the URI
             filename = os.path.basename(object_key)

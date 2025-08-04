@@ -99,7 +99,7 @@ class EnvironmentManager:
         text=True,
         output_mode="separate",
         **extra_parameters,
-    ) -> str | CompletedProcess[Any] | None:
+    ):  # -> str | CompletedProcess[Any] | None:
         """Run a command in the current environment."""
         command = self._condition_cmd(command)
         parameters = dict(
@@ -157,7 +157,7 @@ class EnvironmentManager:
 
     def env_run(
         self, environment, command: list[str] | str, **keys
-    ) -> str | CompletedProcess[Any] | None:
+    ):  # -> str | CompletedProcess[Any] | None:
         """Run a command in the specified environment.
 
         See EnvironmentManager.run for **keys optional settings.
@@ -186,14 +186,7 @@ class EnvironmentManager:
     ) -> str | CompletedProcess[Any] | None:
         """Delete an existing environment."""
         self.logger.info(f"Deleting environment: {environment_name}")
-        command = [
-            self.micromamba_path,
-            "env",
-            "remove",
-            "--yes",
-            "-n",
-            environment_name,
-        ]
+        command = self.micromamba_path + " env remove --yes -n " + environment_name
         result = self.curator_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
@@ -209,15 +202,10 @@ class EnvironmentManager:
         """Install the compiled package lists."""
         self.logger.info(f"Installing packages from: {requirements_paths}")
 
-        cmd = [
-            "uv",
-            "pip",
-            "install",
-        ]
+        cmd = "uv pip install"
         for path in requirements_paths:
-            cmd += ["-r", str(path)]
+            cmd += " -r " + str(path)
 
-        # Install packages using uv running in the target environment
         result = self.env_run(
             environment_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
@@ -315,21 +303,20 @@ class EnvironmentManager:
                 e,
                 f"Checking for existence of environment '{environment_name}' completely failed. See README.md for info on bootstrapping.",
             )
-        else:
-            result_str = result.stdout if hasattr(result, "stdout") else str(result)
-            envs = json.loads(result_str)["envs"]
-            for env in envs:
-                self.logger.debug(
-                    f"Checking existence of {environment_name} against {env}."
-                )
-                if env.endswith(environment_name):
-                    return self.logger.info(
-                        f"Environment '{environment_name}' already exists. Skipping auto-init. Use --init-env to force."
-                    )
-            self.logger.info(
-                f"Environment '{environment_name}' does not exist.  Auto-initing basic empty environment."
+        if result is None:
+            return self.logger.error("No result returned from environment check")
+        result_str = result.stdout if hasattr(result, "stdout") else str(result)
+        envs = json.loads(result_str)["envs"]
+        for env in envs:
+            self.logger.debug(
+                f"Checking existence of {environment_name} against {env}."
             )
-            return False
+            if env.endswith(environment_name):
+                return self.logger.info(
+                    f"Environment '{environment_name}' already exists. Skipping auto-init. Use --init-env to force."
+                )
+        self.logger.info(f"Environment '{environment_name}' does not exist.")
+        return False
 
     def archive(self, archive_filepath: Path, source_dirpath: Path) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -362,11 +349,11 @@ class EnvironmentManager:
     def pack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
         archive_path.parent.mkdir(parents=True, exist_ok=True)
-        return self.env_manager.archive(archive_path, self.nbc_root_dir)
+        return self.archive(archive_path, self.nbc_root_dir)
 
     def unpack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
-        return self.env_manager.unarchive(archive_path, self.nbc_root_dir)
+        return self.unarchive(archive_path, self.nbc_root_dir)
 
     def compact(self) -> bool:
         try:

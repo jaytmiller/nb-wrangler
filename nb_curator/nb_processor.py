@@ -18,11 +18,11 @@ class NotebookImportProcessor:
 
     def extract_imports(
         self, notebook_paths
-    ) -> tuple[list[str], list[str], list[dict[str, list[str]]]]:
+    ) -> tuple[list[str], list[dict[str, list[str]]]]:
         """Extract import statements from notebooks."""
         nb_to_imports: list[dict[str, list[str]]] = []
-        unique_notebooks: set(str) = set(notebook_paths)
-        total_imports: set(str) = set()
+        unique_notebooks: set[str] = set(notebook_paths)
+        total_imports: set[str] = set()
         self.logger.info(
             f"Processing {len(unique_notebooks)} unique notebooks for imports."
         )

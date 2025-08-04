@@ -15,7 +15,7 @@ class SpecManager:
         self.logger = logger
         self._spec: dict[str, Any] = {}
         self._is_validated = False
-        self._source_file: Optional[Path] = None
+        self._source_file = Path("")
 
     @classmethod
     def load_and_validate(
@@ -28,7 +28,8 @@ class SpecManager:
         if manager.load_spec(spec_file) and manager.validate():
             return manager
         else:
-            return logger.error("Failed to load and validate", spec_file)
+            logger.error("Failed to load and validate", spec_file)
+            return None
 
     # ----------------------------- load, save, outputs  ---------------------------
 
@@ -59,13 +60,13 @@ class SpecManager:
         else:
             raise RuntimeError(f"No output values were found for '{output_names}'.")
 
-    def outputs_exist(self, *output_names: tuple[str, ...]) -> bool:
+    def outputs_exist(self, *output_names: str) -> bool:
         """Check if all specified outputs exist in the spec already."""
         return "out" in self._spec and all(
             name in self._spec["out"] for name in output_names
         )
 
-    def files_exist(self, *filepaths: tuple[str | Path, ...]) -> bool:
+    def files_exist(self, *filepaths: str | Path) -> bool:
         """Check if all specified files exist in the filesystem."""
         return all(Path(filepath).exists() for filepath in filepaths)
 
@@ -75,12 +76,15 @@ class SpecManager:
             self._source_file = Path(spec_file)
             with self._source_file.open("r") as f:
                 self._spec = get_yaml().load(f)
-            return self.logger.debug(f"Loaded spec from {str(spec_file)}.") or True
+            self.logger.debug(f"Loaded spec from {str(spec_file)}.")
+            return True
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
 
     def output_spec(self, output_dir: Path | str) -> Path:
         """The output path for the spec file."""
+        if self._source_file is None:
+            raise RuntimeError("No source file loaded")
         return self._source_file
         # return Path(output_dir) / self._source_file.name
 
@@ -91,10 +95,12 @@ class SpecManager:
     def _save_spec(self, output_filepath: Path | str) -> bool:
         """Save the current YAML spec to a file."""
         try:
-            self.logger.debug(f"Saving spec file to {output_filepath}.")
-            with output_filepath.open("w") as f:
+            self.logger.info(f"Saving spec file to {output_filepath}.")
+            output_path = Path(output_filepath)
+            with output_path.open("w+") as f:
                 get_yaml().dump(self._spec, f)
-            return self.logger.debug(f"Spec file saved to {output_filepath}.")
+            self.logger.debug(f"Spec file saved to {output_filepath}.")
+            return True
         except Exception as e:
             return self.logger.exception(
                 e, f"Error saving YAML spec file to {output_filepath}: {e}"
@@ -107,9 +113,7 @@ class SpecManager:
     ) -> bool:
         """Update spec with computed outputs and save to file."""
         try:
-            self.logger.info(
-                f"Revising spec file {self._source_file}."
-            )
+            self.logger.info(f"Revising spec file {self._source_file}.")
             for key, value in additional_outputs.items():
                 self.set_output_data(key, value)
             return self.save_spec(output_dir)
@@ -134,16 +138,24 @@ class SpecManager:
             return self.logger.warning(
                 "The output section of spec file does not exist. Nothing to reset."
             )
-        return self.validate() and self._save_spec(
-            self._source_file
-        )  # make sure the source file is clear too anyway
+        if not self.validate():
+            return self.logger.error("Spec did not validate follwing reset.")
+        assert self._source_file is not None  # guaranteed by validate()
+        if not self._save_spec(self._source_file):
+            return self.logger.error("Spec save to", self._source_file, "failed...")
+        return True
 
-    def reload_spec(self):
+    def reload_spec(self) -> bool:
         """Reload the spec source file."""
-        if self.load_spec(self._source_file) and self.validate():
-            return self._save_spec(self._source_file)
-        else:
-            return False
+        if not self.load_spec(self._source_file):
+            return self.logger.error("Spec failed to load during reload.")
+        if not self.validate():
+            return self.logger.error("Reloaded spec failed to validate after reload.")
+        if not self._save_spec(self._source_file):
+            return self.logger.error(
+                "Reloaded spec failed to save to", self._source_file
+            )
+        return True
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -274,7 +286,7 @@ class SpecManager:
         header = self._spec["image_spec_header"]
 
         for key in header:
-            if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:
+            if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:  # type: ignore
                 return self.logger.error(f"Unknown keyword in image_spec_header: {key}")
 
         required_fields = [
@@ -299,7 +311,7 @@ class SpecManager:
 
         for entry in self._spec["selected_notebooks"]:
             for key in entry:
-                if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:
+                if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:  # type: ignore
                     return self.logger.error(
                         f"Unknown keyword in selected_notebooks entry: {key}"
                     )
@@ -362,7 +374,7 @@ class SpecManager:
 
         include_subdirs = entry.get("include_subdirs", [r"."])
         included_notebooks = self._only_included_non_files(
-            possible_notebooks, include_subdirs
+            list(possible_notebooks), include_subdirs
         )
 
         exclude_subdirs = entry.get("exclude_subdirs", [])

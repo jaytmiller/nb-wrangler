@@ -52,6 +52,8 @@ class RepositoryManager:
     def _clone_repo(self, repo_url: str, repo_dir: Path) -> Path:
         """Clone a new repository."""
         self.logger.info(f"Cloning repository {repo_url} to {repo_dir}.")
+        if self.env_manager is None:
+            raise RuntimeError("Environment manager not available")
         self.env_manager.curator_run(
             ["git", "clone", "--single-branch", repo_url, str(repo_dir)],
             check=True,

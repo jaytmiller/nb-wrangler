@@ -23,7 +23,7 @@ class CuratorConfig:
 
     spec_file: str
 
-    logger = None
+    logger: Optional["logger.CuratorLogger"] = None
     micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
     output_dir: Path = NBC_ROOT / "temps"
     verbose: bool = False
@@ -31,7 +31,7 @@ class CuratorConfig:
     log_times: str = DEFAULT_LOG_TIMES_MODE
     use_color: str = DEFAULT_USE_COLOR_MODE
 
-    repos_dir: Optional[Path] = Path("./references")
+    repos_dir: Path = Path("./references")
     clone_repos: bool = False
     delete_repos: bool = False
 
@@ -94,7 +94,7 @@ class CuratorConfig:
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,
             uninstall_packages=args.uninstall_packages,
-            compact_env=getattr(args, "compact_env", False),
+            compact=args.compact,
             test_notebooks=args.test_notebooks,
             test_imports=args.test_imports,
             test_all=args.test_all,

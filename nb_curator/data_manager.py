@@ -15,17 +15,17 @@ data:
 
 class DataManager:
 
-    def setup_data_item(data_name):
+    def setup_data_item(self, data_name):
         pass
 
-    def create_data_item(data_name):
+    def create_data_item(self, data_name):
         pass
 
-    def add_to_spec():
+    def add_to_spec(self):
         pass
 
-    def add_to_shelf():  # needed?
+    def add_to_shelf(self):  # needed?
         pass
 
-    def delete_data_setup(data_name):
+    def delete_data_setup(self, data_name):
         pass

@@ -70,8 +70,7 @@ class NotebookTester:
                 self.logger.error(f"Notebook {notebook} failed tests")
             return False
 
-        self.logger.info("All notebooks passed tests")
-        return True
+        return self.logger.info("All notebooks passed tests")
 
     def _test_single_notebook(
         self, notebook: str, environment: str
@@ -85,17 +84,14 @@ class NotebookTester:
         output = self._print_divider(
             f"Testing '{base_nb}' on environment '{environment}'"
         )
-        here = os.getcwd()
         try:
-            err, core_output = self._test_single_notebook_core(
+            err, combined_output = self._test_single_notebook_core(
                 notebook, environment, self.config.timeout
             )
-            output += core_output
+            output += combined_output
         except Exception as e:
             output += f"Exception during testing: {str(e)}\n"
             err = True
-        finally:
-            os.chdir(here)
 
         elapsed = datetime.datetime.now() - start
         status = "OK" if not err else "FAIL"
@@ -105,7 +101,7 @@ class NotebookTester:
 
     def _test_single_notebook_core(
         self, notebook: str, environment: str, timeout: int
-    ) -> tuple[bool, str, str]:
+    ) -> tuple[bool, str]:
         """Test a single notebook in isolation."""
 
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -121,26 +117,17 @@ class NotebookTester:
 
             # Run the notebook
             if notebook.endswith(".ipynb"):
-                cmd = [
-                    "papermill",
-                    "--no-progress-bar",
-                    os.path.basename(notebook),
-                    "-k",
-                    environment,
-                    "test.ipynb",
-                ]
+                cmd = f"papermill --no-progress-bar {os.path.basename(notebook)} -k {environment} test.ipynb"
             elif notebook.endswith(".py"):
-                cmd = ["python", os.path.basename(notebook)]
+                cmd = f"python {os.path.basename(notebook)}"
             else:
                 raise ValueError(f"Unhandled test file extension: {notebook}")
-
             result = self.env_manager.curator_run(
                 cmd,
                 output_mode="combined",
                 timeout=timeout,
                 check=False,
             )
-            # Even for errors, we want to return the output, including stderr
             err = result.returncode != 0
             return err, result.stdout
 

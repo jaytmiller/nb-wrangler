@@ -2,7 +2,6 @@
 
 import sys
 from pathlib import Path
-from typing import Optional
 
 from .logger import CuratorLogger
 from .environment import EnvironmentManager
@@ -41,7 +40,7 @@ class RequirementsCompiler:
 
     def compile_requirements(
         self, requirements_files: list[Path], output_path: Path
-    ) -> Optional[list[str]]:
+    ) -> list[str] | bool:
         """Compile requirements files into pinned versions,  outputs
         the result to a file at `output_path` and then loads the
         output and returns a list of package versions for insertion
@@ -56,8 +55,7 @@ class RequirementsCompiler:
             self.logger.error(
                 "========== Failed compiling combined pip requirements =========="
             )
-            self.logger.error(self.annotated_requirements(requirements_files))
-            return None
+            return self.logger.error(self.annotated_requirements(requirements_files))
         package_versions = self.read_package_versions([output_path])
         self.logger.info(
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
@@ -68,26 +66,12 @@ class RequirementsCompiler:
         self, output_file: Path, requirements_files: list[Path]
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
-        cmd = [
-            "uv",
-            "pip",
-            "compile",
-            "--quiet",
-            "--output-file",
-            str(output_file),
-            "--python",
-            self.python_path,
-            "--python-version",
-            self.python_version,
-            "--universal",
-            "--no-header",
-            "--annotate",
-            "--constraints",
-        ] + [str(f) for f in requirements_files]
-
-        # if self.logger.verbose:
-        #    cmd.append("--verbose")
-
+        cmd = (
+            f"uv pip compile- -quiet --output-file {str(output_file)} --python {self.python_path}"
+            + f" --python-version {self.python_version} --universal --no-header --annotate --constraints"
+        )
+        for f in requirements_files:
+            cmd += " " + str(f)
         result = self.env_manager.curator_run(
             cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
@@ -124,7 +108,7 @@ class RequirementsCompiler:
         are not included which can be where the real conflicts occur without
         necessarily a common root import.
         """
-        result = []
+        result: list[tuple[str, str]] = []
         for req_file in requirements_files:
             lines = self.read_package_lines(req_file)
             result.extend((pkg, str(req_file)) for pkg in lines)  # note difference
@@ -133,7 +117,7 @@ class RequirementsCompiler:
 
     def generate_target_mamba_spec(
         self, kernel_name: str, dependencies: list[str]
-    ) -> str:
+    ) -> str | bool:
         """Generate mamba environment specification and return dict for YAML."""
         try:
             self.logger.debug("Generating spec for empty mamba environment.")
