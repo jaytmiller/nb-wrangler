@@ -21,6 +21,7 @@ class NotebookCurator:
     def __init__(self, config: CuratorConfig):
         self.config = config
         self.logger = config.logger
+        self.logger.info("Loading and validating spec", self.config.spec_file)
         self.spec_manager = SpecManager.load_and_validate(
             self.logger,
             self.config.spec_file,
@@ -116,6 +117,8 @@ class NotebookCurator:
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
 
+        self.logger.info("Running development workflow.")
+
         # Delete the output section of the spec.
         if self.config.reset_spec and not self.spec_manager.reset_spec():
             return False
@@ -154,8 +157,8 @@ class NotebookCurator:
         return self._standalone_actions()
 
     def _standalone_actions(self):
-        # Remove the compiled list of packages but leave behind the basic target environment.
-        # Validate the spec if requested
+        self.logger.debug("Checking standalone actions...")
+
         if self.config.validate_spec and not self.spec_manager.validate():
             return False
 
@@ -184,6 +187,8 @@ class NotebookCurator:
 
     def _run_from_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
+
+        self.logger.info("Running install-from-precompiled-spec workflow.")
 
         # setup repositories
         if self.config.clone_repos:
@@ -217,6 +222,8 @@ class NotebookCurator:
     def _run_from_binary_workflow(self) -> bool:
         """Execute steps for environment restoration from binary workflow."""
 
+        self.logger.info("Running install-from-binary workflow.")
+
         # setup repositories
         if self.config.clone_repos:
             if not self._clone_repos():
@@ -238,6 +245,8 @@ class NotebookCurator:
 
     def _run_test_workflow(self) -> bool:
         """Execute steps for testing existing environment workflow."""
+
+        self.logger.info("Running test workflow.")
 
         # Run spec'ed notebooks themselves directly in the target environment, nominally headless, fail on exception
         if self.config.test_notebooks:

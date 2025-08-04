@@ -74,6 +74,7 @@ class SpecManager:
             self._source_file = Path(spec_file)
             with self._source_file.open("r") as f:
                 self._spec = get_yaml().load(f)
+            self.logger.debug("Loaded spec:", self._spec)
             return self.logger.info(f"Successfully loaded spec from {str(spec_file)}.")
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
@@ -118,7 +119,7 @@ class SpecManager:
     def set_output_data(self, key: str, value: Any) -> None:
         """set data in the output section."""
         if "out" not in self._spec:
-            self._spec["out"] = {}
+            self._spec["out"] = dict()
         if isinstance(value, list):
             value = [str(item) for item in value]
         self._spec["out"][key] = value
@@ -225,9 +226,6 @@ class SpecManager:
         "out": [
             "notebook_repo_urls",
             "test_notebooks",
-            "test_imports",
-            "injector_urls",
-            "spi_files",
             "spi_packages",
             "mamba_spec",
             "pip_requirement_files",

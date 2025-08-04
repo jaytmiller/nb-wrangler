@@ -2,6 +2,8 @@
 
 import sys
 import argparse
+import cProfile
+import pstats
 
 from . import curator
 from . import utils
@@ -168,12 +170,30 @@ def parse_args():
         action="store_true",
         help="Validate the specification file without performing any curation actions.",
     )
+    parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Run with cProfile and output profiling results to console.",
+    )
     return parser.parse_args()
 
 
 def main():
     """Main entry point for the CLI."""
     args = parse_args()
+    
+    # Profile if requested
+    if args.profile:
+        with cProfile.Profile() as pr:
+            success = _main(args)
+            pstats.Stats(pr).sort_stats("cumulative").print_stats(50)
+    else:
+        success = _main(args)
+
+    return success
+
+def _main(args):
+    """Main entry point for the CLI."""
     try:
         # Create configuration using simplified factory method
         curator_config = config.CuratorConfig.from_args(args)
@@ -190,7 +210,6 @@ def main():
         success = curator_config.logger.exception(e, "Failed:")
     notebook_curator.print_log_counters()
     return success
-
 
 if __name__ == "__main__":
     sys.exit(int(main()))
