@@ -347,13 +347,13 @@ class EnvironmentManager:
             result, f"Failed to unpack {archive_filepath} into {destination_dirpath}: "
         )
 
-    def pack_environment(self, environment_name: str):
+    def pack_environment(self, environment_name: str) -> bool:
         return self.archive(
             self.env_archive_path(environment_name),
             self.env_live_path(environment_name),
         )
 
-    def unpack_environment(self, environment_name: str):
+    def unpack_environment(self, environment_name: str) -> bool:
         return self.unarchive(
             self.env_archive_path(environment_name),
             self.env_live_path(environment_name),
@@ -362,13 +362,13 @@ class EnvironmentManager:
     def pack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
         archive_path.parent.mkdir(parents=True, exist_ok=True)
-        return self.archive(archive_path, self.nbc_root_dir)
+        return self.env_manager.archive(archive_path, self.nbc_root_dir)
 
-    def unpack_curator(self, archive_filepath: Path | str):
+    def unpack_curator(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
-        return self.unarchive(archive_path, self.nbc_root_dir)
+        return self.env_manager.unarchive(archive_path, self.nbc_root_dir)
 
-    def compact_environment(self) -> bool:
+    def compact(self) -> bool:
         try:
             if self.mm_pkgs_dir.exists():
                 shutil.rmtree(str(self.mm_pkgs_dir))

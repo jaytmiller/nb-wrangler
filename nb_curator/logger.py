@@ -148,10 +148,10 @@ class CuratorLogger:
 
     def print_log_counters(self):
         """Print summary of logged messages."""
-        print(f"Exceptions: {len(self.exceptions)}")
-        print(f"Errors: {len(self.errors)}")
-        print(f"Warnings: {len(self.warnings)}")
-        print(f"Elapsed: {self.elapsed_time[:-4]}")
+        self.info(f"Exceptions: {len(self.exceptions)}")
+        self.info(f"Errors: {len(self.errors)}")
+        self.info(f"Warnings: {len(self.warnings)}")
+        self.info(f"Elapsed: {self.elapsed_time[:-4]}")
 
     @classmethod
     def pformat(cls, *args, **keys):

@@ -136,12 +136,12 @@ class NotebookCurator:
             (self.config.inject_spi, self.injector.inject),
             (self.config.reset_spec, self._reset_spec),
             (self.config.validate_spec, self.spec_manager.validate),
-            (self.config.uninstall_packages, self.env_manager.uninstall_packages),
-            (self.config.delete_env, self._delete_environment),
             (self.config.delete_repos, self.repo_manager.delete_repos),
-            (self.config.compact_env, self.env_manager.compact_environment),
-            (self.config.pack_env, self.env_manager.pack_environment),
-            (self.config.unpack_env, self.env_manager.unpack_environment),
+            (self.config.uninstall_packages, self._uninstall_packages),
+            (self.config.delete_env, self._delete_environment),
+            (self.config.compact_env, self._compact_environment),
+            (self.config.pack_env, self._pack_environment),
+            (self.config.unpack_env, self._unpack_environment),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -267,6 +267,14 @@ class NotebookCurator:
         else:
             self.logger.warning("Found no pip requirements to install.")
 
+    def _uninstall_packages(self) -> bool:
+        """Unconditionally uninstall pip packages from target environment."""
+        if not self.env_manager.uninstall_packages(self.environment_name):
+            return self.log.error("Failed to uninstall packages for environment",
+                self.environment_name)
+        else:
+            return self.info("Removed pip packages from environment", self.environment_name)
+
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
         if test_imports := self.spec_manager.get_outputs("test_imports"):
@@ -283,17 +291,17 @@ class NotebookCurator:
         )
         return self.tester.test_notebooks(self.environment_name, filtered_notebooks)
 
-    def _reset_spec(self):
+    def _reset_spec(self) -> bool:
         self.logger.info("Resetting/clearing spec outputs.")
         return self.spec_manager.reset_spec()
 
-    def _unpack_environment(self):
+    def _unpack_environment(self) -> bool:
         if self.env_manager.unpack_environment(self.environment_name):
             return self.logger.info("Unpacked environment", self.environment_name)
         else:
             return self.logger.error("Failed unpacking environment", self.environment_name)
 
-    def _pack_environment(self):
+    def _pack_environment(self) -> bool:
         if self.env_manager.pack_environment(self.environment_name):
             return self.logger.info("Packed environment", self.environment_name)
         else:
@@ -307,6 +315,10 @@ class NotebookCurator:
         else:
             return self.logger.error("Failed deleting environment", self.environment_name)
 
-    def print_log_counters(self):
-        """Print log counters - delegate to logger."""
-        self.logger.print_log_counters()
+    def _delete_environment(self) -> bool:
+        """Unregister its kernel and delete the test environment."""
+        self.env_manager.compact_environment(self.environment_name)
+        if self.env_manager.delete_environment(self.environment_name):
+            return self.logger.info("Deleted environment", self.environment_name)
+        else:
+            return self.logger.error("Failed deleting environment", self.environment_name)

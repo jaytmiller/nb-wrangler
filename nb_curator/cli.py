@@ -229,7 +229,7 @@ def _main(args):
         success = curator_config.logger.error("Operation cancelled by user")
     except Exception as e:
         success = curator_config.logger.exception(e, "Failed:")
-    notebook_curator.print_log_counters()
+    notebook_curator.logger.print_log_counters()
     return success
 
 

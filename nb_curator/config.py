@@ -39,7 +39,7 @@ class CuratorConfig:
     pack_env: bool = False
     unpack_env: bool = False
     delete_env: bool = False
-    compact_env: bool = False
+    compact: bool = False
 
     compile_packages: bool = False
     install_packages: bool = False
