@@ -97,7 +97,7 @@ clean-other:
 
 lint/flake8: ## check style with flake8
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \
-	  --ignore E302,E203,E305,W291,W503,W504,W391,E501 --count  --statistics
+	  --ignore E302,E203,E305,W291,W503,W504,W391,E501,E226 --count  --statistics
 
 lint/black: ## check style with black
 	black --check ${PROJECT} tests
