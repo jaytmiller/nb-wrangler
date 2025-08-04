@@ -19,7 +19,7 @@ from ruamel.yaml import YAML, scalarstring
 
 def get_yaml() -> YAML:
     """Return configured ruamel.yaml instance."""
-    yaml = YAML(typ="rtsc")
+    yaml = YAML() # typ="rtsc"
     yaml.preserve_quotes = True
     yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml

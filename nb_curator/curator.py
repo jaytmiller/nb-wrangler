@@ -119,10 +119,6 @@ class NotebookCurator:
 
         self.logger.info("Running development workflow.")
 
-        # Delete the output section of the spec.
-        if self.config.reset_spec and not self.spec_manager.reset_spec():
-            return False
-
         # setup repositories
         if self.config.clone_repos and not self._clone_repos():
             return self.logger.error("Basic repo notebook setup and selection failed.")
@@ -158,6 +154,10 @@ class NotebookCurator:
 
     def _standalone_actions(self):
         self.logger.debug("Checking standalone actions...")
+
+        # Delete the output section of the spec.
+        if self.config.reset_spec and not self.spec_manager.reset_spec():
+            return False
 
         if self.config.validate_spec and not self.spec_manager.validate():
             return False
@@ -290,12 +290,7 @@ class NotebookCurator:
             and self.spec_manager.files_exist(
                 self.mamba_spec_file, *self.pip_package_files
             )
-            or (
-                self._requires_repos(
-                    "package_versions", "pip_package_files", "mamba_spec"
-                )
-                and self._compile_requirements()
-            )
+            or self._compile_requirements()
         )
 
     def _requires_installed(self):
@@ -415,7 +410,7 @@ class NotebookCurator:
             self.config.output_dir,
             pip_requirements_files=notebook_requirements_files,
             package_versions=package_versions,
-            pip_compiler_output=open(self.pip_output_file).read(),
+            pip_compiler_output=utils.yaml_block(open(self.pip_output_file).read()),
         )
 
     def _install_packages(self) -> bool:

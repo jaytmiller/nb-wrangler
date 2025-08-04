@@ -74,8 +74,7 @@ class SpecManager:
             self._source_file = Path(spec_file)
             with self._source_file.open("r") as f:
                 self._spec = get_yaml().load(f)
-            self.logger.debug("Loaded spec:", self._spec)
-            return self.logger.info(f"Successfully loaded spec from {str(spec_file)}.")
+            return self.logger.info(f"Loaded spec from {str(spec_file)}.")
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
 
