@@ -76,7 +76,7 @@ bootstrap() {
     uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel yq boto3
 
     # Install nb-curator packager from github source including dependencies
-    if [ ! -e nb-curator ]; then
+    if [ ! -e .nb-curator-repo-id ]; then
         rm -rf nbc-temp
         mkdir nbc-temp
         ( cd nbc-temp

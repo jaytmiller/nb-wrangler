@@ -215,7 +215,7 @@ def _main(args):
         curator_config = config.CuratorConfig.from_args(args)
 
         # Convert URI to local path
-        config.spec_file = utils.uri_to_local_path(args.spec_uri)
+        curator_config.spec_file = utils.uri_to_local_path(args.spec_uri)
 
         # Create and run curator
         notebook_curator = curator.NotebookCurator(curator_config)
