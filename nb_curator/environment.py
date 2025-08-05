@@ -76,7 +76,7 @@ class EnvironmentManager:
         return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
 
     def env_archive_path(self, env_name: str) -> Path:
-        return self.nbc_pantry_dir / "envs" / (env_name.lower() + ".tar.zst")
+        return self.nbc_pantry_dir / "envs" / (env_name.lower() + ".tar.gz")
 
     def env_live_path(self, env_name: str) -> Path:
         return self.mm_envs_dir / env_name
