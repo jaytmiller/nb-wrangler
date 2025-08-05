@@ -70,7 +70,7 @@ class SpiInjector:
         )
         self._inject("notebook_repo_urls", self.environments_path / "notebook-repos")
         self._inject("mamba_spec", self.env_yml)
-        self._inject("package_versions", self.env_pip)
+        self._inject("pip_compiler_output", self.env_pip)
         self._inject("test_imports", self.test_path / "imports")
         self._inject("test_notebooks", self.test_path / "notebooks")
         return self.logger.info("SPI injection complete.")
