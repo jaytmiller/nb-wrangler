@@ -22,6 +22,7 @@ from typing import Any
 from .logger import CuratorLogger
 from .constants import NBC_ROOT, NBC_PANTRY
 from .constants import DEFAULT_TIMEOUT, ENV_CREATE_TIMEOUT, INSTALL_PACKAGES_TIMEOUT
+from .constants import ENV_CAN_SUFFIX
 
 
 class EnvironmentManager:
@@ -76,7 +77,7 @@ class EnvironmentManager:
         return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
 
     def env_archive_path(self, env_name: str) -> Path:
-        return self.nbc_pantry_dir / "envs" / (env_name.lower() + ".tar.gz")
+        return self.nbc_pantry_dir / "envs" / (env_name.lower() + ENV_CAN_SUFFIX)
 
     def env_live_path(self, env_name: str) -> Path:
         return self.mm_envs_dir / env_name

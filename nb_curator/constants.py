@@ -15,6 +15,8 @@ NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nbc-pantry"))
 REPOS_DIR = Path("./references")
 DEFAULT_MICROMAMBA_PATH = NBC_MM / "bin" / "micromamba"
 
+ENV_CAN_SUFFIX = ".tar.xz"
+
 # Notebook testing constants
 NOTEBOOK_TEST_MAX_SECS = 30 * 60  # 1800 seconds
 NOTEBOOK_TEST_JOBS = 4
