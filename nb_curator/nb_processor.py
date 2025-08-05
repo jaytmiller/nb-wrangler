@@ -31,8 +31,8 @@ class NotebookImportProcessor:
             if nb_dict:
                 imports = self._extract_imports_from_notebook(nb_dict)
                 for imp in imports:
-                    nb_to_imports.append({nb_path_str: imports})
                     total_imports.add(imp)
+                nb_to_imports.append({nb_path_str: imports})
                 self.logger.debug(
                     f"Extracted {len(imports)} package imports from notebook {nb_path_str}: {imports}"
                 )
