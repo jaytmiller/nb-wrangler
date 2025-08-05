@@ -12,7 +12,7 @@ from .constants import (
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     DEFAULT_LOG_TIMES_MODE,
-    DEFAULT_USE_COLOR_MODE,
+    DEFAULT_COLOR_MODE,
     VALID_LOG_TIME_MODES,
 )
 
@@ -29,7 +29,7 @@ class CuratorConfig:
     verbose: bool = False
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE
-    use_color: str = DEFAULT_USE_COLOR_MODE
+    color: str = DEFAULT_COLOR_MODE
 
     repos_dir: Path = Path("./references")
     clone_repos: bool = False
@@ -63,7 +63,7 @@ class CuratorConfig:
 
     def __post_init__(self):
         """Post-initialization processing."""
-        self.logger = logger.CuratorLogger(self.verbose, self.debug, self.log_times)
+        self.logger = logger.CuratorLogger.from_config(self)
         self.repos_dir = Path(self.repos_dir)
 
         # Validate log_times parameter
@@ -84,7 +84,7 @@ class CuratorConfig:
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,
-            use_color=args.use_color,
+            color=args.color,
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,

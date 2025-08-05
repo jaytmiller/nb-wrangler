@@ -11,8 +11,8 @@ from . import config
 from .constants import (
     VALID_LOG_TIME_MODES,
     DEFAULT_LOG_TIMES_MODE,
-    VALID_COLOR_MODE,
-    DEFAULT_USE_COLOR_MODE,
+    VALID_COLOR_MODES,
+    DEFAULT_COLOR_MODE,
     REPOS_DIR,
     # DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
@@ -86,9 +86,9 @@ def parse_args():
         help="Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.",
     )
     parser.add_argument(
-        "--use-color",
-        choices=VALID_COLOR_MODE,
-        default=DEFAULT_USE_COLOR_MODE,
+        "--color",
+        choices=VALID_COLOR_MODES,
+        default=DEFAULT_COLOR_MODE,
         help="Colorize the log.",
     )
     parser.add_argument(

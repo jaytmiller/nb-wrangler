@@ -9,17 +9,67 @@ from pprint import pformat
 
 
 from . import utils
-from .constants import (
-    ANSI_COLORS,
-    LEVEL_COLORS,
-    NORMAL_COLOR,
-    ELAPSED_COLOR,
-    MESSAGE_COLOR,
-    RESET_COLOR,
-    VALID_LOG_TIME_MODES,
-    DEFAULT_LOG_TIMES_MODE,
-    DEFAULT_USE_COLOR_MODE,
-)
+
+# Logger constants
+ANSI_COLORS = {
+    "black-foreground": "\033[30m",
+    "red-foreground": "\033[31m",
+    "green-foreground": "\033[32m",
+    "yellow-foreground": "\033[33m",
+    "blue-foreground": "\033[34m",
+    "magenta-foreground": "\033[35m",
+    "cyan-foreground": "\033[36m",
+    "white-foreground": "\033[37m",
+    "bright-black-foreground": "\033[90m",
+    "bright-red-foreground": "\033[91m",
+    "bright-green-foreground": "\033[92m",
+    "bright-yellow-foreground": "\033[93m",
+    "bright-blue-foreground": "\033[94m",
+    "bright-magenta-foreground": "\033[95m",
+    "bright-cyan-foreground": "\033[96m",
+    "bright-white-foreground": "\033[97m",
+    "black-background": "\033[40m",
+    "red-background": "\033[41m",
+    "green-background": "\033[42m",
+    "yellow-background": "\033[43m",
+    "blue-background": "\033[44m",
+    "magenta-background": "\033[45m",
+    "cyan-background": "\033[46m",
+    "white-background": "\033[47m",
+    "bright-black-background": "\033[100m",
+    "bright-red-background": "\033[101m",
+    "bright-green-background": "\033[102m",
+    "bright-yellow-background": "\033[103m",
+    "bright-blue-background": "\033[104m",
+    "bright-magenta-background": "\033[105m",
+    "bright-cyan-background": "\033[106m",
+    "bright-white-background": "\033[107m",
+    "bold": "\033[1m",
+    "dim": "\033[2m",
+    "underline": "\033[4m",
+    "blink": "\033[5m",
+    "reverse": "\033[7m",
+    "strikethrough": "\033[9m",
+    "reset": "\033[0m",
+}
+
+LEVEL_COLORS = {
+    logging.DEBUG: "magenta-foreground",
+    logging.INFO: "green-foreground",
+    logging.WARNING: "yellow-foreground",
+    logging.ERROR: "red-foreground",
+    logging.CRITICAL: "bright-red-foreground",
+}
+
+NORMAL_COLOR = ANSI_COLORS["blue-foreground"]
+ELAPSED_COLOR = ANSI_COLORS["cyan-foreground"]
+MESSAGE_COLOR = ANSI_COLORS["bold"]
+RESET_COLOR = ANSI_COLORS["reset"]
+
+from .constants import VALID_LOG_TIME_MODES, \
+    DEFAULT_LOG_TIMES_MODE, \
+    VALID_COLOR_MODES, \
+    DEFAULT_COLOR_MODE
 
 
 class ColorAndTimeFormatter(logging.Formatter):
@@ -73,12 +123,12 @@ class CuratorLogger:
         verbose: bool = False,
         debug_mode: bool = False,
         log_times: str = DEFAULT_LOG_TIMES_MODE,
-        use_color: str = DEFAULT_USE_COLOR_MODE,
+        color: str = DEFAULT_COLOR_MODE,
     ):
         self.verbose = verbose
         self.debug_mode = debug_mode
         self.log_times = log_times
-        self.use_color = use_color
+        self.color = color
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.exceptions: list[str] = []
@@ -87,7 +137,8 @@ class CuratorLogger:
 
     def _configure_logger(self):
         """Configure logger based on current settings."""
-        color_and_time_formatter = ColorAndTimeFormatter(self.log_times)
+        color_and_time_formatter = ColorAndTimeFormatter(
+            log_times=self.log_times, color=self.color)
         color_and_time_handler = logging.StreamHandler()
         color_and_time_handler.setFormatter(color_and_time_formatter)
         logging.basicConfig(
@@ -168,5 +219,6 @@ class CuratorLogger:
             CuratorLogger instance configured from the config
         """
         return cls(
-            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times
+            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times,
+            color=config.color
         )
