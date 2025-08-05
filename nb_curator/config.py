@@ -79,7 +79,8 @@ class CuratorConfig:
         """Create CuratorConfig from argparse Namespace and spec file."""
         return cls(
             spec_file=args.spec_uri,
-            micromamba_path=args.micromamba_path,
+            # micromamba_path=args.micromamba_path,
+            # submit_for_build=args.submit_for_build,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,
@@ -102,7 +103,6 @@ class CuratorConfig:
             timeout=args.timeout,
             omit_spi_packages=args.omit_spi_packages,
             inject_spi=args.inject_spi,
-            submit_for_build=args.submit_for_build,
             reset_spec=args.reset_spec,
             validate_spec=args.validate_spec,
             workflow=args.workflow,

@@ -40,12 +40,16 @@ setup:
 
 # ==========================================================================================================
 
-functional: fnc-preclean fnc-bootstrap functional-2
+functional: fnc-preclean fnc-bootstrap functional-develop functional-reinstall functional-misc
 
-functional-2: fnc-curate fnc-uninstall fnc-install fnc-pack-env fnc-unpack-env
+functional-develop: fnc-curate fnc-test
+
+functional-reinstall: fnc-reinstall fnc-test
+
+functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env fnc-test-imports fnc-test-notebooks fnc-delete-env
 
 fnc-preclean:
-	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry
+	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry ./references
 
 fnc-bootstrap: fnc-preclean
 	# curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
@@ -54,6 +58,9 @@ fnc-bootstrap: fnc-preclean
 
 fnc-curate:
 	./nb-curator tike-2025-07-beta.yaml --curate
+
+fnc-reinstall:
+	./nb-curator tike-2025-07-beta.yaml --reinstall
 
 fnc-uninstall: fnc-curate
 	./nb-curator tike-2025-07-beta.yaml --uninstall
@@ -66,6 +73,30 @@ fnc-pack-env: fnc-install
 
 fnc-unpack-env:  fnc-uninstall
 	./nb-curator  tike-2025-07-beta.yaml --unpack-env
+
+fnc-test-imports: fnc-install
+	./nb-curator  tike-2025-07-beta.yaml --test-imports
+
+fnc-test-notebooks: fnc-install
+	./nb-curator  tike-2025-07-beta.yaml --test-notebooks
+
+fnc-test: fnc-install
+	./nb-curator  tike-2025-07-beta.yaml -t
+
+fnc-compact: fnc-install
+	./nb-curator  tike-2025-07-beta.yaml --compact
+
+fnc-compile: fnc-clone
+	./nb-curator  tike-2025-07-beta.yaml --compile
+
+fnc-clone:
+	./nb-curator  tike-2025-07-beta.yaml --clone
+
+fnc-init-env: fnc-compile
+	./nb-curator  tike-2025-07-beta.yaml --init-env
+
+fnc-delete-env: fnc-init-env
+	./nb-curator  tike-2025-07-beta.yaml --delete-env
 
 # ==========================================================================================================
 

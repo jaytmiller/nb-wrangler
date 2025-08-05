@@ -14,7 +14,7 @@ from .constants import (
     VALID_COLOR_MODE,
     DEFAULT_USE_COLOR_MODE,
     REPOS_DIR,
-    DEFAULT_MICROMAMBA_PATH,
+    # DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
 )
@@ -46,7 +46,6 @@ def parse_args():
     )
     parser.add_argument(
         "-t",
-        "--test-all",
         dest="test_all",
         action="store_true",
         help="Test both imports and all notebooks.",
@@ -65,7 +64,6 @@ def parse_args():
         help="Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*",
     )
     parser.add_argument(
-        "-v",
         "--verbose",
         action="store_true",
         help="Enable DEBUG log output",
@@ -119,7 +117,6 @@ def parse_args():
         help="Compact the curator installation by deleting package caches, etc.",
     )
     parser.add_argument(
-        "-c",
         "--compile-packages",
         action="store_true",
         help="Compile spec and input package lists to generate pinned requirements and other metadata for target environment.",
@@ -130,7 +127,6 @@ def parse_args():
         help="Include the 'common' packages used by all missions in all current SPI based and mission environments, may affect GUI capabilty.",
     )
     parser.add_argument(
-        "-i",
         "--install-packages",
         action="store_true",
         help="Install compiled base and pip requirements into target/test environment.",
@@ -141,7 +137,6 @@ def parse_args():
         help="Remove the compiled packages from the target environment after processing.",
     )
     parser.add_argument(
-        "-j",
         "--jobs",
         default=NOTEBOOK_TEST_JOBS,
         type=int,
@@ -158,11 +153,11 @@ def parse_args():
         action="store_true",
         help="Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment'.",
     )
-    parser.add_argument(
-        "--submit-for-build",
-        action="store_true",
-        help="Submit the updated spec and curation results to the Science Platform Images GitHub repo triggering a build.",
-    )
+    # parser.add_argument(
+    #     "--submit-for-build",
+    #     action="store_true",
+    #     help="Submit the updated spec and curation results to the Science Platform Images GitHub repo triggering a build.",
+    # )
     parser.add_argument(
         "--clone-repos",
         action="store_true",
@@ -179,12 +174,12 @@ def parse_args():
         action="store_true",
         help="Delete --repo-dir and clones after processing.",
     )
-    parser.add_argument(
-        "--micromamba-path",
-        type=str,
-        default=DEFAULT_MICROMAMBA_PATH,
-        help="Path to micromamba program to use for curator environment management.",
-    )
+    # parser.add_argument(
+    #     "--micromamba-path",
+    #     type=str,
+    #     default=DEFAULT_MICROMAMBA_PATH,
+    #     help="Path to micromamba program to use for curator environment management.",
+    # )
     parser.add_argument(
         "--reset-spec",
         action="store_true",

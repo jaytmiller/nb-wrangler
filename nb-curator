@@ -91,7 +91,7 @@ bootstrap() {
 }
 
 if [ $# -eq 0 ]; then
-    echo "usage: nb-curator 'bootstrap' or  <yaml-spec> switches..."
+    echo "usage: nb-curator 'bootstrap' or '--help' or  '<yaml-spec> switches...'"
     echo
     echo "To activate:  'source nb-curator environment'"
     exit 2

@@ -105,7 +105,6 @@ class NotebookCurator:
                 self._compile_requirements,
                 self._initialize_environment,
                 self._install_packages,
-                self._copy_spec_to_env,
                 self._save_final_spec,
             ],
         ):
@@ -168,7 +167,7 @@ class NotebookCurator:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
         and scrape notebooks for package imports.
         """
-        self.logger.info("Setting up repository clones unconditionally.")
+        self.logger.info("Setting up repository clones.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         if self.config.omit_spi_packages and not self.config.inject_spi:
             injector_urls = []
@@ -275,12 +274,16 @@ class NotebookCurator:
             return False
         return self._copy_spec_to_env()
 
+
     def _copy_spec_to_env(self):
+        self.logger.debug("Copying spec to target environment.")
         return self.spec_manager.save_spec(
             self.env_manager.env_live_path(self.env_name)
         )
 
     def _save_final_spec(self):
+        """Overwrite the original spec with the updated spec."""
+        self.logger.debug("Updating spec with final results.")
         return self.spec_manager.save_spec(Path(self.config.spec_file).parent)
 
     def _install_packages(self) -> bool:
@@ -295,7 +298,8 @@ class NotebookCurator:
                 return False
         else:
             self.logger.warning("Found no pip requirements to install.")
-        return True
+        return self._copy_spec_to_env()
+
 
     def _uninstall_packages(self) -> bool:
         """Unconditionally uninstall pip packages from target environment."""
