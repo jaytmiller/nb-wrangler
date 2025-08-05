@@ -36,4 +36,4 @@ CURATOR_PACKAGES = ["papermill"] + TARGET_PACKAGES
 VALID_LOG_TIME_MODES = ["none", "normal", "elapsed", "both"]
 DEFAULT_LOG_TIMES_MODE = "elapsed"
 VALID_COLOR_MODES = ["auto", "on", "off"]
-DEFAULT_COLOR_MODE = "auto"
+DEFAULT_COLOR_MODE = "off"
