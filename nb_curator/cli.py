@@ -220,11 +220,11 @@ def _main(args):
         # Create and run curator
         notebook_curator = curator.NotebookCurator(curator_config)
         success = notebook_curator.main()
+        notebook_curator.logger.print_log_counters()
     except KeyboardInterrupt:
         success = curator_config.logger.error("Operation cancelled by user")
     except Exception as e:
         success = curator_config.logger.exception(e, "Failed:")
-    notebook_curator.logger.print_log_counters()
     return success
 
 
