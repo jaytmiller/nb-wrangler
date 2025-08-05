@@ -76,6 +76,11 @@ def parse_args():
         help="Drop into debugging with pdb on exceptions.",
     )
     parser.add_argument(
+        "--profile",
+        action="store_true",
+        help="Run with cProfile and output profiling results to console.",
+    )
+    parser.add_argument(
         "--log-times",
         type=str,
         choices=VALID_LOG_TIME_MODES,
@@ -189,11 +194,6 @@ def parse_args():
         "--validate-spec",
         action="store_true",
         help="Validate the specification file without performing any curation actions.",
-    )
-    parser.add_argument(
-        "--profile",
-        action="store_true",
-        help="Run with cProfile and output profiling results to console.",
     )
     return parser.parse_args()
 

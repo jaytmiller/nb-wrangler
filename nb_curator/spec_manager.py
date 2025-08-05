@@ -85,8 +85,7 @@ class SpecManager:
         """The output path for the spec file."""
         if self._source_file is None:
             raise RuntimeError("No source file loaded")
-        return self._source_file
-        # return Path(output_dir) / self._source_file.name
+        return Path(output_dir) / self._source_file.name
 
     def save_spec(self, output_dir: Path | str) -> bool:
         output_filepath = self.output_spec(output_dir)
@@ -164,13 +163,9 @@ class SpecManager:
         return self._spec["image_spec_header"]["deployment_name"]
 
     @property
-    def kernel_name(self) -> str:
+    def kernel_name(self) -> str:  # also environment_name / env_name
         self._ensure_validated()
         return self._spec["image_spec_header"]["kernel_name"]
-
-    @property
-    def environment_name(self) -> str:
-        return self.kernel_name  # currently same thing
 
     @property
     def image_name(self) -> str:

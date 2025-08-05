@@ -1,6 +1,7 @@
 """Utility functions for nb-curator."""
 
 import os
+import io
 import urllib.parse
 from typing import Optional
 import datetime
@@ -13,16 +14,21 @@ from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # t
 
 from ruamel.yaml import YAML, scalarstring  # type: ignore
 
-
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
 
 
 def get_yaml() -> YAML:
     """Return configured ruamel.yaml instance."""
-    yaml = YAML(typ="rt")  # typ="rtsc"
+    yaml = YAML()
     yaml.preserve_quotes = True
     yaml.indent(mapping=2, sequence=4, offset=2)
     return yaml
+
+
+def yaml_dumps(obj) -> str:
+    with io.StringIO() as string_stream:
+        get_yaml().dump(obj, string_stream)
+        return string_stream.getvalue()
 
 
 def yaml_block(s):

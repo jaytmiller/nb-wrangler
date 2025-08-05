@@ -84,6 +84,7 @@ class NotebookTester:
         output = self._print_divider(
             f"Testing '{base_nb}' on environment '{environment}'"
         )
+        here = os.getcwd()
         try:
             err, combined_output = self._test_single_notebook_core(
                 notebook, environment, self.config.timeout
@@ -92,6 +93,8 @@ class NotebookTester:
         except Exception as e:
             output += f"Exception during testing: {str(e)}\n"
             err = True
+        finally:
+            os.chdir(here)
 
         elapsed = datetime.datetime.now() - start
         status = "OK" if not err else "FAIL"

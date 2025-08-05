@@ -6,7 +6,7 @@ from pathlib import Path
 from .logger import CuratorLogger
 from .environment import EnvironmentManager
 from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
-from .utils import get_yaml
+from .utils import get_yaml, yaml_dumps
 
 
 class RequirementsCompiler:
@@ -67,7 +67,7 @@ class RequirementsCompiler:
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
         cmd = (
-            f"uv pip compile- -quiet --output-file {str(output_file)} --python {self.python_path}"
+            f"uv pip compile --quiet --output-file {str(output_file)} --python {self.python_path}"
             + f" --python-version {self.python_version} --universal --no-header --annotate --constraints"
         )
         for f in requirements_files:
@@ -145,7 +145,7 @@ class RequirementsCompiler:
         self.logger.debug(
             "Generated mamba_spec:", "\n" + self.logger.pformat(mamba_spec)
         )
-        return get_yaml().dump_to_string(mamba_spec)
+        return yaml_dumps(mamba_spec)
 
     def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict):
         """Write mamba spec dictionary to YAML file."""
