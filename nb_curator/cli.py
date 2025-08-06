@@ -1,3 +1,4 @@
+# nb_curator/cli.py
 """Command line interface for nb-curator."""
 
 import sys
@@ -111,6 +112,16 @@ def parse_args():
         "--unpack-env",
         action="store_true",
         help="Unpack a previously packed archive file into the target environment directory.",
+    )
+    parser.add_argument(
+        "--register-env",
+        action="store_true",
+        help="Register the target environment with Jupyter as a kernel.",
+    )
+    parser.add_argument(
+        "--unregister-env",
+        action="store_true",
+        help="Unregister the target environment from Jupyter.",
     )
     parser.add_argument(
         "--archive-format",

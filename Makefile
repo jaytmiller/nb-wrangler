@@ -46,7 +46,8 @@ functional-develop: fnc-curate fnc-test
 
 functional-reinstall: fnc-reinstall fnc-test
 
-functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env fnc-test-imports fnc-test-notebooks fnc-delete-env
+functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env fnc-test-imports fnc-test-notebooks fnc-delete-env \
+	fnc-register-env fnc-unregister-env
 
 fnc-preclean:
 	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry ./references
@@ -97,6 +98,13 @@ fnc-init-env: fnc-compile
 
 fnc-delete-env: fnc-init-env
 	./nb-curator  tike-2025-07-beta.yaml --delete-env
+
+fnc-register-env: fnc-init-env
+	./nb-curator  tike-2025-07-beta.yaml --register-env
+
+fnc-unregister-env: fnc-init-env
+	./nb-curator  tike-2025-07-beta.yaml --unregister-env
+
 
 # ==========================================================================================================
 

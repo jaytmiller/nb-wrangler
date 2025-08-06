@@ -167,6 +167,8 @@ class NotebookCurator:
             (self.config.pack_env, self._pack_environment),
             (self.config.unpack_env, self._unpack_environment),
             (self.config.compact, self._compact),
+            (self.config.register_env, self._register_environment),
+            (self.config.unregister_env, self._unregister_environment),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -355,3 +357,11 @@ class NotebookCurator:
 
     def _compact(self) -> bool:
         return self.env_manager.compact()
+
+    def _register_environment(self) -> bool:
+        """Register the target environment with Jupyter as a kernel."""
+        return self.env_manager.register_environment(self.env_name)
+
+    def _unregister_environment(self) -> bool:
+        """Unregister the target environment from Jupyter."""
+        return self.env_manager.unregister_environment(self.env_name)

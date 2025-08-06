@@ -1,3 +1,4 @@
+# nb_curator/config.py
 """Configuration management for nb-curator."""
 
 from dataclasses import dataclass
@@ -39,6 +40,8 @@ class CuratorConfig:
     pack_env: bool = False
     unpack_env: bool = False
     delete_env: bool = False
+    register_env: bool = False
+    unregister_env: bool = False
     compact: bool = False
     archive_format: str = ""
 
@@ -93,6 +96,8 @@ class CuratorConfig:
             pack_env=args.pack_env,
             unpack_env=args.unpack_env,
             delete_env=args.delete_env,
+            register_env=args.register_env,
+            unregister_env=args.unregister_env,
             archive_format=args.archive_format,
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,

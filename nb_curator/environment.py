@@ -169,11 +169,11 @@ class EnvironmentManager:
             raise RuntimeError(f"Expected CompletedProcess, got {type(result)}")
         if result.returncode != 0:
             if fail.strip().endswith(":"):
-                fail += result.stderr
+                fail += result.stderr.strip()
             return self.logger.error(fail)
         else:
             if success.strip().endswith(":"):
-                success += result.stdout
+                success += result.stdout.strip()
             return self.logger.info(success) if success else True
 
     def create_environment(
@@ -257,7 +257,9 @@ class EnvironmentManager:
         ]  # display name may be multi-word,  string splits break quoting
         result = self.env_run(env_name, cmd, check=False)
         return self.handle_result(
-            result, f"Failed to register environment {env_name}: "
+            result,
+            f"Failed to register environment {env_name} as a jupyter kernel: ",
+            f"Registered environment {env_name} as a jupyter kernel.",
         )
 
     def unregister_environment(self, env_name: str) -> bool:
@@ -265,7 +267,9 @@ class EnvironmentManager:
         cmd = f"jupyter kernelspec uninstall -y {env_name}"
         result = self.curator_run(cmd, check=False)
         return self.handle_result(
-            result, f"Failed to unregister environment {env_name}: "
+            result,
+            f"Failed to unregister Jupyter kernel {env_name}: ",
+            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} is unaffected but no longer offered to notebooks.",
         )
 
     def environment_exists(self, env_name: str) -> bool:
