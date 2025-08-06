@@ -9,6 +9,12 @@ from pprint import pformat
 
 
 from . import utils
+from .constants import (
+    VALID_LOG_TIME_MODES,
+    DEFAULT_LOG_TIMES_MODE,
+    DEFAULT_COLOR_MODE,
+)
+
 
 # Logger constants
 ANSI_COLORS = {
@@ -65,11 +71,6 @@ NORMAL_COLOR = ANSI_COLORS["blue-foreground"]
 ELAPSED_COLOR = ANSI_COLORS["cyan-foreground"]
 MESSAGE_COLOR = ANSI_COLORS["bold"]
 RESET_COLOR = ANSI_COLORS["reset"]
-
-from .constants import VALID_LOG_TIME_MODES, \
-    DEFAULT_LOG_TIMES_MODE, \
-    VALID_COLOR_MODES, \
-    DEFAULT_COLOR_MODE
 
 
 class ColorAndTimeFormatter(logging.Formatter):
@@ -138,7 +139,8 @@ class CuratorLogger:
     def _configure_logger(self):
         """Configure logger based on current settings."""
         color_and_time_formatter = ColorAndTimeFormatter(
-            log_times=self.log_times, color=self.color)
+            log_times=self.log_times, color=self.color
+        )
         color_and_time_handler = logging.StreamHandler()
         color_and_time_handler.setFormatter(color_and_time_formatter)
         logging.basicConfig(
@@ -219,6 +221,8 @@ class CuratorLogger:
             CuratorLogger instance configured from the config
         """
         return cls(
-            verbose=config.verbose, debug_mode=config.debug, log_times=config.log_times,
-            color=config.color
+            verbose=config.verbose,
+            debug_mode=config.debug,
+            log_times=config.log_times,
+            color=config.color,
         )

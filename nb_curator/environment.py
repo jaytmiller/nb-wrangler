@@ -21,8 +21,12 @@ from typing import Any
 
 from .logger import CuratorLogger
 from .constants import NBC_ROOT, NBC_PANTRY
-from .constants import DEFAULT_TIMEOUT, ENV_CREATE_TIMEOUT, INSTALL_PACKAGES_TIMEOUT
-from .constants import ENV_CAN_SUFFIX
+from .constants import (
+    DEFAULT_TIMEOUT,
+    ENV_CREATE_TIMEOUT,
+    INSTALL_PACKAGES_TIMEOUT,
+    IMPORT_TEST_TIMEOUT,
+)
 
 
 class EnvironmentManager:
@@ -76,8 +80,8 @@ class EnvironmentManager:
         cache_path = os.environ.get("NBC_CACHE")
         return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
 
-    def env_archive_path(self, env_name: str) -> Path:
-        return self.nbc_pantry_dir / "envs" / (env_name.lower() + ENV_CAN_SUFFIX)
+    def env_archive_path(self, env_name: str, archive_format: str) -> Path:
+        return self.nbc_pantry_dir / "envs" / (env_name.lower() + archive_format)
 
     def env_live_path(self, env_name: str) -> Path:
         return self.mm_envs_dir / env_name
@@ -306,15 +310,15 @@ class EnvironmentManager:
             f"Unpacked {archive_filepath} into {destination_dirpath}",
         )
 
-    def pack_environment(self, env_name: str) -> bool:
+    def pack_environment(self, env_name: str, archive_format: str) -> bool:
         return self.archive(
-            self.env_archive_path(env_name),
+            self.env_archive_path(env_name, archive_format),
             self.env_live_path(env_name),
         )
 
-    def unpack_environment(self, env_name: str) -> bool:
+    def unpack_environment(self, env_name: str, archive_format: str) -> bool:
         return self.unarchive(
-            self.env_archive_path(env_name),
+            self.env_archive_path(env_name, archive_format),
             self.env_live_path(env_name),
         )
 
@@ -352,7 +356,7 @@ class EnvironmentManager:
                 env_name,
                 f"python -c 'import {import_}'",
                 check=False,
-                timeout=20,
+                timeout=IMPORT_TEST_TIMEOUT,
             )
             succeeded = self.handle_result(
                 result,

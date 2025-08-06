@@ -165,3 +165,13 @@ def once(func):
         return _result
 
     return wrapper
+
+
+def files_to_map(files: list[str]) -> dict[str, list[str]]:
+    mapping = dict()
+    for f in files:
+        with open(f) as opened:
+            lines = opened.read().splitlines()
+            lines = [line.strip() for line in lines]
+        mapping[f] = lines
+    return mapping

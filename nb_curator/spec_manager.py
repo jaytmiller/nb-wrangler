@@ -6,6 +6,7 @@ import copy
 
 from .logger import CuratorLogger
 from .utils import get_yaml
+from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
 
 
 class SpecManager:
@@ -123,8 +124,7 @@ class SpecManager:
         """set data in the output section."""
         if "out" not in self._spec:
             self._spec["out"] = dict()
-        if isinstance(value, list):
-            value = [str(item) for item in value]
+        #     value = [str(item) for item in value]
         self._spec["out"][key] = value
         self.logger.debug(f"setting output data: {key} -> {value}")
 
@@ -203,6 +203,21 @@ class SpecManager:
         self._ensure_validated()
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
 
+    @property
+    def archive_format(self) -> str:
+        """Get the default archival format for the environment's binaries."""
+        self._ensure_validated()
+        # Return default if not specified
+        arch_format = self._spec["image_spec_header"].get("archive_format")
+        if arch_format:
+            self.logger.debug("Using spec'ed archive format", arch_format)
+        else:
+            arch_format = DEFAULT_ARCHIVE_FORMAT
+            self.logger.debug(
+                "No archive format in spec, assuming default format", arch_format
+            )
+        return arch_format
+
     # Raw read/write access for backward compatibility or special cases
     def to_dict(self) -> dict[str, Any]:
         """Return the raw spec dictionary."""
@@ -221,6 +236,7 @@ class SpecManager:
             "nb_root_directory",
             "deployment_name",
             "kernel_name",
+            "archive_format",
         ],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
@@ -297,6 +313,13 @@ class SpecManager:
                     f"Missing required field in image_spec_header: {field}"
                 )
 
+        # Validate archive_format if present
+        if "archive_format" in header:
+            if header["archive_format"] not in VALID_ARCHIVE_FORMATS:
+                return self.logger.warning(
+                    f"Invalid archive_format '{header['archive_format']}'. Possibly unsupported if not one of: {VALID_ARCHIVE_FORMATS}"
+                )
+
         return True
 
     def _validate_selected_notebooks_section(self) -> bool:
@@ -310,7 +333,6 @@ class SpecManager:
                     return self.logger.error(
                         f"Unknown keyword in selected_notebooks entry: {key}"
                     )
-
         return True
 
     def _validate_directory_repos(self) -> bool:

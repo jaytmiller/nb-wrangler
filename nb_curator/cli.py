@@ -7,7 +7,7 @@ import pstats
 
 from . import curator
 from . import utils
-from . import config
+from . import config as config_mod
 from .constants import (
     VALID_LOG_TIME_MODES,
     DEFAULT_LOG_TIMES_MODE,
@@ -17,6 +17,7 @@ from .constants import (
     # DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
+    VALID_ARCHIVE_FORMATS,
 )
 
 
@@ -104,12 +105,18 @@ def parse_args():
     parser.add_argument(
         "--pack-env",
         action="store_true",
-        help="Pack the target environment into a compressed tarball for distribution or archival.",
+        help="Pack the target environment into an archive file for distribution or archival.",
     )
     parser.add_argument(
         "--unpack-env",
         action="store_true",
-        help="Unpack a previously packed environment compressed tarball into the target directory.",
+        help="Unpack a previously packed archive file into the target environment directory.",
+    )
+    parser.add_argument(
+        "--archive-format",
+        default="",
+        type=str,
+        help="Format for pack/unpack, nominally one of: " + str(VALID_ARCHIVE_FORMATS),
     )
     parser.add_argument(
         "--compact",
@@ -212,20 +219,20 @@ def _main(args):
     """Main entry point for the CLI."""
     try:
         # Create configuration using simplified factory method
-        curator_config = config.CuratorConfig.from_args(args)
-
-        # Convert URI to local path
-        curator_config.spec_file = utils.uri_to_local_path(args.spec_uri)
-
-        # Create and run curator
-        notebook_curator = curator.NotebookCurator(curator_config)
-        success = notebook_curator.main()
-        notebook_curator.logger.print_log_counters()
+        config = config_mod.CuratorConfig.from_args(args)
+        config.spec_file = spec = utils.uri_to_local_path(args.spec_uri)
+        if not spec:
+            config.logger.error("Failed reading URI:", args.spec_uri)
+            exit_code = 1
+        else:
+            notebook_curator = curator.NotebookCurator(config)
+            exit_code = notebook_curator.main()
+            notebook_curator.logger.print_log_counters()
     except KeyboardInterrupt:
-        success = curator_config.logger.error("Operation cancelled by user")
+        return config.logger.error("Operation cancelled by user")
     except Exception as e:
-        success = curator_config.logger.exception(e, "Failed:")
-    return success
+        exit_code = config.logger.exception(e, "Failed:")
+    return exit_code
 
 
 if __name__ == "__main__":

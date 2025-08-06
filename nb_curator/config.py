@@ -40,6 +40,7 @@ class CuratorConfig:
     unpack_env: bool = False
     delete_env: bool = False
     compact: bool = False
+    archive_format: str = ""
 
     compile_packages: bool = False
     install_packages: bool = False
@@ -92,6 +93,7 @@ class CuratorConfig:
             pack_env=args.pack_env,
             unpack_env=args.unpack_env,
             delete_env=args.delete_env,
+            archive_format=args.archive_format,
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,
             uninstall_packages=args.uninstall_packages,

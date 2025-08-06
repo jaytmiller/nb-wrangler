@@ -70,6 +70,19 @@ class NotebookCurator:
     def extra_pip_output_file(self):
         return self.config.output_dir / f"{self.spec_manager.moniker}-extra-pip.txt"
 
+    @property
+    def archive_format(self):
+        """Combines default + optional spec value + optional cli override into final format."""
+        if self.config.archive_format:
+            self.logger.warning(
+                "Overriding spec'ed and/or default archive file format to",
+                self.config.archive_format,
+                "nominally to experiment, may not automatically unpack correctly.",
+            )
+            return self.config.archive_format
+        else:
+            return self.spec_manager.archive_format
+
     def main(self) -> bool:
         """Main processing method."""
         self.logger.debug(f"Starting curator configuration: {self.config}")
@@ -230,9 +243,7 @@ class NotebookCurator:
         if not self._generate_target_mamba_spec():
             return self.logger.error("Failed generating mamba spec.")
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
-        requirements_files = notebook_requirements_files = (
-            self.compiler.find_requirements_files(notebook_paths)
-        )
+        requirements_files = self.compiler.find_requirements_files(notebook_paths)
         if not self.compiler.write_pip_requirements_file(
             self.extra_pip_output_file, self.spec_manager.extra_pip_packages
         ):
@@ -252,11 +263,14 @@ class NotebookCurator:
         else:
             with self.pip_output_file.open("r") as f:
                 yaml_str = utils.yaml_block(f.read())
+        requirements_files_str = list(str(f) for f in requirements_files)
+        pip_map = utils.files_to_map(requirements_files_str)
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             # package_versions=package_versions,
             pip_compiler_output=yaml_str,
-            pip_requirements_files=notebook_requirements_files,
+            pip_requirements_files=requirements_files_str,
+            pip_map=pip_map,
         )
 
     def _initialize_environment(self) -> bool:
@@ -273,7 +287,6 @@ class NotebookCurator:
         if not self.env_manager.register_environment(self.env_name):
             return False
         return self._copy_spec_to_env()
-
 
     def _copy_spec_to_env(self):
         self.logger.debug("Copying spec to target environment.")
@@ -299,7 +312,6 @@ class NotebookCurator:
         else:
             self.logger.warning("Found no pip requirements to install.")
         return self._copy_spec_to_env()
-
 
     def _uninstall_packages(self) -> bool:
         """Unconditionally uninstall pip packages from target environment."""
@@ -327,14 +339,14 @@ class NotebookCurator:
         return self.spec_manager.reset_spec()
 
     def _unpack_environment(self) -> bool:
-        if not self.env_manager.unpack_environment(self.env_name):
+        if not self.env_manager.unpack_environment(self.env_name, self.archive_format):
             return False
         if not self.env_manager.register_environment(self.env_name):
             return False
         return True
 
     def _pack_environment(self) -> bool:
-        return self.env_manager.pack_environment(self.env_name)
+        return self.env_manager.pack_environment(self.env_name, self.archive_format)
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
