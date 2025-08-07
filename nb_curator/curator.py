@@ -358,10 +358,51 @@ class NotebookCurator:
     def _compact(self) -> bool:
         return self.env_manager.compact()
 
-    def _register_environment(self) -> bool:
+    def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
         return self.env_manager.register_environment(self.env_name)
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""
         return self.env_manager.unregister_environment(self.env_name)
+
+    def _inject_curator_spec(self):  # user automation
+        """
+        1. Create branch of .github main for this PR
+        2. Add spec to .spec-ingest
+        3. Commit and push branch
+        4. PR branch
+        """
+        raise NotImplementedError()
+        return False
+
+    def _validate_spec_injection(self) -> bool:  # action support
+        """Valid changes:
+        1. Only changes to .spec-ingest are permitted.
+            See "git diff --name-status origin/main...HEAD" nominally on PR branch
+        2. Only one spec should be added.
+        3. No modifications or deletions or other changes are permitted.
+            See "git diff --name-status origin/main...HEAD" nominally on PR branch
+        4. Submitted spec must validate.
+        5. Hash of submitted spec must verify.
+        6. Dry-run check of --reinstall workflow must pass.
+            Valid mamba spec and pip versions.
+
+        Return path/name of solitary spec added by PR
+        """
+        return False
+
+    def _archive_submitted_spec(self) -> bool:  # action support
+        """
+        1. Rename and archive spec with image-name and date suffix.
+        2. Copy to .spec-archive which *cannot* be pushed by curators.
+        Return archived path/name from which to build.
+        """
+        return False
+
+    def _update_pr_and_merge(self) -> bool:
+        """
+        Add to branch
+        Commit branch
+        """
+        return False
