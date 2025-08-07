@@ -187,7 +187,7 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             f"Failed to create environment {env_name}: \n",
-            f"Environment {env_name} created.",
+            f"Environment {env_name} created. It needs to be registered before JupyterLab will display it as an option.",
         )
 
     def delete_environment(self, env_name: str) -> bool:
@@ -198,7 +198,7 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             f"Failed to delete environment {env_name}: \n",
-            f"Environment {env_name} deleted.",
+            f"Environment {env_name} deleted. It's totally gone, file storage reclaimed.",
         )
 
     def install_packages(self, env_name: str, requirements_paths: list[Path]) -> bool:
@@ -259,7 +259,7 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             f"Failed to register environment {env_name} as a jupyter kernel: ",
-            f"Registered environment {env_name} as a jupyter kernel.",
+            f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab.",
         )
 
     def unregister_environment(self, env_name: str) -> bool:
@@ -269,7 +269,7 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             f"Failed to unregister Jupyter kernel {env_name}: ",
-            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} is unaffected but no longer offered to notebooks.",
+            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} still exists but is no longer offered by JupyterLab.",
         )
 
     def environment_exists(self, env_name: str) -> bool:
