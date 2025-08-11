@@ -7,9 +7,9 @@ image_spec_header:
     This is a beta test of the latest TIKE packages. Use at your own risk!
   valid_on: 2025-07-02
   expires_on: 2025-10-02
-  python_version: 3.11
+  python_version: 3.11.13
   nb_repo: https://github.com/spacetelescope/tike_content
-  nb_root_directory: content/notebooks/
+  root_nb_directory: content/notebooks/
   archive_format: .tar
 # these are the useful tike_content notebooks
 selected_notebooks:
