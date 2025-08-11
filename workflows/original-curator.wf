@@ -1,0 +1,50 @@
+flowchart
+
+The curator works on their laptop trying to determine the exact Python
+package versions needed to run a set of notebooks which are found in
+notebook repositories on github.  Individually notebooks define their
+own requirements, but the curator is constructing an environment which
+is capable of satisying **all** of the notebooks simultaneously.  This
+is not always easy, not infrequently different notebooks will have
+conflicting requirements...  and it is then the curator's
+responsibility to determine what to do.  Options include correcting
+notebooks, updating notebook requirements while confirming the updates
+work, or in the worst case dropping a notebook which is incompatible
+with the others.
+
+So the curator defines the notebooks and top level properties of the
+target Python environment in a YAML specification.  Based on this
+information, the nb-curator tool downloads the specified notebooks and
+their associated requirements.txt files. The nb-curator tool then uses
+micromamba to interact with conda-forge and uv to interact with pypi
+to download Python packages and create an environment taylored to the
+specified notebooks and the union of their requirements.txt files.
+The curator simply runs the micromamba and uv command line tools as
+Python subprocesses.  The tool scrapes explicit imports from each
+notebook and ensures they all import successfully in the target
+environment; this is a fast basic check.  Subsequently the curator
+tool runs each notebook in the target environment using papermill to
+determine if it executes to completion without crashing; this is a
+more time consuming and more thorough check which still has a lot of
+room for improvement. With the exception of testing, at each phase,
+the nb-curator tool adds the products of its computations to an output
+section of the YAML spec.  The output section of the spec serves
+to inform the curator about what the environment includes and why,
+and also serves to inform downstream processes of the exact requirements
+it has determined for an environment, supporting faster and more
+reproducible installations.
+
+When all tests are passing successfully, the curator uses the
+nb-curator tool to trigger a Docker image build on the
+science-platform-images GitHub repo which incorporates the specified
+target environment.  The method by which the spec is communicated and
+the build is triggered is TBD.  Upon completion of the Docker build
+the Docker image is transferred to AWS ECR from where it can be
+downloaded and used by science platform JupyterHubs such as the Roman
+Research Nexus or TIKE.  The nature of this transfer mechansim and any
+AWS credentials required is also TBD, but both security and simplicity
+are extreme concerns.  The key properties of this latter phase
+building and deploying the specified Docker image are: (a) it must be
+entirely autonomous and (b) it accurately reproduces the curated
+environment within the Docker image such that the notebooks can be
+reliably and sucessfully executed on the science platform JupyterHubs.
