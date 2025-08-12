@@ -15,7 +15,7 @@ from .constants import (
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    # DEFAULT_MICROMAMBA_PATH,
+    DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     VALID_ARCHIVE_FORMATS,
@@ -38,6 +38,13 @@ def parse_args():
         action="store_const",
         const="curation",
         help="Execute the curation workflow for spec development to add compiled requirements.",
+    )
+    parser.add_argument(
+        "--submit-for-build",
+        dest="workflow",
+        action="store_const",
+        const="submit-for-build",
+        help="Submit fully elaborated requirements for image building.",
     )
     parser.add_argument(
         "--reinstall",
@@ -171,11 +178,6 @@ def parse_args():
         action="store_true",
         help="Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment'.",
     )
-    # parser.add_argument(
-    #     "--submit-for-build",
-    #     action="store_true",
-    #     help="Submit the updated spec and curation results to the Science Platform Images GitHub repo triggering a build.",
-    # )
     parser.add_argument(
         "--clone-repos",
         action="store_true",
@@ -192,12 +194,12 @@ def parse_args():
         action="store_true",
         help="Delete --repo-dir and clones after processing.",
     )
-    # parser.add_argument(
-    #     "--micromamba-path",
-    #     type=str,
-    #     default=DEFAULT_MICROMAMBA_PATH,
-    #     help="Path to micromamba program to use for curator environment management.",
-    # )
+    parser.add_argument(
+        "--micromamba-path",
+        type=str,
+        default=DEFAULT_MICROMAMBA_PATH,
+        help="Path to micromamba program to use for curator environment management.",
+    )
     parser.add_argument(
         "--reset-spec",
         action="store_true",

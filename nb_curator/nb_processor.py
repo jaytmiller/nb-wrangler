@@ -5,6 +5,7 @@ import re
 from typing import Optional
 
 from .logger import CuratorLogger
+from .constants import BUILTIN_PACKAGES
 
 
 class NotebookImportProcessor:
@@ -79,6 +80,6 @@ class NotebookImportProcessor:
             return None
         root_package = package_path.split(".")[0]
         # Skip built-in modules
-        if root_package in ["__future__", "builtins", "sys", "os"]:
+        if root_package in BUILTIN_PACKAGES:
             return None
         return root_package

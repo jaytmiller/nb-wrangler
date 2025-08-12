@@ -83,8 +83,7 @@ class CuratorConfig:
         """Create CuratorConfig from argparse Namespace and spec file."""
         return cls(
             spec_file=args.spec_uri,
-            # micromamba_path=args.micromamba_path,
-            # submit_for_build=args.submit_for_build,
+            micromamba_path=args.micromamba_path,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

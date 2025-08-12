@@ -40,14 +40,17 @@ setup:
 
 # ==========================================================================================================
 
-functional: fnc-preclean fnc-bootstrap functional-develop functional-reinstall functional-misc
+functional: fnc-preclean fnc-bootstrap functional-develop functional-tests functional-reinstall functional-misc
 
-functional-develop: fnc-curate fnc-test
+functional-develop: fnc-curate
 
-functional-reinstall: fnc-reinstall fnc-test
+functional-reinstall: fnc-reinstall 
 
-functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env fnc-test-imports fnc-test-notebooks fnc-delete-env \
-	fnc-register-env fnc-unregister-env
+functional-tests:  fnc-test fnc-test-imports fnc-test-notebooks
+
+functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
+	fnc-unregister-env	fnc-register-env fnc-delete-env
+
 
 fnc-preclean:
 	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry ./references

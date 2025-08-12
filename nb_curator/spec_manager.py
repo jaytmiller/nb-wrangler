@@ -90,9 +90,9 @@ class SpecManager:
 
     def save_spec(self, output_dir: Path | str) -> bool:
         output_filepath = self.output_spec(output_dir)
-        return self._save_spec(output_filepath)
+        return self.save_spec_as(output_filepath)
 
-    def _save_spec(self, output_filepath: Path | str) -> bool:
+    def save_spec_as(self, output_filepath: Path | str) -> bool:
         """Save the current YAML spec to a file."""
         try:
             self.logger.info(f"Saving spec file to {output_filepath}.")
@@ -140,7 +140,7 @@ class SpecManager:
         if not self.validate():
             return self.logger.error("Spec did not validate follwing reset.")
         assert self._source_file is not None  # guaranteed by validate()
-        if not self._save_spec(self._source_file):
+        if not self.save_spec_as(self._source_file):
             return self.logger.error("Spec save to", self._source_file, "failed...")
         return True
 
@@ -150,7 +150,7 @@ class SpecManager:
             return self.logger.error("Spec failed to load during reload.")
         if not self.validate():
             return self.logger.error("Reloaded spec failed to validate after reload.")
-        if not self._save_spec(self._source_file):
+        if not self.save_spec_as(self._source_file):
             return self.logger.error(
                 "Reloaded spec failed to save to", self._source_file
             )

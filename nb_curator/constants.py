@@ -14,6 +14,8 @@ NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nbc-pantry"))
 REPOS_DIR = Path("./references")
 DEFAULT_MICROMAMBA_PATH = NBC_MM / "bin" / "micromamba"
 
+BUILTIN_PACKAGES = ["__future__", "builtins", "sys", "os", "copy"]
+
 DEFAULT_ARCHIVE_FORMAT = ".tar"
 VALID_ARCHIVE_FORMATS = [
     ".tar.gz",
