@@ -24,7 +24,7 @@ class RepositoryManager:
 
     def setup_repos(self, repo_urls: list[str]) -> bool:
         """set up all specified repositories."""
-        self.logger.debug(f"setting up repos. urls={repo_urls}.")
+        self.logger.debug(f"Setting up repos. urls={repo_urls}.")
         for repo_url in repo_urls:
             repo_path = self._setup_remote_repo(repo_url)
             if not repo_path:

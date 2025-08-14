@@ -1,4 +1,7 @@
 from pathlib import Path
+import datetime
+import shutil
+import os
 
 from .logger import CuratorLogger
 from .spec_manager import SpecManager
@@ -57,6 +60,30 @@ class SpiInjector:
             self.deployments_path / "common/common-env/*.mamba",
             self.kernel_path / "*.mamba",
         ]
+
+    def archive_curator_spec(self) -> bool:
+        """During GitHub actions, copy the spec from the ingest directory
+        to an archive location with a more recognizable name.
+        """
+        source_dir = self.spi_path / ".spec-ingest"
+        source = list(source_dir.glob("*.yaml"))[0]
+        arch_filename = (
+            self.spec_manager.image_name
+            + "-"
+            + datetime.datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            + ".yaml"
+        )
+        dest = self.spi_path / ".spec-archive" / self.deployment_name / arch_filename
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(source, dest)
+        os.remove(source)
+        return True
+
+    def set_curator_spec(self) -> bool:
+        """Write out the curator environment spec with a generic name."""
+        out_spec = self.environments_path / "nb-curator-spec.yaml"
+        self.logger.info("Saving spec to SPI environments dir: ", out_spec)
+        return self.spec_manager.save_spec(out_spec)
 
     def inject(self) -> bool:
         """

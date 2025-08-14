@@ -4,8 +4,8 @@ from typing import Any, Optional
 from pathlib import Path
 import copy
 
+from . import utils
 from .logger import CuratorLogger
-from .utils import get_yaml
 from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
 
 
@@ -17,144 +17,6 @@ class SpecManager:
         self._spec: dict[str, Any] = {}
         self._is_validated = False
         self._source_file = Path("")
-
-    @classmethod
-    def load_and_validate(
-        cls,
-        logger: CuratorLogger,
-        spec_file: str,
-    ) -> Optional["SpecManager"]:
-        """Factory method to load and validate a spec file."""
-        manager = cls(logger)
-        if manager.load_spec(spec_file) and manager.validate():
-            return manager
-        else:
-            logger.error("Failed to load and validate", spec_file)
-            return None
-
-    # ----------------------------- load, save, outputs  ---------------------------
-
-    def get_output_data(self, key: str, default: Any = None) -> Any:
-        """Get data from the output section."""
-        return self._spec.get("out", {}).get(key, default)
-
-    def get_outputs(self, *output_names) -> list[Any]:
-        """Get data from the spec output section and return a tuple in order."""
-        self.logger.debug("Retrieving prior outputs from spec:", output_names)
-        if "out" not in self._spec:
-            raise RuntimeError(
-                f"No output section found.   Output values for {output_names} must already be in the spec."
-            )
-        output_values = []
-        for output_name in output_names:
-            output_value = self.get_output_data(output_name)
-            if output_value is not None:
-                output_values.append(output_value)
-            else:
-                raise RuntimeError(
-                    f"Missing output field '{output_name}' needs to be computed earlier or already in the spec."
-                )
-        if len(output_values) > 1:
-            return output_values
-        elif len(output_values) == 1:
-            return output_values[0]
-        else:
-            raise RuntimeError(f"No output values were found for '{output_names}'.")
-
-    def outputs_exist(self, *output_names: str) -> bool:
-        """Check if all specified outputs exist in the spec already."""
-        return "out" in self._spec and all(
-            name in self._spec["out"] for name in output_names
-        )
-
-    def files_exist(self, *filepaths: str | Path) -> bool:
-        """Check if all specified files exist in the filesystem."""
-        return all(Path(filepath).exists() for filepath in filepaths)
-
-    def load_spec(self, spec_file: str | Path) -> bool:
-        """Load YAML specification file."""
-        try:
-            self._source_file = Path(spec_file)
-            with self._source_file.open("r") as f:
-                self._spec = get_yaml().load(f)
-            self.logger.debug(f"Loaded spec from {str(spec_file)}.")
-            return True
-        except Exception as e:
-            return self.logger.exception(e, f"Failed to load YAML spec: {e}")
-
-    def output_spec(self, output_dir: Path | str) -> Path:
-        """The output path for the spec file."""
-        if self._source_file is None:
-            raise RuntimeError("No source file loaded")
-        return Path(output_dir) / self._source_file.name
-
-    def save_spec(self, output_dir: Path | str) -> bool:
-        output_filepath = self.output_spec(output_dir)
-        return self.save_spec_as(output_filepath)
-
-    def save_spec_as(self, output_filepath: Path | str) -> bool:
-        """Save the current YAML spec to a file."""
-        try:
-            self.logger.info(f"Saving spec file to {output_filepath}.")
-            output_path = Path(output_filepath)
-            with output_path.open("w+") as f:
-                get_yaml().dump(self._spec, f)
-            self.logger.debug(f"Spec file saved to {output_filepath}.")
-            return True
-        except Exception as e:
-            return self.logger.exception(
-                e, f"Error saving YAML spec file to {output_filepath}: {e}"
-            )
-
-    def revise_and_save(
-        self,
-        output_dir: Path | str,
-        **additional_outputs,
-    ) -> bool:
-        """Update spec with computed outputs and save to file."""
-        try:
-            self.logger.info(f"Revising spec file {self._source_file}.")
-            for key, value in additional_outputs.items():
-                self.set_output_data(key, value)
-            return self.save_spec(output_dir)
-        except Exception as e:
-            return self.logger.exception(e, f"Error revising spec file: {e}")
-
-    def set_output_data(self, key: str, value: Any) -> None:
-        """set data in the output section."""
-        if "out" not in self._spec:
-            self._spec["out"] = dict()
-        #     value = [str(item) for item in value]
-        self._spec["out"][key] = value
-        self.logger.debug(f"setting output data: {key} -> {value}")
-
-    def reset_spec(self) -> bool:
-        """Delete the output field of the spec and make sure the source file reflects it."""
-        try:
-            del self._spec["out"]
-            self.logger.info("Deleted output section of spec file added by nb-curator.")
-        except KeyError:
-            return self.logger.warning(
-                "The output section of spec file does not exist. Nothing to reset."
-            )
-        if not self.validate():
-            return self.logger.error("Spec did not validate follwing reset.")
-        assert self._source_file is not None  # guaranteed by validate()
-        if not self.save_spec_as(self._source_file):
-            return self.logger.error("Spec save to", self._source_file, "failed...")
-        return True
-
-    def reload_spec(self) -> bool:
-        """Reload the spec source file."""
-        if not self.load_spec(self._source_file):
-            return self.logger.error("Spec failed to load during reload.")
-        if not self.validate():
-            return self.logger.error("Reloaded spec failed to validate after reload.")
-        if not self.save_spec_as(self._source_file):
-            return self.logger.error(
-                "Reloaded spec failed to save to", self._source_file
-            )
-        return True
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -203,6 +65,47 @@ class SpecManager:
         self._ensure_validated()
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
 
+    # ----------------- functional access to output section ----------------
+
+    def get_output_data(self, key: str, default: Any = None) -> Any:
+        """Get data from the output section of the spec."""
+        return self._spec.get("out", {}).get(key, default)
+
+    def get_outputs(self, *output_names) -> list[Any]:
+        """Get the named fields from the spec output section and
+        return a tuple in order of `output_names`.
+        """
+        self.logger.debug("Retrieving prior outputs from spec:", output_names)
+        if "out" not in self._spec:
+            raise RuntimeError(
+                f"No output section found.   Output values for {output_names} must already be in the spec."
+            )
+        output_values = []
+        for output_name in output_names:
+            output_value = self.get_output_data(output_name)
+            if output_value is not None:
+                output_values.append(output_value)
+            else:
+                raise RuntimeError(
+                    f"Missing output field '{output_name}' needs to be computed earlier or already in the spec."
+                )
+        if len(output_values) > 1:
+            return output_values
+        elif len(output_values) == 1:
+            return output_values[0]
+        else:
+            raise RuntimeError(f"No output values were found for '{output_names}'.")
+
+    def outputs_exist(self, *output_names: str) -> bool:
+        """Check if all specified outputs exist in the spec already."""
+        return "out" in self._spec and all(
+            name in self._spec["out"] for name in output_names
+        )
+
+    def files_exist(self, *filepaths: str | Path) -> bool:
+        """Check if all specified files exist in the filesystem."""
+        return all(Path(filepath).exists() for filepath in filepaths)
+
     @property
     def archive_format(self) -> str:
         """Get the default archival format for the environment's binaries."""
@@ -222,6 +125,132 @@ class SpecManager:
     def to_dict(self) -> dict[str, Any]:
         """Return the raw spec dictionary."""
         return copy.deepcopy(self._spec)
+
+    def to_string(self):
+        return utils.yaml_dumps(self._spec)
+
+    # ----------------------------- load, save, outputs  ---------------------------
+
+    @classmethod
+    def load_and_validate(
+        cls,
+        logger: CuratorLogger,
+        spec_file: str,
+    ) -> Optional["SpecManager"]:
+        """Factory method to load and validate a spec file."""
+        manager = cls(logger)
+        if manager.load_spec(spec_file) and manager.validate():
+            return manager
+        else:
+            logger.error("Failed to load and validate", spec_file)
+            return None
+
+    def load_spec(self, spec_file: str | Path) -> bool:
+        """Load YAML specification file."""
+        try:
+            self._source_file = Path(spec_file)
+            with self._source_file.open("r") as f:
+                self._spec = utils.get_yaml().load(f)
+            self.logger.debug(f"Loaded spec from {str(spec_file)}.")
+            return True
+        except Exception as e:
+            return self.logger.exception(e, f"Failed to load YAML spec: {e}")
+
+    def set_output_data(self, key: str, value: Any) -> None:
+        """set data in the output section."""
+        if "out" not in self._spec:
+            self._spec["out"] = dict()
+        #     value = [str(item) for item in value]
+        self._spec["out"][key] = value
+        self.logger.debug(f"setting output data: {key} -> {value}")
+
+    # -------------------------------- saving & resetting spec -------------------------------
+
+    def output_spec(self, output_dir: Path | str) -> Path:
+        """The output path for the spec file."""
+        if self._source_file is None:
+            raise RuntimeError("No source file loaded")
+        return Path(output_dir) / self._source_file.name
+
+    def save_spec(self, output_dir: Path | str, add_sha256: bool = False) -> bool:
+        """Keeping the original name,  save the spec at a new location, optionally
+        updating the sha256 sum.
+        """
+        output_filepath = self.output_spec(output_dir)
+        return self.save_spec_as(output_filepath, add_sha256=add_sha256)
+
+    def save_spec_as(
+        self, output_filepath: Path | str, add_sha256: bool = False
+    ) -> bool:
+        """Save the current YAML spec to a file."""
+        self.logger.info(f"Saving spec file to {output_filepath}.")
+        try:
+            output_path = Path(output_filepath)
+            if add_sha256:
+                hash = self.add_sha256()
+                self.logger.debug(f"Setting spec-sha256 to {hash}.")
+            else:
+                self._spec["system"].pop("spec-sha256", None)
+                self.logger.debug(
+                    "Not updating spec-sha256 sum; Removing potentially outdated sum."
+                )
+            with output_path.open("w+") as f:
+                f.write(self.to_string())
+            self.logger.debug(f"Spec file saved to {output_filepath}.")
+            return True
+        except Exception as e:
+            return self.logger.exception(
+                e, f"Error saving YAML spec file to {output_filepath}: {e}"
+            )
+
+    def revise_and_save(
+        self,
+        output_dir: Path | str,
+        add_sha256: bool = False,
+        **additional_outputs,
+    ) -> bool:
+        """Update spec with computed outputs and save to file."""
+        try:
+            self.logger.info(f"Revising spec file {self._source_file}.")
+            for key, value in additional_outputs.items():
+                self.set_output_data(key, value)
+            return self.save_spec(output_dir, add_sha256=add_sha256)
+        except Exception as e:
+            return self.logger.exception(e, f"Error revising spec file: {e}")
+
+    def reset_spec(self) -> bool:
+        """Delete the output field of the spec and make sure the source file reflects it."""
+        self.logger.debug("Resetting spec file.")
+        self._spec.pop("out", None)
+        self._spec["system"].pop("spec-sha256", None)
+        if not self.validate():
+            return self.logger.error("Spec did not validate follwing reset.")
+        if not self.save_spec_as(self._source_file):
+            return self.logger.error("Spec save to", self._source_file, "failed...")
+        return True
+
+    # ---------------------------- hashes, crypto ----------------------------------
+
+    def add_sha256(self) -> str:
+        self._spec["system"]["spec-sha256"] = ""
+        self._spec["system"]["spec-sha256"] = utils.sha256_str(self.to_string())
+        return self._spec["system"]["spec-sha256"]
+
+    def validate_sha256(self) -> bool:
+        """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
+        expected_hash = self._spec["system"].get("spec-sha256")
+        if not expected_hash:
+            return self.logger.error("Spec has no spec-sha256 hash to validate.")
+        else:
+            self.logger.info(f"Validating spec-sha256 checksum {expected_hash}.")
+            actual_hash = self.add_sha256()
+            if expected_hash == actual_hash:
+                self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
+                return True
+            else:
+                return self.logger.error(
+                    f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
+                )
 
     # ---------------------------- validation ----------------------------------
 
@@ -254,6 +283,10 @@ class SpecManager:
             "pip_requirement_files",
             "package_versions",
         ],
+        "system": [
+            "spec-version",
+            "spec-sha256",
+        ],
     }
 
     def validate(self) -> bool:
@@ -266,6 +299,7 @@ class SpecManager:
             and self._validate_header_section()
             and self._validate_selected_notebooks_section()
             and self._validate_directory_repos()
+            and self._validate_system()
         )
         if not validated:
             return self.logger.error("Spec validation failed.")
@@ -338,6 +372,15 @@ class SpecManager:
     def _validate_directory_repos(self) -> bool:
         """Validate that all repositories in directory entries are specified."""
         # Implementation details...
+        return True
+
+    def _validate_system(self) -> bool:
+        if "system" not in self._spec:
+            return self.logger.error("Required section 'system' is missing.")
+        if "spec-version" not in self._spec["system"]:
+            return self.logger.error(
+                "Required field 'spec-version' of section 'system' is missing."
+            )
         return True
 
     # -------------------------------- notebook and repository collection --------------------------------------

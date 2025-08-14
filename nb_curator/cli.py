@@ -210,14 +210,23 @@ def parse_args():
         action="store_true",
         help="Validate the specification file without performing any curation actions.",
     )
+    parser.add_argument(
+        "--ignore-spec-hash",
+        action="store_true",
+        help="Spec SHA256 hashes will not be added or verified upon re-installation.",
+    )
+    parser.add_argument(
+        "--add-pip-hashes",
+        action="store_true",
+        help="Record PyPi hashes of requested packages for easier verification during later installs.",
+    )
     return parser.parse_args()
 
 
-def main():
+def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
 
-    # Profile if requested
     if args.profile:
         with cProfile.Profile() as pr:
             success = _main(args)

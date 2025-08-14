@@ -62,6 +62,8 @@ class CuratorConfig:
 
     reset_spec: bool = False
     validate_spec: bool = False
+    ignore_spec_hash: bool = False
+    add_pip_hashes: bool = False
 
     workflow: str = "explicit"
 
@@ -111,5 +113,7 @@ class CuratorConfig:
             inject_spi=args.inject_spi,
             reset_spec=args.reset_spec,
             validate_spec=args.validate_spec,
+            ignore_spec_hash=args.ignore_spec_hash,
+            add_pip_hashes=args.add_pip_hashes,
             workflow=args.workflow,
         )

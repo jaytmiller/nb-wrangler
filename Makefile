@@ -49,7 +49,7 @@ functional-reinstall: fnc-reinstall
 functional-tests:  fnc-test fnc-test-imports fnc-test-notebooks
 
 functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
-	fnc-unregister-env	fnc-register-env fnc-delete-env
+	fnc-unregister-env	fnc-register-env fnc-delete-env fnc-reset-spec
 
 
 fnc-preclean:
@@ -107,6 +107,9 @@ fnc-register-env: fnc-init-env
 
 fnc-unregister-env: fnc-init-env
 	./nb-curator  tike-2025-07-beta.yaml --unregister-env
+
+fnc-reset-spec: fnc-compile
+	./nb-curator  tike-2025-07-beta.yaml --reset-spec
 
 
 # ==========================================================================================================

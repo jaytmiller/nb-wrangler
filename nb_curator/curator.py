@@ -96,12 +96,14 @@ class NotebookCurator:
         match self.config.workflow:
             case "curation":
                 return self._run_development_workflow()
+            case "submit-for-build":
+                return self._run_submit_build_workflow()
             case "reinstall":
-                return self._run_from_spec_workflow()
+                return self._run_reinstall_spec_workflow()
             case _:
                 return self._run_explicit_steps()
 
-    def run_workflow(self, name: str, steps: list):
+    def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
         for step in steps:
             self.logger.debug(f"Running step {step.__name__}.")
@@ -124,9 +126,17 @@ class NotebookCurator:
             return self._run_explicit_steps()
         return False
 
-    def _run_from_spec_workflow(self) -> bool:
+    def _run_submit_build_workflow(self) -> bool:
+        """Execute steps for the build submission workflow."""
+        if self.run_workflow(
+            "submit-for-build",
+            [],
+        ):
+            return self._run_explicit_steps()
+        return False
+
+    def _run_reinstall_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
-        self.logger.info("Running install-from-precompiled-spec workflow.")
         required_outputs = (
             "mamba_spec",
             "pip_compiler_output",
@@ -140,7 +150,8 @@ class NotebookCurator:
         if not self.run_workflow(
             "install-compiled-spec",
             [
-                self._clone_repos,
+                # self._clone_repos,
+                self._validate_spec,
                 self._initialize_environment,
                 self._install_packages,
             ],
@@ -150,7 +161,7 @@ class NotebookCurator:
 
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
-        self.logger.info("Running explicitly selected steps.")
+        self.logger.info("Running explicitly selected steps, if any.")
         flags_and_steps = [
             (self.config.clone_repos, self._clone_repos),
             (self.config.compile_packages, self._compile_requirements),
@@ -160,7 +171,7 @@ class NotebookCurator:
             (self.config.test_notebooks, self._test_notebooks),
             (self.config.inject_spi, self.injector.inject),
             (self.config.reset_spec, self._reset_spec),
-            (self.config.validate_spec, self.spec_manager.validate),
+            (self.config.validate_spec, self._validate_spec),
             (self.config.delete_repos, self.repo_manager.delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -206,6 +217,7 @@ class NotebookCurator:
             )
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
+            add_sha256=not self.config.ignore_spec_hash,
             notebook_repo_urls=notebook_repo_urls,
             injector_urls=injector_urls,
             test_notebooks=notebook_paths,
@@ -236,7 +248,11 @@ class NotebookCurator:
             )
         else:
             spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
-            return self.spec_manager.revise_and_save(self.config.output_dir, **spec_out)
+            return self.spec_manager.revise_and_save(
+                self.config.output_dir,
+                add_sha256=not self.config.ignore_spec_hash,
+                **spec_out,
+            )
 
     def _compile_requirements(self) -> bool:
         """Unconditionally identify notebooks, compile requirements, and update spec outputs
@@ -254,22 +270,16 @@ class NotebookCurator:
         if not self.config.omit_spi_packages:
             spi_requirements_files = self.injector.find_spi_pip_files()
             requirements_files.extend(spi_requirements_files)
-        package_versions = self.compiler.compile_requirements(
-            requirements_files, self.pip_output_file
+        self.compiler.compile_requirements(
+            requirements_files, self.pip_output_file, self.config.add_pip_hashes
         )
-        if not package_versions:
-            self.logger.warning(
-                "Combined packages defined by notebooks and spec are empty."
-            )
-            yaml_str = ""
-        else:
-            with self.pip_output_file.open("r") as f:
-                yaml_str = utils.yaml_block(f.read())
+        with self.pip_output_file.open("r") as f:
+            yaml_str = utils.yaml_block(f.read())
         requirements_files_str = list(str(f) for f in requirements_files)
         pip_map = utils.files_to_map(requirements_files_str)
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
-            # package_versions=package_versions,
+            add_sha256=not self.config.ignore_spec_hash,
             pip_compiler_output=yaml_str,
             pip_requirements_files=requirements_files_str,
             pip_map=pip_map,
@@ -290,17 +300,6 @@ class NotebookCurator:
             return False
         return self._copy_spec_to_env()
 
-    def _copy_spec_to_env(self):
-        self.logger.debug("Copying spec to target environment.")
-        return self.spec_manager.save_spec(
-            self.env_manager.env_live_path(self.env_name)
-        )
-
-    def _save_final_spec(self):
-        """Overwrite the original spec with the updated spec."""
-        self.logger.debug("Updating spec with final results.")
-        return self.spec_manager.save_spec(Path(self.config.spec_file).parent)
-
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
         pip_compiler_output = self.spec_manager.get_outputs("pip_compiler_output")
@@ -320,6 +319,33 @@ class NotebookCurator:
         return self.env_manager.uninstall_packages(
             self.env_name, [self.pip_output_file]
         )
+
+    def _copy_spec_to_env(self) -> bool:
+        self.logger.debug("Copying spec to target environment.")
+        return self.spec_manager.save_spec(
+            self.env_manager.env_live_path(self.env_name),
+        )
+
+    def _save_final_spec(self) -> bool:
+        """Overwrite the original spec with the updated spec."""
+        self.logger.debug("Updating spec with final results.")
+        return self.spec_manager.save_spec(
+            Path(self.config.spec_file).parent,
+            add_sha256=not self.config.ignore_spec_hash,
+        )
+
+    def _validate_spec_sha256(self) -> bool:
+        if self.config.ignore_spec_hash:
+            return self.logger.warning(
+                "Ignoring spec-sha256 checksum validation. Spec integrity unknown."
+            )
+        else:
+            return self.spec_manager.validate_sha256()
+
+    def _validate_spec(self) -> bool:
+        if not self.spec_manager.validate():
+            return False
+        return self._validate_spec_sha256()
 
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
@@ -366,7 +392,7 @@ class NotebookCurator:
         """Unregister the target environment from Jupyter."""
         return self.env_manager.unregister_environment(self.env_name)
 
-    def _inject_curator_spec(self):  # user automation
+    def _submit_curator_spec(self):  # user automation
         """
         1. Create branch of .github main for this PR
         2. Add spec to .spec-ingest

@@ -203,7 +203,9 @@ class EnvironmentManager:
 
     def install_packages(self, env_name: str, requirements_paths: list[Path]) -> bool:
         """Install the compiled package lists."""
-        self.logger.info(f"Installing packages from: {requirements_paths}")
+        self.logger.info(
+            f"Installing packages from: {[str(p) for p in requirements_paths]}"
+        )
 
         cmd = "uv pip install"
         for path in requirements_paths:

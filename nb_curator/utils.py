@@ -6,6 +6,7 @@ import urllib.parse
 from typing import Optional
 import datetime
 import functools
+import hashlib
 
 
 import requests
@@ -16,9 +17,16 @@ from ruamel.yaml import YAML, scalarstring  # type: ignore
 
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
 
+# --------------------------- YAML helpers to isolate ruamel.yaml details -------------------
+
 
 def get_yaml() -> YAML:
-    """Return configured ruamel.yaml instance."""
+    """Return configured ruamel.yaml instance. A chief goal here is that whatever
+    format we pick, it should (a) round trip well and (b) be as readable as possible.
+    To that end, spec order should be preserved, and support for cleanly formatted
+    multi-line strings should be as easy as possible. Curators should be able to look
+    at git diffs and clearly understand what is *really* changing
+    """
     yaml = YAML()
     yaml.preserve_quotes = True
     yaml.indent(mapping=2, sequence=4, offset=2)
@@ -26,13 +34,18 @@ def get_yaml() -> YAML:
 
 
 def yaml_dumps(obj) -> str:
+    """Convert an object, e.g. a curator spec, to our YAML format."""
     with io.StringIO() as string_stream:
         get_yaml().dump(obj, string_stream)
         return string_stream.getvalue()
 
 
 def yaml_block(s):
+    """Use this to ensure a multiline string is rendered as a block in YAML."""
     return scalarstring.LiteralScalarString(s)
+
+
+# -----------------------------------------------------------------------------
 
 
 def remove_common_prefix(strings: list[str]) -> list[str]:
@@ -60,6 +73,9 @@ def create_divider(title: str, char: str = "*", width: int = 100) -> str:
 
 
 def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]:
+    """Returns a string representing the elapsed time between the `start_time`
+    and current time.
+    """
     now = datetime.datetime.now()
     delta = now - start_time
     total_seconds = int(delta.total_seconds())
@@ -78,6 +94,9 @@ def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]
             now,
             f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds//1000:03d}",
         )
+
+
+# -------------------------------------------------------------------------
 
 
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
@@ -148,6 +167,9 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return None
 
 
+# -------------------------------------------------------------------------
+
+
 def once(func):
     """
     A decorator that ensures a function is executed only once.
@@ -167,7 +189,15 @@ def once(func):
     return wrapper
 
 
+# -------------------------------------------------------------------------
+
+
 def files_to_map(files: list[str]) -> dict[str, list[str]]:
+    """
+    Takes a list of file paths and returns a mapping from each
+    file to a list of the lines in the file, nominally these are
+    requirements files and the packages they request be installed.
+    """
     mapping = dict()
     for f in files:
         with open(f) as opened:
@@ -175,3 +205,37 @@ def files_to_map(files: list[str]) -> dict[str, list[str]]:
             lines = [line.strip() for line in lines]
         mapping[f] = lines
     return mapping
+
+
+# ------------------------------- sha256 helpers -------------------------
+
+
+def sha256_bytes(data: bytes) -> str:
+    return hashlib.sha256(data).hexdigest()
+
+
+def sha256_str(text: str) -> str:
+    return sha256_bytes(text.encode("utf-8"))
+
+
+def sha256_file(filepath) -> str:
+    """This is for multi-M or multi-G data tarballs..."""
+    sha256_hash = hashlib.sha256()
+    with open(filepath, "rb") as f:
+        # Read and update hash string value in blocks
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+
+def sha256_verify_file(filepath: str, expected_hash: str) -> bool:
+    with open(filepath, "rb") as opened:
+        return sha256_bytes(opened.read()) == expected_hash
+
+
+def sha256_verify_data(data: bytes, expected_hash: str) -> bool:
+    return sha256_bytes(data) == expected_hash
+
+
+def sha256_verify_str(text: str, expected_hash: str) -> bool:
+    return sha256_str(text) == expected_hash

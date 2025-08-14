@@ -39,8 +39,11 @@ class RequirementsCompiler:
         return requirements_files
 
     def compile_requirements(
-        self, requirements_files: list[Path], output_path: Path
-    ) -> list[str] | bool:
+        self,
+        requirements_files: list[Path],
+        output_path: Path,
+        use_hashes: bool = False,
+    ) -> bool:
         """Compile requirements files into pinned versions,  outputs
         the result to a file at `output_path` and then loads the
         output and returns a list of package versions for insertion
@@ -49,26 +52,34 @@ class RequirementsCompiler:
         if not requirements_files:
             return self.logger.warning("No requirements files to compile.")
         self.logger.info(
-            "Compiling combined pip requirements to determine package versions."
+            "Compiling combined pip requirements to determine package versions "
+            "adding hashes."
+            if use_hashes
+            else "w/o hashes."
         )
-        if not self._run_uv_compile(output_path, requirements_files):
+        if not self._run_uv_compile(output_path, requirements_files, use_hashes):
             self.logger.error(
                 "========== Failed compiling combined pip requirements =========="
             )
             return self.logger.error(self.annotated_requirements(requirements_files))
-        package_versions = self.read_package_versions([output_path])
+        package_versions = self.read_package_lines(output_path)
         self.logger.info(
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
         )
-        return package_versions
+        return True
 
     def _run_uv_compile(
-        self, output_file: Path, requirements_files: list[Path]
+        self,
+        output_file: Path,
+        requirements_files: list[Path],
+        use_hashes: bool = False,
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
+        hash_sw = "--generate-hashes" if use_hashes else ""
         cmd = (
             f"uv pip compile --quiet --output-file {str(output_file)} --python {self.python_path}"
-            + f" --python-version {self.python_version} --universal --no-header --annotate --constraints"
+            + f" --python-version {self.python_version} --universal {hash_sw} "
+            + "--no-header --annotate --constraints"
         )
         for f in requirements_files:
             cmd += " " + str(f)
@@ -96,7 +107,7 @@ class RequirementsCompiler:
         with open(requirements_file, "r") as f:
             for line in f:
                 line = line.strip()
-                if line and not line.startswith("#"):
+                if line and not line.startswith(("#", "--hash")):
                     lines.append(line)
         return lines
 
@@ -116,19 +127,23 @@ class RequirementsCompiler:
         return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
 
     def generate_target_mamba_spec(
-        self, kernel_name: str, dependencies: list[str]
+        self, kernel_name: str, dependencies: list[str], use_hashes: bool = False
     ) -> str | bool:
         """Generate mamba environment specification and return dict for YAML."""
         try:
-            self.logger.debug("Generating spec for empty mamba environment.")
-            return self._generate_mamba_spec_core(kernel_name, dependencies)
+            self.logger.debug(
+                "Generating spec for empty mamba environment " "using hashes."
+                if use_hashes
+                else "without hashes."
+            )
+            return self._generate_mamba_spec_core(kernel_name, dependencies, use_hashes)
         except Exception as e:
             return self.logger.exception(
                 e, f"Failed generating spec for empty mamba environment: {e}:"
             )
 
     def _generate_mamba_spec_core(
-        self, kernel_name: str, dependencies_in: list[str]
+        self, kernel_name: str, dependencies_in: list[str], use_hashes: bool = False
     ) -> str:
         """Uncaught core processing of generate_mamba_spec."""
         dependencies = [
