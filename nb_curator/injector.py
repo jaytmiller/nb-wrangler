@@ -4,12 +4,13 @@ import shutil
 import os
 
 from .logger import CuratorLogger
+from .repository import RepositoryManager
 from .spec_manager import SpecManager
 from .utils import get_yaml
 
 
 def get_injector(
-    logger: CuratorLogger, repos_dir: str, spec_manager: SpecManager
+    logger: CuratorLogger, repo_manager: RepositoryManager, spec_manager: SpecManager
 ) -> "SpiInjector":
     """
     Factory method to create a subclass of a Injector which is tuned to
@@ -18,7 +19,7 @@ def get_injector(
     Conceptually another subclass of Injector could be created to inject into
     a different image building system.
     """
-    return SpiInjector(logger, repos_dir, spec_manager)
+    return SpiInjector(logger, repo_manager, spec_manager)
 
 
 class SpiInjector:
@@ -33,16 +34,18 @@ class SpiInjector:
     repo_name = "science-platform-images"
 
     def __init__(
-        self, logger: CuratorLogger, repos_dir: str, spec_manager: SpecManager
+        self,
+        logger: CuratorLogger,
+        repos_manager: RepositoryManager,
+        spec_manager: SpecManager,
     ):
         self.logger = logger
-        self.repos_dir = repos_dir
-        self.spi_path = Path(repos_dir) / self.repo_name
+        self.repos_manager = repos_manager
+        self.spi_path = Path(repos_manager.repos_dir) / self.repo_name
         self.spec_manager = spec_manager
-
-    def _init_patterns(self) -> None:
         self.deployment_name = self.spec_manager.deployment_name
         self.kernel_name = self.spec_manager.kernel_name
+        self.ingest_dir = self.spi_path / ".spec-ingest"
         self.deployments_path = self.spi_path / "deployments"
         self.deployment_path = self.deployments_path / self.deployment_name
         self.environments_path = self.deployment_path / "environments"
@@ -60,6 +63,14 @@ class SpiInjector:
             self.deployments_path / "common/common-env/*.mamba",
             self.kernel_path / "*.mamba",
         ]
+
+    def ingest_curator_spec(self) -> bool:
+        """During GitHub actions, copy the spec from the ingest directory
+        to an archive location with a more recognizable name.
+        """
+        self.ingest_dir.mkdir(exist_ok=True, parents=True)
+        shutil.copy(self.spec_manager.spec_file, self.ingest_dir)
+        return True
 
     def archive_curator_spec(self) -> bool:
         """During GitHub actions, copy the spec from the ingest directory
@@ -91,7 +102,6 @@ class SpiInjector:
         In a real implementation, this would gather information about
         the Python environment, installed packages, Jupyter kernels, etc.
         """
-        self._init_patterns()
         self.logger.info(
             f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {self.kernel_name}..."
         )
@@ -135,11 +145,9 @@ class SpiInjector:
         return spi_extra_requirements
 
     def find_spi_pip_files(self) -> list[Path]:
-        self._init_patterns()
         self.env_pip.unlink(missing_ok=True)
         return self.get_spi_requirements(self.pip_patterns, "pip")
 
     def find_spi_mamba_files(self) -> list[Path]:
-        self._init_patterns()
         self.env_yml.unlink(missing_ok=True)
         return self.get_spi_requirements(self.mamba_patterns, "mamba")

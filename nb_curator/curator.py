@@ -23,28 +23,26 @@ class NotebookCurator:
             raise RuntimeError("Logger not initialized in config")
         self.logger = config.logger
         self.logger.info("Loading and validating spec", self.config.spec_file)
+        if config.repos_dir is None:
+            raise RuntimeError("repos_dir not configured")
+        self.env_manager = EnvironmentManager(
+            self.logger,
+            self.config.micromamba_path,
+        )
+        self.repo_manager = RepositoryManager(
+            self.logger, config.repos_dir, self.env_manager
+        )
         spec_manager = SpecManager.load_and_validate(
             self.logger,
             self.config.spec_file,
         )
         if spec_manager is None:
-            raise RuntimeError("Failed to load and validate spec")
+            return False
         self.spec_manager = spec_manager
-        self.env_manager = EnvironmentManager(
-            self.logger,
-            self.config.micromamba_path,
-        )
-        if config.repos_dir is None:
-            raise RuntimeError("repos_dir not configured")
-        self.repo_manager = RepositoryManager(
-            self.logger, config.repos_dir, self.env_manager
-        )
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
-        self.injector = get_injector(
-            self.logger, str(config.repos_dir), self.spec_manager
-        )
+        self.injector = get_injector(self.logger, self.repo_manager, self.spec_manager)
 
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -130,7 +128,12 @@ class NotebookCurator:
         """Execute steps for the build submission workflow."""
         if self.run_workflow(
             "submit-for-build",
-            [],
+            [
+                self._validate_spec,
+                self._clone_repos,
+                self._add_to_ingest,
+                self._push_and_pr,
+            ],
         ):
             return self._run_explicit_steps()
         return False
@@ -352,16 +355,19 @@ class NotebookCurator:
         if test_imports := self.spec_manager.get_outputs("test_imports"):
             return self.env_manager.test_imports(self.env_name, test_imports)
         else:
-            self.logger.warning("Found no imports to check in spec'd notebooks.")
-            return True
+            return self.logger.warning("Found no imports to check in spec'd notebooks.")
 
     def _test_notebooks(self) -> bool:
         """Unconditionally test notebooks matching the configured pattern."""
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
-        filtered_notebooks = self.tester.filter_notebooks(
+        if filtered_notebooks := self.tester.filter_notebooks(
             notebook_paths, self.config.test_notebooks or ""
-        )
-        return self.tester.test_notebooks(self.env_name, filtered_notebooks)
+        ):
+            return self.tester.test_notebooks(self.env_name, filtered_notebooks)
+        else:
+            return self.logger.warning(
+                f"Found no notebooks to test matching regex '{self.config.test_notebooks}'."
+            )
 
     def _reset_spec(self) -> bool:
         return self.spec_manager.reset_spec()
@@ -399,8 +405,15 @@ class NotebookCurator:
         3. Commit and push branch
         4. PR branch
         """
+        if not self.repo_manager.branch_repo(self.injector.repo_name):
+            return False
+        return True
+
+    def _add_to_ingest(self) -> bool:
         raise NotImplementedError()
-        return False
+
+    def _push_and_pr(self) -> bool:
+        raise NotImplementedError()
 
     def _validate_spec_injection(self) -> bool:  # action support
         """Valid changes:
@@ -426,7 +439,7 @@ class NotebookCurator:
         """
         return False
 
-    def _update_pr_and_merge(self) -> bool:
+    def _update_pr_and_merge(self) -> bool:  #
         """
         Add to branch
         Commit branch

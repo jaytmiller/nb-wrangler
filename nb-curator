@@ -86,7 +86,7 @@ bootstrap() {
         )
         rm -rf nbc-temp
     else
-        uv pip install --quiet .
+        uv pip install --quiet .[dev]
     fi
 }
 

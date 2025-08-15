@@ -17,6 +17,7 @@ class SpecManager:
         self._spec: dict[str, Any] = {}
         self._is_validated = False
         self._source_file = Path("")
+        self._initial_spec_sha256 = None
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -64,6 +65,20 @@ class SpecManager:
         """Get a filesystem-safe version of the image name."""
         self._ensure_validated()
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
+
+    @property
+    def sha256(self) -> str | None:
+        hash = self._spec["system"].get("spec-sha256", None)
+        if hash is None:
+            self.logger.debug("Spec has no spec-sha256 hash for verifying integrity.")
+            return None
+        if len(hash) != 64 or not re.match(hash, "[a-z0-9]{64}"):
+            self.logger.warning(f"System spec-sha256 hash '{hash}' is malformed.")
+        return hash
+
+    @property
+    def spec_file(self):
+        return self._source_file
 
     # ----------------- functional access to output section ----------------
 
@@ -140,6 +155,11 @@ class SpecManager:
         """Factory method to load and validate a spec file."""
         manager = cls(logger)
         if manager.load_spec(spec_file) and manager.validate():
+            # stash the unchecked initial checksum to check later
+            # to ensure readonly workflows do not change it.
+            # if the unchecked value starts out bad, that should 
+            # be detected or ignored before it is used.
+            manager._initial_spec_sha256 = manager.sha256
             return manager
         else:
             logger.error("Failed to load and validate", spec_file)
@@ -160,7 +180,6 @@ class SpecManager:
         """set data in the output section."""
         if "out" not in self._spec:
             self._spec["out"] = dict()
-        #     value = [str(item) for item in value]
         self._spec["out"][key] = value
         self.logger.debug(f"setting output data: {key} -> {value}")
 
