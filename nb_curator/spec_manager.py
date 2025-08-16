@@ -17,7 +17,7 @@ class SpecManager:
         self._spec: dict[str, Any] = {}
         self._is_validated = False
         self._source_file = Path("")
-        self._initial_spec_sha256 = None
+        self._initial_spec_sha256: Optional[str]
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -151,7 +151,7 @@ class SpecManager:
         if manager.load_spec(spec_file) and manager.validate():
             # stash the unchecked initial checksum to check later
             # to ensure readonly workflows do not change it.
-            # if the unchecked value starts out bad, that should 
+            # if the unchecked value starts out bad, that should
             # be detected or ignored before it is used.
             manager._initial_spec_sha256 = manager.sha256
             return manager

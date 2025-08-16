@@ -1,7 +1,5 @@
 from pathlib import Path
-import datetime
 import shutil
-import os
 import re
 
 from .logger import CuratorLogger
@@ -29,6 +27,7 @@ def get_ingest_name(image_name: str) -> str:
     ingestified = re.sub("[^0-9a-zA-Z-]", "-", image_name)
     return "nbc-" + ingestified + ".yaml"
 
+
 class SpiInjector:
     """
     A class for interacting with a Science Platform Images (SPI) respository,
@@ -52,8 +51,9 @@ class SpiInjector:
         self.spec_manager = spec_manager
         self.deployment_name = self.spec_manager.deployment_name
         self.kernel_name = self.spec_manager.kernel_name
-        self.ingest_dir = Path(".nbc-ingest")
-        self.archive_dir = Path("nbc-archive")
+        self.ingest_branch = "nbc-spec-ingest"
+        self.ingest_dir = Path(".nbc-spec-ingest")
+        self.archive_dir = Path("nbc-spec-archive")
         self.deployments_path = self.spi_path / "deployments"
         self.deployment_path = self.deployments_path / self.deployment_name
         self.environments_path = self.deployment_path / "environments"
@@ -72,26 +72,76 @@ class SpiInjector:
             self.kernel_path / "*.mamba",
         ]
 
-    def add_curator_spec(self) -> bool:
-        """During GitHub actions, copy the spec from the ingest directory
-        to an archive location with a more recognizable name.
-        """
-        self.logger.info("Adding spec to ingest directory.")
-        if not self.repo_manager.branch_repo(self.repo_name, "curator-" + utils.hex_time()):
-            return False
-        (self.spi_path / self.ingest_dir).mkdir(exist_ok=True, parents=True)
+    def submit_for_build(self):
+        self.logger.info("Preparing submission branch...")
+        base_ingest_branch = "nbc-ingest"
+        new_ingest_branch = "nbc-ingest-" + utils.hex_time()
         ingest_name = get_ingest_name(self.spec_manager.image_name)
-        spec_dest = self.ingest_dir / ingest_name
-        shutil.copy(self.spec_manager.spec_file, self.spi_path / spec_dest)
-        if not self.repo_manager.git_add(self.repo_name, spec_dest):
-            return False
-        commit_msg = f"""
+        title = f"Curator spec for build {ingest_name}."
+        message = f"""
 Added curator spec {ingest_name} for {self.spec_manager.deployment_name}.
 Hash: {self.spec_manager.sha256}
 Description:
 {self.spec_manager.description}
         """
-        return self.repo_manager.git_commit(self.repo_name, commit_msg)
+
+        if not self.add_to_ingest(base_ingest_branch, new_ingest_branch, message):
+            return False
+
+        if not self.push_and_pr(base_ingest_branch, new_ingest_branch, title, message):
+            return False
+
+        return self.logger.info("Spec submission complete.")
+
+    def add_to_ingest(
+        self,
+        base_ingest_branch: str,
+        ingest_name: str,
+        new_ingest_branch: str,
+        message: str,
+    ) -> bool | str:
+        """During GitHub actions, copy the spec from the ingest directory
+        to an archive location with a more recognizable name.
+        """
+        self.logger.info(
+            f"Adding spec to ingest directory {self.ingest_dir} on branch {new_ingest_branch}."
+        )
+        self.logger.debug(
+            "Branching repo {self.repo} from {base_ingest_branch} to {new_ingest_branch}."
+        )
+        if not self.repo_manager.branch_repo(
+            self.repo_name, new_ingest_branch, base_ingest_branch
+        ):
+            return False
+        (self.spi_path / self.ingest_dir).mkdir(exist_ok=True, parents=True)
+        spec_dest = self.ingest_dir / ingest_name
+        shutil.copy(self.spec_manager.spec_file, self.spi_path / spec_dest)
+        if not self.repo_manager.git_add(self.repo_name, spec_dest):
+            return False
+        if not self.repo_manager.git_commit(self.repo_name, message):
+            return False
+        return True
+
+    def push_and_pr(
+        self, base_ingest_branch: str, new_ingest_branch: str, title: str, message: str
+    ):
+        self.logger.info(f"Pushing submission branch {new_ingest_branch}....")
+        if not self.repo_manager.git_push(self.repo_name, new_ingest_branch):
+            return False
+
+        self.logger.info("Creating PR...")
+        if not self.repo_manager.github_create_pr(
+            self.repo_name, base_ingest_branch, title, message
+        ):
+            return False
+
+        self.logger.info("Merging PR...")
+        if not self.repo_manager.github_merge_pr(
+            self.repo_name, base_ingest_branch, title, message
+        ):
+            return False
+
+        return True
 
     # def archive_curator_spec(self) -> bool:
     #     """During GitHub actions, copy the spec from the ingest directory

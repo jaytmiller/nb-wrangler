@@ -97,7 +97,8 @@ def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]
 
 
 def hex_time():
-    return hex(int(time.time())).replace("0x","")
+    return hex(int(time.time())).replace("0x", "")
+
 
 # -------------------------------------------------------------------------
 

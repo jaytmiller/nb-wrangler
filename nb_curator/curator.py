@@ -2,6 +2,7 @@
 """Main NotebookCurator class orchestrating the curation process."""
 
 from pathlib import Path
+from typing import Any
 
 from .config import CuratorConfig
 from .spec_manager import SpecManager
@@ -37,7 +38,7 @@ class NotebookCurator:
             self.config.spec_file,
         )
         if spec_manager is None:
-            return False
+            raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
         self.spec_manager = spec_manager
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
@@ -131,8 +132,7 @@ class NotebookCurator:
             [
                 self._validate_spec,
                 self._clone_repos,
-                self._add_to_ingest,
-                self._push_and_pr,
+                self._submit_for_build,
             ],
         ):
             return self._run_explicit_steps()
@@ -234,7 +234,7 @@ class NotebookCurator:
             f"Generating mamba spec for target environment {self.mamba_spec_file}."
         )
         mamba_packages = list(self.spec_manager.extra_mamba_packages)
-        spec_out = dict(injector_url=self.injector.url)
+        spec_out: dict[str, Any] = dict(injector_url=self.injector.url)
         if not self.config.omit_spi_packages:
             spi_file_paths = self.injector.find_spi_mamba_files()
             spec_out["spi_files"] = [str(p) for p in spi_file_paths]
@@ -398,11 +398,8 @@ class NotebookCurator:
         """Unregister the target environment from Jupyter."""
         return self.env_manager.unregister_environment(self.env_name)
 
-    def _add_to_ingest(self) -> bool:
-        return self.injector.add_curator_spec()
-
-    def _push_and_pr(self) -> bool:
-        raise NotImplementedError()
+    def _submit_for_build(self) -> bool:
+        return self.injector.submit_for_build()
 
     def _validate_spec_injection(self) -> bool:  # action support
         """Valid changes:

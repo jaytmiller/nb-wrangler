@@ -86,19 +86,28 @@ class RepositoryManager:
         return stats == "clean"
 
     def branch_repo(
-        self, repo_name: str, new_branch: str, source_branch: str = "origin/main"
+        self, repo_name: str, new_branch: str, ingest_branch: str = "origin/main"
     ) -> bool:
         repo_root = self.repos_dir / repo_name
         if not repo_root.exists():
             return self.logger.error(f"Can't branch non-existent repo {repo_name}.")
         if not self.is_clean(repo_root):
             return self.logger.error(f"Won't branch dirty repo {repo_name}.")
-        result = self.run(f"git checkout {source_branch}", check=False, cwd=repo_root)
-        if not self.handle_result(
-            result,
-            f"Failed checking out source branch {source_branch} of repo {repo_name}: ",
-        ):
+        if not self.git_checkout(repo_name, ingest_branch):
             return False
+        if not self.git_create_branch(repo_name, new_branch):
+            return False
+        return True
+
+    def git_checkout(self, repo_name: str, branch: str) -> bool:
+        repo_root = self.repos_dir / repo_name
+        result = self.run(f"git checkout {branch}", check=False, cwd=repo_root)
+        return self.handle_result(
+            result, f"Failed checking out repo {repo_name} existing branch {branch}: "
+        )
+
+    def git_create_branch(self, repo_name, new_branch):
+        repo_root = self.repos_dir / repo_name
         result = self.run(f"git checkout -b {new_branch}", check=False, cwd=repo_root)
         return self.handle_result(
             result,
@@ -106,15 +115,14 @@ class RepositoryManager:
             f"Created new branch {new_branch} of repo {repo_name}.",
         )
 
-
-    def git_add(self, repo_name: str, path_to_add: str) -> bool:
+    def git_add(self, repo_name: str, path_to_add: str | Path) -> bool:
+        path_to_add = str(path_to_add)
         repo_root = self.repos_dir / repo_name
         result = self.run(f"git add {path_to_add}", check=False, cwd=repo_root)
         return self.handle_result(
             result,
             f"Failed adding {path_to_add}: ",
         )
-
 
     def git_commit(self, repo_name: str, commit_msg: str) -> bool:
         repo_root = self.repos_dir / repo_name
@@ -125,4 +133,46 @@ class RepositoryManager:
             return self.handle_result(
                 result,
                 f"Failed commiting {repo_name}: ",
+            )
+
+    def git_push(self, repo_name: str, branch_name: str) -> bool:
+        repo_root = self.repos_dir / repo_name
+        result = self.run(f"git push {branch_name}", check=False, cwd=repo_root)
+        return self.handle_result(
+            result,
+            f"Failed pushing repo {repo_name} branch {branch_name}: ",
+        )
+
+    def github_create_pr(
+        self, repo_name: str, merge_to: str, title: str, body_msg: str
+    ) -> bool:
+        repo_root = self.repos_dir / repo_name
+        with tempfile.NamedTemporaryFile(mode="w+") as temp:
+            temp.write(body_msg)
+            temp.flush()
+            result = self.run(
+                f"gh pr create --base {merge_to} -t {title} --body-file {temp.name}",
+                check=False,
+                cwd=repo_root,
+            )
+            return self.handle_result(
+                result,
+                f"Failed creating PR {title} for {repo_name}: ",
+            )
+
+    def github_merge_pr(
+        self, repo_name: str, merge_to: str, title: str, body_msg: str
+    ) -> bool:
+        repo_root = self.repos_dir / repo_name
+        with tempfile.NamedTemporaryFile(mode="w+") as temp:
+            temp.write(body_msg)
+            temp.flush()
+            result = self.run(
+                f"gh pr merge --base {merge_to} -t {title} --body-file {temp.name}",
+                check=False,
+                cwd=repo_root,
+            )
+            return self.handle_result(
+                result,
+                f"Failed merging PR {title} to {repo_name}: ",
             )
