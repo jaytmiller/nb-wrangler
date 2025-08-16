@@ -21,29 +21,33 @@ class SpecManager:
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
-    def deployment_name(self) -> str:
+    def header(self):
         self._ensure_validated()
-        return self._spec["image_spec_header"]["deployment_name"]
+        return self._spec["image_spec_header"]
+
+    @property
+    def deployment_name(self) -> str:
+        return self.header["deployment_name"]
 
     @property
     def kernel_name(self) -> str:  # also environment_name / env_name
-        self._ensure_validated()
-        return self._spec["image_spec_header"]["kernel_name"]
+        return self.header["kernel_name"]
 
     @property
     def image_name(self) -> str:
-        self._ensure_validated()
-        return self._spec["image_spec_header"]["image_name"]
+        return self.header["image_name"]
+
+    @property
+    def description(self) -> str:
+        return self.header["description"]
 
     @property
     def python_version(self) -> str:
-        self._ensure_validated()
-        return self._spec["image_spec_header"]["python_version"]
+        return self.header["python_version"]
 
     @property
     def nb_repo(self) -> str:
-        self._ensure_validated()
-        return self._spec["image_spec_header"]["nb_repo"]
+        return self.header["nb_repo"]
 
     @property
     def selected_notebooks(self) -> list[dict[str, Any]]:
@@ -65,16 +69,6 @@ class SpecManager:
         """Get a filesystem-safe version of the image name."""
         self._ensure_validated()
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
-
-    @property
-    def sha256(self) -> str | None:
-        hash = self._spec["system"].get("spec-sha256", None)
-        if hash is None:
-            self.logger.debug("Spec has no spec-sha256 hash for verifying integrity.")
-            return None
-        if len(hash) != 64 or not re.match(hash, "[a-z0-9]{64}"):
-            self.logger.warning(f"System spec-sha256 hash '{hash}' is malformed.")
-        return hash
 
     @property
     def spec_file(self):
@@ -250,6 +244,16 @@ class SpecManager:
 
     # ---------------------------- hashes, crypto ----------------------------------
 
+    @property
+    def sha256(self) -> str | None:
+        hash = self._spec["system"].get("spec-sha256", None)
+        if hash is None:
+            self.logger.debug("Spec has no spec-sha256 hash for verifying integrity.")
+            return None
+        if len(hash) != 64 or not re.match("[a-z0-9]{64}", hash):
+            self.logger.warning(f"System spec-sha256 hash '{hash}' is malformed.")
+        return hash
+
     def add_sha256(self) -> str:
         self._spec["system"]["spec-sha256"] = ""
         self._spec["system"]["spec-sha256"] = utils.sha256_str(self.to_string())
@@ -261,7 +265,7 @@ class SpecManager:
         if not expected_hash:
             return self.logger.error("Spec has no spec-sha256 hash to validate.")
         else:
-            self.logger.info(f"Validating spec-sha256 checksum {expected_hash}.")
+            self.logger.debug(f"Validating spec-sha256 checksum {expected_hash}.")
             actual_hash = self.add_sha256()
             if expected_hash == actual_hash:
                 self.logger.debug(f"Spec-sha256 {expected_hash} validated.")

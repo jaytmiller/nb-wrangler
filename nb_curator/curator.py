@@ -201,7 +201,7 @@ class NotebookCurator:
         if self.config.omit_spi_packages and not self.config.inject_spi:
             injector_urls = []
         else:
-            injector_urls = self.injector.urls
+            injector_urls = [self.injector.url]
         if not self.repo_manager.setup_repos(notebook_repo_urls + injector_urls):
             return False
         notebook_paths = self.spec_manager.collect_notebook_paths(
@@ -222,7 +222,7 @@ class NotebookCurator:
             self.config.output_dir,
             add_sha256=not self.config.ignore_spec_hash,
             notebook_repo_urls=notebook_repo_urls,
-            injector_urls=injector_urls,
+            injector_url=injector_urls[0],
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
@@ -234,7 +234,7 @@ class NotebookCurator:
             f"Generating mamba spec for target environment {self.mamba_spec_file}."
         )
         mamba_packages = list(self.spec_manager.extra_mamba_packages)
-        spec_out = dict(injector_urls=self.injector.urls)
+        spec_out = dict(injector_url=self.injector.url)
         if not self.config.omit_spi_packages:
             spi_file_paths = self.injector.find_spi_mamba_files()
             spec_out["spi_files"] = [str(p) for p in spi_file_paths]
@@ -398,19 +398,8 @@ class NotebookCurator:
         """Unregister the target environment from Jupyter."""
         return self.env_manager.unregister_environment(self.env_name)
 
-    def _submit_curator_spec(self):  # user automation
-        """
-        1. Create branch of .github main for this PR
-        2. Add spec to .spec-ingest
-        3. Commit and push branch
-        4. PR branch
-        """
-        if not self.repo_manager.branch_repo(self.injector.repo_name):
-            return False
-        return True
-
     def _add_to_ingest(self) -> bool:
-        raise NotImplementedError()
+        return self.injector.add_curator_spec()
 
     def _push_and_pr(self) -> bool:
         raise NotImplementedError()
@@ -439,7 +428,7 @@ class NotebookCurator:
         """
         return False
 
-    def _update_pr_and_merge(self) -> bool:  #
+    def _update_pr_and_merge(self) -> bool:  # action
         """
         Add to branch
         Commit branch

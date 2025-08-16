@@ -41,13 +41,12 @@ extra_pip_packages:
   - boto3
 system:
   spec-version: 1.0
-  spec-sha256: 36e993c20b1e37c20320bf8c432c1105edc34884d1c8ecfdbc9dfbc43d35a41e
+  spec-sha256: 6e7d69a93d7198328d36655bb2e65a53a41d250473f1d3f8356797268ffd2221
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
     - https://github.com/spacetelescope/tike_content
-  injector_urls:
-    - https://github.com/spacetelescope/science-platform-images.git
+  injector_url: https://github.com/spacetelescope/science-platform-images.git
   test_notebooks:
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb
     - references/tike_content/content/notebooks/tglc/tglc.ipynb
@@ -206,9 +205,9 @@ out:
         # via jdaviz
     astropy==7.1.0
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+        #   -c references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
         #   asdf-astropy
         #   astroquery
@@ -235,7 +234,7 @@ out:
         # via sphinx-astropy
     astroquery==0.4.10
         # via
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
+        #   -c references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
         #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
@@ -360,7 +359,7 @@ out:
         # via
         #   casa-formats-io
         #   spectral-cube
-    ddtrace==3.12.0
+    ddtrace==3.12.1
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.16
         # via ipykernel
@@ -768,11 +767,11 @@ out:
         #   werkzeug
     matplotlib==3.10.5
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+        #   -c references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
         #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/docs.pip
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
         #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
         #   glue-core
@@ -853,12 +852,12 @@ out:
         #   notebook
     numpy==1.26.4
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+        #   -c references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
         #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
         #   asdf
         #   asdf-astropy
@@ -1467,14 +1466,14 @@ out:
     zipp==3.23.0
         # via importlib-metadata
   pip_requirements_files:
+    - references/tike_content/content/notebooks/data-access/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
+    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
     - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
     - references/tike_content/content/notebooks/tglc/requirements.txt
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-    - references/tike_content/content/notebooks/data-access/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
     - /home/ai/.nbc-live/temps/tike-2025.07-beta-tess-extra-pip.txt
     - references/science-platform-images/deployments/common/common-env/required.pip
     - references/science-platform-images/deployments/common/common-env/testing.pip
@@ -1482,6 +1481,26 @@ out:
     - references/science-platform-images/deployments/common/common-env/common.pip
     - references/science-platform-images/deployments/common/common-env/docs.pip
   pip_map:
+    references/tike_content/content/notebooks/data-access/requirements.txt:
+      - astropy >= 7.0.0
+      - astroquery >= 0.4.10
+      - numpy >= 1.26
+      - matplotlib >= 3.9
+    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt:
+      - astropy >= 5.3.3
+      - matplotlib >= 3.6.0
+      - numpy >= 1.23.4
+    references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt:
+      - astroquery >= 0.4.10
+      - lightkurve >= 2.5.1
+      - lcviz >= 1.1
+    references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt:
+      - lightkurve >= 2.4.2
+      - numpy >= 1.23.4
+    references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt:
+      - lightkurve >= 2.4.2
+      - matplotlib >= 3.6.0
+      - numpy >= 1.23.4
     references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt:
       - astropy >= 5.3.3
       - matplotlib >= 3.6.0
@@ -1496,26 +1515,6 @@ out:
       - astropy >= 7.0.0
       - astroquery >= 0.4.10
       - matplotlib >= 3.9
-    references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt:
-      - lightkurve >= 2.4.2
-      - numpy >= 1.23.4
-    references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt:
-      - astroquery >= 0.4.10
-      - lightkurve >= 2.5.1
-      - lcviz >= 1.1
-    references/tike_content/content/notebooks/data-access/requirements.txt:
-      - astropy >= 7.0.0
-      - astroquery >= 0.4.10
-      - numpy >= 1.26
-      - matplotlib >= 3.9
-    references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt:
-      - lightkurve >= 2.4.2
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
-    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt:
-      - astropy >= 5.3.3
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
     /home/ai/.nbc-live/temps/tike-2025.07-beta-tess-extra-pip.txt:
       - boto3
     references/science-platform-images/deployments/common/common-env/required.pip:

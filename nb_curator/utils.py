@@ -7,7 +7,7 @@ from typing import Optional
 import datetime
 import functools
 import hashlib
-
+import time
 
 import requests
 import boto3  # type: ignore
@@ -95,6 +95,9 @@ def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]
             f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds//1000:03d}",
         )
 
+
+def hex_time():
+    return hex(int(time.time())).replace("0x","")
 
 # -------------------------------------------------------------------------
 

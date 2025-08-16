@@ -93,33 +93,35 @@ class RepositoryManager:
             return self.logger.error(f"Can't branch non-existent repo {repo_name}.")
         if not self.is_clean(repo_root):
             return self.logger.error(f"Won't branch dirty repo {repo_name}.")
-        result = self.run(f"git checkout {source_branch}", cwd=repo_root)
+        result = self.run(f"git checkout {source_branch}", check=False, cwd=repo_root)
         if not self.handle_result(
             result,
             f"Failed checking out source branch {source_branch} of repo {repo_name}: ",
         ):
             return False
-        result = self.run(f"git checkout -b {new_branch}", cwd=repo_root)
+        result = self.run(f"git checkout -b {new_branch}", check=False, cwd=repo_root)
         return self.handle_result(
             result,
             f"Failed creating new branch {new_branch} of repo {repo_name}: ",
             f"Created new branch {new_branch} of repo {repo_name}.",
         )
 
-    def add_dir(self, repo_name: str, dir_to_add: str) -> bool:
+
+    def git_add(self, repo_name: str, path_to_add: str) -> bool:
         repo_root = self.repos_dir / repo_name
-        result = self.run(f"git add {dir_to_add}", cwd=repo_root)
+        result = self.run(f"git add {path_to_add}", check=False, cwd=repo_root)
         return self.handle_result(
             result,
-            f"Failed adding {dir_to_add}: ",
+            f"Failed adding {path_to_add}: ",
         )
 
-    def commit(self, repo_name: str, commit_msg: str) -> bool:
+
+    def git_commit(self, repo_name: str, commit_msg: str) -> bool:
         repo_root = self.repos_dir / repo_name
         with tempfile.NamedTemporaryFile(mode="w+") as temp:
             temp.write(commit_msg)
             temp.flush()
-            result = self.run(f"git commit -F {temp.name}", cwd=repo_root)
+            result = self.run(f"git commit -F {temp.name}", check=False, cwd=repo_root)
             return self.handle_result(
                 result,
                 f"Failed commiting {repo_name}: ",
