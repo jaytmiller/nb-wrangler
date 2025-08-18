@@ -24,6 +24,13 @@ class NotebookCurator:
             raise RuntimeError("Logger not initialized in config")
         self.logger = config.logger
         self.logger.info("Loading and validating spec", self.config.spec_file)
+        spec_manager = SpecManager.load_and_validate(
+            self.logger,
+            self.config.spec_file,
+        )
+        if spec_manager is None:
+            raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
+        self.spec_manager = spec_manager
         if config.repos_dir is None:
             raise RuntimeError("repos_dir not configured")
         self.env_manager = EnvironmentManager(
@@ -33,13 +40,6 @@ class NotebookCurator:
         self.repo_manager = RepositoryManager(
             self.logger, config.repos_dir, self.env_manager
         )
-        spec_manager = SpecManager.load_and_validate(
-            self.logger,
-            self.config.spec_file,
-        )
-        if spec_manager is None:
-            raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
-        self.spec_manager = spec_manager
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
@@ -403,7 +403,7 @@ class NotebookCurator:
 
     def _validate_spec_injection(self) -> bool:  # action support
         """Valid changes:
-        1. Only changes to .spec-ingest are permitted.
+        1. Only changes to .nbc-ingest are permitted.
             See "git diff --name-status origin/main...HEAD" nominally on PR branch
         2. Only one spec should be added.
         3. No modifications or deletions or other changes are permitted.

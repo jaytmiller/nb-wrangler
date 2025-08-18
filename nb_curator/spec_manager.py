@@ -65,6 +65,10 @@ class SpecManager:
         return self._spec["extra_pip_packages"]
 
     @property
+    def spi_url(self):
+        return self.header.get("spi_url", None)
+
+    @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
         self._ensure_validated()
@@ -289,6 +293,7 @@ class SpecManager:
             "deployment_name",
             "kernel_name",
             "archive_format",
+            "spi_url",
         ],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
