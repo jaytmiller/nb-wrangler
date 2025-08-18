@@ -198,11 +198,17 @@ class NotebookCurator:
         """
         self.logger.info("Setting up repository clones.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
-        if self.config.omit_spi_packages and not self.config.inject_spi:
-            injector_urls = []
+        if (
+            self.config.omit_spi_packages
+            and not self.config.inject_spi
+            and not self.config.submit_for_build
+        ):
+            injector_url = None
         else:
-            injector_urls = [self.injector.url]
-        if not self.repo_manager.setup_repos(notebook_repo_urls + injector_urls):
+            injector_url = self.injector.url
+            if not self.repo_manager.setup_repos([injector_url], single_branch=False):
+                return False
+        if not self.repo_manager.setup_repos(notebook_repo_urls):
             return False
         notebook_paths = self.spec_manager.collect_notebook_paths(
             self.config.repos_dir, notebook_repo_urls
@@ -222,7 +228,7 @@ class NotebookCurator:
             self.config.output_dir,
             add_sha256=not self.config.ignore_spec_hash,
             notebook_repo_urls=notebook_repo_urls,
-            injector_url=injector_urls[0],
+            injector_url=injector_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,

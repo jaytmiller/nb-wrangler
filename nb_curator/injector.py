@@ -91,10 +91,14 @@ Description:
 {self.spec_manager.description}
         """
 
-        if not self.add_to_ingest(self.base_ingest_branch, ingest_name, new_ingest_branch, message):
+        if not self.add_to_ingest(
+            self.base_ingest_branch, ingest_name, new_ingest_branch, message
+        ):
             return False
 
-        if not self.push_and_pr(self.base_ingest_branch, new_ingest_branch, title, message):
+        if not self.push_and_pr(
+            self.base_ingest_branch, new_ingest_branch, title, message
+        ):
             return False
 
         return self.logger.info("Spec submission complete.")
@@ -110,22 +114,25 @@ Description:
         to an archive location with a more recognizable name.
         """
         self.logger.info(
-            f"Adding spec to ingest directory {self.ingest_dir} on branch {new_ingest_branch}."
-        )
-        self.logger.debug(
-            "Branching repo {self.repo} from {base_ingest_branch} to {new_ingest_branch}."
+            f"Adding spec {ingest_name} to ingest directory {self.ingest_dir} on branch {new_ingest_branch}."
         )
         if not self.repo_manager.branch_repo(
             self.repo_name, new_ingest_branch, base_ingest_branch
         ):
             return False
-        (self.spi_path / self.ingest_dir).mkdir(exist_ok=True, parents=True)
-        spec_dest = self.ingest_dir / ingest_name
-        shutil.copy(self.spec_manager.spec_file, self.spi_path / spec_dest)
-        if not self.repo_manager.git_add(self.repo_name, spec_dest):
+        spec_dest = self.spi_path / self.ingest_dir
+        spec_dest.mkdir(exist_ok=True, parents=True)
+        self.copy_file(self.spec_manager.spec_file, spec_dest / ingest_name)
+        if not self.repo_manager.git_add(self.repo_name, self.ingest_dir / ingest_name):
             return False
         if not self.repo_manager.git_commit(self.repo_name, message):
             return False
+        return True
+
+    def copy_file(self, fromfile: Path | str, tofile: Path | str) -> bool:
+        fromfile, tofile = str(fromfile), str(tofile)
+        self.logger.debug(f"Copying {fromfile} to {tofile}.")
+        shutil.copy(fromfile, tofile)
         return True
 
     def push_and_pr(
@@ -143,7 +150,7 @@ Description:
 
         self.logger.info("Merging PR...")
         if not self.repo_manager.github_merge_pr(
-            self.repo_name, base_ingest_branch, title, message
+            self.repo_name, new_ingest_branch, title, message
         ):
             return False
 
@@ -195,12 +202,16 @@ Description:
             else:
                 raise ValueError(f"Unsupported type {type(obj)} for field {field}")
 
-    def get_spi_requirements(self, glob_patterns: list[Path], kind: str) -> list[Path]:
+    def get_spi_requirements(
+        self, glob_patterns: list[Path], kind: str, extraneous: Path
+    ) -> list[Path]:
         """Find extra mamba or pip requirements files required by SPI environments such as those
         included in the common/common-env directory. mamba packages are typically non-Python packages
         such as C libraries and compiles and install tools.  For Python packages,  using
         pip to install them is preferred.
         """
+        temp = extraneous.open().read()
+        extraneous.unlink(missing_ok=True)
         spi_extra_requirements = []
         for pattern in glob_patterns:
             extras = Path(".").glob(str(pattern))
@@ -212,12 +223,11 @@ Description:
         self.logger.info(
             f"Found SPI extra {len(spi_extra_requirements)} {kind} requirements files."
         )
+        extraneous.open("w+").write(temp)
         return spi_extra_requirements
 
     def find_spi_pip_files(self) -> list[Path]:
-        self.env_pip.unlink(missing_ok=True)
-        return self.get_spi_requirements(self.pip_patterns, "pip")
+        return self.get_spi_requirements(self.pip_patterns, "pip", self.env_pip)
 
     def find_spi_mamba_files(self) -> list[Path]:
-        self.env_yml.unlink(missing_ok=True)
-        return self.get_spi_requirements(self.mamba_patterns, "mamba")
+        return self.get_spi_requirements(self.mamba_patterns, "mamba", self.env_yml)

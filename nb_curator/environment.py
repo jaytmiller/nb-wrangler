@@ -86,7 +86,7 @@ class EnvironmentManager:
     def env_live_path(self, env_name: str) -> Path:
         return self.mm_envs_dir / env_name
 
-    def _condition_cmd(self, cmd: list[str] | str) -> list[str]:
+    def _condition_cmd(self, cmd: list[str] | tuple[str] | str) -> list[str]:
         """Condition the command into a list of UNIX CLI 'words'.
 
         If command is already a string,  split it into string "words".
@@ -101,7 +101,7 @@ class EnvironmentManager:
 
     def curator_run(
         self,
-        command: list[str] | str,
+        command: list[str] | tuple[str] | str,
         check=True,
         cwd=None,
         timeout=DEFAULT_TIMEOUT,
@@ -144,7 +144,7 @@ class EnvironmentManager:
             return result
 
     def env_run(
-        self, environment, command: list[str] | str, **keys
+        self, environment, command: tuple[str] | list[str] | str, **keys
     ):  # -> str | CompletedProcess[Any] | None:
         """Run a command in the specified environment.
 

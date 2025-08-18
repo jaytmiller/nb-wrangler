@@ -29,11 +29,11 @@ class RepositoryManager:
     def handle_result(self, *args, **keys):
         return self.env_manager.handle_result(*args, **keys)
 
-    def setup_repos(self, repo_urls: list[str]) -> bool:
+    def setup_repos(self, repo_urls: list[str], single_branch=True) -> bool:
         """set up all specified repositories."""
         self.logger.debug(f"Setting up repos. urls={repo_urls}.")
         for repo_url in repo_urls:
-            repo_path = self._setup_remote_repo(repo_url)
+            repo_path = self._setup_remote_repo(repo_url, single_branch=single_branch)
             if not repo_path:
                 return False
         return True
@@ -43,7 +43,9 @@ class RepositoryManager:
         repo_name = repo_url.split("/")[-1].replace(".git", "")
         return self.repos_dir / repo_name
 
-    def _setup_remote_repo(self, repo_url: str) -> Optional[Path]:
+    def _setup_remote_repo(
+        self, repo_url: str, single_branch: bool = True
+    ) -> Optional[Path]:
         """set up a remote repository by cloning or updating."""
         repo_path = self._repo_path(repo_url)
         if repo_path.exists():
@@ -51,18 +53,23 @@ class RepositoryManager:
             return repo_path
         else:
             try:
-                return self._clone_repo(repo_url, repo_path)
+                return self._clone_repo(
+                    repo_url, repo_path, single_branch=single_branch
+                )
             except Exception as e:
                 self.logger.exception(e, f"Failed to setup repository {repo_url}.")
                 return None
 
-    def _clone_repo(self, repo_url: str, repo_dir: Path) -> Path:
+    def _clone_repo(self, repo_url: str, repo_dir: Path, single_branch=True) -> Path:
         """Clone a new repository."""
-        self.logger.info(f"Cloning repository {repo_url} to {repo_dir}.")
+        single_branch = "--single-branch" if single_branch else ""
+        self.logger.info(
+            f"Cloning {single_branch} repository {repo_url} to {repo_dir}."
+        )
         if self.env_manager is None:
             raise RuntimeError("Environment manager not available")
         self.run(
-            f"git clone --single-branch {repo_url} {str(repo_dir)}",
+            f"git clone {single_branch} {repo_url} {str(repo_dir)}",
             check=True,
             timeout=REPO_CLONE_TIMEOUT,
         )
@@ -93,6 +100,9 @@ class RepositoryManager:
             return self.logger.error(f"Can't branch non-existent repo {repo_name}.")
         if not self.is_clean(repo_root):
             return self.logger.error(f"Won't branch dirty repo {repo_name}.")
+        self.logger.debug(
+            f"Branching {repo_name} from {ingest_branch} to {new_branch}."
+        )
         if not self.git_checkout(repo_name, ingest_branch):
             return False
         if not self.git_create_branch(repo_name, new_branch):
@@ -151,7 +161,17 @@ class RepositoryManager:
             temp.write(body_msg)
             temp.flush()
             result = self.run(
-                f"gh pr create --base {merge_to} -t {title} --body-file {temp.name}",
+                (
+                    "gh",
+                    "pr",
+                    "create",
+                    "--base",
+                    merge_to,
+                    "-t",
+                    "'" + title + "'",
+                    "--body-file",
+                    temp.name,
+                ),
                 check=False,
                 cwd=repo_root,
             )
@@ -161,14 +181,24 @@ class RepositoryManager:
             )
 
     def github_merge_pr(
-        self, repo_name: str, merge_to: str, title: str, body_msg: str
+        self, repo_name: str, merge_from: str, title: str, body_msg: str
     ) -> bool:
         repo_root = self.repos_dir / repo_name
         with tempfile.NamedTemporaryFile(mode="w+") as temp:
             temp.write(body_msg)
             temp.flush()
             result = self.run(
-                f"gh pr merge --base {merge_to} -t {title} --body-file {temp.name}",
+                (
+                    "gh",
+                    "pr",
+                    "merge",
+                    merge_from,
+                    "--rebase",
+                    "-t",
+                    "'" + title + "'",
+                    "--body-file",
+                    temp.name,
+                ),
                 check=False,
                 cwd=repo_root,
             )
