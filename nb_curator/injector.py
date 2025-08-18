@@ -50,7 +50,7 @@ class SpiInjector:
         self.spi_path = Path(repo_manager.repos_dir) / self.repo_name
         self.deployment_name = self.spec_manager.deployment_name
         self.kernel_name = self.spec_manager.kernel_name
-        self.ingest_branch = "nbc-spec-ingest"
+        self.base_ingest_branch = "nbc-spec-ingest"
         self.ingest_dir = Path(".nbc-spec-ingest")
         self.archive_dir = Path("nbc-spec-archive")
         self.deployments_path = self.spi_path / "deployments"
@@ -81,9 +81,7 @@ class SpiInjector:
         return name.split(".")[0]
 
     def submit_for_build(self):
-        self.logger.info("Preparing submission branch...")
-        base_ingest_branch = "nbc-ingest"
-        new_ingest_branch = "nbc-ingest-" + utils.hex_time()
+        new_ingest_branch = self.base_ingest_branch + "-" + utils.hex_time()
         ingest_name = get_ingest_name(self.spec_manager.image_name)
         title = f"Curator spec for build {ingest_name}."
         message = f"""
@@ -93,10 +91,10 @@ Description:
 {self.spec_manager.description}
         """
 
-        if not self.add_to_ingest(base_ingest_branch, new_ingest_branch, message):
+        if not self.add_to_ingest(self.base_ingest_branch, ingest_name, new_ingest_branch, message):
             return False
 
-        if not self.push_and_pr(base_ingest_branch, new_ingest_branch, title, message):
+        if not self.push_and_pr(self.base_ingest_branch, new_ingest_branch, title, message):
             return False
 
         return self.logger.info("Spec submission complete.")

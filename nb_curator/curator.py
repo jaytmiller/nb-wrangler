@@ -420,7 +420,7 @@ class NotebookCurator:
     def _archive_submitted_spec(self) -> bool:  # action support
         """
         1. Rename and archive spec with image-name and date suffix.
-        2. Copy to .spec-archive which *cannot* be pushed by curators.
+        2. Copy to nbc-spec-archive which *cannot* be pushed by curators.
         Return archived path/name from which to build.
         """
         return False

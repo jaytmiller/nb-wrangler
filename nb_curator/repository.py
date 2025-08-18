@@ -137,7 +137,7 @@ class RepositoryManager:
 
     def git_push(self, repo_name: str, branch_name: str) -> bool:
         repo_root = self.repos_dir / repo_name
-        result = self.run(f"git push {branch_name}", check=False, cwd=repo_root)
+        result = self.run(f"git push origin {branch_name}", check=False, cwd=repo_root)
         return self.handle_result(
             result,
             f"Failed pushing repo {repo_name} branch {branch_name}: ",
