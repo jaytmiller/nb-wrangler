@@ -409,7 +409,7 @@ class NotebookCurator:
 
     def _validate_spec_injection(self) -> bool:  # action support
         """Valid changes:
-        1. Only changes to .nbc-ingest are permitted.
+        1. Only changes to .nbc-spec-ingest are permitted.
             See "git diff --name-status origin/main...HEAD" nominally on PR branch
         2. Only one spec should be added.
         3. No modifications or deletions or other changes are permitted.
