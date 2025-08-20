@@ -50,7 +50,7 @@ class SpiInjector:
         self.spi_path = Path(repo_manager.repos_dir) / self.repo_name
         self.deployment_name = self.spec_manager.deployment_name
         self.kernel_name = self.spec_manager.kernel_name
-        self.base_ingest_branch = "nbc-spec-ingest"
+        self.base_ingest_branch = "main"
         self.ingest_dir = Path(".nbc-spec-ingest")
         self.archive_dir = Path("nbc-spec-archive")
         self.deployments_path = self.spi_path / "deployments"
@@ -81,7 +81,7 @@ class SpiInjector:
         return name.split(".")[0]
 
     def submit_for_build(self):
-        new_ingest_branch = self.base_ingest_branch + "-" + utils.hex_time()
+        new_ingest_branch = "nbc-ingest-" + utils.hex_time()
         ingest_name = get_ingest_name(self.spec_manager.image_name)
         title = f"Curator spec for build {ingest_name}."
         message = f"""
@@ -148,11 +148,11 @@ Description:
         ):
             return False
 
-        self.logger.info("Merging PR...")
-        if not self.repo_manager.github_merge_pr(
-            self.repo_name, new_ingest_branch, title, message
-        ):
-            return False
+        # self.logger.info("Merging PR...")
+        # if not self.repo_manager.github_merge_pr(
+        #     self.repo_name, new_ingest_branch, title, message
+        # ):
+        #     return False
 
         return True
 
