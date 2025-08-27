@@ -205,11 +205,11 @@ class SpecManager:
             output_path = Path(output_filepath)
             if add_sha256:
                 hash = self.add_sha256()
-                self.logger.debug(f"Setting spec-sha256 to {hash}.")
+                self.logger.debug(f"Setting spec_sha256 to {hash}.")
             else:
-                self._spec["system"].pop("spec-sha256", None)
+                self._spec["system"].pop("spec_sha256", None)
                 self.logger.debug(
-                    "Not updating spec-sha256 sum; Removing potentially outdated sum."
+                    "Not updating spec_sha256 sum; Removing potentially outdated sum."
                 )
             with output_path.open("w+") as f:
                 f.write(self.to_string())
@@ -239,7 +239,7 @@ class SpecManager:
         """Delete the output field of the spec and make sure the source file reflects it."""
         self.logger.debug("Resetting spec file.")
         self._spec.pop("out", None)
-        self._spec["system"].pop("spec-sha256", None)
+        self._spec["system"].pop("spec_sha256", None)
         if not self.validate():
             return self.logger.error("Spec did not validate follwing reset.")
         if not self.save_spec_as(self._source_file):
@@ -250,26 +250,26 @@ class SpecManager:
 
     @property
     def sha256(self) -> str | None:
-        hash = self._spec["system"].get("spec-sha256", None)
+        hash = self._spec["system"].get("spec_sha256", None)
         if hash is None:
-            self.logger.debug("Spec has no spec-sha256 hash for verifying integrity.")
+            self.logger.debug("Spec has no spec_sha256 hash for verifying integrity.")
             return None
         if len(hash) != 64 or not re.match("[a-z0-9]{64}", hash):
-            self.logger.warning(f"System spec-sha256 hash '{hash}' is malformed.")
+            self.logger.warning(f"System spec_sha256 hash '{hash}' is malformed.")
         return hash
 
     def add_sha256(self) -> str:
-        self._spec["system"]["spec-sha256"] = ""
-        self._spec["system"]["spec-sha256"] = utils.sha256_str(self.to_string())
-        return self._spec["system"]["spec-sha256"]
+        self._spec["system"]["spec_sha256"] = ""
+        self._spec["system"]["spec_sha256"] = utils.sha256_str(self.to_string())
+        return self._spec["system"]["spec_sha256"]
 
     def validate_sha256(self) -> bool:
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
-        expected_hash = self._spec["system"].get("spec-sha256")
+        expected_hash = self._spec["system"].get("spec_sha256")
         if not expected_hash:
-            return self.logger.error("Spec has no spec-sha256 hash to validate.")
+            return self.logger.error("Spec has no spec_sha256 hash to validate.")
         else:
-            self.logger.debug(f"Validating spec-sha256 checksum {expected_hash}.")
+            self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
             actual_hash = self.add_sha256()
             if expected_hash == actual_hash:
                 self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
@@ -312,8 +312,8 @@ class SpecManager:
             "package_versions",
         ],
         "system": [
-            "spec-version",
-            "spec-sha256",
+            "spec_version",
+            "spec_sha256",
         ],
     }
 
@@ -405,9 +405,9 @@ class SpecManager:
     def _validate_system(self) -> bool:
         if "system" not in self._spec:
             return self.logger.error("Required section 'system' is missing.")
-        if "spec-version" not in self._spec["system"]:
+        if "spec_version" not in self._spec["system"]:
             return self.logger.error(
-                "Required field 'spec-version' of section 'system' is missing."
+                "Required field 'spec_version' of section 'system' is missing."
             )
         return True
 

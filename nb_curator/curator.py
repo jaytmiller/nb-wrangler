@@ -346,7 +346,7 @@ class NotebookCurator:
     def _validate_spec_sha256(self) -> bool:
         if self.config.ignore_spec_hash:
             return self.logger.warning(
-                "Ignoring spec-sha256 checksum validation. Spec integrity unknown."
+                "Ignoring spec_sha256 checksum validation. Spec integrity unknown."
             )
         else:
             return self.spec_manager.validate_sha256()
