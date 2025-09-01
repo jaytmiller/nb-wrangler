@@ -71,6 +71,53 @@ The curator prepares a custom version of the `spec.yaml` file. Then, run:
 nb-curator spec.yaml --curate [--verbose]
 ```
 
+## Build Submission
+
+After completing development of a spec,  you can submit it to https://github.com/spacetelescope/science-platform-images
+to automatically build a Docker image which becomes available for use on the relevant STScI science platforms.
+
+```bash
+gh auth login
+nb-curator spec.yaml --submit-for-build [--verbose]
+```
+
+In addition to installing nb-curator, prequisites for submitting specs for Docker builds are:
+
+- You need your own GitHub account
+- Your GitHub account needs to be granted appropriate permissions by the spaceteletscope/science-platform-images project.
+- You need to install the GitHub command line interface program `gh` using `brew` on OS-X or `apt-get` or `dnf` on Linux.
+- You need to authenticate with gh as shown -or- set GH_TOKEN or GITHUB_TOKEN to a token with XXXX perms.
+
+For more information on `gh` see [GH CLI](https://cli.github.com  "gh GitHub CLI program").
+
+## Spec Re-install
+
+A finished spec can be used to re-install corresponding Python environments in any nb-curator installation as follows:
+
+```bash
+nb-curator spec.yaml --reinstall
+```
+
+## Automatic Testing
+
+For both curation and reinstallation work flows it's useful to execute tests to demonstrate that the installation is
+working correctly with the specified notebooks.  To that end,  nb-curator has additional switches which can be added
+with the following effects:
+
+- `--test-imports`  directs nb-curator to import the packages found imported by the notebooks. Fast, if the import succeeds the test passes.
+
+- `--test-notebooks`  directs nb-curator to execute the specified notebooks headless. If the notebook raises an exception the test fails.
+
+- `-t` directs nb-curator to run both `--test-imports` and `--test-notebooks`.
+
+For example, you can iterate fairly rapidly with:
+
+```bash
+nb-curator spec.yaml --curate --test-imports
+```
+
+to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that emprically viable package versions are installed.
+
 ## Basic Flow
 
 The curator executes steps in a sequence, allowing for skipping steps that have already completed. This enables iteration without repeatedly recompiling and reinstalling packages. If any step fails, the process exits with an error. Most features are controlled by command-line options.
