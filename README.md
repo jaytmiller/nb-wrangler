@@ -1,11 +1,11 @@
-# nb-curator
+# nb-wrangler
 
 DRAFT DRAFT DRAFT  -- subject to weekly/daily change top to bottom
 
 ## Overview
-nb-curator streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports automatically building and testing Docker images based on notebook requirements. It achieves this by:
+nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports automatically building and testing Docker images based on notebook requirements. It achieves this by:
 
-- Bootstrapping a dedicated environment for nb-curator.
+- Bootstrapping a dedicated environment for nb-wrangler.
 - Loading, saving, and validating notebook curation specifications.
 - Cloning associated notebook and image build repositories.
 - Creating a dedicated environment to manage notebook package dependencies.
@@ -22,53 +22,53 @@ The project utilizes foundational tools:
 - **micromamba:** A lightweight, self-contained version of mamba (a free, open-source alternative to conda).
 - **uv:** A new, fast pip-like package installer written in Rust.
 
-nb-curator aims to install 2-3 dedicated environments under `$HOME/.nbc-live`:
+nb-wrangler aims to install 2-3 dedicated environments under `$HOME/.nbw-live`:
 
 - **micromamba:** A self-contained installation tool, not a base environment.
-- **nbcurator:** A full micromamba environment containing nb-curator and its dependencies.
+- **nbwrangler:** A full micromamba environment containing nb-wrangler and its dependencies.
 - **spec defined environment:** The notebook environment being curated.
 
 These environments are independent of your existing Python environments and can be easily registered as notebook kernels in JupyterHub.
 
-The location of nb-curator files can be changed by setting the `NBC_ROOT` environment variable. This is useful for team environments or relocating to faster storage.
+The location of nb-wrangler files can be changed by setting the `NBW_ROOT` environment variable. This is useful for team environments or relocating to faster storage.
 
 ## Installing
 
-Bootstrapping the system creates the `$HOME/.nbc-live` directory and the nbcurator environment under `$HOME`.
+Bootstrapping the system creates the `$HOME/.nbw-live` directory and the nbwrangler environment under `$HOME`.
 
 ```bash
-curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
-chmod +x nb-curator
-./nb-curator bootstrap
-source ./nb-curator environment
+curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
+chmod +x nb-wrangler
+./nb-wrangler bootstrap
+source ./nb-wrangler environment
 ```
 
-Afterward, the nbcurator "curation" environment can be re-activated using:
+Afterward, the nbwrangler "curation" environment can be re-activated using:
 
 ```bash
-source ./nb-curator environment
+source ./nb-wrangler environment
 ```
 
-Consider adding the nb-curator bash script to your shell's PATH or RC file.
+Consider adding the nb-wrangler bash script to your shell's PATH or RC file.
 
 The target environment can be activated with:
 
 ```bash
-source nb-curator activate ENVIRONMENT_NAME
+source nb-wrangler activate ENVIRONMENT_NAME
 ```
 
-Deactivate either nbcurator or the target environment with:
+Deactivate either nbwrangler or the target environment with:
 
 ```bash
-source nb-curator deactivate
+source nb-wrangler deactivate
 ```
 
 ## Curation
 
-The curator prepares a custom version of the `spec.yaml` file. Then, run:
+The wrangler prepares a custom version of the `spec.yaml` file. Then, run:
 
 ```bash
-nb-curator spec.yaml --curate [--verbose]
+nb-wrangler spec.yaml --curate [--verbose]
 ```
 
 ## Build Submission
@@ -78,10 +78,10 @@ to automatically build a Docker image which becomes available for use on the rel
 
 ```bash
 gh auth login
-nb-curator spec.yaml --submit-for-build [--verbose]
+nb-wrangler spec.yaml --submit-for-build [--verbose]
 ```
 
-In addition to installing nb-curator, prequisites for submitting specs for Docker builds are:
+In addition to installing nb-wrangler, prequisites for submitting specs for Docker builds are:
 
 - You need your own GitHub account
 - Your GitHub account needs to be granted appropriate permissions by the spaceteletscope/science-platform-images project.
@@ -92,35 +92,35 @@ For more information on `gh` see [GH CLI](https://cli.github.com  "gh GitHub CLI
 
 ## Spec Re-install
 
-A finished spec can be used to re-install corresponding Python environments in any nb-curator installation as follows:
+A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
 
 ```bash
-nb-curator spec.yaml --reinstall
+nb-wrangler spec.yaml --reinstall
 ```
 
 ## Automatic Testing
 
 For both curation and reinstallation work flows it's useful to execute tests to demonstrate that the installation is
-working correctly with the specified notebooks.  To that end,  nb-curator has additional switches which can be added
+working correctly with the specified notebooks.  To that end,  nb-wrangler has additional switches which can be added
 with the following effects:
 
-- `--test-imports`  directs nb-curator to import the packages found imported by the notebooks. Fast, if the import succeeds the test passes.
+- `--test-imports`  directs nb-wrangler to import the packages found imported by the notebooks. Fast, if the import succeeds the test passes.
 
-- `--test-notebooks`  directs nb-curator to execute the specified notebooks headless. If the notebook raises an exception the test fails.
+- `--test-notebooks`  directs nb-wrangler to execute the specified notebooks headless. If the notebook raises an exception the test fails.
 
-- `-t` directs nb-curator to run both `--test-imports` and `--test-notebooks`.
+- `-t` directs nb-wrangler to run both `--test-imports` and `--test-notebooks`.
 
 For example, you can iterate fairly rapidly with:
 
 ```bash
-nb-curator spec.yaml --curate --test-imports
+nb-wrangler spec.yaml --curate --test-imports
 ```
 
 to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that emprically viable package versions are installed.
 
 ## Basic Flow
 
-The curator executes steps in a sequence, allowing for skipping steps that have already completed. This enables iteration without repeatedly recompiling and reinstalling packages. If any step fails, the process exits with an error. Most features are controlled by command-line options.
+The wrangler executes steps in a sequence, allowing for skipping steps that have already completed. This enables iteration without repeatedly recompiling and reinstalling packages. If any step fails, the process exits with an error. Most features are controlled by command-line options.
 
 - **Spec Management:** Loads, validates, updates, and saves the YAML notebook specification. Validation is currently incomplete but checks for required keywords.
 - **Repository Management:** Optionally clones Git repositories for notebooks if a local clone doesn't exist; otherwise, it updates existing clones. `--repos-dir` specifies the directory for cloning, defaulting to a `notebook-repos` subdirectory of the current directory.

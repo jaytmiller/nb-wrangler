@@ -1,5 +1,5 @@
-# nb_curator/config.py
-"""Configuration management for nb-curator."""
+# nb_wrangler/config.py
+"""Configuration management for nb-wrangler."""
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -8,7 +8,7 @@ import argparse
 
 from . import logger
 from .constants import (
-    NBC_ROOT,
+    NBW_ROOT,
     DEFAULT_MICROMAMBA_PATH,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
@@ -26,7 +26,7 @@ class CuratorConfig:
 
     logger: Optional["logger.CuratorLogger"] = None
     micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
-    output_dir: Path = NBC_ROOT / "temps"
+    output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE

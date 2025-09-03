@@ -13,7 +13,7 @@ def get_injector(
 ) -> "SpiInjector":
     """
     Factory method to create a subclass of a Injector which is tuned to
-    configure an science-platform-images deployment based on a curator spec.
+    configure an science-platform-images deployment based on a wrangler spec.
 
     Conceptually another subclass of Injector could be created to inject into
     a different image building system.
@@ -22,10 +22,10 @@ def get_injector(
 
 
 def get_ingest_name(image_name: str) -> str:
-    """Name of spec when added to curator ingest directory."""
+    """Name of spec when added to wrangler ingest directory."""
     # replace spaces, dots, etc. with "-"
     ingestified = re.sub("[^0-9a-zA-Z-]", "-", image_name)
-    return "nbc-" + ingestified + "-" + utils.hex_time() + ".yaml"
+    return "nbw-" + ingestified + "-" + utils.hex_time() + ".yaml"
 
 
 class SpiInjector:
@@ -51,8 +51,8 @@ class SpiInjector:
         self.deployment_name = self.spec_manager.deployment_name
         self.kernel_name = self.spec_manager.kernel_name
         self.base_ingest_branch = "origin/main"
-        self.ingest_dir = Path("nbc-spec-archive")
-        self.archive_dir = Path("nbc-spec-archive")
+        self.ingest_dir = Path("nbw-spec-archive")
+        self.archive_dir = Path("nbw-spec-archive")
         self.deployments_path = self.spi_path / "deployments"
         self.deployment_path = self.deployments_path / self.deployment_name
         self.environments_path = self.deployment_path / "environments"
@@ -81,11 +81,11 @@ class SpiInjector:
         return name.split(".")[0]
 
     def submit_for_build(self):
-        new_ingest_branch = "nbc-ingest-" + utils.hex_time()
+        new_ingest_branch = "nbw-ingest-" + utils.hex_time()
         ingest_name = get_ingest_name(self.spec_manager.image_name)
         title = f"Curator spec for build {ingest_name}."
         message = f"""
-Added curator spec {ingest_name} for {self.spec_manager.deployment_name}.
+Added wrangler spec {ingest_name} for {self.spec_manager.deployment_name}.
 Hash: {self.spec_manager.sha256}
 Description:
 {self.spec_manager.description}
@@ -148,9 +148,9 @@ Description:
             return False
         return True
 
-    def set_curator_spec(self) -> bool:
-        """Write out the curator environment spec with a generic name."""
-        out_spec = self.environments_path / "nb-curator-spec.yaml"
+    def set_wrangler_spec(self) -> bool:
+        """Write out the wrangler environment spec with a generic name."""
+        out_spec = self.environments_path / "nb-wrangler-spec.yaml"
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
         return self.spec_manager.save_spec(out_spec)
 

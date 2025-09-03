@@ -125,7 +125,7 @@ class NotebookTester:
                 cmd = f"python {os.path.basename(notebook)}"
             else:
                 raise ValueError(f"Unhandled test file extension: {notebook}")
-            result = self.env_manager.curator_run(
+            result = self.env_manager.wrangler_run(
                 cmd,
                 output_mode="combined",
                 timeout=timeout,

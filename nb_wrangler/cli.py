@@ -1,12 +1,12 @@
-# nb_curator/cli.py
-"""Command line interface for nb-curator."""
+# nb_wrangler/cli.py
+"""Command line interface for nb-wrangler."""
 
 import sys
 import argparse
 import cProfile
 import pstats
 
-from . import curator
+from . import wrangler
 from . import utils
 from . import config as config_mod
 from .constants import (
@@ -139,7 +139,7 @@ def parse_args():
     parser.add_argument(
         "--compact",
         action="store_true",
-        help="Compact the curator installation by deleting package caches, etc.",
+        help="Compact the wrangler installation by deleting package caches, etc.",
     )
     parser.add_argument(
         "--compile-packages",
@@ -198,7 +198,7 @@ def parse_args():
         "--micromamba-path",
         type=str,
         default=DEFAULT_MICROMAMBA_PATH,
-        help="Path to micromamba program to use for curator environment management.",
+        help="Path to micromamba program to use for wrangler environment management.",
     )
     parser.add_argument(
         "--reset-spec",
@@ -247,9 +247,9 @@ def _main(args):
             config.logger.error("Failed reading URI:", args.spec_uri)
             exit_code = 1
         else:
-            notebook_curator = curator.NotebookCurator(config)
-            exit_code = notebook_curator.main()
-            notebook_curator.logger.print_log_counters()
+            notebook_wrangler = wrangler.NotebookCurator(config)
+            exit_code = notebook_wrangler.main()
+            notebook_wrangler.logger.print_log_counters()
     except KeyboardInterrupt:
         return config.logger.error("Operation cancelled by user")
     except Exception as e:

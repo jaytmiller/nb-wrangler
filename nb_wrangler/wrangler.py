@@ -1,4 +1,4 @@
-# nb_curator/curator.py
+# nb_wrangler/wrangler.py
 """Main NotebookCurator class orchestrating the curation process."""
 
 from pathlib import Path
@@ -16,7 +16,7 @@ from . import utils
 
 
 class NotebookCurator:
-    """Main curator class for processing notebooks."""
+    """Main wrangler class for processing notebooks."""
 
     def __init__(self, config: CuratorConfig):
         self.config = config
@@ -84,7 +84,7 @@ class NotebookCurator:
 
     def main(self) -> bool:
         """Main processing method."""
-        self.logger.debug(f"Starting curator configuration: {self.config}")
+        self.logger.debug(f"Starting wrangler configuration: {self.config}")
         try:
             return self._main_uncaught_core()
         except Exception as e:

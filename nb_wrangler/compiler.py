@@ -83,7 +83,7 @@ class RequirementsCompiler:
         )
         for f in requirements_files:
             cmd += " " + str(f)
-        result = self.env_manager.curator_run(
+        result = self.env_manager.wrangler_run(
             cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
         return self.env_manager.handle_result(result, "uv pip compile failed:")

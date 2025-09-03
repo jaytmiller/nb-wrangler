@@ -1,4 +1,4 @@
-"""Entry point for running nb-curator as a module."""
+"""Entry point for running nb-wrangler as a module."""
 
 from .cli import main
 

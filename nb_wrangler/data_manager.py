@@ -1,6 +1,6 @@
-"""Handles management of data specified in curator spec.
+"""Handles management of data specified in wrangler spec.
 
-Nominally the curator spec will refer to a list of "data items"
+Nominally the wrangler spec will refer to a list of "data items"
 each of which may fit within the following structure:
 
 data:

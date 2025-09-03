@@ -1,4 +1,4 @@
-"""Global constants for nb-curator package."""
+"""Global constants for nb-wrangler package."""
 
 import os
 from pathlib import Path
@@ -8,11 +8,11 @@ __version__ = "0.2.0"
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
-NBC_ROOT = Path(os.environ.get("NBC_ROOT", HOME / ".nbc-live"))
-NBC_MM = NBC_ROOT / "mm"
-NBC_PANTRY = Path(os.environ.get("NBC_PANTRY", HOME / ".nbc-pantry"))
+NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
+NBW_MM = NBW_ROOT / "mm"
+NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
 REPOS_DIR = Path("./references")
-DEFAULT_MICROMAMBA_PATH = NBC_MM / "bin" / "micromamba"
+DEFAULT_MICROMAMBA_PATH = NBW_MM / "bin" / "micromamba"
 
 BUILTIN_PACKAGES = ["__future__", "builtins", "sys", "os", "copy"]
 

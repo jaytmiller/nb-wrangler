@@ -24,7 +24,7 @@ class RepositoryManager:
         self.env_manager = env_manager
 
     def run(self, *args, **keys):
-        return self.env_manager.curator_run(*args, **keys)
+        return self.env_manager.wrangler_run(*args, **keys)
 
     def handle_result(self, *args, **keys):
         return self.env_manager.handle_result(*args, **keys)

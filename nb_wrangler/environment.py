@@ -20,7 +20,7 @@ from typing import Any
 
 
 from .logger import CuratorLogger
-from .constants import NBC_ROOT, NBC_PANTRY
+from .constants import NBW_ROOT, NBW_PANTRY
 from .constants import (
     DEFAULT_TIMEOUT,
     ENV_CREATE_TIMEOUT,
@@ -37,8 +37,8 @@ class EnvironmentManager:
     # ipykernel and jupyter.
     # Package definitions moved to constants.py
 
-    # IMPORTANT: see also the nb-curator bash script used for bootstrapping
-    # the basic nbcurator environment and inlines the above requirements
+    # IMPORTANT: see also the nb-wrangler bash script used for bootstrapping
+    # the basic nbwrangler environment and inlines the above requirements
     # for CURATOR_PACKAGES.
     # Timeout constants moved to constants.py
 
@@ -49,39 +49,39 @@ class EnvironmentManager:
     ):
         self.logger = logger
         self.micromamba_path = str(micromamba_path)
-        self.nbc_pantry_dir.mkdir(exist_ok=True, parents=True)
+        self.nbw_pantry_dir.mkdir(exist_ok=True, parents=True)
 
     @property
-    def nbc_root_dir(self) -> Path:
-        return NBC_ROOT
+    def nbw_root_dir(self) -> Path:
+        return NBW_ROOT
 
     @property
-    def nbc_mm_dir(self) -> Path:
-        return NBC_ROOT / "mm"
+    def nbw_mm_dir(self) -> Path:
+        return NBW_ROOT / "mm"
 
     @property
-    def nbc_pantry_dir(self) -> Path:
-        return NBC_PANTRY
+    def nbw_pantry_dir(self) -> Path:
+        return NBW_PANTRY
 
     @property
     def mm_envs_dir(self) -> Path:
-        return self.nbc_mm_dir / "envs"
+        return self.nbw_mm_dir / "envs"
 
     @property
     def mm_pkgs_dir(self) -> Path:
-        return self.nbc_mm_dir / "pkgs"
+        return self.nbw_mm_dir / "pkgs"
 
     @property
-    def nbc_temp_dir(self) -> Path:
-        return self.nbc_root_dir / "temp"
+    def nbw_temp_dir(self) -> Path:
+        return self.nbw_root_dir / "temp"
 
     @property
-    def nbc_cache_dir(self) -> Path:
-        cache_path = os.environ.get("NBC_CACHE")
-        return Path(cache_path) if cache_path else self.nbc_root_dir / "cache"
+    def nbw_cache_dir(self) -> Path:
+        cache_path = os.environ.get("NBW_CACHE")
+        return Path(cache_path) if cache_path else self.nbw_root_dir / "cache"
 
     def env_archive_path(self, env_name: str, archive_format: str) -> Path:
-        return self.nbc_pantry_dir / "envs" / (env_name.lower() + archive_format)
+        return self.nbw_pantry_dir / "envs" / (env_name.lower() + archive_format)
 
     def env_live_path(self, env_name: str) -> Path:
         return self.mm_envs_dir / env_name
@@ -99,7 +99,7 @@ class EnvironmentManager:
         else:
             raise TypeError("cmd must be a list or str")
 
-    def curator_run(
+    def wrangler_run(
         self,
         command: list[str] | tuple[str] | str,
         check=True,
@@ -153,7 +153,7 @@ class EnvironmentManager:
         command = self._condition_cmd(command)
         self.logger.debug(f"Running command {command} in environment: {environment}")
         mm_prefix = [self.micromamba_path, "run", "-n", environment]
-        return self.curator_run(mm_prefix + command, **keys)
+        return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
         self, result: CompletedProcess[Any] | str | None, fail: str, success: str = ""
@@ -183,7 +183,7 @@ class EnvironmentManager:
         self.logger.info(f"Creating environment: {env_name}")
         mm_prefix = [self.micromamba_path, "create", "--yes", "-n", env_name]
         command = mm_prefix + ["-f", str(micromamba_specfile)]
-        result = self.curator_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
+        result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to create environment {env_name}: \n",
@@ -194,7 +194,7 @@ class EnvironmentManager:
         """Delete an existing environment."""
         self.logger.info(f"Deleting environment: {env_name}")
         command = self.micromamba_path + " env remove --yes -n " + env_name
-        result = self.curator_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
+        result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to delete environment {env_name}: \n",
@@ -247,7 +247,7 @@ class EnvironmentManager:
     def register_environment(self, env_name: str, display_name=None) -> bool:
         """Register Jupyter environment for the environment.
 
-        nbcurator environment should work here since it is modifying
+        nbwrangler environment should work here since it is modifying
         files under $HOME related to *any* jupyter environment the
         user has.
         """
@@ -267,7 +267,7 @@ class EnvironmentManager:
     def unregister_environment(self, env_name: str) -> bool:
         """Unregister Jupyter environment for the environment."""
         cmd = f"jupyter kernelspec uninstall -y {env_name}"
-        result = self.curator_run(cmd, check=False)
+        result = self.wrangler_run(cmd, check=False)
         return self.handle_result(
             result,
             f"Failed to unregister Jupyter kernel {env_name}: ",
@@ -278,7 +278,7 @@ class EnvironmentManager:
         """Return True IFF `env_name` exists."""
         cmd = self.micromamba_path + " env list --json"
         try:
-            result = self.curator_run(cmd, check=True)
+            result = self.wrangler_run(cmd, check=True)
         except Exception as e:
             return self.logger.exception(
                 e,
@@ -299,7 +299,7 @@ class EnvironmentManager:
     def archive(self, archive_filepath: Path, source_dirpath: Path) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
         cmd = f"tar -acf {archive_filepath} {source_dirpath.name}"
-        result = self.curator_run(cmd, cwd=source_dirpath.parent, check=False)
+        result = self.wrangler_run(cmd, cwd=source_dirpath.parent, check=False)
         return self.handle_result(
             result,
             f"Failed to pack {source_dirpath} into {archive_filepath}:",
@@ -309,7 +309,7 @@ class EnvironmentManager:
     def unarchive(self, archive_filepath: Path, destination_dirpath: Path) -> bool:
         destination_dirpath.mkdir(parents=True, exist_ok=True)
         cmd = f"tar -axf {archive_filepath} {destination_dirpath.name}"
-        result = self.curator_run(cmd, cwd=destination_dirpath.parent, check=False)
+        result = self.wrangler_run(cmd, cwd=destination_dirpath.parent, check=False)
         return self.handle_result(
             result,
             f"Failed to unpack {archive_filepath} into {destination_dirpath}: ",
@@ -328,29 +328,29 @@ class EnvironmentManager:
             self.env_live_path(env_name),
         )
 
-    def pack_curator(self, archive_filepath: Path | str) -> bool:
+    def pack_wrangler(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
         archive_path.parent.mkdir(parents=True, exist_ok=True)
-        return self.archive(archive_path, self.nbc_root_dir)
+        return self.archive(archive_path, self.nbw_root_dir)
 
-    def unpack_curator(self, archive_filepath: Path | str) -> bool:
+    def unpack_wrangler(self, archive_filepath: Path | str) -> bool:
         archive_path = Path(archive_filepath)
-        return self.unarchive(archive_path, self.nbc_root_dir)
+        return self.unarchive(archive_path, self.nbw_root_dir)
 
     def compact(self) -> bool:
         try:
             if self.mm_pkgs_dir.exists():
                 shutil.rmtree(str(self.mm_pkgs_dir))
-            if self.nbc_cache_dir.exists():
-                shutil.rmtree(str(self.nbc_cache_dir))
-            if self.nbc_temp_dir.exists():
-                shutil.rmtree(str(self.nbc_temp_dir))
+            if self.nbw_cache_dir.exists():
+                shutil.rmtree(str(self.nbw_cache_dir))
+            if self.nbw_temp_dir.exists():
+                shutil.rmtree(str(self.nbw_temp_dir))
             self.logger.info(
                 "Curator compacted successfully, removing install caches, etc."
             )
             return True
         except Exception as e:
-            return self.logger.exception(e, f"Failed to compact curator: {e}")
+            return self.logger.exception(e, f"Failed to compact wrangler: {e}")
 
     def test_imports(self, env_name: str, imports: list[str]) -> bool:
         """Test package imports."""

@@ -1,4 +1,4 @@
-"""Logging utilities for nb-curator."""
+"""Logging utilities for nb-wrangler."""
 
 import sys
 import logging
@@ -150,7 +150,7 @@ class CuratorLogger:
             # format="%(levelname)s - %(message)s",
             # datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
         )
-        self.logger = logging.getLogger("curator")
+        self.logger = logging.getLogger("wrangler")
 
     def _lformat(self, *args) -> str:
         return " ".join(map(str, args))

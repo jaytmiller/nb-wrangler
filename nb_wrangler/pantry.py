@@ -1,8 +1,8 @@
 """
-This module manages the central nb-curator environtment store which has
+This module manages the central nb-wrangler environtment store which has
 a directory organization something like:
 
-${NBC_PANTRY}/
+${NBW_PANTRY}/
   metadata/
   specs/
     shelf-1-spec.yaml
@@ -10,7 +10,7 @@ ${NBC_PANTRY}/
     ...
   shelves/
     shelf-1/
-      curator-spec.yaml
+      wrangler-spec.yaml
       cans/
         env-1-tar.xz
         env-1-tar.xz
@@ -30,7 +30,7 @@ ${NBC_PANTRY}/
     ...
 
 In addition to the environment specification, creation, and test functions
-the curator was initially designed for,  the NbcPantry class
+the wrangler was initially designed for,  the NbcPantry class
 """
 
 from pathlib import Path

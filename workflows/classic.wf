@@ -3,9 +3,9 @@ involved an iteration between 3 sub-loops:
 
 1. Notebook and envirionment definition and local testing
 
-In this loop a notebook repo curator or class instructor chooses the notebooks they wish
+In this loop a notebook repo wrangler or class instructor chooses the notebooks they wish
 this environment to support, defines the required packages, installs a corresponding Python environment, 
-tests the notebooks.  The curator then passes along the package requirements and test notebooks to
+tests the notebooks.  The wrangler then passes along the package requirements and test notebooks to
 team Octarine via a Jira ticket.
 
 2. Platform Docker image building, enhancement, and local testing
@@ -14,11 +14,11 @@ Team octarine manually adds the requirements from (1) to into the science-platfo
 codebase and builds an image with two environments:  the first environment is based on the
 jupyter/docker-stacks as well as standard science platform packages and labextensions. this
 "base" environment provides the startup notebook/lab GUI.  The second environment, aka 
-"the mission environment", is intended to be a close or exact replica of the repo curator's
+"the mission environment", is intended to be a close or exact replica of the repo wrangler's
 notebook environment.  If the mission environment fails to compile due to dependency conflicts
 or has some other issue, and team octarine cannot determine a fix, Octarine makes a note on
-the Jira ticket and development is passed back to the curator and loop 1 for resolution
-because of a probable need for changing and/or dropping a notebook(s). Once the curator works
+the Jira ticket and development is passed back to the wrangler and loop 1 for resolution
+because of a probable need for changing and/or dropping a notebook(s). Once the wrangler works
 out a resolution to the conflict,  they comment on Jira and development passes back to loop 2.
 
 3. Image deployment to JupyterHub for use by users

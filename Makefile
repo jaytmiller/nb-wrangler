@@ -2,7 +2,7 @@
 .DEFAULT_GOAL := help
 
 define PROJECT
-nb_curator
+nb_wrangler
 endef
 export PROJECT
 
@@ -53,63 +53,63 @@ functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
 
 
 fnc-preclean:
-	rm -rf ${HOME}/.nbc-live  ${HOME}/.nbc-pantry ./references
+	rm -rf ${HOME}/.nbw-live  ${HOME}/.nbw-pantry ./references
 
 fnc-bootstrap: fnc-preclean
-	# curl https://raw.githubusercontent.com/spacetelescope/nb-curator/refs/heads/main/nb-curator >nb-curator
-	# chmod +x nb-curator
-	./nb-curator bootstrap
+	# curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
+	# chmod +x nb-wrangler
+	./nb-wrangler bootstrap
 
 fnc-curate:
-	./nb-curator tike-2025-07-beta.yaml --curate
+	./nb-wrangler tike-2025-07-beta.yaml --curate
 
 fnc-reinstall:
-	./nb-curator tike-2025-07-beta.yaml --reinstall
+	./nb-wrangler tike-2025-07-beta.yaml --reinstall
 
 fnc-uninstall: fnc-curate
-	./nb-curator tike-2025-07-beta.yaml --uninstall
+	./nb-wrangler tike-2025-07-beta.yaml --uninstall
 
 fnc-install: fnc-curate fnc-uninstall
-	./nb-curator  tike-2025-07-beta.yaml --install
+	./nb-wrangler  tike-2025-07-beta.yaml --install
 
 fnc-pack-env: fnc-install
-	./nb-curator  tike-2025-07-beta.yaml --pack-env
+	./nb-wrangler  tike-2025-07-beta.yaml --pack-env
 
 fnc-unpack-env:  fnc-uninstall
-	./nb-curator  tike-2025-07-beta.yaml --unpack-env
+	./nb-wrangler  tike-2025-07-beta.yaml --unpack-env
 
 fnc-test-imports: fnc-install
-	./nb-curator  tike-2025-07-beta.yaml --test-imports
+	./nb-wrangler  tike-2025-07-beta.yaml --test-imports
 
 fnc-test-notebooks: fnc-install
-	./nb-curator  tike-2025-07-beta.yaml --test-notebooks
+	./nb-wrangler  tike-2025-07-beta.yaml --test-notebooks
 
 fnc-test: fnc-install
-	./nb-curator  tike-2025-07-beta.yaml -t
+	./nb-wrangler  tike-2025-07-beta.yaml -t
 
 fnc-compact: fnc-install
-	./nb-curator  tike-2025-07-beta.yaml --compact
+	./nb-wrangler  tike-2025-07-beta.yaml --compact
 
 fnc-compile: fnc-clone
-	./nb-curator  tike-2025-07-beta.yaml --compile
+	./nb-wrangler  tike-2025-07-beta.yaml --compile
 
 fnc-clone:
-	./nb-curator  tike-2025-07-beta.yaml --clone
+	./nb-wrangler  tike-2025-07-beta.yaml --clone
 
 fnc-init-env: fnc-compile
-	./nb-curator  tike-2025-07-beta.yaml --init-env
+	./nb-wrangler  tike-2025-07-beta.yaml --init-env
 
 fnc-delete-env: fnc-init-env
-	./nb-curator  tike-2025-07-beta.yaml --delete-env
+	./nb-wrangler  tike-2025-07-beta.yaml --delete-env
 
 fnc-register-env: fnc-init-env
-	./nb-curator  tike-2025-07-beta.yaml --register-env
+	./nb-wrangler  tike-2025-07-beta.yaml --register-env
 
 fnc-unregister-env: fnc-init-env
-	./nb-curator  tike-2025-07-beta.yaml --unregister-env
+	./nb-wrangler  tike-2025-07-beta.yaml --unregister-env
 
 fnc-reset-spec: fnc-compile
-	./nb-curator  tike-2025-07-beta.yaml --reset-spec
+	./nb-wrangler  tike-2025-07-beta.yaml --reset-spec
 
 
 # ==========================================================================================================
@@ -163,14 +163,14 @@ test: local-test
 test-bootstrap: test-bootstrap-only test-bootstrap-spec
 
 test-bootstrap-only:
-	rm -rf $NBC_ROOT
+	rm -rf $NBW_ROOT
 	make clean
-	./nb-curator bootstrap
+	./nb-wrangler bootstrap
 
 test-bootstrap-spec:
-	rm -rf $NBC_ROOT
+	rm -rf $NBW_ROOT
 	make clean
-	./nb-curator bootstrap ./tike-2025-07-beta.yaml
+	./nb-wrangler bootstrap ./tike-2025-07-beta.yaml
 
 local-test:  clean-test   ## run tests quickly with the default Python
 	./local-test pytest

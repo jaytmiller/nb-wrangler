@@ -1,4 +1,4 @@
-"""Utility functions for nb-curator."""
+"""Utility functions for nb-wrangler."""
 
 import os
 import io
@@ -15,7 +15,7 @@ from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # t
 
 from ruamel.yaml import YAML, scalarstring  # type: ignore
 
-# NOTE: to keep this module easily importable everywhere in our code, avoid nb_curator imports
+# NOTE: to keep this module easily importable everywhere in our code, avoid nb_wrangler imports
 
 # --------------------------- YAML helpers to isolate ruamel.yaml details -------------------
 
@@ -34,7 +34,7 @@ def get_yaml() -> YAML:
 
 
 def yaml_dumps(obj) -> str:
-    """Convert an object, e.g. a curator spec, to our YAML format."""
+    """Convert an object, e.g. a wrangler spec, to our YAML format."""
     with io.StringIO() as string_stream:
         get_yaml().dump(obj, string_stream)
         return string_stream.getvalue()
