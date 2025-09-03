@@ -3,7 +3,7 @@
 import sys
 from pathlib import Path
 
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .environment import EnvironmentManager
 from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
 from .utils import get_yaml, yaml_dumps
@@ -14,7 +14,7 @@ class RequirementsCompiler:
 
     def __init__(
         self,
-        logger: CuratorLogger,
+        logger: WranglerLogger,
         env_manager: EnvironmentManager,
         python_path: str = sys.executable,
         python_version: str = "3.11",

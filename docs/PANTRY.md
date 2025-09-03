@@ -1,17 +1,33 @@
-# NB-Curator's Pantry, Shelves, and Cans
+# NB-Wrangler's Pantry, Shelves, and Cans
 
 ## Overview
 
-NB-Curator uses two primary storage locations for information:
+NB-Wrangler uses two primary storage locations for information:
 
-- **nbw-live**:  This directory stores the isolated wrangler and target environments during initial installation.  Environments are archived to pantry shelves and later unarchived to restore them in a live environment.
-- **nbw-pantry**: This directory contains a collection of **shelves**. Each shelf holds shared, read-only static assets (notebooks, data, etc.) and one or more micromamba-environment archives referred to as **cans**.
+- **nbw-live**: This directory stores the isolated wrangler and target
+    environments during initial installation.  Environments are
+    archived to pantry shelves and later unarchived to restore them in
+    a live environment.
 
-While all users have their own nbw-live directories, only hub admins and team admins have write access to shared pantries. Creating a new shelf in the pantry is how you prepare for events like webinars or conferences, or set up shared team environments.
+- **nbw-pantry**: This directory contains a collection of
+    **shelves**. Each shelf holds shared, read-only static assets
+    (notebooks, data, etc.) and one or more micromamba-environment
+    archives referred to as **cans**.
+
+While all users have their own nbw-live directories, only hub admins
+and team admins have write access to shared pantries. Creating a new
+shelf in the pantry is how you prepare for events like webinars or
+conferences, or set up shared team environments.
+
+The original intent of nb-wrangler was to empower notebook repo
+wranglers to develop notebooks and the exact environment requirements
+needed to run them, then to automatically inject these into existing
+science-platform-images build system which has had the infrastructure
+required to do automatic notebook testing for years.
 
 ## NBW-Live Directory Structure
 
-The **NB-Curator Live Directory** is relatively simple and contains the following key components:
+The **NB-Wrangler Live Directory** is relatively simple and contains the following key components:
 
 - **micromamba**: The single-file binary for the micromamba program.
 - **envs**:  This directory stores micromamba-environment archives as individual subdirectories.
@@ -21,7 +37,12 @@ The **NB-Curator Live Directory** is relatively simple and contains the followin
 
 ## NBW-Pantry Structure
 
-The **NB-Curator Pantry** is a collection of staged, notebook-centric analysis environments, each referred to as a "shelf".  Each shelf provides a complete environment for running a specific set of notebooks.
+The **NB-Wrangler Pantry** is a collection of staged, notebook-centric
+analysis environments, each referred to as a "shelf".  Each shelf
+provides a complete environment for running a specific set of
+notebooks. In essence, a shelf has everything which would normally go
+into a webbinar or conference setup: environments, notebooks, data,
+etc.
 
 ### Shelf Structure
 
@@ -29,28 +50,42 @@ The **NB-Curator Pantry** is a collection of staged, notebook-centric analysis e
 
 Each shelf contains several read-only assets intended for shared use by all users of the shelf. These include:
 
-- **Notebooks**: Jupyter notebooks specifically designed to work with the shelf's Python environment.
+- **Notebook Repo Clones**: Jupyter notebooks specifically designed to work with the shelf's Python environment.
 - **Notebook Input Data**: Data directories and files used as read-only inputs to the notebooks.
 - **Environment Variables**: Configuration settings specific to the shelf.
+- **Manifest**: TBD file recording things like
 
 #### Frozen Assets
 
 Each shelf also contains frozen assets, designed to be unpacked onto faster storage media for quicker access. These include:
 
-- **Cans**: A compressed archive of a single, curated environment.  Because cans are single compressed files, they unpack very quickly, even when transferred from EFS.  This speed is crucial for reducing installation times during both curation and later operations. Using cans enables faster installations on local storage compared to EFS.
+- **Cans**: A compressed archive of a single, curated environment.
+    Because cans are single compressed files, they unpack very
+    quickly, even when transferred from EFS.  This speed is crucial
+    for reducing installation times during both curation and later
+    operations. Using cans enables faster installations on local
+    storage compared to EFS.
 
 ### Pantry Scenarios / Configurations
 
-Depending on how two environment variables (NBW_ROOT and NBW_PANTRY) are set, the nbw-live runtime and nbw-pantry
-shelf archive can be stored in different locations. In containerized environments, the pantry
-is typically stored on long-lived storage and the wrangler runtime and installed environments may
-or may not be on volatile storage.
+Depending on how two environment variables (**NBW_ROOT** and
+**NBW_PANTRY**) are set, the nbw-live runtime and nbw-pantry shelf
+archive can be stored if different locations,  with the intent that
+nbw-live be stored on fast but potentially ephemeral storage,  and
+that nbw-pantry be stored on persistent storage.  With this architecture,
+it is the role of nbw-live to create and run curated environment,
+but it is the role of the pantry to save and restore archived mamba
+environment binaries
+
+in containerized environments, the pantry is
+typically stored on long-lived storage and the wrangler runtime and
+installed environments are nominally on fast but volatile storage.
 
 #### Personal Installations on Laptop
 
-For personal installations on a laptop, the wrangler runtime and installed environments are stored on local storage. 
-The pantryboth curation and live environments,  as well as the pantry, nominally are stored in fast,
-non-volatile storage. This is typically the case for
+For personal installations on a laptop, for both curation, live environments, and the pantry, nominally are 
+stored in fast,  non-volatile storage. This is convenient both for environment and notebook development,
+and also to work out the shelving requirements.
 
 ```/bin/bash
 NBW_ROOT=${HOME}/.nbw-live
@@ -58,6 +93,13 @@ NBW_PANTRY=${HOME}/.nbw-pantry
 ```
 
 #### Science Platform System Installations
+
+Science Platform System Installations typically have long-lived storage available for the pantry, but 
+the wrangler runtime and installed environments are nominally on fast but volatile storage at /opt/nbw-live.
+There are two major workflows, creating a pantry shelf for a set of notebooks and associated environment,
+and later unarchiving shelved environments to nbw-live automatically. Two benefits of this approach are
+that an admin or wrangler can work directly on the platform and automatically prepare the shelf based on
+the wrangler YAML spec
 
 ```/bin/bash
 NBW_ROOT=/opt/nbw-live  (located in "image" space)

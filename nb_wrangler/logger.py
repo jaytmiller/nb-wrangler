@@ -116,7 +116,7 @@ class ColorAndTimeFormatter(logging.Formatter):
         return formatter.format(record)
 
 
-class CuratorLogger:
+class WranglerLogger:
     """Enhanced logger with error tracking and debug support."""
 
     def __init__(
@@ -213,14 +213,14 @@ class CuratorLogger:
         return pformat(*args, **keys)
 
     @classmethod
-    def from_config(cls, config) -> "CuratorLogger":
-        """Create a CuratorLogger from a CuratorConfig.
+    def from_config(cls, config) -> "WranglerLogger":
+        """Create a WranglerLogger from a WranglerConfig.
 
         Args:
-            config: CuratorConfig instance
+            config: WranglerConfig instance
 
         Returns:
-            CuratorLogger instance configured from the config
+            WranglerLogger instance configured from the config
         """
         return cls(
             verbose=config.verbose,

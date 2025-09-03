@@ -1,0 +1,26 @@
+
+Install gh using apt-get or brew
+Set up authentication using "gh auth login"
+-or-
+Set GITHUB_TOKEN
+
+Wrangler tool:
+
+Seal spec. (Ensure sha256 and/or signing complete)
+Create a unique dated submission branch.
+Copy spec to clone’s injest directory. Create dir if needed.
+Add spec.
+Commit spec. Compose commit message from spec.
+
+Push submission branch.
+PR the submission branch to main
+
+
+Ingest Workflow:
+
+Validate branch diffs and identify added spec.
+Validate spec.
+Configure env for spec’s deployment name.
+Copy spec to archive branch.
+Delete spec from ingest dir.
+Inject spec into deployment code.

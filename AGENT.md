@@ -16,9 +16,9 @@
 ## Code Style
 - **Type hints**: Required for all functions (Python 3.11+)
 - **Imports**: Absolute imports, group stdlib/third-party/local
-- **Classes**: PascalCase, descriptive names (NotebookCurator, EnvironmentManager)
+- **Classes**: PascalCase, descriptive names (NotebookWrangler, EnvironmentManager)
 - **Methods**: snake_case with docstrings
-- **Error handling**: CuratorLogger.error() returns False pattern, exceptions logged
+- **Error handling**: WranglerLogger.error() returns False pattern, exceptions logged
 - **Formatting**: black (120 char line length), flake8 linting
-- **Dataclasses**: Used for config (CuratorConfig)
+- **Dataclasses**: Used for config (WranglerConfig)
 - **Logging**: Use self.logger.debug/info/warning/error consistently

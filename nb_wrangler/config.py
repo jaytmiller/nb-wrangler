@@ -19,12 +19,12 @@ from .constants import (
 
 
 @dataclass
-class CuratorConfig:
-    """Configuration class for NotebookCurator."""
+class WranglerConfig:
+    """Configuration class for NotebookWrangler."""
 
     spec_file: str
 
-    logger: Optional["logger.CuratorLogger"] = None
+    logger: Optional["logger.WranglerLogger"] = None
     micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False
@@ -69,7 +69,7 @@ class CuratorConfig:
 
     def __post_init__(self):
         """Post-initialization processing."""
-        self.logger = logger.CuratorLogger.from_config(self)
+        self.logger = logger.WranglerLogger.from_config(self)
         self.repos_dir = Path(self.repos_dir)
 
         # Validate log_times parameter
@@ -81,8 +81,8 @@ class CuratorConfig:
             self.test_notebooks = ".*"
 
     @classmethod
-    def from_args(cls, args: argparse.Namespace) -> "CuratorConfig":
-        """Create CuratorConfig from argparse Namespace and spec file."""
+    def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
+        """Create WranglerConfig from argparse Namespace and spec file."""
         return cls(
             spec_file=args.spec_uri,
             micromamba_path=args.micromamba_path,

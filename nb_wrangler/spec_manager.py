@@ -5,14 +5,14 @@ from pathlib import Path
 import copy
 
 from . import utils
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
 
 
 class SpecManager:
     """Manages specification loading, validation, access, and persistence."""
 
-    def __init__(self, logger: CuratorLogger):
+    def __init__(self, logger: WranglerLogger):
         self.logger = logger
         self._spec: dict[str, Any] = {}
         self._is_validated = False
@@ -147,7 +147,7 @@ class SpecManager:
     @classmethod
     def load_and_validate(
         cls,
-        logger: CuratorLogger,
+        logger: WranglerLogger,
         spec_file: str,
     ) -> Optional["SpecManager"]:
         """Factory method to load and validate a spec file."""

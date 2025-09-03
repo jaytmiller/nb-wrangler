@@ -38,7 +38,7 @@ Here is an example of a mermaid flowchart:
 
 ```mermaid
 flowchart LR
-    Curator[Laptop] --> |defines YAML spec| nb-wrangler_tool[Tool];
+    Wrangler[Laptop] --> |defines YAML spec| nb-wrangler_tool[Tool];
     nb-wrangler_tool --> |downloads notebooks & requirements| GitHub[notebook repositories];
     GitHub --> |notebooks & requirements| nb-wrangler_tool;
     nb-wrangler_tool --> |creates environment| conda-forge[conda-forge];

@@ -9,8 +9,8 @@ import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
-from .logger import CuratorLogger
-from .config import CuratorConfig
+from .logger import WranglerLogger
+from .config import WranglerConfig
 from .environment import EnvironmentManager
 
 
@@ -19,8 +19,8 @@ class NotebookTester:
 
     def __init__(
         self,
-        logger: CuratorLogger,
-        config: CuratorConfig,
+        logger: WranglerLogger,
+        config: WranglerConfig,
         env_manager: EnvironmentManager,
     ):
         self.logger = logger

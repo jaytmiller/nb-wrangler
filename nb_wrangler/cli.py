@@ -241,13 +241,13 @@ def _main(args):
     """Main entry point for the CLI."""
     try:
         # Create configuration using simplified factory method
-        config = config_mod.CuratorConfig.from_args(args)
+        config = config_mod.WranglerConfig.from_args(args)
         config.spec_file = spec = utils.uri_to_local_path(args.spec_uri)
         if not spec:
             config.logger.error("Failed reading URI:", args.spec_uri)
             exit_code = 1
         else:
-            notebook_wrangler = wrangler.NotebookCurator(config)
+            notebook_wrangler = wrangler.NotebookWrangler(config)
             exit_code = notebook_wrangler.main()
             notebook_wrangler.logger.print_log_counters()
     except KeyboardInterrupt:

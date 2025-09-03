@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .environment import EnvironmentManager
 from .constants import REPO_CLONE_TIMEOUT
 
@@ -15,7 +15,7 @@ class RepositoryManager:
 
     def __init__(
         self,
-        logger: CuratorLogger,
+        logger: WranglerLogger,
         repos_dir: Path,
         env_manager: EnvironmentManager | None = None,
     ):

@@ -1,10 +1,10 @@
 # nb_wrangler/wrangler.py
-"""Main NotebookCurator class orchestrating the curation process."""
+"""Main NotebookWrangler class orchestrating the curation process."""
 
 from pathlib import Path
 from typing import Any
 
-from .config import CuratorConfig
+from .config import WranglerConfig
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
 from .nb_processor import NotebookImportProcessor
@@ -15,10 +15,10 @@ from .injector import get_injector
 from . import utils
 
 
-class NotebookCurator:
+class NotebookWrangler:
     """Main wrangler class for processing notebooks."""
 
-    def __init__(self, config: CuratorConfig):
+    def __init__(self, config: WranglerConfig):
         self.config = config
         if config.logger is None:
             raise RuntimeError("Logger not initialized in config")

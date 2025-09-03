@@ -35,7 +35,7 @@ the wrangler was initially designed for,  the NbcPantry class
 
 from pathlib import Path
 
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .spec_manager import SpecManager
 from .environment import EnvironmentManager
 
@@ -43,7 +43,7 @@ from .environment import EnvironmentManager
 class NbcPantry:
     def __init__(
         self,
-        logger: CuratorLogger,
+        logger: WranglerLogger,
         spec_manager: SpecManager,
         env_manager: EnvironmentManager,
     ):

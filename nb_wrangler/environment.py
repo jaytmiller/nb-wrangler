@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Any
 
 
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .constants import NBW_ROOT, NBW_PANTRY
 from .constants import (
     DEFAULT_TIMEOUT,
@@ -45,7 +45,7 @@ class EnvironmentManager:
     # ------------------------------------------------------------------------------
 
     def __init__(
-        self, logger: CuratorLogger, micromamba_path: str | Path = "micromamba"
+        self, logger: WranglerLogger, micromamba_path: str | Path = "micromamba"
     ):
         self.logger = logger
         self.micromamba_path = str(micromamba_path)
@@ -346,7 +346,7 @@ class EnvironmentManager:
             if self.nbw_temp_dir.exists():
                 shutil.rmtree(str(self.nbw_temp_dir))
             self.logger.info(
-                "Curator compacted successfully, removing install caches, etc."
+                "Wrangler compacted successfully, removing install caches, etc."
             )
             return True
         except Exception as e:

@@ -24,7 +24,7 @@ def get_yaml() -> YAML:
     """Return configured ruamel.yaml instance. A chief goal here is that whatever
     format we pick, it should (a) round trip well and (b) be as readable as possible.
     To that end, spec order should be preserved, and support for cleanly formatted
-    multi-line strings should be as easy as possible. Curators should be able to look
+    multi-line strings should be as easy as possible. Wranglers should be able to look
     at git diffs and clearly understand what is *really* changing
     """
     yaml = YAML()

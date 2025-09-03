@@ -2,14 +2,14 @@ from pathlib import Path
 import shutil
 import re
 
-from .logger import CuratorLogger
+from .logger import WranglerLogger
 from .repository import RepositoryManager
 from .spec_manager import SpecManager
 from . import utils
 
 
 def get_injector(
-    logger: CuratorLogger, repo_manager: RepositoryManager, spec_manager: SpecManager
+    logger: WranglerLogger, repo_manager: RepositoryManager, spec_manager: SpecManager
 ) -> "SpiInjector":
     """
     Factory method to create a subclass of a Injector which is tuned to
@@ -40,7 +40,7 @@ class SpiInjector:
 
     def __init__(
         self,
-        logger: CuratorLogger,
+        logger: WranglerLogger,
         repo_manager: RepositoryManager,
         spec_manager: SpecManager,
     ):
@@ -83,7 +83,7 @@ class SpiInjector:
     def submit_for_build(self):
         new_ingest_branch = "nbw-ingest-" + utils.hex_time()
         ingest_name = get_ingest_name(self.spec_manager.image_name)
-        title = f"Curator spec for build {ingest_name}."
+        title = f"Wrangler spec for build {ingest_name}."
         message = f"""
 Added wrangler spec {ingest_name} for {self.spec_manager.deployment_name}.
 Hash: {self.spec_manager.sha256}
