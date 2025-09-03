@@ -42,7 +42,7 @@ extra_pip_packages:
   - boto3
 system:
   spec_version: 1.0
-  spec_sha256: ed9d54d7ff1e4df99db6a127c57afd97ee21df54bd58acc807562671b181be87
+  spec_sha256: ad4b452bbe886205490a1cf84500e6e978d06bbd8d2d194138471a9b364647b0
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
@@ -143,7 +143,7 @@ out:
         # via ypy-websocket
     alabaster==1.0.0
         # via sphinx
-    alembic==1.16.4
+    alembic==1.16.5
         # via jupyterhub
     annotated-types==0.7.0
         # via pydantic
@@ -154,6 +154,7 @@ out:
         #   httpx
         #   jupyter-server
         #   pycrdt
+        #   pycrdt-store
         #   pycrdt-websocket
         #   sqlite-anyio
         #   starlette
@@ -187,7 +188,7 @@ out:
         # via
         #   asdf-astropy
         #   asdf-wcs-schemas
-    asdf-standard==1.3.0
+    asdf-standard==1.4.0
         # via
         #   asdf
         #   asdf-astropy
@@ -206,8 +207,8 @@ out:
         # via jdaviz
     astropy==7.1.0
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -c references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
         #   asdf-astropy
@@ -229,7 +230,7 @@ out:
         #   spectral-cube
         #   specutils
         #   stdatamodels
-    astropy-iers-data==0.2025.8.25.0.36.58
+    astropy-iers-data==0.2025.9.1.0.42.11
         # via astropy
     astropy-sphinx-theme==2.0
         # via sphinx-astropy
@@ -261,14 +262,14 @@ out:
         # via
         #   astroquery
         #   lightkurve
-        #   nbwonvert
+        #   nbconvert
     black==25.1.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     bleach==6.2.0
-        # via nbwonvert
+        # via nbconvert
     blinker==1.9.0
         # via flask
-    bokeh==3.7.3
+    bokeh==3.8.0
         # via
         #   jupyter-bokeh
         #   lightkurve
@@ -348,9 +349,9 @@ out:
         # via
         #   bokeh
         #   matplotlib
-    crds==12.1.11
+    crds==13.0.3
         # via ci-watson
-    cryptography==45.0.6
+    cryptography==45.0.7
         # via
         #   certipy
         #   secretstorage
@@ -360,14 +361,14 @@ out:
         # via
         #   casa-formats-io
         #   spectral-cube
-    ddtrace==3.12.2
+    ddtrace==3.12.4
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.16
         # via ipykernel
     decorator==5.2.1
         # via ipython
     defusedxml==0.7.1
-        # via nbwonvert
+        # via nbconvert
     deprecation==2.1.0
         # via jupyter-packaging
     dill==0.4.0
@@ -390,7 +391,7 @@ out:
         # via ddtrace
     et-xmlfile==2.0.0
         # via openpyxl
-    executing==2.2.0
+    executing==2.2.1
         # via stack-data
     fast-histogram==0.14
         # via
@@ -408,7 +409,7 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/testing.pip
     flask==3.1.2
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    fonttools==4.59.1
+    fonttools==4.59.2
         # via matplotlib
     fqdn==1.5.1
         # via jsonschema
@@ -418,7 +419,7 @@ out:
         # via
         #   aiohttp
         #   aiosignal
-    fsspec==2025.7.0
+    fsspec==2025.9.0
         # via
         #   dask
         #   s3fs
@@ -510,7 +511,7 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/required.pip
         #   jdaviz
         #   jupyterlab
-        #   nbwlassic
+        #   nbclassic
         #   solara-server
     ipympl==0.9.7
         # via
@@ -524,7 +525,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jdaviz
-    ipython==9.4.0
+    ipython==9.5.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   glue-core
@@ -535,7 +536,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   glue-jupyter
-        #   nbwlassic
+        #   nbclassic
     ipython-pygments-lexers==1.1.1
         # via ipython
     ipyvolume==0.6.3
@@ -609,7 +610,7 @@ out:
         #   jupyterhub
         #   jupyterlab
         #   jupyterlab-server
-        #   nbwonvert
+        #   nbconvert
         #   nbsphinx
         #   solara-server
         #   sphinx
@@ -619,7 +620,7 @@ out:
         #   asdf
         #   boto3
         #   botocore
-    joblib==1.5.1
+    joblib==1.5.2
         # via
         #   scikit-learn
         #   spectral-cube
@@ -642,11 +643,11 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   ipykernel
         #   jupyter-server
-        #   nbwlient
+        #   nbclient
         #   solara-server
-    jupyter-collaboration==4.1.0
+    jupyter-collaboration==4.1.1
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyter-collaboration-ui==2.1.0
+    jupyter-collaboration-ui==2.1.1
         # via jupyter-collaboration
     jupyter-core==5.8.1
         # via
@@ -655,10 +656,10 @@ out:
         #   jupyter-client
         #   jupyter-server
         #   jupyterlab
-        #   nbwlient
-        #   nbwonvert
+        #   nbclient
+        #   nbconvert
         #   nbformat
-    jupyter-docprovider==2.1.0
+    jupyter-docprovider==2.1.1
         # via jupyter-collaboration
     jupyter-events==0.12.0
         # via
@@ -666,7 +667,7 @@ out:
         #   jupyter-server-fileid
         #   jupyter-server-ydoc
         #   jupyterhub
-    jupyter-lsp==2.2.6
+    jupyter-lsp==2.3.0
         # via jupyterlab
     jupyter-packaging==0.12.3
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
@@ -693,7 +694,7 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     jupyter-server-terminals==0.5.3
         # via jupyter-server
-    jupyter-server-ydoc==2.1.0
+    jupyter-server-ydoc==2.1.1
         # via jupyter-collaboration
     jupyter-ydoc==3.1.0
         # via jupyter-server-ydoc
@@ -701,7 +702,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyterlab==4.4.6
+    jupyterlab==4.4.7
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter-collaboration
@@ -709,7 +710,7 @@ out:
     jupyterlab-pygments==0.3.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-        #   nbwonvert
+        #   nbconvert
     jupyterlab-server==2.27.3
         # via
         #   jupyterlab
@@ -721,7 +722,7 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   ipywidgets
         #   jupyter-rfb
-    jupytext==1.17.2
+    jupytext==1.17.3
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     keyring==25.6.0
         # via astroquery
@@ -733,7 +734,7 @@ out:
         # via rfc3987-syntax
     lazy-loader==0.4
         # via scikit-image
-    lcviz==1.1.1
+    lcviz==1.1.2
         # via
         #   -r references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
@@ -764,13 +765,13 @@ out:
         #   flask
         #   jinja2
         #   mako
-        #   nbwonvert
+        #   nbconvert
         #   werkzeug
-    matplotlib==3.10.5
+    matplotlib==3.10.6
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+        #   -c references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/docs.pip
         #   -r references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
@@ -794,9 +795,9 @@ out:
         # via markdown-it-py
     memoization==0.4.0 ; python_full_version < '4'
         # via lightkurve
-    mistune==3.1.3
-        # via nbwonvert
-    more-itertools==10.7.0
+    mistune==3.1.4
+        # via nbconvert
+    more-itertools==10.8.0
         # via
         #   jaraco-classes
         #   jaraco-functools
@@ -809,15 +810,15 @@ out:
         #   yarl
     mypy-extensions==1.1.0
         # via black
-    narwhals==2.2.0
+    narwhals==2.3.0
         # via bokeh
-    nbwlassic==1.3.1
+    nbclassic==1.3.1
         # via jdaviz
-    nbwlient==0.10.2
+    nbclient==0.10.2
         # via
-        #   nbwonvert
+        #   nbconvert
         #   papermill
-    nbwonvert==7.16.6
+    nbconvert==7.16.6
         # via
         #   jupyter-server
         #   nbsphinx
@@ -825,8 +826,8 @@ out:
         # via
         #   jupyter-server
         #   jupytext
-        #   nbwlient
-        #   nbwonvert
+        #   nbclient
+        #   nbconvert
         #   nbsphinx
         #   papermill
         #   solara-server
@@ -839,7 +840,7 @@ out:
     nest-asyncio==1.6.0
         # via
         #   ipykernel
-        #   nbwlassic
+        #   nbclassic
     networkx==3.5
         # via scikit-image
     notebook==7.4.5
@@ -849,14 +850,14 @@ out:
     notebook-shim==0.2.4
         # via
         #   jupyterlab
-        #   nbwlassic
+        #   nbclassic
         #   notebook
-    numpy==1.26.4
+    numpy==2.3.2
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+        #   -c references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
         #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+        #   -r references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   -r references/tike_content/content/notebooks/data-access/requirements.txt
         #   -r references/tike_content/content/notebooks/tglc/requirements.txt
@@ -881,7 +882,6 @@ out:
         #   ipympl
         #   ipyvolume
         #   jupyter-rfb
-        #   lcviz
         #   lightkurve
         #   matplotlib
         #   mpl-scatter-density
@@ -935,7 +935,7 @@ out:
         #   jupytext
         #   lazy-loader
         #   matplotlib
-        #   nbwonvert
+        #   nbconvert
         #   pipdeptree
         #   pytest
         #   pytest-doctestplus
@@ -955,7 +955,7 @@ out:
         #   glue-core
         #   lightkurve
     pandocfilters==1.5.1
-        # via nbwonvert
+        # via nbconvert
     papermill==2.6.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
@@ -998,7 +998,7 @@ out:
         # via
         #   black
         #   jupyter-core
-    playwright==1.54.0
+    playwright==1.55.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     pluggy==1.6.0
         # via pytest
@@ -1007,7 +1007,7 @@ out:
         #   jupyter-resource-usage
         #   jupyter-server
         #   jupyterhub
-    prompt-toolkit==3.0.51
+    prompt-toolkit==3.0.52
         # via ipython
     propcache==0.3.2
         # via
@@ -1035,12 +1035,15 @@ out:
         # via flake8
     pycparser==2.22
         # via cffi
-    pycrdt==0.12.27
+    pycrdt==0.12.28
         # via
         #   jupyter-server-ydoc
         #   jupyter-ydoc
+        #   pycrdt-store
         #   pycrdt-websocket
-    pycrdt-websocket==0.15.5
+    pycrdt-store==0.1.2
+        # via pycrdt-websocket
+    pycrdt-websocket==0.16.0
         # via jupyter-server-ydoc
     pydantic==2.11.7
         # via jupyterhub
@@ -1060,7 +1063,7 @@ out:
         # via
         #   ipython
         #   ipython-pygments-lexers
-        #   nbwonvert
+        #   nbconvert
         #   pytest
         #   rich
         #   solara-ui
@@ -1179,11 +1182,11 @@ out:
         # via rich-click
     rich-click==1.8.9
         # via solara-server
-    rpds-py==0.27.0
+    rpds-py==0.27.1
         # via
         #   jsonschema
         #   referencing
-    s3fs==2025.7.0
+    s3fs==2025.9.0
         # via lightkurve
     s3transfer==0.13.1
         # via boto3
@@ -1248,7 +1251,7 @@ out:
         # via
         #   solara
         #   solara-server
-    soupsieve==2.7
+    soupsieve==2.8
         # via beautifulsoup4
     specreduce==1.4.1
         # via
@@ -1305,7 +1308,7 @@ out:
         #   alembic
         #   jupyterhub
     sqlite-anyio==0.2.3
-        # via pycrdt-websocket
+        # via pycrdt-store
     stack-data==0.6.3
         # via ipython
     starlette==0.47.3
@@ -1324,7 +1327,7 @@ out:
         #   jupyter-server-terminals
     threadpoolctl==3.6.0
         # via scikit-learn
-    tifffile==2025.6.11
+    tifffile==2025.8.28
         # via scikit-image
     tinycss2==1.4.0
         # via bleach
@@ -1368,8 +1371,8 @@ out:
         #   jupyterhub
         #   jupyterlab
         #   matplotlib-inline
-        #   nbwlient
-        #   nbwonvert
+        #   nbclient
+        #   nbconvert
         #   nbformat
         #   nbsphinx
         #   pythreejs
@@ -1467,14 +1470,14 @@ out:
     zipp==3.23.0
         # via importlib-metadata
   pip_requirements_files:
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
+    - references/tike_content/content/notebooks/tglc/requirements.txt
     - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
+    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
+    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
     - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
     - references/tike_content/content/notebooks/data-access/requirements.txt
-    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
     - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/tike_content/content/notebooks/tglc/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
     - /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-extra-pip.txt
     - references/science-platform-images/deployments/common/common-env/required.pip
     - references/science-platform-images/deployments/common/common-env/testing.pip
@@ -1482,14 +1485,28 @@ out:
     - references/science-platform-images/deployments/common/common-env/common.pip
     - references/science-platform-images/deployments/common/common-env/docs.pip
   pip_map:
-    references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt:
+    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt:
       - astropy >= 5.3.3
       - matplotlib >= 3.6.0
       - numpy >= 1.23.4
+    references/tike_content/content/notebooks/tglc/requirements.txt:
+      - astroquery >= 0.4.10
+      - lightkurve >= 2.5.1
+      - lcviz >= 1.1
+      - matplotlib >= 3.9
+      - numpy >= 1.26
     references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt:
       - lightkurve >= 2.4.2
       - matplotlib >= 3.6.0
       - numpy >= 1.23.4
+    references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt:
+      - astropy >= 5.3.3
+      - matplotlib >= 3.6.0
+      - numpy >= 1.23.4
+    references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt:
+      - astroquery >= 0.4.10
+      - lightkurve >= 2.5.1
+      - lcviz >= 1.1
     references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt:
       - lightkurve >= 2.4.2
       - numpy >= 1.23.4
@@ -1498,24 +1515,10 @@ out:
       - astroquery >= 0.4.10
       - numpy >= 1.26
       - matplotlib >= 3.9
-    references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt:
-      - astroquery >= 0.4.10
-      - lightkurve >= 2.5.1
-      - lcviz >= 1.1
     references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt:
       - astropy >= 7.0.0
       - astroquery >= 0.4.10
       - matplotlib >= 3.9
-    references/tike_content/content/notebooks/tglc/requirements.txt:
-      - astroquery >= 0.4.10
-      - lightkurve >= 2.5.1
-      - lcviz >= 1.1
-      - matplotlib >= 3.9
-      - numpy >= 1.26
-    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt:
-      - astropy >= 5.3.3
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
     /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-extra-pip.txt:
       - boto3
     references/science-platform-images/deployments/common/common-env/required.pip:
@@ -1578,7 +1581,7 @@ out:
       - jupytext
     references/science-platform-images/deployments/common/common-env/common.pip:
       - papermill
-      - '#nbwonvert'
+      - '#nbconvert'
       - ipykernel
       - ipython
       - boto3
