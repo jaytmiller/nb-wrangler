@@ -254,7 +254,7 @@ def _main(args):
         return config.logger.error("Operation cancelled by user")
     except Exception as e:
         exit_code = config.logger.exception(e, "Failed:")
-    return exit_code
+    return 1 if not exit_code else 0
 
 
 if __name__ == "__main__":
