@@ -261,7 +261,7 @@ class EnvironmentManager:
         return self.handle_result(
             result,
             f"Failed to register environment {env_name} as a jupyter kernel: ",
-            f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab.",
+            f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab as {display_name}.",
         )
 
     def unregister_environment(self, env_name: str) -> bool:

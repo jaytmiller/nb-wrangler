@@ -34,6 +34,10 @@ class SpecManager:
         return self.header["kernel_name"]
 
     @property
+    def display_name(self) -> str: # readable name in lab menu
+        return self.header.get("display_name", self.kernel_name)
+
+    @property
     def image_name(self) -> str:
         return self.header["image_name"]
 
@@ -292,6 +296,7 @@ class SpecManager:
             "nb_root_directory",
             "deployment_name",
             "kernel_name",
+            "display_name",
             "archive_format",
             "spi_url",
         ],

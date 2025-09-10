@@ -58,6 +58,10 @@ class NotebookWrangler:
         return self.spec_manager.kernel_name if self.spec_manager else None
 
     @property
+    def kernel_display_name(self):
+        return self.spec_manager.display_name if self.spec_manager else None
+
+    @property
     def mamba_spec_file(self):
         return self.config.output_dir / f"{self.spec_manager.moniker}-mamba.yml"
 
@@ -398,7 +402,7 @@ class NotebookWrangler:
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        return self.env_manager.register_environment(self.env_name)
+        return self.env_manager.register_environment(self.env_name, self.kernel_display_name)
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""
