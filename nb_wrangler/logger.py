@@ -95,18 +95,18 @@ class ColorAndTimeFormatter(logging.Formatter):
         """Build the log format string with appropriate colors."""
         level_color = ANSI_COLORS[LEVEL_COLORS.get(record.levelno, "reset")]
         if not self.use_color:
-            normal_color = elapsed_color = message_color = level_color = ""
+            reset_color = normal_color = elapsed_color = message_color = level_color = ""
         else:
             normal_color = NORMAL_COLOR
             elapsed_color = ELAPSED_COLOR
             message_color = MESSAGE_COLOR
-
+            reset_color = RESET_COLOR
         log_fmt = level_color + "%(levelname)s: "
         if self.log_times in ["normal", "both"]:
             log_fmt += normal_color + "%(asctime)s%(msecs)03d "
         if self.log_times in ["elapsed", "both"]:
             log_fmt += elapsed_color + elapsed + " "
-        log_fmt += RESET_COLOR + message_color + "%(message)s"
+        log_fmt += reset_color + message_color + "%(message)s"
         return log_fmt
 
     def format(self, record):
