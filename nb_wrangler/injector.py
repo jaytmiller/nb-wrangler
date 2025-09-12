@@ -21,13 +21,6 @@ def get_injector(
     return SpiInjector(logger, repo_manager, spec_manager)
 
 
-def get_ingest_name(image_name: str) -> str:
-    """Name of spec when added to wrangler ingest directory."""
-    # replace spaces, dots, etc. with "-"
-    ingestified = re.sub("[^0-9a-zA-Z-]", "-", image_name)
-    return "nbw-" + ingestified + "-" + utils.hex_time() + ".yaml"
-
-
 class SpiInjector:
     """
     A class for interacting with a Science Platform Images (SPI) respository,
@@ -80,27 +73,52 @@ class SpiInjector:
         name = self.url.split("/")[-1]
         return name.split(".")[0]
 
+    @property
+    def spec_id(self):
+        return self.spec_mananger.sha256[:6]
+
+    @property
+    def core_name(self):
+        """Core name for both submission branch and archived spec,  minus file extension."
+
+        Designed to sort repo spec archive simply into time order with the latest spec last
+        and also to be directly traceable to the contents of the spec it names. This enables
+        verifying that the image built and tagged corresponds to the submission.
+
+        Based on: submission/current time, sanitized image name, prefix of spec sha256.
+        """
+        # Replace spaces, dots, etc. with "-".  Preserve case.
+        ingestified = re.sub("[^0-9a-zA-Z-]", "-", self.spec_manager.image_name)
+        return "-".join(["nbw", utils.hex_time(), ingestified, self.spec_id]) + ".yaml"
+
+    @property
+    def ingest_branch(self):
+        """Name of branch that will be PR'ed for this submission."""
+        return self.core_name
+
+    @property
+    def ingest_name(self) -> str:
+        """Name of spec when added to wrangler nbw-spec-archive directory, traceable to both
+        ingest branch, image tag, and PR.
+        """
+        return self.core_name + ".yaml"
+
     def submit_for_build(self):
-        new_ingest_branch = "nbw-ingest-" + utils.hex_time()
-        ingest_name = get_ingest_name(self.spec_manager.image_name)
-        title = f"Wrangler spec for build {ingest_name}."
+        title = f"Wrangler spec for build {self.ingest_name}."
         message = f"""
-Added wrangler spec {ingest_name} for {self.spec_manager.deployment_name}.
+Added wrangler spec {self.ingest_name} for {self.spec_manager.deployment_name}.
 Hash: {self.spec_manager.sha256}
 Description:
 {self.spec_manager.description}
         """
-
         if not self.add_to_ingest(
-            self.base_ingest_branch, ingest_name, new_ingest_branch, message
+            self.base_ingest_branch, self.ingest_name, self.ingest_branch, message
         ):
             return False
-
         if not self.push_and_pr(
-            self.base_ingest_branch, new_ingest_branch, title, message
+            self.base_ingest_branch, self.ingest_branch, title, message
         ):
             return False
-
         return self.logger.info("Spec submission complete.")
 
     def add_to_ingest(

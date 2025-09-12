@@ -95,7 +95,9 @@ class ColorAndTimeFormatter(logging.Formatter):
         """Build the log format string with appropriate colors."""
         level_color = ANSI_COLORS[LEVEL_COLORS.get(record.levelno, "reset")]
         if not self.use_color:
-            reset_color = normal_color = elapsed_color = message_color = level_color = ""
+            reset_color = normal_color = elapsed_color = message_color = level_color = (
+                ""
+            )
         else:
             normal_color = NORMAL_COLOR
             elapsed_color = ELAPSED_COLOR

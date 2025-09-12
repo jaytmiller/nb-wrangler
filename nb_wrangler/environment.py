@@ -244,7 +244,7 @@ class EnvironmentManager:
             f"Package un-installation of {env_name} completed successfully.",
         )
 
-    def register_environment(self, env_name: str, display_name=None) -> bool:
+    def register_environment(self, env_name: str, display_name: str) -> bool:
         """Register Jupyter environment for the environment.
 
         nbwrangler environment should work here since it is modifying
@@ -252,11 +252,8 @@ class EnvironmentManager:
         user has.
         """
         cmd = self._condition_cmd(
-            f"python -m ipykernel install --user --name {env_name} --display-name "
+            f"python -m ipykernel install --user --name {env_name} --display-name {display_name}"
         )
-        cmd += [
-            display_name or env_name
-        ]  # display name may be multi-word,  string splits break quoting
         result = self.env_run(env_name, cmd, check=False)
         return self.handle_result(
             result,

@@ -59,7 +59,7 @@ class NotebookWrangler:
 
     @property
     def kernel_display_name(self):
-        return self.spec_manager.display_name if self.spec_manager else None
+        return self.spec_manager.display_name if self.spec_manager else self.env_name
 
     @property
     def mamba_spec_file(self):
@@ -177,16 +177,16 @@ class NotebookWrangler:
             (self.config.test_imports, self._test_imports),
             (self.config.test_notebooks, self._test_notebooks),
             (self.config.inject_spi, self.injector.inject),
-            (self.config.reset_spec, self._reset_spec),
             (self.config.validate_spec, self._validate_spec),
+            (self.config.pack_env, self._pack_environment),
+            (self.config.unpack_env, self._unpack_environment),
+            (self.config.register_env, self._register_environment),
+            (self.config.unregister_env, self._unregister_environment),
             (self.config.delete_repos, self.repo_manager.delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
-            (self.config.pack_env, self._pack_environment),
-            (self.config.unpack_env, self._unpack_environment),
             (self.config.compact, self._compact),
-            (self.config.register_env, self._register_environment),
-            (self.config.unregister_env, self._unregister_environment),
+            (self.config.reset_spec, self._reset_spec),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -309,7 +309,9 @@ class NotebookWrangler:
             spec_file.write(mamba_spec)
         if not self.env_manager.create_environment(self.env_name, self.mamba_spec_file):
             return False
-        if not self.env_manager.register_environment(self.env_name):
+        if not self.env_manager.register_environment(
+            self.env_name, self.kernel_display_name
+        ):
             return False
         return self._copy_spec_to_env()
 
@@ -385,7 +387,9 @@ class NotebookWrangler:
     def _unpack_environment(self) -> bool:
         if not self.env_manager.unpack_environment(self.env_name, self.archive_format):
             return False
-        if not self.env_manager.register_environment(self.env_name):
+        if not self.env_manager.register_environment(
+            self.env_name, self.kernel_display_name
+        ):
             return False
         return True
 
@@ -402,7 +406,9 @@ class NotebookWrangler:
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        return self.env_manager.register_environment(self.env_name, self.kernel_display_name)
+        return self.env_manager.register_environment(
+            self.env_name, self.kernel_display_name
+        )
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""

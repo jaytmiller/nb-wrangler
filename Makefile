@@ -53,7 +53,7 @@ functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
 
 
 fnc-preclean:
-	rm -rf ${HOME}/.nbw-live  ${HOME}/.nbw-pantry ./references
+	rm -rf ${HOME}/.nbw-live  ./references
 
 fnc-bootstrap: fnc-preclean
 	# curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler

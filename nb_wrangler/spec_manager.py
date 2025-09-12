@@ -34,7 +34,7 @@ class SpecManager:
         return self.header["kernel_name"]
 
     @property
-    def display_name(self) -> str: # readable name in lab menu
+    def display_name(self) -> str:  # readable name in lab menu
         return self.header.get("display_name", self.kernel_name)
 
     @property
