@@ -27,9 +27,7 @@ dependencies = [
     "papermill>=2.4.0",
     "ruamel-yaml>=0.17.0",
     "uv",
-    "mamba",
     "setuptools",
-    "pipdeptree",
     "boto3",
 ]
 

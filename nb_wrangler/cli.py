@@ -15,7 +15,8 @@ from .constants import (
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DEFAULT_MICROMAMBA_PATH,
+    DEFAULT_MAMBA_COMMAND,
+    DEFAULT_PIP_COMMAND,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     VALID_ARCHIVE_FORMATS,
@@ -195,10 +196,16 @@ def parse_args():
         help="Delete --repo-dir and clones after processing.",
     )
     parser.add_argument(
-        "--micromamba-path",
+        "--mamba-command",
         type=str,
-        default=DEFAULT_MICROMAMBA_PATH,
-        help="Path to micromamba program to use for wrangler environment management.",
+        default=DEFAULT_MAMBA_COMMAND,
+        help="Mamba program to use for wrangler environment management.",
+    )
+    parser.add_argument(
+        "--pip-command",
+        type=str,
+        default=DEFAULT_PIP_COMMAND,
+        help="Pip program/command to use for wrangler environment management.",
     )
     parser.add_argument(
         "--reset-spec",

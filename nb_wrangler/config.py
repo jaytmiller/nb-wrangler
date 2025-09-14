@@ -9,7 +9,8 @@ import argparse
 from . import logger
 from .constants import (
     NBW_ROOT,
-    DEFAULT_MICROMAMBA_PATH,
+    DEFAULT_MAMBA_COMMAND,
+    DEFAULT_PIP_COMMAND,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     DEFAULT_LOG_TIMES_MODE,
@@ -25,7 +26,8 @@ class WranglerConfig:
     spec_file: str
 
     logger: Optional["logger.WranglerLogger"] = None
-    micromamba_path: Path = DEFAULT_MICROMAMBA_PATH
+    mamba_command: Path = DEFAULT_MAMBA_COMMAND
+    pip_command: Path = DEFAULT_PIP_COMMAND
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
@@ -85,7 +87,7 @@ class WranglerConfig:
         """Create WranglerConfig from argparse Namespace and spec file."""
         return cls(
             spec_file=args.spec_uri,
-            micromamba_path=args.micromamba_path,
+            mamba_command=args.mamba_command,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

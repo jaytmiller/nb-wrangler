@@ -35,7 +35,8 @@ class NotebookWrangler:
             raise RuntimeError("repos_dir not configured")
         self.env_manager = EnvironmentManager(
             self.logger,
-            self.config.micromamba_path,
+            self.config.mamba_command,
+            self.config.pip_command,
         )
         self.repo_manager = RepositoryManager(
             self.logger, config.repos_dir, self.env_manager

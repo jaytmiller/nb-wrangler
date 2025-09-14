@@ -45,10 +45,14 @@ class EnvironmentManager:
     # ------------------------------------------------------------------------------
 
     def __init__(
-        self, logger: WranglerLogger, micromamba_path: str | Path = "micromamba"
+        self,
+        logger: WranglerLogger,
+        mamba_command: str | Path = "micromamba",
+        pip_command: str | Path = "pip",
     ):
         self.logger = logger
-        self.micromamba_path = str(micromamba_path)
+        self.mamba_command = str(mamba_command)
+        self.pip_command = str(pip_command)
         self.nbw_pantry_dir.mkdir(exist_ok=True, parents=True)
 
     @property
@@ -152,7 +156,7 @@ class EnvironmentManager:
         """
         command = self._condition_cmd(command)
         self.logger.debug(f"Running command {command} in environment: {environment}")
-        mm_prefix = [self.micromamba_path, "run", "-n", environment]
+        mm_prefix = [self.mamba_command, "run", "-n", environment]
         return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
@@ -181,7 +185,7 @@ class EnvironmentManager:
     ) -> bool:
         """Create a new environment."""
         self.logger.info(f"Creating environment: {env_name}")
-        mm_prefix = [self.micromamba_path, "create", "--yes", "-n", env_name]
+        mm_prefix = [self.mamba_command, "create", "--yes", "-n", env_name]
         command = mm_prefix + ["-f", str(micromamba_specfile)]
         result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
@@ -193,7 +197,7 @@ class EnvironmentManager:
     def delete_environment(self, env_name: str) -> bool:
         """Delete an existing environment."""
         self.logger.info(f"Deleting environment: {env_name}")
-        command = self.micromamba_path + " env remove --yes -n " + env_name
+        command = self.mamba_command + " env remove --yes -n " + env_name
         result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
@@ -207,7 +211,7 @@ class EnvironmentManager:
             f"Installing packages from: {[str(p) for p in requirements_paths]}"
         )
 
-        cmd = "uv pip install"
+        cmd = self.pip_command + " install"
         for path in requirements_paths:
             cmd += " -r " + str(path)
 
@@ -273,7 +277,7 @@ class EnvironmentManager:
 
     def environment_exists(self, env_name: str) -> bool:
         """Return True IFF `env_name` exists."""
-        cmd = self.micromamba_path + " env list --json"
+        cmd = self.mamba_command + " env list --json"
         try:
             result = self.wrangler_run(cmd, check=True)
         except Exception as e:
