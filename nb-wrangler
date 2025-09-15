@@ -19,7 +19,6 @@ setup_env() {
     export PATH="${NBW_MM}/envs/nbwrangler/bin:${PATH}"
 
     # Detect current shell for micromamba hook
-    set +u
     if [ -n "$ZSH_VERSION" ]; then
         NBW_SHELL="zsh"
     elif [ -n "$BASH_VERSION" ]; then
@@ -34,7 +33,6 @@ setup_env() {
             *) NBW_SHELL="bash";;
         esac
     fi
-    set -u
     export NBW_SHELL
 }
 
