@@ -20,7 +20,7 @@ from typing import Any
 
 
 from .logger import WranglerLogger
-from .constants import NBW_ROOT, NBW_PANTRY
+from .constants import NBW_ROOT, NBW_PANTRY, NBW_MM
 from .constants import (
     DEFAULT_TIMEOUT,
     ENV_CREATE_TIMEOUT,
@@ -61,7 +61,7 @@ class EnvironmentManager:
 
     @property
     def nbw_mm_dir(self) -> Path:
-        return NBW_ROOT / "mm"
+        return NBW_MM
 
     @property
     def nbw_pantry_dir(self) -> Path:
