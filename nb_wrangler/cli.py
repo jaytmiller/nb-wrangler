@@ -195,18 +195,18 @@ def parse_args():
         action="store_true",
         help="Delete --repo-dir and clones after processing.",
     )
-    parser.add_argument(
-        "--mamba-command",
-        type=str,
-        default=DEFAULT_MAMBA_COMMAND,
-        help="Mamba program to use for wrangler environment management.",
-    )
-    parser.add_argument(
-        "--pip-command",
-        type=str,
-        default=DEFAULT_PIP_COMMAND,
-        help="Pip program/command to use for wrangler environment management.",
-    )
+    # parser.add_argument(
+    #     "--mamba-command",
+    #     type=str,
+    #     default=DEFAULT_MAMBA_COMMAND,
+    #     help="Mamba program to use for wrangler environment management.",
+    # )
+    # parser.add_argument(
+    #     "--pip-command",
+    #     type=str,
+    #     default=DEFAULT_PIP_COMMAND,
+    #     help="Pip program/command to use for wrangler environment management.",
+    # )
     parser.add_argument(
         "--reset-spec",
         action="store_true",

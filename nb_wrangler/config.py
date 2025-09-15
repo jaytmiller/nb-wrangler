@@ -87,7 +87,8 @@ class WranglerConfig:
         """Create WranglerConfig from argparse Namespace and spec file."""
         return cls(
             spec_file=args.spec_uri,
-            mamba_command=args.mamba_command,
+            # mamba_command=args.mamba_command,   # controlled via env var only
+            # pip_command=args.pip_command,   # controlled via env var only
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

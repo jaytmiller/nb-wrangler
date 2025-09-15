@@ -7,35 +7,50 @@ setup_env() {
     export NBW_ROOT=${NBW_ROOT:-"$HOME/.nbw-live"}
     export NBW_PANTRY=${NBW_PANTRY:-"${NBW_ROOT}/pantry"}
     export NBW_MM="${NBW_ROOT}/mm"
+    export MAMBA_ROOT_PREFIX=${NBW_MM}
+    export NBW_MAMBA_CMD=${NBW_MAMBA_CMD:-"${NBW_MM}/bin/micromamba"}
+    export NBW_MAMBA="$(basename $NBW_MAMBA_CMD)"
+    export NBW_PIP_CMD=${NBW_PIP_CMD:-"uv pip"}
     export NBW_CACHE="${NBW_ROOT}/cache"
     export UV_CACHE_DIR="${NBW_CACHE}/uv"
     export PIP_CACHE_DIR="${NBW_CACHE}/pip"
-    export MAMBA_ROOT_PREFIX=${NBW_MM}
     export NBW_URL="https://github.com/spacetelescope/nb-wrangler"
-    export PATH=${NBW_MM}/bin:${PATH}
-    export PATH=${NBW_MM}/envs/nbwrangler/bin:${PATH}
+    export PATH="${NBW_MM}/bin:${PATH}"
+    export PATH="${NBW_MM}/envs/nbwrangler/bin:${PATH}"
 
     # Detect current shell for micromamba hook
+    set +u
     if [ -n "$ZSH_VERSION" ]; then
-        export NBW_SHELL="zsh"
+        NBW_SHELL="zsh"
     elif [ -n "$BASH_VERSION" ]; then
-        export NBW_SHELL="bash"
+        NBW_SHELL="bash"
     elif [ -n "$FISH_VERSION" ]; then
-        export NBW_SHELL="fish"
+        NBW_SHELL="fish"
     else
         # Fallback to detecting from $SHELL or $0
         case "${SHELL##*/}" in
-            zsh) export NBW_SHELL="zsh" ;;
-            fish) export NBW_SHELL="fish" ;;
-            *) export NBW_SHELL="bash" ;;
+            zsh) NBW_SHELL="zsh";;
+            fish) NBW_SHELL="fish";;
+            *) NBW_SHELL="bash";;
         esac
     fi
+    set -u
+    export NBW_SHELL
 }
 
 bootstrap() {
-    export OS=$(uname -s | awk '{ print tolower($1); } ')
-    export ARCH=$(uname -m | awk '{ print tolower($1); }')
-    case "$OS-$ARCH" in
+    rm -rf "${NBW_MM}"
+    install_micromamba
+    install_nbwrangler
+}
+
+install_micromamba() {
+    echo "Installing micromamba..."
+
+    local OS=$(uname -s | tr '[:upper:]' '[:lower:]')
+    local ARCH=$(uname -m | tr '[:upper:]' '[:lower:]')
+
+    case "${OS}-${ARCH}" in
         linux-x86_64)
             URL=https://micro.mamba.pm/api/micromamba/linux-64/latest
             ;;
@@ -49,47 +64,74 @@ bootstrap() {
             URL=https://micro.mamba.pm/api/micromamba/osx-arm64/latest
             ;;
         *)
+            echo "Unsupported OS or architecture: ${OS}-${ARCH}"
             ;;
     esac
 
-    # Git OS/CPU-specific micromamba binary
-    ( mkdir -p ${NBW_MM}; cd ${NBW_MM}; curl -Ls $URL | tar -xvj bin/micromamba )
+    # Download and extract micromamba binary
+    if ! mkdir -p "${NBW_MM}"; then
+        echo "Failed to create directory: ${NBW_MM}"
+        return 1
+    fi
+    cd "$NBW_MM"
 
-    # Before using the shell hook, verify it's supported
-    if ! $NBW_MM/bin/micromamba shell hook --shell $NBW_SHELL >/dev/null 2>&1; then
-        echo "Warning: Shell '$NBW_SHELL' may not be fully supported by micromamba"
-        export NBW_SHELL="bash"  # fallback
+    if ! curl --silent --location "$URL" | tar xvj bin/micromamba; then
+        echo "Failed to download and extract micromamba"
+        return 1
     fi
 
-    eval "$($NBW_MM/bin/micromamba shell hook --shell $NBW_SHELL)"
+    # Verify shell hook support for micromamba
+    if ! "${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}" >/dev/null 2>&1; then
+        echo "Warning: Shell '${NBW_SHELL}' may not be fully supported by micromamba"
+        export NBW_SHELL="bash"  # fallback to bash if unsupported
+    fi
 
-    micromamba config append channels conda-forge
-    micromamba config set channel_priority strict
-    micromamba self-update
+    eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
 
-    micromamba activate  # this activates the base environment
-    micromamba create -n nbwrangler -c conda-forge
-    micromamba activate nbwrangler
+    "${NBW_MAMBA}" config append channels conda-forge
+    "${NBW_MAMBA}" config set channel_priority strict
+    "${NBW_MAMBA}" self-update
+
+    # Generate initialization script for micromamba
+    # "${NBW_MAMBA}" shell init -s "${NBW_SHELL}" # > "${NBW_ROOT}/micromamba-init.sh"
+    "${NBW_MAMBA}" activate  # this activates the base environment
+}
+
+install_nbwrangler() {
+    echo "Installing nb-wrangler..."
+    if ! "${NBW_MAMBA}" create -n nbwrangler -c conda-forge; then
+        echo "Failed to create conda environment: nbwrangler"
+        return 1
+    fi
+
+    source "${NBW_MAMBA}" activate nbwrangler
 
     # Just set up python and installer tools
-    micromamba install --quiet --yes  -c conda-forge python=${NBW_PYTHON_VERSION} uv
+    if ! "${NBW_MAMBA}" install --quiet --yes -c conda-forge python="${NBW_PYTHON_VERSION}" uv jq; then
+        echo "Failed to install required packages: python, uv, jq"
+        return 1
+    fi
+
     uv pip install --quiet ruamel.yaml papermill ipykernel jupyter setuptools wheel yq boto3
 
     # Install nb-wrangler packager from github source including dependencies
     if [ ! -e .nb-wrangler-repo-id ]; then
         rm -rf nbw-temp
         mkdir nbw-temp
-        ( cd nbw-temp
-            git clone $NBW_URL
-            cd nb-wrangler
-            uv pip install --quiet .
-        )
+        ( cd nbw-temp && git clone "${NBW_URL}" && cd "nb-wrangler" && uv pip install --quiet . )
         rm -rf nbw-temp
     else
         uv pip install --quiet .[dev]
     fi
+
+    echo '--------------------------------------------------------------------------------------------------------------------------'
+    echo "OK nb-wrangler is installed. It's recommended to put the nb-wrangler wrapper script on your PATH."
+    echo 'To use nb-wrangler: "source nb-wrangler activate". Then type "nb-wrangler [command]".'
+    echo 'To stop using nb-wrangler: "source nb-wrangler deactivate".'
+    echo '--------------------------------------------------------------------------------------------------------------------------'
 }
 
+# ===========================================================================================
 if [ $# -eq 0 ]; then
     echo "usage: nb-wrangler 'bootstrap' or '--help' or  '<yaml-spec> switches...'"
     echo
@@ -99,61 +141,21 @@ fi
 
 setup_env
 
-case $1 in
-    boot*)
-        rm -rf ${NBW_MM}
-        bootstrap;
-        echo '--------------------------------------------------------------------------------------------------------------------------'
-        echo "OK nb-wrangler is installed. It's recommended to put the nb-wrangler wrapper script on your PATH."
-        echo 'To use nb-wrangler: "source nb-wrangler activate". Then type "nb-wrangler [command]".'
-        echo 'To stop using nb-wrangler: "source nb-wrangler deactivate".'
-        echo '--------------------------------------------------------------------------------------------------------------------------'
-        ;;
-    *)
-    ;;
-esac
-
-eval "$($NBW_MM/bin/micromamba shell hook --shell $NBW_SHELL)"
-
 NBW_COMMAND=$1
 shift;
 
-
-
 case $NBW_COMMAND in
     boot*)
-        if [ $# -gt 0 ]; then
-            echo "Proceeding with nb-wrangler installation of notebook spec $1"
-            echo '--------------------------------------------------------------------------------------------------------------------'
-            micromamba activate nbwrangler
-            SPEC=$1; shift;
-            set -eu
-            CURATED_ENV=$(yq .image_spec_header.image_name $SPEC)
-            if python -m nb_wrangler ${SPEC} --install $*; then
-                echo '--------------------------------------------------------------------------------------------------------------------------'
-                echo "OK Spec $SPEC installation complete."
-                echo "To use the environment: 'source nb-wrangler activate ${CURATED_ENV}'."
-                echo "To stop using the environment: 'source deactivate'."
-                echo '--------------------------------------------------------------------------------------------------------------------'
-                exit 0
-            else
-                echo "Installing notebook spec ${SPEC} FAILED.  nb-wrangler's base environment should still be usable."
-                echo '--------------------------------------------------------------------------------------------------------------------'
-                exit 1
-            fi
-        else
-            exit 0
-        fi
-    ;;
+        bootstrap
+        ;;
     env*|act*)
-        micromamba activate ${*:-nbwrangler}
+        source ${NBW_MAMBA} activate ${*:-nbwrangler}
         ;;
     deact*)
-        micromamba deactivate
+        ${NBW_MAMBA} deactivate
         ;;
     *)
-        set -eu
-        micromamba activate nbwrangler
+        source ${NBW_MAMBA} activate nbwrangler
         python -m nb_wrangler $NBW_COMMAND $*
         ;;
 esac
