@@ -15,8 +15,6 @@ from .constants import (
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DEFAULT_MAMBA_COMMAND,
-    DEFAULT_PIP_COMMAND,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     VALID_ARCHIVE_FORMATS,
@@ -102,6 +100,12 @@ def parse_args():
         help="Colorize the log.",
     )
     parser.add_argument(
+        "--override-env",
+        type=str,
+        default=None,
+        help="Optionally install to a different comma seperated environment,display-name.",
+    )
+    parser.add_argument(
         "--init-env",
         action="store_true",
         help="Create and kernelize the target environment before curation run. See also --delete-env.",
@@ -131,6 +135,7 @@ def parse_args():
         action="store_true",
         help="Unregister the target environment from Jupyter.",
     )
+
     parser.add_argument(
         "--archive-format",
         default="",

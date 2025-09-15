@@ -56,11 +56,21 @@ class NotebookWrangler:
 
     @property
     def env_name(self):
-        return self.spec_manager.kernel_name if self.spec_manager else None
+        """e.g.  override_env = None or tess,TESS or tess"""
+        if self.config.override_env is not None:
+            return self.config.override_env.split(",")[0]
+        else:
+            return self.spec_manager.kernel_name if self.spec_manager else None
 
     @property
     def kernel_display_name(self):
-        return self.spec_manager.display_name if self.spec_manager else self.env_name
+        if self.config.override_env is not None:
+            if len(self.config.override_env.split(",")) > 1:
+                return self.config.override_env.split(",")[1]
+            else:
+                return self.env_name
+        else:
+            return self.spec_manager.display_name if self.spec_manager else self.env_name
 
     @property
     def mamba_spec_file(self):
