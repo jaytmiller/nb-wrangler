@@ -25,7 +25,7 @@ jobs:
         run: |
           ./nb-wrangler bootstrap
           source ./nb-wrangler environment
-          pip install --group dev
+          pip install .[dev]
 
       - name: Lint
         run: |
