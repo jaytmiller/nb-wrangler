@@ -102,7 +102,7 @@ install_nbwrangler() {
         return 1
     fi
 
-    source "${NBW_MAMBA}" activate nbwrangler
+    "${NBW_MAMBA}" activate nbwrangler
 
     # Just set up python and installer tools
     if ! "${NBW_MAMBA}" install --quiet --yes -c conda-forge python="${NBW_PYTHON_VERSION}" uv jq; then
@@ -146,14 +146,25 @@ case $NBW_COMMAND in
     boot*)
         bootstrap
         ;;
-    env*|act*)
-        source ${NBW_MAMBA} activate ${*:-nbwrangler}
+    *)
+        ;;
+esac
+
+eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
+
+case $NBW_COMMAND in
+    boot*)
+        ;;
+    env*)
+        ;;
+    act*)
+        ${NBW_MAMBA} activate ${*:-nbwrangler}
         ;;
     deact*)
         ${NBW_MAMBA} deactivate
         ;;
     *)
-        source ${NBW_MAMBA} activate nbwrangler
+        ${NBW_MAMBA} activate nbwrangler
         python -m nb_wrangler $NBW_COMMAND $*
         ;;
 esac
