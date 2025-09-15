@@ -1,37 +1,39 @@
 name: Notebook Wrangler PR Check
 on:
    pull_request_target:
+      branches:
+        - main
    push:
       branches:
         - main
 jobs:
-  name: Notebook Wrangler Ingest
-  runs-on: ubuntu-22.04
+  nb-wrangler-make:
+    name: Notebook Wrangler Ingest
+    runs-on: 'ubuntu-22.04'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
 
-  steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        ref: ${{ github.event.pull_request.head.ref }}
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: 3.12
 
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: 3.12
-
-    - name: Bootstrap Wrangler
-      run: |
-        curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
-        chmod +x nb-wrangler
-        ./nb-wrangler bootstrap
-        source ./nb-wrangler environment
-
-    - name: Lint
-      run: |
+      - name: Bootstrap Wrangler
+        run: |
+          curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
+          chmod +x nb-wrangler
+          ./nb-wrangler bootstrap
           source ./nb-wrangler environment
-          make functional
 
-    - name: Functional Tests
-      run: |
-          source ./nb-wrangler environment
-          make functional
+      - name: Lint
+        run: |
+            source ./nb-wrangler environment
+            make lint
+
+      - name: Functional Tests
+        run: |
+            source ./nb-wrangler environment
+            make functional
