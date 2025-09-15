@@ -352,6 +352,7 @@ class NotebookWrangler:
         self.logger.debug("Copying spec to target environment.")
         return self.spec_manager.save_spec(
             self.env_manager.env_live_path(self.env_name),
+            add_sha256=not self.config.ignore_spec_hash,
         )
 
     def _save_final_spec(self) -> bool:
