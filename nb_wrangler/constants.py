@@ -9,6 +9,7 @@ __version__ = "0.2.0"
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
 NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
+NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
 NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", NBW_ROOT / "pantry"))
 REPOS_DIR = Path("./references")

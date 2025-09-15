@@ -70,7 +70,9 @@ class NotebookWrangler:
             else:
                 return self.env_name
         else:
-            return self.spec_manager.display_name if self.spec_manager else self.env_name
+            return (
+                self.spec_manager.display_name if self.spec_manager else self.env_name
+            )
 
     @property
     def mamba_spec_file(self):

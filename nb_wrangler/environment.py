@@ -9,7 +9,6 @@ uv is used to manage pip packages in the target environment.
 environmentsinstall non-pip Python packages
 """
 
-import os
 import json
 import shutil
 import shlex
@@ -20,7 +19,7 @@ from typing import Any
 
 
 from .logger import WranglerLogger
-from .constants import NBW_ROOT, NBW_PANTRY, NBW_MM
+from .constants import NBW_ROOT, NBW_PANTRY, NBW_MM, NBW_CACHE
 from .constants import (
     DEFAULT_TIMEOUT,
     ENV_CREATE_TIMEOUT,
@@ -68,10 +67,6 @@ class EnvironmentManager:
         return NBW_PANTRY
 
     @property
-    def mm_envs_dir(self) -> Path:
-        return self.nbw_mm_dir / "envs"
-
-    @property
     def mm_pkgs_dir(self) -> Path:
         return self.nbw_mm_dir / "pkgs"
 
@@ -81,14 +76,22 @@ class EnvironmentManager:
 
     @property
     def nbw_cache_dir(self) -> Path:
-        cache_path = os.environ.get("NBW_CACHE")
-        return Path(cache_path) if cache_path else self.nbw_root_dir / "cache"
+        return Path(NBW_CACHE)
 
     def env_archive_path(self, env_name: str, archive_format: str) -> Path:
         return self.nbw_pantry_dir / "envs" / (env_name.lower() + archive_format)
 
+    def mm_envs_dir(self, env_name: str) -> Path:
+        if env_name == "base":
+            return self.nbw_mm_dir
+        else:
+            return self.nbw_mm_dir / "envs"
+
     def env_live_path(self, env_name: str) -> Path:
-        return self.mm_envs_dir / env_name
+        if env_name == "base":
+            return self.mm_envs_dir(env_name) / env_name
+        else:
+            return self.mm_envs_dir(env_name)
 
     def _condition_cmd(self, cmd: list[str] | tuple[str] | str) -> list[str]:
         """Condition the command into a list of UNIX CLI 'words'.
