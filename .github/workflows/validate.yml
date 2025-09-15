@@ -27,11 +27,11 @@ jobs:
         source ./nb-wrangler environment
 
     - name: Lint
-        run: |
+      run: |
           source ./nb-wrangler environment
           make functional
 
     - name: Functional Tests
-        run: |
+      run: |
           source ./nb-wrangler environment
           make functional
