@@ -23,10 +23,9 @@ jobs:
 
       - name: Bootstrap Wrangler
         run: |
-          curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
-          chmod +x nb-wrangler
           ./nb-wrangler bootstrap
           source ./nb-wrangler environment
+          pip install --group dev
 
       - name: Lint
         run: |
