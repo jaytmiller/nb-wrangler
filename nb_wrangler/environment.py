@@ -89,9 +89,9 @@ class EnvironmentManager:
 
     def env_live_path(self, env_name: str) -> Path:
         if env_name == "base":
-            return self.mm_envs_dir(env_name) / env_name
-        else:
             return self.mm_envs_dir(env_name)
+        else:
+            return self.mm_envs_dir(env_name) / env_name
 
     def _condition_cmd(self, cmd: list[str] | tuple[str] | str) -> list[str]:
         """Condition the command into a list of UNIX CLI 'words'.
