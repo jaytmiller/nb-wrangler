@@ -9,6 +9,7 @@ import argparse
 from . import logger
 from .constants import (
     NBW_ROOT,
+    NBW_OVERRIDE_ENV,
     DEFAULT_MAMBA_COMMAND,
     DEFAULT_PIP_COMMAND,
     NOTEBOOK_TEST_MAX_SECS,
@@ -38,7 +39,7 @@ class WranglerConfig:
     clone_repos: bool = False
     delete_repos: bool = False
 
-    override_env: Optional[str] = None
+    override_env: Optional[str] = NBW_OVERRIDE_ENV
     init_env: bool = False
     pack_env: bool = False
     unpack_env: bool = False
@@ -97,7 +98,6 @@ class WranglerConfig:
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,
-            override_env=args.override_env,
             init_env=args.init_env,
             pack_env=args.pack_env,
             unpack_env=args.unpack_env,

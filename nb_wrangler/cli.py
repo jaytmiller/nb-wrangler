@@ -100,12 +100,6 @@ def parse_args():
         help="Colorize the log.",
     )
     parser.add_argument(
-        "--override-env",
-        type=str,
-        default=None,
-        help="Optionally install to a different comma seperated environment,display-name.",
-    )
-    parser.add_argument(
         "--init-env",
         action="store_true",
         help="Create and kernelize the target environment before curation run. See also --delete-env.",

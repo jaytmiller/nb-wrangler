@@ -16,7 +16,6 @@ setup_env() {
     export PIP_CACHE_DIR="${NBW_CACHE}/pip"
     export NBW_URL="https://github.com/spacetelescope/nb-wrangler"
     export PATH="${NBW_MM}/bin:${PATH}"
-    export PATH="${NBW_MM}/envs/nbwrangler/bin:${PATH}"
 
     # Detect current shell for micromamba hook
     if [ -n "$ZSH_VERSION" ]; then
