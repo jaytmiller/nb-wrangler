@@ -8,7 +8,7 @@ on:
         - main
 jobs:
   nb-wrangler-make:
-    name: Notebook Wrangler Ingest
+    name: PR Check
     runs-on: 'ubuntu-22.04'
     steps:
       - name: Checkout Code
