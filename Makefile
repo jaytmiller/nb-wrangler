@@ -61,55 +61,55 @@ fnc-bootstrap: fnc-preclean
 	./nb-wrangler bootstrap
 
 fnc-curate:
-	./nb-wrangler --verbose tike-2025-07-beta.yaml --curate
+	./nb-wrangler  tike-2025-07-beta.yaml --curate
 
 fnc-reinstall:
-	./nb-wrangler --verbose tike-2025-07-beta.yaml --reinstall
+	./nb-wrangler  tike-2025-07-beta.yaml --reinstall
 
 fnc-uninstall: fnc-curate
-	./nb-wrangler --verbose tike-2025-07-beta.yaml --uninstall
+	./nb-wrangler  tike-2025-07-beta.yaml --uninstall
 
 fnc-install: fnc-curate fnc-uninstall
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --install
+	./nb-wrangler   tike-2025-07-beta.yaml --install
 
 fnc-pack-env: fnc-install
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --pack-env
+	./nb-wrangler   tike-2025-07-beta.yaml --pack-env
 
 fnc-unpack-env:  fnc-uninstall
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --unpack-env
+	./nb-wrangler   tike-2025-07-beta.yaml --unpack-env
 
 fnc-test-imports: fnc-install
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --test-imports
+	./nb-wrangler   tike-2025-07-beta.yaml --test-imports
 
 fnc-test-notebooks: fnc-install
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --test-notebooks
+	./nb-wrangler   tike-2025-07-beta.yaml --test-notebooks
 
 fnc-test: fnc-install
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml -t
+	./nb-wrangler   tike-2025-07-beta.yaml -t
 
 fnc-compact: fnc-install
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --compact
+	./nb-wrangler   tike-2025-07-beta.yaml --compact
 
 fnc-compile: fnc-clone
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --compile
+	./nb-wrangler   tike-2025-07-beta.yaml --compile
 
 fnc-clone:
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --clone
+	./nb-wrangler   tike-2025-07-beta.yaml --clone
 
 fnc-init-env: fnc-compile
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --init-env
+	./nb-wrangler   tike-2025-07-beta.yaml --init-env
 
 fnc-delete-env: fnc-init-env
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --delete-env
+	./nb-wrangler   tike-2025-07-beta.yaml --delete-env
 
 fnc-register-env: fnc-init-env
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --register-env
+	./nb-wrangler   tike-2025-07-beta.yaml --register-env
 
 fnc-unregister-env: fnc-init-env
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --unregister-env
+	./nb-wrangler   tike-2025-07-beta.yaml --unregister-env
 
 fnc-reset-spec: fnc-compile
-	./nb-wrangler --verbose  tike-2025-07-beta.yaml --reset-spec
+	./nb-wrangler   tike-2025-07-beta.yaml --reset-spec
 	git checkout -- tike-2025-07-beta.yaml
 
 

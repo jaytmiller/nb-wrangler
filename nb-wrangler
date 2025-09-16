@@ -158,7 +158,7 @@ case $NBW_COMMAND in
     env*)
         ;;
     act*)
-        ${NBW_MAMBA} activate ${*:-nbwrangler}
+        ${NBW_MAMBA} activate $*
         ;;
     deact*)
         ${NBW_MAMBA} deactivate
