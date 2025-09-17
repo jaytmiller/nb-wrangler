@@ -89,7 +89,7 @@ class SpiInjector:
         """
         # Replace spaces, dots, etc. with "-".  Preserve case.
         ingestified = re.sub("[^0-9a-zA-Z-]", "-", self.spec_manager.image_name)
-        return "-".join(["nbw", utils.hex_time(), ingestified, self.spec_id]) + ".yaml"
+        return "-".join(["nbw", utils.hex_time(), ingestified, self.spec_id])
 
     @property
     def ingest_branch(self):
