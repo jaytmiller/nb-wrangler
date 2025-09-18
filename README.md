@@ -73,7 +73,7 @@ nb-wrangler spec.yaml --curate [--verbose]
 
 ## Build Submission
 
-After completing development of a spec,  you can submit it to https://github.com/spacetelescope/science-platform-images
+After completing development of a spec, you can submit it to https://github.com/spacetelescope/science-platform-images
 to automatically build a Docker image which becomes available for use on the relevant STScI science platforms.
 
 ```bash
@@ -81,12 +81,12 @@ gh auth login
 nb-wrangler spec.yaml --submit-for-build [--verbose]
 ```
 
-In addition to installing nb-wrangler, prequisites for submitting specs for Docker builds are:
+In addition to installing nb-wrangler, prerequisites for submitting specs for Docker builds are:
 
 - You need your own GitHub account
 - Your GitHub account needs to be granted appropriate permissions by the spaceteletscope/science-platform-images project.
 - You need to install the GitHub command line interface program `gh` using `brew` on OS-X or `apt-get` or `dnf` on Linux.
-- You need to authenticate with gh as shown -or- set GH_TOKEN or GITHUB_TOKEN to a token with XXXX perms.
+- You need to authenticate with gh as shown -or- set GH_TOKEN or GITHUB_TOKEN to a token with appropriate permissions.
 
 For more information on `gh` see [GH CLI](https://cli.github.com  "gh GitHub CLI program").
 
@@ -128,14 +128,14 @@ The wrangler executes steps in a sequence, allowing for skipping steps that have
 - **Requirements Gathering:** Locates `requirements.txt` files within notebooks to specify Python package version constraints.
 - **Environment Creation:** Automatically creates a basic Python environment for package installation and testing.
 - **Target Environment Initialization:** Optionally initializes a target environment to facilitate requirement compilation, package installation, and testing. This includes creating a JupyterLab kernel required for notebook testing or use in JupyterLab.
-- **Package Compilation:** If `--compile` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile` is not specified, it uses the last compiled package set from the specification.
-- **Package Installation:** If `--install` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
+- **Package Compilation:** If `--compile-packages` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile-packages` is not specified, it uses the last compiled package set from the specification.
+- **Package Installation:** If `--install-packages` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
 - **Notebook Testing:** If `--test-notebooks` is specified, runs notebooks matching a comma-separated list of names or regular expressions. If no notebooks or regexps are provided, it runs all notebooks. This is a headless crash test that runs up to `--jobs [n]` notebooks in parallel, with a `--timeout [seconds]` to terminate runaway notebooks.
-- **Repository Cleanup:** If `--delete-clones` is specified, removes all cloned repositories.
+- **Repository Cleanup:** If `--delete-repos` is specified, removes all cloned repositories.
 - **Spec Reset:** If `--reset-spec` is specified, removes the output section from the `spec.yaml` file.
 - **Environment Deletion:** If `--delete-env` is specified, removes the entire target environment. This dedicated environment approach prevents contamination between iterations.
 - **CI Submission:** If `--submit-for-build` is specified, the specification is forwarded to the CI pipeline, key information is provided to the build framework, and a corresponding image is automatically built and pushed to the hub (pending further development).
-- **Output Injection:** If `--spi-inject` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
+- **Output Injection:** If `--inject-spi` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
 
 ## Missing Topics
 

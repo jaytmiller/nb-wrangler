@@ -54,6 +54,7 @@ def parse_args():
     )
     parser.add_argument(
         "-t",
+        "--test",
         dest="test_all",
         action="store_true",
         help="Test both imports and all notebooks.",

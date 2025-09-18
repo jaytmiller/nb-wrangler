@@ -51,7 +51,7 @@ class SpecManager:
 
     @property
     def nb_repo(self) -> str:
-        return self.header["nb_repo"]
+        return self.header.get("nb_repo")
 
     @property
     def selected_notebooks(self) -> list[dict[str, Any]]:
@@ -70,7 +70,7 @@ class SpecManager:
 
     @property
     def spi_url(self):
-        return self.header.get("spi_url", None)
+        return self._spec["system"].get("spi_url", None)
 
     @property
     def moniker(self) -> str:
@@ -81,6 +81,20 @@ class SpecManager:
     @property
     def spec_file(self):
         return self._source_file
+
+    @property
+    def archive_format(self) -> str:
+        """Get the default archival format for the environment's binaries."""
+        # Return default if not specified
+        arch_format = self._spec["system"].get("archive_format")
+        if arch_format:
+            self.logger.debug("Using spec'ed archive format", arch_format)
+        else:
+            arch_format = DEFAULT_ARCHIVE_FORMAT
+            self.logger.debug(
+                "No archive format in spec, assuming default format", arch_format
+            )
+        return arch_format
 
     # ----------------- functional access to output section ----------------
 
@@ -122,21 +136,6 @@ class SpecManager:
     def files_exist(self, *filepaths: str | Path) -> bool:
         """Check if all specified files exist in the filesystem."""
         return all(Path(filepath).exists() for filepath in filepaths)
-
-    @property
-    def archive_format(self) -> str:
-        """Get the default archival format for the environment's binaries."""
-        self._ensure_validated()
-        # Return default if not specified
-        arch_format = self._spec["image_spec_header"].get("archive_format")
-        if arch_format:
-            self.logger.debug("Using spec'ed archive format", arch_format)
-        else:
-            arch_format = DEFAULT_ARCHIVE_FORMAT
-            self.logger.debug(
-                "No archive format in spec, assuming default format", arch_format
-            )
-        return arch_format
 
     # Raw read/write access for backward compatibility or special cases
     def to_dict(self) -> dict[str, Any]:
@@ -297,8 +296,6 @@ class SpecManager:
             "deployment_name",
             "kernel_name",
             "display_name",
-            "archive_format",
-            "spi_url",
         ],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
@@ -319,6 +316,8 @@ class SpecManager:
         "system": [
             "spec_version",
             "spec_sha256",
+            "archive_format",
+            "spi_url",
         ],
     }
 
@@ -348,7 +347,7 @@ class SpecManager:
     # Validation methods (moved from SpecValidator)
     def _validate_top_level_structure(self) -> bool:
         """Validate top-level structure."""
-        required_fields = ["image_spec_header", "selected_notebooks"]
+        required_fields = ["image_spec_header", "selected_notebooks", "system"]
         for field in required_fields:
             if field not in self._spec:
                 return self.logger.error(f"Missing required field: {field}")
@@ -372,19 +371,11 @@ class SpecManager:
             "python_version",
             "valid_on",
             "expires_on",
-            "nb_repo",
         ]
         for field in required_fields:
             if field not in header:
                 return self.logger.error(
                     f"Missing required field in image_spec_header: {field}"
-                )
-
-        # Validate archive_format if present
-        if "archive_format" in header:
-            if header["archive_format"] not in VALID_ARCHIVE_FORMATS:
-                return self.logger.warning(
-                    f"Invalid archive_format '{header['archive_format']}'. Possibly unsupported if not one of: {VALID_ARCHIVE_FORMATS}"
                 )
 
         return True
@@ -414,42 +405,50 @@ class SpecManager:
             return self.logger.error(
                 "Required field 'spec_version' of section 'system' is missing."
             )
+        if self.archive_format not in VALID_ARCHIVE_FORMATS:
+            return self.logger.warning(
+                f"Invalid .system.archive_format '{self.archive_format}'. Possibly unsupported if not one of: {VALID_ARCHIVE_FORMATS}"
+            )
         return True
 
     # -------------------------------- notebook and repository collection --------------------------------------
 
+    def _get_selection_repo(self, entry: dict) -> str:
+        nb_repo = entry.get("nb_repo", self.nb_repo)
+        if not nb_repo:
+            raise RuntimeError(
+                "No default 'nb_repo' defined in image_spec_header; either define one, or define nb_repo for each selection."
+            )
+        return nb_repo
+
     def get_repository_urls(self) -> list[str]:
         """Get all unique repository URLs from the spec."""
         self._ensure_validated()
-        urls = [self.nb_repo]
+        urls = [self.nb_repo] if self.nb_repo else []
         for entry in self.selected_notebooks:
-            nb_repo = entry.get("nb_repo", self.nb_repo)
+            nb_repo = self._get_selection_repo(entry)
             if nb_repo not in urls:
                 urls.append(nb_repo)
         return sorted(list(set(urls)))
 
     def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
         """Collect paths to all notebooks specified by the spec."""
-        notebook_paths = []
-        header_root = self._spec["image_spec_header"].get("nb_root_directory", "")
+        notebook_paths = set()
+        header_root = self.header.get("nb_root_directory", "")
         for entry in self._spec["selected_notebooks"]:
-            selection_repo = entry.get(
-                "nb_repo", self._spec["image_spec_header"]["nb_repo"]
-            )
+            selection_repo = self._get_selection_repo(entry)
             clone_dir = self._get_repo_dir(repos_dir, selection_repo)
             if not clone_dir:
                 self.logger.error(f"Repository not set up: {clone_dir}")
                 continue
             entry_root = entry.get("nb_root_directory")
-            final_notebook_root = entry_root or header_root
-            entry_paths = self._process_directory_entry(
-                entry, clone_dir, final_notebook_root
+            notebook_paths |= self._process_directory_entry(
+                entry, clone_dir, entry_root or header_root
             )
-            notebook_paths.extend(entry_paths)
         self.logger.info(
             f"Found {len(notebook_paths)} notebooks in all notebook repositories."
         )
-        return notebook_paths
+        return sorted(list(notebook_paths))
 
     def _get_repo_dir(self, repos_dir: Path, nb_repo: str) -> Optional[Path]:
         """Get the path to the repository directory."""
@@ -458,60 +457,46 @@ class SpecManager:
 
     def _process_directory_entry(
         self, entry: dict, repo_dir: Path, nb_root_directory: str
-    ) -> list[str]:
+    ) -> set[str]:
         """Process a directory entry from the spec file."""
         base_path = repo_dir
         if nb_root_directory:
             base_path = base_path / nb_root_directory
-        possible_notebooks = base_path.glob("**/*.ipynb")
+        possible_notebooks = [str(path) for path in base_path.glob("**/*.ipynb")]
 
-        include_subdirs = entry.get("include_subdirs", [r"."])
-        included_notebooks = self._only_included_non_files(
-            list(possible_notebooks), include_subdirs
+        include_subdirs = list(entry.get("include_subdirs", [r"."]))
+        included_notebooks = self._matching_files(
+            "Including", possible_notebooks, include_subdirs
         )
 
-        exclude_subdirs = entry.get("exclude_subdirs", [])
-        remaining_notebooks = self._exclude_notebooks(
-            included_notebooks, exclude_subdirs
+        exclude_subdirs = list(entry.get("exclude_subdirs", []))
+        exclude_subdirs.append(r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)")
+        excluded_notebooks = self._matching_files(
+            "Excluding", possible_notebooks, exclude_subdirs
         )
+
+        remaining_notebooks = included_notebooks - excluded_notebooks
         self.logger.debug(
             f"Selected {len(remaining_notebooks)} notebooks under {base_path}: {remaining_notebooks}."
         )
         return remaining_notebooks
 
-    def _only_included_non_files(
-        self, possible_notebooks: list[Path], include_regexes: list[str]
-    ) -> list[Path]:
-        included_notebooks = []
+    def _matching_files(
+        self, verb: str, possible_notebooks: list[str], regexes: list[str]
+    ) -> set[str]:
+        self.logger.debug(
+            f"{verb} notebooks {list(possible_notebooks)} against regexes {regexes}"
+        )
+        notebooks = set()
         for nb_path in possible_notebooks:
-            if not nb_path.is_file():
-                self.logger.warning(f"Skipping non-file: {nb_path}")
+            if not Path(nb_path).is_file():
+                self.logger.debug(f"Skipping {verb} non-file: {nb_path}")
                 continue
-            for include in include_regexes:
-                if re.search(include, str(nb_path)):
+            for regex in regexes:
+                if re.search(regex, str(nb_path)):
                     self.logger.debug(
-                        f"Including notebook {nb_path} based on regex: '{include}'"
+                        f"{verb} notebook {nb_path} based on regex: '{regex}'"
                     )
-                    included_notebooks.append(nb_path)
+                    notebooks.add(str(nb_path))
                     break
-        return included_notebooks
-
-    def _exclude_notebooks(
-        self, included_notebooks: list[Path], exclude_subdirs: list[str]
-    ) -> list[str]:
-        notebook_paths = []
-        for nb_path in included_notebooks:
-            if re.search(
-                r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)", str(nb_path)
-            ):
-                self.logger.debug(f"Skipping checkpoint(s): {nb_path}")
-                continue
-            for exclude in exclude_subdirs:
-                if re.search(exclude, str(nb_path)):
-                    self.logger.debug(
-                        f"Excluding notebook {nb_path} based on regex: '{exclude}'"
-                    )
-                    break
-            else:
-                notebook_paths.append(str(nb_path))
-        return notebook_paths
+        return notebooks

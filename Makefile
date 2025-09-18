@@ -110,6 +110,9 @@ fnc-unregister-env: fnc-init-env
 
 fnc-reset-spec: fnc-compile
 	./nb-wrangler   tike-2025-07-beta.yaml --reset-spec
+
+fnc-validate-spec: fnc-compile
+	./nb-wrangler   tike-2025-07-beta.yaml --validate-spec
 	git checkout -- tike-2025-07-beta.yaml
 
 

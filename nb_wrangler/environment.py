@@ -259,13 +259,13 @@ class EnvironmentManager:
         user has.
         """
         cmd = self._condition_cmd(
-            f"python -m ipykernel install --user --name {env_name} --display-name {display_name}"
+            f"python -m ipykernel install --user --name {env_name} --display-name '{display_name}'"
         )
         result = self.env_run(env_name, cmd, check=False)
         return self.handle_result(
             result,
             f"Failed to register environment {env_name} as a jupyter kernel: ",
-            f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab as {display_name}.",
+            f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab as '{display_name}'.",
         )
 
     def unregister_environment(self, env_name: str) -> bool:
