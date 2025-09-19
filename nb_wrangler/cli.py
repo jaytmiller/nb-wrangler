@@ -237,6 +237,10 @@ def _main(args):
     try:
         # Create configuration using simplified factory method
         config = config_mod.WranglerConfig.from_args(args)
+        if not config:
+            logger = WranglerLogger()
+            logger.error("Unable to initialize nb-wrangler. Stopping...")
+            return 1
         config.spec_file = spec = utils.uri_to_local_path(args.spec_uri)
         if not spec:
             config.logger.error("Failed reading URI:", args.spec_uri)

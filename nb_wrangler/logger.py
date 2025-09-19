@@ -185,7 +185,7 @@ class WranglerLogger:
 
     def exception(self, e: Exception, *args) -> bool:
         """Handle an exception with optional debugging."""
-        msg = self._lformat(*args)
+        msg = self._lformat(*args + (e,))
         self.exceptions.append(msg)
         self.error("EXCEPTION: ", msg)
         if self.debug_mode:
