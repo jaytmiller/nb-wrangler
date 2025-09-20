@@ -8,6 +8,7 @@ import pstats
 
 from . import wrangler
 from . import utils
+from .logger import WranglerLogger
 from . import config as config_mod
 from .constants import (
     VALID_LOG_TIME_MODES,

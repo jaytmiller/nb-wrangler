@@ -148,6 +148,7 @@ class NotebookWrangler:
             "submit-for-build",
             [
                 self._validate_spec,
+                self._delete_spi_repo,
                 self._clone_repos,
                 self._submit_for_build,
             ],
@@ -195,7 +196,7 @@ class NotebookWrangler:
             (self.config.unpack_env, self._unpack_environment),
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
-            (self.config.delete_repos, self.repo_manager.delete_repos),
+            (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
             (self.config.compact, self._compact),
@@ -249,6 +250,21 @@ class NotebookWrangler:
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
+        )
+
+    def _delete_repos(self):
+        """Delete notebook and SPI repo clones."""
+        urls = self.spec_manager.get_outputs("notebook_repo_urls")
+        if spi_url := self.spec_manager.get_outputs("injector_url"):
+            urls.append(spi_url)
+        return self.repo_manager.delete_repos(urls)
+
+    def _delete_spi_repo(self):
+        """Remove the 'SPI injector repo' used to make PR's for image builds
+        ensuring the next copy will be clean.
+        """
+        return self.repo_manager.delete_repos(
+            [self.spec_manager.get_outputs("injector_url")]
         )
 
     def _generate_target_mamba_spec(self) -> str | bool:

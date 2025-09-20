@@ -2,9 +2,6 @@
 
 *~
 
-notebook-repos
-repos
-
 __pycache__/
 *.py[cod]
 *$py.class
@@ -120,3 +117,4 @@ deployments/jwebbinar/image/default-home-contents/.jdaviz-example-data/*
 
 references/*
 
+.aider*

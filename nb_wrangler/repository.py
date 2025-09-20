@@ -76,15 +76,32 @@ class RepositoryManager:
         self.logger.info(f"Successfully cloned repository to {repo_dir}.")
         return repo_dir
 
-    def delete_repos(self) -> bool:
+    def delete_repos(self, urls: list[str]) -> bool:
         """Clean up cloned repositories."""
         try:
-            if self.repos_dir.exists():
-                self.logger.info(f"Deleting repository directory: {self.repos_dir}.")
-                shutil.rmtree(self.repos_dir)
+            for url in urls:
+                path = self._repo_path(url)
+                if path.exists():
+                    self.logger.debug("Removing repo directory:", str(path))
+                    shutil.rmtree(path)
+                else:
+                    self.logger.debug("Skipping delete for nonexistent:", str(path))
+            remaining_contents = list(self.repos_dir.glob("*"))
+            if not remaining_contents:
+                self.logger.debug(
+                    "Removing empty repos directory:", str(self.repos_dir)
+                )
+                self.repos_dir.rmdir()
+            else:
+                self.logger.debug(
+                    "Skipping removal of non-empty repos directory:",
+                    str(self.repos_dir),
+                    "due remaining contents:",
+                    remaining_contents,
+                )
             return True
         except Exception as e:
-            return self.logger.exception(e, "Error during repository deletion.")
+            return self.logger.exception(e, "Error during repository deletion:")
 
     def is_clean(self, repo_root: str | Path) -> bool:
         stats: str = self.run("git status --porcelain", check=True, cwd=repo_root)
