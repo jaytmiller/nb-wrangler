@@ -86,7 +86,7 @@ class RepositoryManager:
                     shutil.rmtree(path)
                 else:
                     self.logger.debug("Skipping delete for nonexistent:", str(path))
-            remaining_contents = list(self.repos_dir.glob("*"))
+            remaining_contents = [str(obj) for obj in self.repos_dir.glob("*")]
             if not remaining_contents:
                 self.logger.debug(
                     "Removing empty repos directory:", str(self.repos_dir)
