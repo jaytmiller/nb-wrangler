@@ -186,6 +186,9 @@ Description:
         self._inject("pip_compiler_output", self.env_pip)
         self._inject("test_imports", self.test_path / "imports")
         self._inject("test_notebooks", self.test_path / "notebooks")
+        self.spec_manager.save_spec_as(
+            self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
+        )
         return self.logger.info("SPI injection complete.")
 
     def _inject(self, field: str, where: str | Path) -> None:

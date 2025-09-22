@@ -1,8 +1,7 @@
 # nb-wrangler
 
-DRAFT DRAFT DRAFT  -- subject to weekly/daily change top to bottom
-
 ## Overview
+
 nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports automatically building and testing Docker images based on notebook requirements. It achieves this by:
 
 - Bootstrapping a dedicated environment for nb-wrangler.
@@ -39,8 +38,7 @@ Bootstrapping the system creates the `$HOME/.nbw-live` directory and the nbwrang
 ```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
 chmod +x nb-wrangler
-./nb-wrangler bootstrap
-source ./nb-wrangler environment
+source ./nb-wrangler bootstrap
 ```
 
 Afterward, the nbwrangler "curation" environment can be re-activated using:
@@ -54,13 +52,13 @@ Consider adding the nb-wrangler bash script to your shell's PATH or RC file.
 The target environment can be activated with:
 
 ```bash
-source nb-wrangler activate ENVIRONMENT_NAME
+source ./nb-wrangler activate ENVIRONMENT_NAME
 ```
 
 Deactivate either nbwrangler or the target environment with:
 
 ```bash
-source nb-wrangler deactivate
+source ./nb-wrangler deactivate
 ```
 
 ## Curation
@@ -69,6 +67,14 @@ The wrangler prepares a custom version of the `spec.yaml` file. Then, run:
 
 ```bash
 nb-wrangler spec.yaml --curate [--verbose]
+```
+
+## Reinstall
+
+A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
+
+```bash
+nb-wrangler spec.yaml --reinstall
 ```
 
 ## Build Submission
@@ -84,19 +90,11 @@ nb-wrangler spec.yaml --submit-for-build [--verbose]
 In addition to installing nb-wrangler, prerequisites for submitting specs for Docker builds are:
 
 - You need your own GitHub account
-- Your GitHub account needs to be granted appropriate permissions by the spaceteletscope/science-platform-images project.
+- Your GitHub account needs to be granted appropriate permissions by the spacetelescope/science-platform-images project.
 - You need to install the GitHub command line interface program `gh` using `brew` on OS-X or `apt-get` or `dnf` on Linux.
 - You need to authenticate with gh as shown -or- set GH_TOKEN or GITHUB_TOKEN to a token with appropriate permissions.
 
 For more information on `gh` see [GH CLI](https://cli.github.com  "gh GitHub CLI program").
-
-## Spec Re-install
-
-A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
-
-```bash
-nb-wrangler spec.yaml --reinstall
-```
 
 ## Automatic Testing
 
@@ -116,7 +114,7 @@ For example, you can iterate fairly rapidly with:
 nb-wrangler spec.yaml --curate --test-imports
 ```
 
-to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that emprically viable package versions are installed.
+to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that empirically viable package versions are installed.
 
 ## Basic Flow
 
@@ -137,9 +135,48 @@ The wrangler executes steps in a sequence, allowing for skipping steps that have
 - **CI Submission:** If `--submit-for-build` is specified, the specification is forwarded to the CI pipeline, key information is provided to the build framework, and a corresponding image is automatically built and pushed to the hub (pending further development).
 - **Output Injection:** If `--inject-spi` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
 
+## Configuration Options
+
+The following command-line options are available:
+
+- `--curate`: Execute the curation workflow for spec development to add compiled requirements.
+- `--submit-for-build`: Submit fully elaborated requirements for image building.
+- `--reinstall`: Install requirements defined by a pre-compiled spec.
+- `-t`, `--test`: Test both imports and all notebooks.
+- `--test-imports`: Attempt to import every package explicitly imported by one of the spec'd notebooks.
+- `--test-notebooks`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .* 
+- `--verbose`: Enable DEBUG log output
+- `--debug`: Drop into debugging with pdb on exceptions.
+- `--profile`: Run with cProfile and output profiling results to console.
+- `--log-times`: Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.
+- `--color`: Colorize the log.
+- `--init-env`: Create and kernelize the target environment before curation run. See also --delete-env.
+- `--delete-env`: Completely delete the target environment after processing.
+- `--pack-env`: Pack the target environment into an archive file for distribution or archival.
+- `--unpack-env`: Unpack a previously packed archive file into the target environment directory.
+- `--register-env`: Register the target environment with Jupyter as a kernel.
+- `--unregister-env`: Unregister the target environment from Jupyter.
+- `--archive-format`: Format for pack/unpack, nominally one of: .tar.gz, .tar.xz, .tar, .tar.bz2, .tar.zst, .tar.lzma, .tar.lzo, .tar.lz
+- `--compact`: Compact the wrangler installation by deleting package caches, etc.
+- `--compile-packages`: Compile spec and input package lists to generate pinned requirements and other metadata for target environment.
+- `--omit-spi-packages`: Include the 'common' packages used by all missions in all current SPI based and mission environments, may affect GUI capabilty.
+- `--install-packages`: Install compiled base and pip requirements into target/test environment.
+- `--uninstall-packages`: Remove the compiled packages from the target environment after processing.
+- `--jobs`: Number of parallel jobs for notebook testing.
+- `--timeout`: Timeout in seconds for notebook tests.
+- `--inject-spi`: Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment'.
+- `--clone-repos`: Clone notebook repos to the directory indicated by --repos-dir.
+- `--repos-dir`: Directory where notebook and other repos will be cloned.
+- `--delete-repos`: Delete --repo-dir and clones after processing.
+- `--reset-spec`: Reset spec to its original state by deleting output fields.
+- `--validate-spec`: Validate the specification file without performing any curation actions.
+- `--ignore-spec-hash`: Spec SHA256 hashes will not be added or verified upon re-installation.
+- `--add-pip-hashes`: Record PyPi hashes of requested packages for easier verification during later installs.
+
 ## Missing Topics
 
 - **Detailed explanation of `spec.yaml` structure:** While mentioned, a more detailed breakdown of the YAML file's sections and their purpose would be beneficial.
 - **Configuration options:** A more comprehensive list of available configuration options and their effects.
 - **Error handling:** More information on how the tool handles various errors and provides feedback to the user.
 - **Advanced usage:** Potential use cases beyond basic curation, such as automated testing workflows or integration with other tools.
+```
