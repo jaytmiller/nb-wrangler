@@ -8,6 +8,7 @@ import datetime
 import functools
 import hashlib
 import time
+import shutil
 
 import requests
 import boto3  # type: ignore
@@ -243,3 +244,34 @@ def sha256_verify_data(data: bytes, expected_hash: str) -> bool:
 
 def sha256_verify_str(text: str, expected_hash: str) -> bool:
     return sha256_str(text) == expected_hash
+
+
+# -------------------- clear dir w/o deleting it -------------------------
+
+
+def clear_directory(directory_path):
+    """
+    Remove all contents of the specified directory recursively,
+    but do not remove the directory itself. Not removing the directory
+    is critical for clearing caches which have been implemented in Docker
+    effectively as root-owned file system mounts which cannot be deleted.
+
+    Args:
+        directory_path (str): Path to the directory to clear
+
+    Raises:
+        OSError: If the directory doesn't exist or there are permission issues
+    """
+    # Check if directory exists
+    if not os.path.exists(directory_path):
+        raise OSError(f"Directory '{directory_path}' does not exist")
+
+    # Iterate through all items in the directory
+    for item in os.listdir(directory_path):
+        item_path = os.path.join(directory_path, item)
+
+        # Remove file or directory recursively
+        if os.path.isfile(item_path) or os.path.islink(item_path):
+            os.unlink(item_path)  # Remove file or symbolic link
+        elif os.path.isdir(item_path):
+            shutil.rmtree(item_path)  # Remove directory and all its contents

@@ -10,7 +10,6 @@ environmentsinstall non-pip Python packages
 """
 
 import json
-import shutil
 import shlex
 import subprocess
 from subprocess import CompletedProcess
@@ -26,6 +25,7 @@ from .constants import (
     INSTALL_PACKAGES_TIMEOUT,
     IMPORT_TEST_TIMEOUT,
 )
+from . import utils
 
 
 class EnvironmentManager:
@@ -342,13 +342,16 @@ class EnvironmentManager:
         return self.unarchive(archive_path, self.nbw_root_dir)
 
     def compact(self) -> bool:
+        """Clear cach directories w/o deleting the top level dir, only
+        it's contents.
+        """
         try:
             if self.mm_pkgs_dir.exists():
-                shutil.rmtree(str(self.mm_pkgs_dir))
+                utils.clear_directory(str(self.mm_pkgs_dir))
             if self.nbw_cache_dir.exists():
-                shutil.rmtree(str(self.nbw_cache_dir))
+                utils.clear_directory(str(self.nbw_cache_dir))
             if self.nbw_temp_dir.exists():
-                shutil.rmtree(str(self.nbw_temp_dir))
+                utils.clear_directory(str(self.nbw_temp_dir))
             self.logger.info(
                 "Wrangler compacted successfully, removing install caches, etc."
             )
