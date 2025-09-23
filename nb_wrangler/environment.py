@@ -328,7 +328,9 @@ class EnvironmentManager:
             self.env_live_path(env_name),
         )
 
-    def unpack_environment(self, env_name: str, moniker: str, archive_format: str) -> bool:
+    def unpack_environment(
+        self, env_name: str, moniker: str, archive_format: str
+    ) -> bool:
         return self.unarchive(
             self.env_archive_path(moniker, archive_format),
             self.env_live_path(env_name),
