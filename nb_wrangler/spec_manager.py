@@ -214,6 +214,8 @@ class SpecManager:
                 self.logger.debug(
                     "Not updating spec_sha256 sum; Removing potentially outdated sum."
                 )
+            if output_path.exists():
+                output_path.unlink()  # Remove existing file if it
             with output_path.open("w+") as f:
                 f.write(self.to_string())
             self.logger.debug(f"Spec file saved to {output_filepath}.")

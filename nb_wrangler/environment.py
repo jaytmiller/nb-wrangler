@@ -78,8 +78,8 @@ class EnvironmentManager:
     def nbw_cache_dir(self) -> Path:
         return Path(NBW_CACHE)
 
-    def env_archive_path(self, env_name: str, archive_format: str) -> Path:
-        return self.nbw_pantry_dir / "envs" / (env_name.lower() + archive_format)
+    def env_archive_path(self, moniker: str, archive_format: str) -> Path:
+        return self.nbw_pantry_dir / "envs" / (moniker.lower() + archive_format)
 
     def mm_envs_dir(self, env_name: str) -> Path:
         if env_name == "base":
@@ -320,15 +320,17 @@ class EnvironmentManager:
             f"Unpacked {archive_filepath} into {destination_dirpath}",
         )
 
-    def pack_environment(self, env_name: str, archive_format: str) -> bool:
+    def pack_environment(
+        self, env_name: str, moniker: str, archive_format: str
+    ) -> bool:
         return self.archive(
-            self.env_archive_path(env_name, archive_format),
+            self.env_archive_path(moniker, archive_format),
             self.env_live_path(env_name),
         )
 
-    def unpack_environment(self, env_name: str, archive_format: str) -> bool:
+    def unpack_environment(self, env_name: str, moniker: str, archive_format: str) -> bool:
         return self.unarchive(
-            self.env_archive_path(env_name, archive_format),
+            self.env_archive_path(moniker, archive_format),
             self.env_live_path(env_name),
         )
 

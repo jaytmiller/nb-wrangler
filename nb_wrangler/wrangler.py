@@ -415,7 +415,9 @@ class NotebookWrangler:
         return self.spec_manager.reset_spec()
 
     def _unpack_environment(self) -> bool:
-        if not self.env_manager.unpack_environment(self.env_name, self.archive_format):
+        if not self.env_manager.unpack_environment(
+            self.env_name, self.spec_manager.moniker, self.archive_format
+        ):
             return False
         if not self.env_manager.register_environment(
             self.env_name, self.kernel_display_name
@@ -424,7 +426,9 @@ class NotebookWrangler:
         return True
 
     def _pack_environment(self) -> bool:
-        return self.env_manager.pack_environment(self.env_name, self.archive_format)
+        return self.env_manager.pack_environment(
+            self.env_name, self.spec_manager.moniker, self.archive_format
+        )
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
