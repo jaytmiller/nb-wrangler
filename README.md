@@ -2,7 +2,8 @@
 
 ## Overview
 
-nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports automatically building and testing Docker images based on notebook requirements. It achieves this by:
+nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports
+automatically building and testing Docker images based on notebook requirements. It achieves this by:
 
 - Bootstrapping a dedicated environment for nb-wrangler.
 - Loading, saving, and validating notebook curation specifications.
@@ -144,7 +145,7 @@ The following command-line options are available:
 - `--reinstall`: Install requirements defined by a pre-compiled spec.
 - `-t`, `--test`: Test both imports and all notebooks.
 - `--test-imports`: Attempt to import every package explicitly imported by one of the spec'd notebooks.
-- `--test-notebooks`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .* 
+- `--test-notebooks`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*
 - `--verbose`: Enable DEBUG log output
 - `--debug`: Drop into debugging with pdb on exceptions.
 - `--profile`: Run with cProfile and output profiling results to console.
