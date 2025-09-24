@@ -1,11 +1,7 @@
 name: Notebook Wrangler PR Check
 on:
-   pull_request_target:
-      branches:
-        - main
    push:
-      branches:
-        - main
+   pull_request:
 jobs:
   nb-wrangler-make:
     name: PR Check
