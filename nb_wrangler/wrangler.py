@@ -191,6 +191,7 @@ class NotebookWrangler:
             (self.config.test_imports, self._test_imports),
             (self.config.test_notebooks, self._test_notebooks),
             (self.config.inject_spi, self.injector.inject),
+            (self.config.update_spec_hash, self._update_spec_sha256),
             (self.config.validate_spec, self._validate_spec),
             (self.config.pack_env, self._pack_environment),
             (self.config.unpack_env, self._unpack_environment),
@@ -377,6 +378,11 @@ class NotebookWrangler:
         return self.spec_manager.save_spec(
             Path(self.config.spec_file).parent,
             add_sha256=not self.config.ignore_spec_hash,
+        )
+
+    def _update_spec_sha256(self) -> bool:
+        return self.spec_manager.save_spec(
+            Path(self.config.spec_file).parent, add_sha256=True
         )
 
     def _validate_spec_sha256(self) -> bool:

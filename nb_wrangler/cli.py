@@ -216,6 +216,11 @@ def parse_args():
         action="store_true",
         help="Record PyPi hashes of requested packages for easier verification during later installs.",
     )
+    parser.add_argument(
+        "--update-spec-hash",
+        action="store_true",
+        help="Update spec SHA256 hash even if validation fails and continue processing.",
+    )
     return parser.parse_args()
 
 
@@ -259,3 +264,5 @@ def _main(args):
 
 if __name__ == "__main__":
     sys.exit(int(main()))
+
+

@@ -68,6 +68,7 @@ class WranglerConfig:
     validate_spec: bool = False
     ignore_spec_hash: bool = False
     add_pip_hashes: bool = False
+    update_spec_hash: bool = False
 
     workflow: str = "explicit"
 
@@ -120,5 +121,14 @@ class WranglerConfig:
             validate_spec=args.validate_spec,
             ignore_spec_hash=args.ignore_spec_hash,
             add_pip_hashes=args.add_pip_hashes,
+            update_spec_hash=args.update_spec_hash,
             workflow=args.workflow,
         )
+
+
+
+
+
+
+
+
