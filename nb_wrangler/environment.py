@@ -297,6 +297,11 @@ class EnvironmentManager:
             if env.endswith(env_name):
                 self.logger.debug(f"Environment {env_name} exists.")
                 return True
+            if env_name == "python3" and env.endswith("base"):
+                self.logger.warning(
+                    "Mapping spec'd kernel 'python3' onto mamba env 'base' per convention.  Env 'python3/base' exists."
+                )
+                return True
         self.logger.debug(f"Environment {env_name} does not exist.")
         return False
 
