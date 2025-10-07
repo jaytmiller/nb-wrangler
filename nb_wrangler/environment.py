@@ -18,7 +18,13 @@ from typing import Any
 
 
 from .logger import WranglerLogger
-from .constants import NBW_ROOT, NBW_PANTRY, NBW_MM, NBW_CACHE
+from .constants import (
+    NBW_ROOT,
+    NBW_PANTRY,
+    NBW_MM,
+    NBW_CACHE,
+    NBW_BASE_ENVIRONMENT_NAMES,
+)
 from .constants import (
     DEFAULT_TIMEOUT,
     ENV_CREATE_TIMEOUT,
@@ -297,9 +303,9 @@ class EnvironmentManager:
             if env.endswith(env_name):
                 self.logger.debug(f"Environment {env_name} exists.")
                 return True
-            if env_name == "python3" and env.endswith("base"):
+            if env_name == "python3" and env.endswith(NBW_BASE_ENVIRONMENT_NAMES):
                 self.logger.warning(
-                    "Mapping spec'd kernel 'python3' onto mamba env 'base' per convention.  Env 'python3/base' exists."
+                    f"Mapping spec'd kernel 'python3' onto base mamba env '{env}' per convention.  Env 'python3/{env}' exists."
                 )
                 return True
         self.logger.debug(f"Environment {env_name} does not exist.")
