@@ -23,7 +23,6 @@ from .constants import (
     NBW_PANTRY,
     NBW_MM,
     NBW_CACHE,
-    NBW_BASE_ENVIRONMENT_NAMES,
 )
 from .constants import (
     DEFAULT_TIMEOUT,
@@ -164,8 +163,16 @@ class EnvironmentManager:
         See EnvironmentManager.run for **keys optional settings.
         """
         command = self._condition_cmd(command)
-        self.logger.debug(f"Running command {command} in environment: {environment}")
-        mm_prefix = [self.mamba_command, "run", "-n", environment]
+        if not self.is_base_env_alias(environment):
+            self.logger.debug(
+                f"Running command {command} in environment: {environment}"
+            )
+            mm_prefix = [self.mamba_command, "run", "-n", environment]
+        else:
+            self.logger.debug(
+                f"Running command {command} in base environment for kernel {environment}"
+            )
+            mm_prefix = []
         return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
@@ -286,29 +293,42 @@ class EnvironmentManager:
 
     def environment_exists(self, env_name: str) -> bool:
         """Return True IFF `env_name` exists."""
-        cmd = self.mamba_command + " env list --json"
-        try:
-            result = self.wrangler_run(cmd, check=True)
-        except Exception as e:
-            return self.logger.exception(
-                e,
-                f"Checking for existence of environment '{env_name}' completely failed. See README.md for info on bootstrapping.",
-            )
-        if result is None:
-            return self.logger.error("No result returned from environment check")
-        result_str = result.stdout if hasattr(result, "stdout") else str(result)
-        envs = json.loads(result_str)["envs"]
+        self.logger.debug(f"Checking existence of {env_name}.")
+        if self.is_base_env_alias(env_name):
+            return True
+        envs = self.get_existing_envs()
         for env in envs:
             self.logger.debug(f"Checking existence of {env_name} against {env}.")
             if env.endswith(env_name):
                 self.logger.debug(f"Environment {env_name} exists.")
                 return True
-            if env_name == "python3" and env.endswith(NBW_BASE_ENVIRONMENT_NAMES):
-                self.logger.warning(
-                    f"Mapping spec'd kernel 'python3' onto base mamba env '{env}' per convention.  Env 'python3/{env}' exists."
-                )
-                return True
         self.logger.debug(f"Environment {env_name} does not exist.")
+        return False
+
+    def get_existing_envs(self) -> list[str]:
+        cmd = self.mamba_command + " env list --json"
+        try:
+            result = self.wrangler_run(cmd, check=True)
+        except Exception as e:
+            self.logger.exception(
+                e,
+                "Checking for existence of environment completely failed. See README.md for info on bootstrapping.",
+            )
+            return []
+        if result is None:
+            self.logger.error("No result returned from environment check")
+            return []
+        result_str = result.stdout if hasattr(result, "stdout") else str(result)
+        envs = json.loads(result_str)["envs"]
+        self.logger.debug(f"Found existing environments: {envs}")
+        return envs
+
+    def is_base_env_alias(self, env_name: str) -> bool:
+        if env_name == "python3":
+            self.logger.debug(
+                f"Environment / kernel {env_name} is assumed to be the base environment."
+            )
+            return True
         return False
 
     def archive(self, archive_filepath: Path, source_dirpath: Path) -> bool:

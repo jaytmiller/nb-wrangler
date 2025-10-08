@@ -14,13 +14,6 @@ NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", NBW_ROOT / "pantry"))
 NBW_OVERRIDE_ENV = os.environ.get("NBW_OVERRIDE_ENV", None)
 
-NBW_BASE_ENVIRONMENT_NAMES = tuple(
-    os.environ.get(
-        "NBW_BASE_ENVIRONMENT_NAMES",
-        "base,conda,mamba,micromamba,.nbw-live/mm,miniforge3,anaconda",
-    ).split(",")
-)
-
 if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
 if "PIP_CACHE_DIR" not in os.environ:
