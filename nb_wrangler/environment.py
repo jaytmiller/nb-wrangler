@@ -87,13 +87,13 @@ class EnvironmentManager:
         return self.nbw_pantry_dir / "envs" / (moniker.lower() + archive_format)
 
     def mm_envs_dir(self, env_name: str) -> Path:
-        if env_name == "base":
+        if self.is_base_env_alias(env_name):
             return self.nbw_mm_dir
         else:
             return self.nbw_mm_dir / "envs"
 
     def env_live_path(self, env_name: str) -> Path:
-        if env_name == "base":
+        if self.is_base_env_alias(env_name):
             return self.mm_envs_dir(env_name)
         else:
             return self.mm_envs_dir(env_name) / env_name
@@ -324,7 +324,7 @@ class EnvironmentManager:
         return envs
 
     def is_base_env_alias(self, env_name: str) -> bool:
-        if env_name == "python3":
+        if env_name in ["base", "python3"]:
             self.logger.debug(
                 f"Environment / kernel {env_name} is assumed to be the base environment."
             )
