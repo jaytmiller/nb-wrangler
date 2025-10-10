@@ -9,11 +9,11 @@ image_spec_header:
   valid_on: 2025-09-16
   expires_on: 2025-09-30
   python_version: 3.13
-  nb_repo: https://github.com/spacetelescope/roman_notebooks
-  nb_root_directory: content/notebooks/
 # these are the useful tike_content notebooks
 selected_notebooks:
-  - include_subdirs:
+  - nb_repo: https://github.com/spacetelescope/roman_notebooks
+    nb_root_directory: content/notebooks/
+    include_subdirs:
       - .*/
     exclude_subdirs:
       - .*/romanisim/.*
@@ -27,7 +27,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 67598d305dcb956b32995cabfec93452a5c36fc0cfdd28420b433832869483aa
+  spec_sha256: 30f3144091a8960e4098b452570585434463c8d827e6197da6a241a6de81f50a
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks

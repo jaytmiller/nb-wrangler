@@ -22,7 +22,6 @@ class SpecManager:
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
     def header(self):
-        self._ensure_validated()
         return self._spec["image_spec_header"]
 
     @property
@@ -50,32 +49,28 @@ class SpecManager:
         return self.header["python_version"]
 
     @property
-    def nb_repo(self) -> str:
-        return self.header.get("nb_repo")
-
-    @property
     def selected_notebooks(self) -> list[dict[str, Any]]:
-        self._ensure_validated()
         return self._spec["selected_notebooks"]
 
     @property
+    def system(self) -> dict[str, str]:
+        return self._spec["system"]
+
+    @property
     def extra_mamba_packages(self) -> list[str]:
-        self._ensure_validated()
         return self._spec["extra_mamba_packages"]
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        self._ensure_validated()
         return self._spec["extra_pip_packages"]
 
     @property
     def spi_url(self):
-        return self._spec["system"].get("spi_url", None)
+        return self.system.get("spi_url", None)
 
     @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
-        self._ensure_validated()
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
 
     @property
@@ -86,7 +81,7 @@ class SpecManager:
     def archive_format(self) -> str:
         """Get the default archival format for the environment's binaries."""
         # Return default if not specified
-        arch_format = self._spec["system"].get("archive_format")
+        arch_format = self.system.get("archive_format")
         if arch_format:
             self.logger.debug("Using spec'ed archive format", arch_format)
         else:
@@ -210,7 +205,7 @@ class SpecManager:
                 hash = self.add_sha256()
                 self.logger.debug(f"Setting spec_sha256 to {hash}.")
             else:
-                self._spec["system"].pop("spec_sha256", None)
+                self.system.pop("spec_sha256", None)
                 self.logger.debug(
                     "Not updating spec_sha256 sum; Removing potentially outdated sum."
                 )
@@ -244,7 +239,7 @@ class SpecManager:
         """Delete the output field of the spec and make sure the source file reflects it."""
         self.logger.debug("Resetting spec file.")
         self._spec.pop("out", None)
-        self._spec["system"].pop("spec_sha256", None)
+        self.system.pop("spec_sha256", None)
         if not self.validate():
             return self.logger.error("Spec did not validate follwing reset.")
         if not self.save_spec_as(self._source_file):
@@ -255,7 +250,7 @@ class SpecManager:
 
     @property
     def sha256(self) -> str | None:
-        hash = self._spec["system"].get("spec_sha256", None)
+        hash = self.system.get("spec_sha256", None)
         if hash is None:
             self.logger.debug("Spec has no spec_sha256 hash for verifying integrity.")
             return None
@@ -264,13 +259,13 @@ class SpecManager:
         return hash
 
     def add_sha256(self) -> str:
-        self._spec["system"]["spec_sha256"] = ""
-        self._spec["system"]["spec_sha256"] = utils.sha256_str(self.to_string())
-        return self._spec["system"]["spec_sha256"]
+        self.system["spec_sha256"] = ""
+        self.system["spec_sha256"] = utils.sha256_str(self.to_string())
+        return self.system["spec_sha256"]
 
     def validate_sha256(self) -> bool:
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
-        expected_hash = self._spec["system"].get("spec_sha256")
+        expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
         else:
@@ -323,6 +318,24 @@ class SpecManager:
         ],
     }
 
+    REQUIRED_KEYWORDS = {
+        "image_spec_header": [
+            "image_name",
+            "deployment_name",
+            "kernel_name",
+            "python_version",
+            "valid_on",
+            "expires_on",
+        ],
+        "selected_notebooks": [
+            "nb_repo",
+        ],
+        "system": [
+            "spec_version",
+            "archive_format",
+        ],
+    }
+
     def validate(self) -> bool:
         """Perform comprehensive validation on the loaded specification."""
         self._is_validated = False
@@ -332,7 +345,6 @@ class SpecManager:
             self._validate_top_level_structure()
             and self._validate_header_section()
             and self._validate_selected_notebooks_section()
-            and self._validate_directory_repos()
             and self._validate_system()
         )
         if not validated:
@@ -349,86 +361,81 @@ class SpecManager:
     # Validation methods (moved from SpecValidator)
     def _validate_top_level_structure(self) -> bool:
         """Validate top-level structure."""
-        required_fields = ["image_spec_header", "selected_notebooks", "system"]
-        for field in required_fields:
+        no_errors = True
+        for field in self.REQUIRED_KEYWORDS:
             if field not in self._spec:
-                return self.logger.error(f"Missing required field: {field}")
+                no_errors = self.logger.error(f"Missing required field: {field}")
 
         for key in self._spec:
             if key not in self.ALLOWED_KEYWORDS:
-                return self.logger.error(f"Unknown top-level keyword: {key}")
+                no_errors = self.logger.error(f"Unknown top-level keyword: {key}")
 
-        return True
+        return no_errors
 
     def _validate_header_section(self) -> bool:
         """Validate image_spec_header section."""
-        header = self._spec["image_spec_header"]
-
-        for key in header:
+        no_errors = True
+        for key in self.header:
             if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:  # type: ignore
-                return self.logger.error(f"Unknown keyword in image_spec_header: {key}")
-
-        required_fields = [
-            "image_name",
-            "python_version",
-            "valid_on",
-            "expires_on",
-        ]
-        for field in required_fields:
-            if field not in header:
-                return self.logger.error(
+                no_errors = self.logger.error(
+                    f"Unknown keyword in image_spec_header: {key}"
+                )
+        for field in self.REQUIRED_KEYWORDS["image_spec_header"]:
+            if field not in self.header:
+                no_errors = self.logger.error(
                     f"Missing required field in image_spec_header: {field}"
                 )
-
-        return True
+        return no_errors
 
     def _validate_selected_notebooks_section(self) -> bool:
         """Validate selected_notebooks section."""
-        if "selected_notebooks" not in self._spec:
-            return self.logger.error("Missing selected_notebooks section")
-
-        for entry in self._spec["selected_notebooks"]:
+        no_errors = True
+        for i, entry in enumerate(self.selected_notebooks):
+            for key in self.REQUIRED_KEYWORDS["selected_notebooks"]:
+                if key in entry:
+                    break
+            else:
+                no_errors = self.logger.error(
+                    f"Missing required '{key}' field in selected_notebooks[{i}]."
+                )
             for key in entry:
                 if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:  # type: ignore
-                    return self.logger.error(
-                        f"Unknown keyword in selected_notebooks entry: {key}"
+                    no_errors = self.logger.error(
+                        f"Unknown keyword '{key}' in selected_notebooks[{i}]."
                     )
-        return True
-
-    def _validate_directory_repos(self) -> bool:
-        """Validate that all repositories in directory entries are specified."""
-        # Implementation details...
-        return True
+        return no_errors
 
     def _validate_system(self) -> bool:
-        if "system" not in self._spec:
-            return self.logger.error("Required section 'system' is missing.")
-        if "spec_version" not in self._spec["system"]:
-            return self.logger.error(
+        no_errors = True
+        if "spec_version" not in self.system:
+            no_errors = self.logger.error(
                 "Required field 'spec_version' of section 'system' is missing."
             )
         if self.archive_format not in VALID_ARCHIVE_FORMATS:
-            return self.logger.warning(
+            self.logger.warning(
                 f"Invalid .system.archive_format '{self.archive_format}'. Possibly unsupported if not one of: {VALID_ARCHIVE_FORMATS}"
             )
-        return True
+        for key in self.system:
+            if key not in self.ALLOWED_KEYWORDS["system"]:  # type: ignore
+                no_errors = self.logger.error(
+                    f"Undefined keyword '{key}' in section 'system'."
+                )
+        return no_errors
 
     # -------------------------------- notebook and repository collection --------------------------------------
 
-    def _get_selection_repo(self, entry: dict) -> str:
-        nb_repo = entry.get("nb_repo", self.nb_repo)
+    def _get_selection_repo(self, i: int, entry: dict) -> str:
+        nb_repo = entry.get("nb_repo")
         if not nb_repo:
-            raise RuntimeError(
-                "No default 'nb_repo' defined in image_spec_header; either define one, or define nb_repo for each selection."
-            )
+            raise RuntimeError(f"No 'nb_repo' defined for selected_notebooks[{i}]")
         return nb_repo
 
     def get_repository_urls(self) -> list[str]:
         """Get all unique repository URLs from the spec."""
         self._ensure_validated()
-        urls = [self.nb_repo] if self.nb_repo else []
-        for entry in self.selected_notebooks:
-            nb_repo = self._get_selection_repo(entry)
+        urls = []
+        for i, entry in enumerate(self.selected_notebooks):
+            nb_repo = self._get_selection_repo(i, entry)
             if nb_repo not in urls:
                 urls.append(nb_repo)
         return sorted(list(set(urls)))
@@ -436,16 +443,15 @@ class SpecManager:
     def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
         """Collect paths to all notebooks specified by the spec."""
         notebook_paths = set()
-        header_root = self.header.get("nb_root_directory", "")
-        for entry in self._spec["selected_notebooks"]:
-            selection_repo = self._get_selection_repo(entry)
+        for i, entry in enumerate(self.selected_notebooks):
+            selection_repo = self._get_selection_repo(i, entry)
             clone_dir = self._get_repo_dir(repos_dir, selection_repo)
             if not clone_dir:
                 self.logger.error(f"Repository not set up: {clone_dir}")
                 continue
-            entry_root = entry.get("nb_root_directory")
+            entry_root = entry.get("nb_root_directory", "")
             notebook_paths |= self._process_directory_entry(
-                entry, clone_dir, entry_root or header_root
+                entry, clone_dir, entry_root
             )
         self.logger.info(
             f"Found {len(notebook_paths)} notebooks in all notebook repositories."

@@ -9,11 +9,11 @@ image_spec_header:
   valid_on: 2025-07-02
   expires_on: 2025-10-02
   python_version: 3.11.13
-  nb_repo: https://github.com/spacetelescope/tike_content
-  nb_root_directory: content/notebooks/
 # these are the useful tike_content notebooks
 selected_notebooks:
-  - include_subdirs:
+  - nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/
+    include_subdirs:
       - data-access/
       - lcviz-tutorial/
       - tglc/
@@ -43,7 +43,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 233f8eebaab9ba638ef7fa6c3e477767c63e7367fb627b49801f3925c563d643
+  spec_sha256: f5dffe6b0e2cfcf4a1b246e8bfa34d81c9db169ad117873d55e48d98928e40ba
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
