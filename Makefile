@@ -44,7 +44,7 @@ functional: fnc-preclean fnc-bootstrap functional-develop functional-tests funct
 
 functional-develop: fnc-curate
 
-functional-reinstall: fnc-reinstall 
+functional-reinstall: fnc-reinstall
 
 functional-tests:  fnc-test fnc-test-imports fnc-test-notebooks
 
@@ -61,59 +61,59 @@ fnc-bootstrap: fnc-preclean
 	./nb-wrangler bootstrap
 
 fnc-curate:
-	./nb-wrangler  tike-2025-07-beta.yaml --curate
+	./nb-wrangler  fnc-test-spec.yaml --curate
 
 fnc-reinstall:
-	./nb-wrangler  tike-2025-07-beta.yaml --reinstall
+	./nb-wrangler  fnc-test-spec.yaml --reinstall
 
 fnc-uninstall: fnc-curate
-	./nb-wrangler  tike-2025-07-beta.yaml --uninstall
+	./nb-wrangler  fnc-test-spec.yaml --uninstall
 
 fnc-install: fnc-curate fnc-uninstall
-	./nb-wrangler   tike-2025-07-beta.yaml --install
+	./nb-wrangler   fnc-test-spec.yaml --install
 
 fnc-pack-env: fnc-install
-	./nb-wrangler   tike-2025-07-beta.yaml --pack-env
+	./nb-wrangler   fnc-test-spec.yaml --pack-env
 
 fnc-unpack-env:  fnc-uninstall
-	./nb-wrangler   tike-2025-07-beta.yaml --unpack-env
+	./nb-wrangler   fnc-test-spec.yaml --unpack-env
 
 fnc-test-imports: fnc-install
-	./nb-wrangler   tike-2025-07-beta.yaml --test-imports
+	./nb-wrangler   fnc-test-spec.yaml --test-imports
 
 fnc-test-notebooks: fnc-install
-	./nb-wrangler   tike-2025-07-beta.yaml --test-notebooks
+	./nb-wrangler   fnc-test-spec.yaml --test-notebooks
 
 fnc-test: fnc-install
-	./nb-wrangler   tike-2025-07-beta.yaml -t
+	./nb-wrangler   fnc-test-spec.yaml -t
 
 fnc-compact: fnc-install
-	./nb-wrangler   tike-2025-07-beta.yaml --compact
+	./nb-wrangler   fnc-test-spec.yaml --compact
 
 fnc-compile: fnc-clone
-	./nb-wrangler   tike-2025-07-beta.yaml --compile
+	./nb-wrangler   fnc-test-spec.yaml --compile
 
 fnc-clone:
-	./nb-wrangler   tike-2025-07-beta.yaml --clone
+	./nb-wrangler   fnc-test-spec.yaml --clone
 
 fnc-init-env: fnc-compile
-	./nb-wrangler   tike-2025-07-beta.yaml --init-env
+	./nb-wrangler   fnc-test-spec.yaml --init-env
 
 fnc-delete-env: fnc-init-env
-	./nb-wrangler   tike-2025-07-beta.yaml --delete-env
+	./nb-wrangler   fnc-test-spec.yaml --delete-env
 
 fnc-register-env: fnc-init-env
-	./nb-wrangler   tike-2025-07-beta.yaml --register-env
+	./nb-wrangler   fnc-test-spec.yaml --register-env
 
 fnc-unregister-env: fnc-init-env
-	./nb-wrangler   tike-2025-07-beta.yaml --unregister-env
+	./nb-wrangler   fnc-test-spec.yaml --unregister-env
 
 fnc-reset-spec: fnc-compile
-	./nb-wrangler   tike-2025-07-beta.yaml --reset-spec
+	./nb-wrangler   fnc-test-spec.yaml --reset-spec
 
 fnc-validate-spec: fnc-compile
-	./nb-wrangler   tike-2025-07-beta.yaml --validate-spec
-	git checkout -- tike-2025-07-beta.yaml
+	./nb-wrangler   fnc-test-spec.yaml --validate-spec
+	git checkout -- fnc-test-spec.yaml
 
 
 # ==========================================================================================================
@@ -174,7 +174,7 @@ test-bootstrap-only:
 test-bootstrap-spec:
 	rm -rf $NBW_ROOT
 	make clean
-	./nb-wrangler bootstrap ./tike-2025-07-beta.yaml
+	./nb-wrangler bootstrap ./fnc-test-spec.yaml
 
 local-test:  clean-test   ## run tests quickly with the default Python
 	./local-test pytest

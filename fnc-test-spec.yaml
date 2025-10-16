@@ -1,0 +1,45 @@
+# Image header information
+image_spec_header:
+  image_name: TIKE 2025.07-beta
+  deployment_name: tike  # currenty tike, roman, or jwebbinar
+  kernel_name: tess      # currently tess, roman-cal, or masterclass (and conda env name)
+  display_name: TESS     # menu item in JupyterLab kernel selection list
+  description: |
+    This is a beta test of the latest TIKE packages. Use at your own risk!
+  valid_on: 2025-07-02
+  expires_on: 2025-10-02
+  python_version: 3.11.13
+# these are the useful tike_content notebooks
+selected_notebooks:
+  - nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/
+    include_subdirs:
+      - data-access/
+      - lcviz-tutorial/
+      - tglc/
+      - zooniverse_view_lightcurve/
+  # -------------------------------------------------
+  # note: the below notebooks are included as a test.
+  # they should not be considered a useful subset
+  # of mast_notebooks for future releases
+  # -------------------------------------------------
+  # include TESS notebooks
+  - nb_repo: https://github.com/spacetelescope/mast_notebooks
+    nb_root_directory: notebooks/TESS
+    include_subdirs:
+      - beginner_how_to_use_lc
+      - beginner_tour_lc_tp
+  # include Kepler notebooks
+  - nb_repo: https://github.com/spacetelescope/mast_notebooks
+    nb_root_directory: notebooks/Kepler
+    include_subdirs:
+      - identifying_transiting_planet_signals
+      - instrumental_noise_4_electronic_noise
+extra_mamba_packages:
+  - pip
+extra_pip_packages:
+  - boto3
+system:
+  spec_version: 1.0
+  archive_format: .tar
+  spi_url: https://github.com/jaytmiller/science-platform-images.git
