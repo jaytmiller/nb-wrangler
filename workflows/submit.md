@@ -133,5 +133,10 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:03
 ```
 
-Looking at the source code for the nb-wrangler script will give you an
-idea of which install properties can be overridden by env vars.
+**NOTE**: It is not necessary for a spec to be locally installed in order to submit it; however,
+the spec should already be fully curated and should pass both input and notebook tests in order
+to build and test and image. The spec's sha256 hash also needs to be up-to-date so if you edit the
+spec you either need to re-run the curation workflow using `nb-wrangler --curate --test` or you need
+to manually update the hash using `nb-wrangler --update-spec-hash`.  While the spec and PR are
+validated in a number of ways on GitHub, there are still many basic conditions which can preclude
+getting a successful image build.
