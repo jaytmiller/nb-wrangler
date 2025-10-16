@@ -1,0 +1,38 @@
+# Curation
+
+# Curation
+
+## Basic Workflow
+
+Creating a fully populated wrangler spec has a simple workflow that involves adjusting an existing YAML specification to specify new/different notebook and packages and other system properties the new spec will define:
+
+1. **image_spec_header**: This section provides metadata about the image.
+   - **image_name**: A name for your image (e.g., `TIKE 2025.07-beta`).
+   - **deployment_name**: The deployment name, which can be `tike`, `roman`, or `jwebbinar`.
+   - **kernel_name**: The kernel name, currently `tess`, `roman-cal`, or `masterclass`.
+   - **display_name**: The name as it will appear in the JupyterLab kernel selection list (e.g., `TESS`).
+   - **description**: A brief description of the image and its purpose.
+   - **valid_on** and **expires_on**: Dates specifying when the image becomes valid and when it expires, respectively.
+   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`).
+
+2. **extra_mamba_packages** and **extra_pip_packages**: These fields are used to list additional packages required by your environment that aren't included by default. For example, `- pip` or `- boto3`. When filling these out, list each package on a new line, prefixed with a hyphen.  Note that mamba packages should be limited to build tools and compiled libraries not available on PyPi.  Packages available from PyPi should be specified under extra_pip_packages.
+
+3. **system**: This section contains specifications for the system environment.
+   - **spec_version**: The version of the specification being used (e.g., `1.0`).
+   - **archive_format**: The format used for archiving (e.g., `.tar`).
+   - **spi_url**: The URL of the GitHub repository for Science Platform Images (e.g., `https://github.com/jaytmiller/science-platform-images.git`).
+   - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking, easily updated if system compromised but hard to spoof and keep the same if compromised.  Not a signature,  does not identify authenticity with respect to a particular author, rather primarily accidental spec corruption.
+
+4. **selected_notebooks:** Defines a list of notebook selections each of which has the following fields:
+
+  - **nb_repo**: This field specifies the GitHub repository URL where the notebooks are located. For example, `https://github.com/spacetelescope/mast_notebooks` or `https://github.com/spacetelescope/tike_content`. When filling this out, ensure you provide a valid GitHub repository URL that contains the notebooks you wish to include.
+
+  - **nb_root_directory**: This defines the root directory within the repository where the notebooks are stored. Examples include `notebooks/TESS` or `content/notebooks/`. Fill this field with the path to the directory containing your notebooks, relative to the repository's root.
+
+  - **include_subdirs**: This is a list of subdirectories under `nb_root_directory` that you want to include. For instance, `- beginner_how_to_use_lc` or `- data-access/`. When specifying subdirectories, make sure to prefix them with a hyphen and keep them indented under the `include_subdirs` line.   Note that these can be regexes or complete path continuations under `nb_root_directory` if desired.  Defaults to regex .*
+
+  - **exclude_subdirs**: This is a list of subdirectories under `nb_root_directory` that should be excluded. For instance, `- beginner_how_to_use_lc` or `- data-access/`. When specifying subdirectories, make sure to prefix them with a hyphen and keep them indented under the `exclude_subdirs` line.   Note that these can be regexes or complete path continuations under `nb_root_directory` if desired.   Defaults to regexes for notebook checkpoint directories.
+
+5. **extra_mamba_packages**:  list of additional mamba packages which are required by your environment but not (yet?) specified by the notebook repo itself. For example, `- pip` or `- boto3`. When filling these out, list each package on a new line, prefixed with a hyphen.  Note that mamba packages should be limited to build tools and compiled libraries not available on PyPi to the extent possible.
+
+6. **extra_pip_packages**: list additional pip packages required by your environment that aren't included by default. For example, `boto3` is very useful on AWS but may have been left as optional until actually used by some packages. List each package on a new line, prefixed with a hyphen.  These packages should all be available on PyPi unless there is a compelling reason to get them from somewhere else.
