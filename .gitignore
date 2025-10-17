@@ -117,4 +117,7 @@ deployments/jwebbinar/image/default-home-contents/.jdaviz-example-data/*
 
 references/*
 
+aider*
 .aider*
+.continue*
+junk/*
