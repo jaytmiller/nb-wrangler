@@ -16,9 +16,12 @@ A spacetelescope/science-platform-images admin on GitHub needs to set this up,  
 
 5. Environment variable setup for `nb-wrangler`.
 
-## Setting up gh
+## Authenticating with gh
 
-Fortunately you only have to do this once and then occasionally renew your personal access token.
+nb-wrangler implements image build requests using wrangler spec PR's.  Hence, to
+trigger a build, it needs to perform github actions on your behalf.  The gh tool
+supports both those actions specific to GitHub (e.g. make a GitHub PR) and the 
+ability to authenticate with GitHub to prove you're permitted to do them.
 
 ### Install gh tool
 
@@ -37,16 +40,15 @@ $ sudo apt-get install gh
 
 ### Create your auth token on GitGub
 
-Your auth token will let anyone possessing it perform actions which are ascribed to you. 
+Your auth token will let anyone possessing it perform actions which are ascribed to you.
 
 To create a token, log into GitHub and navigate to https://github.com/settings/tokens.
 
 Open up the `Personal Access Tokens` menu item and click `Token(classic)`.
 
-The possible actions permitted by the token are limited by "scopes" and for nb-wrangler 
-you should give your token the following scopes:  `'read:org', 'repo', 'workflow'`.
+The possible actions permitted by the token are limited by "scopes" and for nb-wrangler you should give your token the following scopes: `'read:org', 'repo', 'workflow'`.
 
-These permissions enable the possessor to `push a branch`, `create a PR`, and `trigger an image build.`
+Loosely speaking, these permissions enable the possessor to `push a branch`, `create a PR`, and `trigger an image build.`
 
 ### Add an auth token to GH
 
@@ -140,3 +142,55 @@ spec you either need to re-run the curation workflow using `nb-wrangler --curate
 to manually update the hash using `nb-wrangler --update-spec-hash`.  While the spec and PR are
 validated in a number of ways on GitHub, there are still many basic conditions which can preclude
 getting a successful image build.
+
+
+## Image build pipeline
+
+The end result of authenticating and submitting a spec is to trigger GitHub
+Actions which validate the spec and PR and then build the image.  Additional
+actions such as code quality checks and security checks may or may not run,
+some actions are primarily used by the legacy image build process.
+
+### Spec and PR validation
+
+The first phase of the image build checks the spec and PR for viability and limited
+scope.
+
+1. Spec validation - the spec needs to have a correct checksum and required fields.
+2. PR validation   - the only change should be the addition of one spec to the archive. No other additions, modifications, or deletions are permitted.
+3. PR merge - if the spec and PR validate the PR is merged triggering a build.
+
+### Image build
+
+Once a valid spec has been merged,  the build-wrangler workflow is triggered
+and GitHub goes through the steps required to build the image,  test the image
+using its wrangler tests, scan the image using trivy, and push the image up 
+to ghcr.io from whence it can be pulled by other systems and users.
+
+### Build logs
+
+To see the build logs you must be logged into GitHub.  Then go to one of these pages:
+
+[Prototype Actions](https://github.com/jaytmiller/science-platform-images/actions)
+
+[Production Actions](https://github.com/spacetelescope/science-platform-images/actions)
+
+
+The two wrangler actions of note are:
+
+1. **Notebook Wrangler Validate Spec PR**
+
+2. **Notebook Wrangler Build**
+
+### Image repository
+
+If the image builds successfully the image will be pushed to `ghcr.io` and
+and will be visible on one of these pages:
+
+[Prototype Images](https://github.com/jaytmiller/science-platform-images/pkgs/container/science-platform-images)
+
+[Production Images](https://github.com/spacetelescope/science-platform-images/pkgs/container/science-platform-images)
+
+The final details for when and how an image becomes visible on the platform are
+still being discussed but in the case of prototype images it should be sufficient
+to refresh the platform spawn page.
