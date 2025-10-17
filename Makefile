@@ -110,6 +110,7 @@ fnc-unregister-env: fnc-init-env
 
 fnc-reset-spec: fnc-compile
 	./nb-wrangler   fnc-test-spec.yaml --reset-spec
+	git checkout -- fnc-test-spec.yaml
 
 fnc-validate-spec: fnc-compile
 	./nb-wrangler   fnc-test-spec.yaml --validate-spec
