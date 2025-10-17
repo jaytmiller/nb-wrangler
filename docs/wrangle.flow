@@ -1,0 +1,21 @@
+I need to create a Mermaid diagram for an iterative workflow which consists of these steps:
+
+Curator copies spec template as baseline for this image.
+Curator updates spec header and basic properties of the environment, such as it’s name and dates of applicablity.
+Curator updates spec repositories from which to retrieve notebooks.
+Curator updates spec with repo sub-directory regexes to search for notebooks and package requirements.
+Curator optionally adds any missing packages directly to spec.
+nb-wrangler clones all specified notebook repos as well as science-platform-images.  On fail, repeat spec repo and subdir updates.
+nb-wrangler collects all specified notebooks and add to spec.
+nb-wrangler collects all specified packages from requirements.txt files belonging to selected notebooks.
+nb-wrangler collects all specified data from refdata_dependencies.yaml and adds to spec.
+nb-wrangler optionally includes “common” packages from science-platform-images.
+nb-wrangler creates mamba environment from baseline environment spec and/or the `out.mamba_spec`.
+nb-wrangler compiles all package requests into fully resolved pip package versions.
+nb-wrangler installs fully resolved pip package versions in mamba environment.
+nb-wrangler verifies package imports scraped from notebooks import correctly in environment.
+nb-wrangler tests each notebook headless to ensure it completes without failure.
+On success of notebook tests, save computed notebook, data, and package lists as well as all inputs above as a single spec.
+On failure anywhere correct spec inputs, notebook repos, or data as appropriate and try again.
+
+Please create a flowchart of the above iterative process and create a mermaid diagram from it. Display the mermaid diagram both inline and as mermaid code.
