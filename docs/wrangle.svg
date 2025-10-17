@@ -1,0 +1,29 @@
+graph LR;
+    subgraph Curator Tasks
+        A[Curator copies spec template]
+        B[Remove .out section or run nb-wrangler --reset-spec]
+        C[Update notebooks and/or notebook repo]
+        D[Update spec header and basic properties]
+        E[Update spec repositories]
+        F[Update spec with repo sub-directory regexes]
+    end
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G[nb-wrangler clones notebook repos and science-platform-images];
+    G -->|Fail| C;
+    G --> H[nb-wrangler collects notebooks and adds to spec];
+    H -->|Fail| C;
+    H --> I[nb-wrangler collects packages from requirements.txt files];
+    I -->|Fail| C;
+    I --> J[nb-wrangler collects data from refdata_dependencies.yaml];
+    J --> K[nb-wrangler includes common packages from science-platform-images];
+    K --> L[nb-wrangler creates mamba environment];
+    L --> M[nb-wrangler compiles package requests into pip package versions];
+    M --> N[nb-wrangler installs pip package versions in mamba environment];
+    N --> O[nb-wrangler verifies package imports];
+    O --> P[nb-wrangler tests notebooks headless];
+    P -->|Fail| C;
+    P --> Q[Save computed notebook, data, and package lists as a single spec];
