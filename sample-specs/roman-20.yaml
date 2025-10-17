@@ -27,7 +27,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: dc9032a3fb5652c29dfdcfe5d15e63effb27bf343498e7d481fda1c9ae1ec7af
+  spec_sha256: 0377337314b236b7bc7301c043e8fdb5b7babd165d4bea71ee9e18243b60dace
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
