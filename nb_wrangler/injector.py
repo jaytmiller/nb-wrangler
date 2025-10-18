@@ -181,11 +181,11 @@ Description:
         self.logger.info(
             f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {self.kernel_name}..."
         )
-        self._inject("notebook_repo_urls", self.environments_path / "notebook-repos")
+        # self._inject("notebook_repo_urls", self.environments_path / "notebook-repos")
+        self._inject("test_imports", self.test_path / "imports")
+        # self._inject("test_notebooks", self.test_path / "notebooks")
         self._inject("mamba_spec", self.env_yml)
         self._inject("pip_compiler_output", self.env_pip)
-        self._inject("test_imports", self.test_path / "imports")
-        self._inject("test_notebooks", self.test_path / "notebooks")
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )
