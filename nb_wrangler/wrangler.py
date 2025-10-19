@@ -52,27 +52,20 @@ class NotebookWrangler:
 
     @property
     def deployment_name(self):
+        """Nominally the branch of science-platform-images this build will target."""
         return self.spec_manager.deployment_name if self.spec_manager else None
 
     @property
     def env_name(self):
-        """e.g.  override_env = None or tess,TESS or tess"""
-        if self.config.override_env is not None:
-            return self.config.override_env.split(",")[0]
-        else:
-            return self.spec_manager.kernel_name if self.spec_manager else None
+        """Strictly speaking,  kernel name,  but nominally also environment name.
+        The worst/only exception I know of is "base" environment == "python3" kernel.
+        """
+        return self.spec_manager.kernel_name if self.spec_manager else None
 
     @property
     def kernel_display_name(self):
-        if self.config.override_env is not None:
-            if len(self.config.override_env.split(",")) > 1:
-                return self.config.override_env.split(",")[1]
-            else:
-                return self.env_name
-        else:
-            return (
-                self.spec_manager.display_name if self.spec_manager else self.env_name
-            )
+        """More readable version of kernel name visible in JupyterLab menu."""
+        return self.spec_manager.display_name if self.spec_manager else self.env_name
 
     @property
     def mamba_spec_file(self):

@@ -12,7 +12,6 @@ NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
 NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
 NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", NBW_ROOT / "pantry"))
-NBW_OVERRIDE_ENV = os.environ.get("NBW_OVERRIDE_ENV", None)
 
 if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
