@@ -40,8 +40,8 @@ VALID_ARCHIVE_FORMATS = [
 ]
 
 # Notebook testing constants
-NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBX_TEST_MAX_SECS", 30 * 60))  # 30 min
-NOTEBOOK_TEST_JOBS = int(os.environ.get("NBX_TEST_JOBS", 4))
+NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 30 * 60))  # 30 min
+NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))
 
 # Timeout constants (in seconds)
 DEFAULT_TIMEOUT = 300
