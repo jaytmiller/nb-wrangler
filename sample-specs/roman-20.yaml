@@ -26,12 +26,12 @@ extra_pip_packages:
 system:
   spec_version: 1.0
   archive_format: .tar
-  spi_url: https://github.com/spacetelescope/science-platform-images.git
-  spec_sha256: 8c6c3e253f42e5e8ccd287e09aafadaf85afd52f314d6d479145c672e6539c74
+  spi_url: https://github.com/jaytmiller/science-platform-images.git
+  spec_sha256: 0377337314b236b7bc7301c043e8fdb5b7babd165d4bea71ee9e18243b60dace
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
-  injector_url: https://github.com/spacetelescope/science-platform-images.git
+  injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
     - references/roman_notebooks/content/notebooks/aperture_photometry/aperture_photometry.ipynb
     - references/roman_notebooks/content/notebooks/data_discovery_and_access/data_discovery_and_access.ipynb
