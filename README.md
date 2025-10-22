@@ -70,33 +70,6 @@ The wrangler prepares a custom version of the `spec.yaml` file. Then, run:
 nb-wrangler spec.yaml --curate [--verbose]
 ```
 
-## Reinstall
-
-A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
-
-```bash
-nb-wrangler spec.yaml --reinstall
-```
-
-## Build Submission
-
-After completing development of a spec, you can submit it to https://github.com/spacetelescope/science-platform-images
-to automatically build a Docker image which becomes available for use on the relevant STScI science platforms.
-
-```bash
-gh auth login
-nb-wrangler spec.yaml --submit-for-build [--verbose]
-```
-
-In addition to installing nb-wrangler, prerequisites for submitting specs for Docker builds are:
-
-- You need your own GitHub account
-- Your GitHub account needs to be granted appropriate permissions by the spacetelescope/science-platform-images project.
-- You need to install the GitHub command line interface program `gh` using `brew` on OS-X or `apt-get` or `dnf` on Linux.
-- You need to authenticate with gh as shown -or- set GH_TOKEN or GITHUB_TOKEN to a token with appropriate permissions.
-
-For more information on `gh` see [GH CLI](https://cli.github.com  "gh GitHub CLI program").
-
 ## Automatic Testing
 
 For both curation and reinstallation work flows it's useful to execute tests to demonstrate that the installation is
@@ -116,6 +89,45 @@ nb-wrangler spec.yaml --curate --test-imports
 ```
 
 to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that empirically viable package versions are installed.
+
+Note that successfully running notebooks may require correctly setting up local copies of data
+which are nominally defined in the file `refdata_dependencies.yaml` at the root of each notebook
+repository that requires it.  The wrangler automation for this is currently being developed,
+check for it using `--help` but don't be surprised if you must do data setup manually for now.
+
+## Reinstall
+
+A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
+
+```bash
+nb-wrangler spec.yaml --reinstall
+```
+
+## Build Submission
+
+After completing development of a spec, you can submit it to https://github.com/spacetelescope/science-platform-images
+to automatically build a Docker image which becomes available for use on the relevant STScI science platforms.
+
+```bash
+gh auth login
+nb-wrangler spec.yaml --submit-for-build [--verbose]
+```
+
+For additional detail see [Submit for Build](docs/submit.md).
+
+
+## Science Platform Images (SPI) Injection
+
+Out of conservatism nb-wrangler supports a build mode called `SPI Injection` which essentially
+injects the package and test requirements defined by a wrangler spec into the classic
+science platform images repo layout we've been using for years. This leverages the wrangler
+spec by completing the formerly manual developer task of copying package specs from Jira
+to a mission environment's definition directories.  From that point forward however there is
+no additional wrangler automation for this mode.  The build, scan, tagging, push, and PR'ing
+all need to be completed manually. Nevertheless, while we're in the process of introducing
+nb-wrangler,  SPI Injection may be handy if we're required to build two versions of the images,
+wrangler and classic.  See [SPI Injection](docs/inject-spi.md) for more information on this
+fallback / transition mode of builds.
 
 ## Basic Flow
 
