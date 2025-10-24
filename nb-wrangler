@@ -153,9 +153,8 @@ esac
 eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
 
 case $NBW_COMMAND in
-    boot*)
-        ;;
-    env*)
+    boot*|env*)
+        ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
         ;;
     act*)
         ${NBW_MAMBA} activate $*

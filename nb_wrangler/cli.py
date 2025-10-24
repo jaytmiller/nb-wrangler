@@ -221,6 +221,13 @@ def parse_args():
         action="store_true",
         help="Update spec SHA256 hash even if validation fails and continue processing.",
     )
+    parser.add_argument(
+        "-e", "--env-overrides",
+        type=str,
+        metavar="VAR=val",
+        nargs="*",
+        help="""Environment variable overrides to apply when resolving abstract paths, particularly for data.""",
+    )
     return parser.parse_args()
 
 
@@ -236,7 +243,6 @@ def main() -> int:
         success = _main(args)
 
     return success
-
 
 def _main(args):
     """Main entry point for the CLI."""

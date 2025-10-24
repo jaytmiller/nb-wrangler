@@ -29,6 +29,7 @@ dependencies = [
     "uv",
     "setuptools",
     "boto3",
+    "httpx",
 ]
 
 [project.optional-dependencies]
