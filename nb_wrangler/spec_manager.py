@@ -41,6 +41,10 @@ class SpecManager:
         return self.header["image_name"]
 
     @property
+    def spec_id(self) -> str:
+        return self.sha256[:6]
+
+    @property
     def description(self) -> str:
         return self.header["description"]
 

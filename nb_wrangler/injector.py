@@ -75,7 +75,7 @@ class SpiInjector:
 
     @property
     def spec_id(self):
-        return self.spec_manager.sha256[:6]
+        return self.spec_manager.spec_id
 
     @property
     def core_name(self):
