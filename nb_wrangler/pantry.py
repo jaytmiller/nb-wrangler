@@ -7,7 +7,7 @@ ${NBW_PANTRY}/
   shelves/
     spec-1-shelf/
       wrangler-spec.yaml
-      archives: (cans)
+      archives/ (cans)
         env-1-tar
         repo-1-clone.tar.gz   ...
         data-1-clone.tar.gz   ...
@@ -48,6 +48,9 @@ from pathlib import Path
 from .logger import WranglerLogger
 from .spec_manager import SpecManager
 from .environment import EnvironmentManager
+
+
+NBW_ARCHIVE = NBW_PANTRY / shelves /
 
 
 class NbwPantry:

@@ -1,6 +1,7 @@
 # nb_wrangler/config.py
 """Configuration management for nb-wrangler."""
 
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -21,7 +22,7 @@ from .constants import (
 )
 
 
-global_config = None   # Singleton instance of WranglerConfig
+global_config = None  # Singleton instance of WranglerConfig
 
 
 @dataclass
@@ -94,7 +95,9 @@ class WranglerConfig:
         if not global_config:
             global_config = self
         else:
-            raise RuntimeError("Unexpected global_config value.  Should be None during init.")
+            raise RuntimeError(
+                "Unexpected global_config value.  Should be None during init."
+            )
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":

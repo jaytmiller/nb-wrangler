@@ -222,7 +222,8 @@ def parse_args():
         help="Update spec SHA256 hash even if validation fails and continue processing.",
     )
     parser.add_argument(
-        "-e", "--env-overrides",
+        "-e",
+        "--env-overrides",
         type=str,
         metavar="VAR=val",
         nargs="*",
@@ -243,6 +244,7 @@ def main() -> int:
         success = _main(args)
 
     return success
+
 
 def _main(args):
     """Main entry point for the CLI."""

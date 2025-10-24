@@ -109,12 +109,13 @@ def hex_time():
 class DataHandlingError(RuntimeError):
     """There was an error validating or retrieving some form of remote data."""
 
+
 class DataIntegrityError(DataHandlingError):
     """Two different perspectives on the same data did not match, e.g. recorded size != current download size."""
 
+
 class DataDownloadError(DataHandlingError):
     """Something went wrong with downloading a data item, most likely authentication or actual transfer."""
-
 
 
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
@@ -184,6 +185,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
         else:
             return None
 
+
 @dataclass
 class HeadInfo:
     size: int
@@ -193,15 +195,15 @@ class HeadInfo:
     def todict(self):
         return dict(self.__dict__)
 
+
 def get_head_info(url: str, timeout: int = 30) -> HeadInfo:
-    """Return (size, etag, last-modified) for a URL based on HTTP HEAD,  
+    """Return (size, etag, last-modified) for a URL based on HTTP HEAD,
     nominally for a data file.
     """
     response = httpx.head(url, timeout=timeout)
     response.raise_for_status()
     d = dict(response.headers.items())
     return HeadInfo(d["content-length"], d["etag"], d["last-modified"])
-
 
 
 # -------------------------------------------------------------------------
@@ -314,7 +316,7 @@ def resolve_vars(template, mapping):
     Resolve a `template` into a fully resolved string by replacing variable
     references in the `template` with the corresponding values for them found in
     `mapping`.  This is nominally used to resolve abstract file system paths in
-    various specs using a combination of os.environ and CLI overrides. 
+    various specs using a combination of os.environ and CLI overrides.
 
     env = {"HOME": "/home/user", "USER": "alice"}
     config_string = "The path is $HOME/project/${USER}"
@@ -326,8 +328,7 @@ def resolve_vars(template, mapping):
     returns (fully resolved template with respect to mapping)
     """
     return re.sub(
-        r'\$(\w+)|\${(\w+)}|{(\w+)}',
+        r"\$(\w+)|\${(\w+)}|{(\w+)}",
         lambda m: mapping.get(m.group(1) or m.group(2) or m.group(3), m.group(0)),
-        template
+        template,
     )
-

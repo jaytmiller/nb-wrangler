@@ -83,8 +83,11 @@ class EnvironmentManager:
     def nbw_cache_dir(self) -> Path:
         return Path(NBW_CACHE)
 
+    def archive_path(self, moniker: str):
+        return self.nbw_pantry_dir / "shelves" / moniker.lower() / "archives"
+
     def env_archive_path(self, moniker: str, archive_format: str) -> Path:
-        return self.nbw_pantry_dir / "envs" / (moniker.lower() + archive_format)
+        return self.archive_path(moniker) / ("env-" + moniker.lower() + archive_format)
 
     def mm_envs_dir(self, env_name: str) -> Path:
         if self.is_base_env_alias(env_name):
@@ -97,6 +100,8 @@ class EnvironmentManager:
             return self.mm_envs_dir(env_name)
         else:
             return self.mm_envs_dir(env_name) / env_name
+
+    # ------------------------------------------------------------------------------
 
     def _condition_cmd(self, cmd: list[str] | tuple[str] | str) -> list[str]:
         """Condition the command into a list of UNIX CLI 'words'.
