@@ -5,7 +5,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import argparse
+from functools import lru_cache
 
+from . import utils
 from . import logger
 from .constants import (
     NBW_ROOT,
@@ -17,6 +19,9 @@ from .constants import (
     DEFAULT_COLOR_MODE,
     VALID_LOG_TIME_MODES,
 )
+
+
+global_config = None   # Singleton instance of WranglerConfig
 
 
 @dataclass
@@ -68,6 +73,8 @@ class WranglerConfig:
     add_pip_hashes: bool = False
     update_spec_hash: bool = False
 
+    env_overrides_arg: str = ""
+
     workflow: str = "explicit"
 
     def __post_init__(self):
@@ -82,6 +89,12 @@ class WranglerConfig:
         if self.test_all:
             self.test_imports = True
             self.test_notebooks = ".*"
+
+        global global_config
+        if not global_config:
+            global_config = self
+        else:
+            raise RuntimeError("Unexpected global_config value.  Should be None during init.")
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
@@ -121,4 +134,17 @@ class WranglerConfig:
             add_pip_hashes=args.add_pip_hashes,
             update_spec_hash=args.update_spec_hash,
             workflow=args.workflow,
+            env_var_overrides=args.env_var_overrides,
         )
+
+    @property
+    @lru_cache(1)
+    def env_with_overrides(self):
+        result = dict(os.environ)
+        for keyval in self.env_overrides:
+            key, val = keyval.split("=", 1)
+            result[key] = val
+        return result
+
+    def resolve_overrides(self, var):
+        return utils.resolve_vars(var, self.env_with_overrides)

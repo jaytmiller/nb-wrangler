@@ -1,36 +1,46 @@
 """
-This module manages the central nb-wrangler environtment store which has
+This module manages the central nb-wrangler persistent environtment store which has
 a directory organization something like:
 
 ${NBW_PANTRY}/
-  metadata/
-  specs/
-    shelf-1-spec.yaml
-    shelf-1-spec.yaml
-    ...
+  pantry.yaml
   shelves/
-    shelf-1/
+    spec-1-shelf/
       wrangler-spec.yaml
-      cans/
-        env-1-tar.xz
-        env-1-tar.xz
-        ...
-      notebook_repos/
+      archives: (cans)
+        env-1-tar
+        repo-1-clone.tar.gz   ...
+        data-1-clone.tar.gz   ...
+      notebook_repos/  (unpacked notebooks)
         repo-clone-1/
         repo-clone-2/
-        ...
-      data/
+      data/  (unpacked data)
         live-data-dir-1/
         live-data-dir-2/
         ...
-    shelf-2
+    spec-2-shelf
         ...
-  archives:
-    shelf-1.tar.xz
     ...
 
-In addition to the environment specification, creation, and test functions
-the wrangler was initially designed for,  the NbcPantry class
+A related live installation may or may not be located on persistent storage but is
+kept separate to enable locating it on highly performant but ephemeral storage:
+
+${NBW_ROOT}/
+  mm/
+    bin
+    pkgs
+    envs/
+      env-1
+  temps/
+  cache/
+  notebook_repos/
+    shelf-1/
+      repo-clone-1
+      ...
+  data/
+    shelf-1/
+      live-data-dir-1
+      ...
 """
 
 from pathlib import Path
@@ -40,7 +50,7 @@ from .spec_manager import SpecManager
 from .environment import EnvironmentManager
 
 
-class NbcPantry:
+class NbwPantry:
     def __init__(
         self,
         logger: WranglerLogger,
@@ -48,7 +58,8 @@ class NbcPantry:
         env_manager: EnvironmentManager,
     ):
         """
-        Initialize the NbcPantry with a logger and a spec manager.
+        Initialize the NbwPantry with a logger, a spec manager, and an environment manager.
+
         The pantry is responsible for managing shelves, cans, and the overall environment store.
         """
         pass
@@ -99,21 +110,24 @@ class NbcPantry:
         raise NotImplementedError("list_shelves not yet implemented")
 
 
-class NbcShelf:
+class NbwShelf:
     """
     Represents a shelf in the environment store.
+
+    A shelf is defined by a single wrangler spec,  which in turn defines a set of notebook
+    repositories and notebooks,  and in turn defines set of refdata_dependencies.yaml files
+    and requirements.txt files respectively.  The requirements.txt files and wrangler spec
+    collectively define a single mamba environment.
+
     A shelf contains multiple cans (environments), notebook repositories, and data directories.
     This class may provide methods to manage the contents of a shelf.
     """
 
-    pass
 
-
-class NbcCan:
+class NbwCan:
     """
     Represents a can (environment) within a shelf.
+
     A can is typically a tarball containing an environment, and may include notebooks and data.
     This class may provide methods to interact with the environment contained in the can.
     """
-
-    pass

@@ -45,6 +45,7 @@ NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))
 # Timeout constants (in seconds)
 DEFAULT_TIMEOUT = 300
 REPO_CLONE_TIMEOUT = 300
+DATA_GET_TIMEOUT = 300
 ENV_CREATE_TIMEOUT = 600
 INSTALL_PACKAGES_TIMEOUT = 1200
 PIP_COMPILE_TIMEOUT = 600
@@ -59,3 +60,6 @@ VALID_LOG_TIME_MODES = ["none", "normal", "elapsed", "both"]
 DEFAULT_LOG_TIMES_MODE = "elapsed"
 VALID_COLOR_MODES = ["auto", "on", "off"]
 DEFAULT_COLOR_MODE = "auto"
+
+
+DATA_SPEC_NAME = "refdata_dependencies.yaml"

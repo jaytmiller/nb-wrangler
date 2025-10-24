@@ -2,6 +2,7 @@
 
 import os
 import io
+import re
 import urllib.parse
 from typing import Optional
 import datetime
@@ -9,8 +10,9 @@ import functools
 import hashlib
 import time
 import shutil
+from dataclasses import dataclass
 
-import requests
+import httpx
 import boto3  # type: ignore
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # type: ignore
 
@@ -104,6 +106,17 @@ def hex_time():
 # -------------------------------------------------------------------------
 
 
+class DataHandlingError(RuntimeError):
+    """There was an error validating or retrieving some form of remote data."""
+
+class DataIntegrityError(DataHandlingError):
+    """Two different perspectives on the same data did not match, e.g. recorded size != current download size."""
+
+class DataDownloadError(DataHandlingError):
+    """Something went wrong with downloading a data item, most likely authentication or actual transfer."""
+
+
+
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
     """Convert URI to local path if possible. Perform any required
     downloads based on the URI, nominally: none, HTTP, HTTPS, or S3.
@@ -125,14 +138,14 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
     # Check for HTTP or HTTPS URI
     elif uri.startswith("http://") or uri.startswith("https://"):
         try:
-            response = requests.get(uri, timeout=timeout)
+            response = httpx.get(uri, timeout=timeout)
             response.raise_for_status()
             # Generate a filename from the last element of the URI
             filename = os.path.basename(uri)
             with open(filename, "w+") as f:
                 f.write(response.text)
             return filename
-        except requests.exceptions.RequestException as e:
+        except httpx.exceptions.RequestException as e:
             print(f"Error downloading file: {e}")
             return None
 
@@ -170,6 +183,25 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return os.path.abspath(uri)
         else:
             return None
+
+@dataclass
+class HeadInfo:
+    size: int
+    etag: str
+    last_modified: str
+
+    def todict(self):
+        return dict(self.__dict__)
+
+def get_head_info(url: str, timeout: int = 30) -> HeadInfo:
+    """Return (size, etag, last-modified) for a URL based on HTTP HEAD,  
+    nominally for a data file.
+    """
+    response = httpx.head(url, timeout=timeout)
+    response.raise_for_status()
+    d = dict(response.headers.items())
+    return HeadInfo(d["content-length"], d["etag"], d["last-modified"])
+
 
 
 # -------------------------------------------------------------------------
@@ -275,3 +307,27 @@ def clear_directory(directory_path):
             os.unlink(item_path)  # Remove file or symbolic link
         elif os.path.isdir(item_path):
             shutil.rmtree(item_path)  # Remove directory and all its contents
+
+
+def resolve_vars(template, mapping):
+    """
+    Resolve a `template` into a fully resolved string by replacing variable
+    references in the `template` with the corresponding values for them found in
+    `mapping`.  This is nominally used to resolve abstract file system paths in
+    various specs using a combination of os.environ and CLI overrides. 
+
+    env = {"HOME": "/home/user", "USER": "alice"}
+    config_string = "The path is $HOME/project/${USER}"
+    resolved = resolve_vars(config_string, env)
+    resolved = "The path is /home/user/project/alice"
+
+    Supports $, ${}, and {} variable references.
+
+    returns (fully resolved template with respect to mapping)
+    """
+    return re.sub(
+        r'\$(\w+)|\${(\w+)}|{(\w+)}',
+        lambda m: mapping.get(m.group(1) or m.group(2) or m.group(3), m.group(0)),
+        template
+    )
+
