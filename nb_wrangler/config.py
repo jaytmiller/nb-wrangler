@@ -29,7 +29,7 @@ global_config = None  # Singleton instance of WranglerConfig
 class WranglerConfig:
     """Configuration class for NotebookWrangler."""
 
-    spec_file: str
+    spec_file: Optional[str] = None
 
     logger: Optional["logger.WranglerLogger"] = None
     mamba_command: Path = DEFAULT_MAMBA_COMMAND
@@ -74,7 +74,7 @@ class WranglerConfig:
     add_pip_hashes: bool = False
     update_spec_hash: bool = False
 
-    env_overrides_arg: str = ""
+    env_overrides: str = ""
 
     workflow: str = "explicit"
 
@@ -137,11 +137,10 @@ class WranglerConfig:
             add_pip_hashes=args.add_pip_hashes,
             update_spec_hash=args.update_spec_hash,
             workflow=args.workflow,
-            env_var_overrides=args.env_var_overrides,
+            env_overrides=args.env_overrides,
         )
 
     @property
-    @lru_cache(1)
     def env_with_overrides(self):
         result = dict(os.environ)
         for keyval in self.env_overrides:

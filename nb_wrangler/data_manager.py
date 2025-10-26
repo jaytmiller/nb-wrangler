@@ -13,10 +13,10 @@ from typing import Optional
 import httpx
 
 from . import utils
+from .constants import DATA_SPEC_NAME, DATA_GET_TIMEOUT
+from .config import WranglerConfig
+from . import config
 from .logger import WranglerLogger
-from .constants import DATA_SPEC_NAME
-from .config import global_config
-
 
 """
 The initial implementation of a data spec for a single notebook repo was:
@@ -92,41 +92,28 @@ bash script to define the exports required for each data item such that notebook
 variables to locate as-installed data.
 """
 
+
 @dataclass
 class SingleUrl:
     url: str
     archive_dir: str
-    abstract_path: "aaa"
-    resolved_path: "bbb"
+    abstract_path: str   # where to unpack including
+    resolved_path: str   # Where to unpack relative to overridden(?) env vars
     size: int = 0
-    etag: str = "xxx"    # hash to verify changed/not-changed status, can be cheesy, available w/o compute from HTTP HEAD
     sha256: str = "yyy"  # has to verify definitely not corrupted status,  very hard to spoof if known elsewhere, not a signature
-    last_modified: "zzz"
-
+ 
     def todict(self):
         return dict(self.__dict__)
 
-    @classmethod
-    def from_url(self, url: str, abstract_path: str, resolved_path: str) -> None:
-        head = utils.get_head_info(url)
-        return SingleUrl(url, abstract_path, resolved_path, head.size, head.etagint(head.size), head.etag, "yyy", head.last_modified)
-
-    def update_sha256(self) -> None:
-        if not self.archive_path.exists():
-            self.download()
-        self.validate_filesize(self.archive_path)
-        self.sha256 = utils.sha256_file(self.resolved_path)
-
     def validate_sha256(self) -> None:
-        if not self.archive_path.exists():
-            self.download()
+        if not self.archive_filepath.exists():
+            raise utils.DataIntegrityError(f"Archive file does not exist at expected location {str(self.archive_filepath)}.")
         new_sha256 = utils.sha256_file(self.resolved_path)
         if self.sha256 != new_sha256:
             raise utils.DataIntegrityError(f"Data for '{self.url}' may be corrupt: Recorded sha256 is '{self.sha256}' but computed from '{self.archive_path}' is '{new_sha256}'.")
 
     def validate_filesize(self) -> None:
-        path = Path(self.resolved_path)
-        size = path.state().st_size
+        size = self.archive_filepath.stat().st_size
         if self.size != size:
             raise utils.DataIntegrityError(f"Data for '{self.url}' may be corrupt: Recorded file size is '{self.size}' but computed from '{self.archive_path}' is '{size}'.")
 
@@ -136,32 +123,28 @@ class SingleUrl:
             raise utils.DataIntegrityError(f"Data for '{self.url}' may be corrupt: Unpacked directory '{self.resolved_path}' does not exist.")
 
     def validate(self, kind: str = "") -> None:
-        self.validate_file_size()
-        if "update-sha256" in kind:
-            self.update_sha256()
-        elif "sha256" in kind:
+        self.validate_filesize()
+        if "sha256" in kind:
             self.validate_sha256()
         if "resolved-exists" in kind:
             self.validate_resolved_exists()
 
     @property
-    def archive_path(self) -> Path:
+    def archive_filepath(self) -> Path:
         return Path(self.archive_dir) / os.path.basename(self.url)
 
-    def download(self) -> Path:
-        arch_dir = Path(self.archive_dir)
-        arch_dir.mkdir(parents=True, exist_ok=True)
-        pwd = os.getcwd()
-        os.chdir(arch_dir)
-        try:
-            path = utils.uri_to_local_path(self.url, timeout=config.DATA_GET_TIMEOUT)
-        finally:
-            os.chdir(pwd)
-        return Path(path)
+    def download(self, force: bool = False) -> Path:
+        if self.archive_filepath.exists() or force:
+            return self.archive_filepath
+        new_path = utils.robust_get(self.url, timeout=DATA_GET_TIMEOUT, cwd=str(self.archive_dir))
+        if self.archive_filepath != new_path:
+            raise DataDownloadError(f"Failed to download data from '{self.url}' expected filepath '{self.archive_filepath}' got '{new_path}'.")
+        self.size = self.archive_filepath.stat().st_size
+        self.sha256 = utils.sha256_file(self.archive_filepath)
 
 
 @dataclass
-class DataItem:
+class DataSection:
     """Represents a single data item in the ref."""
     name: str
     version: str
@@ -169,12 +152,12 @@ class DataItem:
     install_path: str
     data_path: str
     urls: list[str]
-    url_map: list[str] = []
+    url_map: list[str]
     archive_dir: str
 
     def __post_init__(self):
         for url in self.urls:
-            self.url_map[url] = SingleUrl.from_url(url, self.archive_dir, self.abstract_path, self.resolved_path)
+            self.url_map[url] = SingleUrl(url, self.archive_dir, self.abstract_path, self.resolved_path)
 
     @property
     def abstract_path(self):
@@ -182,48 +165,59 @@ class DataItem:
 
     @property
     def resolved_path(self):
-        return global_config.resolve_overrides(self.abstract_path)
+        return config.global_config.resolve_overrides(self.abstract_path)
 
     def todict(self):
         d = dict(self.__dict__)
         d["urls"] = [url.todict() for url in self.urls]
         return d
 
+    def download(self, *args):
+        for url, single_url in self.url_map.items():
+            single_url.download(*args)
+
     def validate(self, *args):
         for url, single_url in self.url_map.items():
-            single_url.validate()
+            single_url.validate(*args)
 
 
 class DataRepoSpec:
     """This class loads a single refdata_dependencies.yaml file including multiple
     named data sections each of which may have more than one URL which is represented
-    by a DataItem instance.
+    by a DataSection instance.
     """
-    def __init__(self, yaml_string):
-        self._yaml_dict = utils.get_yaml().safe_load(yaml_string)
+    def __init__(self, logger: WranglerLogger, yaml_string: str, archive_dir: str):
+        self.logger = logger
+        self._yaml_dict = utils.get_yaml().load(yaml_string)
+        self.archive_dir = archive_dir
         self.data_dicts = self._yaml_dict["install_files"]
         self.extra_env = self._yaml_dict["other_variables"]
+        self.data_items = {}
+        
         for name, dd in self.data_dicts.items():
-            self.data_items[name] = DataItem(
-                name=dd["name"],
-                version=dd["version"],
-                url_names=dd["data_url"],
-                env_var=dd["environment_variable"],
-                install_path=dd["install_path"],
-                data_path=dd["data_path"],
-                urls={},
-                archive_dir=
-            )
+            try:
+                self.data_items[name] = DataSection(
+                    name=name,
+                    version=dd["version"],
+                    env_var=dd["environment_variable"],
+                    install_path=dd["install_path"],
+                    data_path=dd["data_path"],
+                    urls=dd["data_url"],
+                    url_map={},
+                    archive_dir=archive_dir
+                )
+            except Exception as e:
+                self.logger.exception(e, f"Failed creating data section {name}.")
 
     @classmethod
-    def from_string(cls, yaml_string):
-        return cls(yaml_string)
+    def from_string(cls, yaml_string, archive_dir: str = "."):
+        return cls(logger, yaml_string, archive_dir)
 
     @classmethod
-    def from_file(cls, filepath):
+    def from_file(cls, logger, filepath, archive_dir: str = "."):
         with open(filepath) as stream:
             yaml_string = stream.read()
-            return cls.from_string(yaml_string)
+            return cls.from_string(logger, yaml_string, archive_dir)
 
     def validate_spec(self):
         """Validate that the refdata_dependencies.yaml is well structured and with
@@ -232,15 +226,20 @@ class DataRepoSpec:
         for data_item in self.data_items.values():
             data_item.validate()
 
+    def download_spec(self, *args):
+        for data_item in self.data_items.values():
+            data_item.download(*args)
+
 
 class DataManager:
     """This class manages all the data associated with a single *wrangler* spec,
     which may include *data sub-specs* in the form of refdata_dependencies.yaml
     files from each/any of the notebook repos associated with the wrangler spec.
     """
-    def __init__(self, logger: WranglerLogger, notebook_repo_paths: list[str]):
+    def __init__(self, logger: WranglerLogger, notebook_repo_paths: list[str], archive_dir: str = "."):
         self.logger = logger
         self.notebook_repo_paths = notebook_repo_paths
+        self.archive_dir = "."
         self.data_specs = {}
 
     def iterate_over(self, description, func, *args):
@@ -250,20 +249,23 @@ class DataManager:
                 self.logger.debug(f"{description} {repo_path}...")
                 result_map[repo_path] = func(repo_path, *args)
             except Exception as e:
-                self.logger.exception(e, f"Failed {description.lower()} {ref_path}:")
+                self.logger.exception(e, f"Failed {description.lower()} {repo_path}:")
                 result_map[repo_path] = None
         return result_map
 
     def _load_spec(self, repo_path):
-        return DataSpec(Path(repo_path) / DATA_SPEC_NAME)
+        return DataRepoSpec(self.logger, Path(repo_path), self.archive_dir)
 
-    def load_repo_specs(self) -> None:
+    def load_refdata_specs(self) -> None:
         self.data_specs = self.iterate_over("Loading refdata spec", self._load_spec)
 
     def _validate_spec(self, repo_path: str, *args) -> None:
-        self.data_specs[repo_path].validate(*args)
+        if self.data_specs[repo_path] is not None:
+            self.data_specs[repo_path].validate_spec(*args)
+        else:
+            self.logger.error(f"Cannot validate refdata spec {repo_path} that failed to load.")
     
-    def validate(self, *args):
+    def validate_refdata_specs(self, *args):
         self.iterate_over("Validating refdata spec", self._validate_spec, *args)
 
     def _get_repo_spec_dict(self, repo_path) -> dict:
@@ -272,10 +274,22 @@ class DataManager:
     def get_repo_spec_dict_map(self) -> dict[str, dict]:
         return self.iterate_over("Getting repo spec dict map", self._get_repo_spec_dict)
 
+    def _download_repo_spec(self, repo_path, *args):
+        return self.data_specs[repo_path].download_spec(*args)
+
+    def download(self, force=False):
+        return self.iterate_over(f"Downloading repo spec", self._download_repo_spec, force)
+
 
 def main(argv):
-    logger = WranglerLogger()
-    return DataManager(logger, argv[1:])
+    config.global_config = WranglerConfig()
+    config.global_config.debug = True
+    config.global_config.verbose = True
+    log = WranglerLogger.from_config(config.global_config)
+    dm = DataManager(log, argv[1:])
+    dm.load_refdata_specs()
+    dm.download()
+    dm.validate_refdata_specs()
 
 if __name__ == "__main__":
     main(sys.argv)

@@ -10,9 +10,11 @@ import functools
 import hashlib
 import time
 import shutil
+import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 
-import httpx
+import requests
 import boto3  # type: ignore
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # type: ignore
 
@@ -21,7 +23,6 @@ from ruamel.yaml import YAML, scalarstring  # type: ignore
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_wrangler imports
 
 # --------------------------- YAML helpers to isolate ruamel.yaml details -------------------
-
 
 def get_yaml() -> YAML:
     """Return configured ruamel.yaml instance. A chief goal here is that whatever
@@ -118,11 +119,28 @@ class DataDownloadError(DataHandlingError):
     """Something went wrong with downloading a data item, most likely authentication or actual transfer."""
 
 
+def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
+    """More tolerant GET for recalitrant Box links wget can handle."""
+    filepath = Path(cwd) / os.path.basename(url)
+    if filepath.exists(): # wget does not overwrite existing files,  it adds .N to the name.
+        filepath.unlink()
+    try:
+        # Using wget instead of native code due to recalitrant Box links wget can handle
+        # Two levels of timeout:  wget and subprocess.run.  Output direct to terminal.
+        subprocess.run(["wget", "--timeout", str(timeout), url], timeout=timeout+5, cwd=cwd)
+    except Exception as e:
+        raise DataDownloadError(f"Failed downloading '{url}'.") from e
+    return filepath
+
+
 def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
     """Convert URI to local path if possible. Perform any required
     downloads based on the URI, nominally: none, HTTP, HTTPS, or S3.
 
     For S3,  you must already have any required AWS credentials.
+
+    Currently intended for small quick downloads only due to lack of
+    chunking and/or parallelism.
 
     Return the local path.
     """
@@ -139,14 +157,14 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
     # Check for HTTP or HTTPS URI
     elif uri.startswith("http://") or uri.startswith("https://"):
         try:
-            response = httpx.get(uri, timeout=timeout)
+            response = requests.get(uri, timeout=timeout, allow_redirects=True)
             response.raise_for_status()
             # Generate a filename from the last element of the URI
             filename = os.path.basename(uri)
             with open(filename, "w+") as f:
                 f.write(response.text)
             return filename
-        except httpx.exceptions.RequestException as e:
+        except requests.exceptions.RequestException as e:
             print(f"Error downloading file: {e}")
             return None
 
@@ -200,7 +218,7 @@ def get_head_info(url: str, timeout: int = 30) -> HeadInfo:
     """Return (size, etag, last-modified) for a URL based on HTTP HEAD,
     nominally for a data file.
     """
-    response = httpx.head(url, timeout=timeout)
+    response = requests.head(url, timeout=timeout, allow_redirects=True)
     response.raise_for_status()
     d = dict(response.headers.items())
     return HeadInfo(d["content-length"], d["etag"], d["last-modified"])
