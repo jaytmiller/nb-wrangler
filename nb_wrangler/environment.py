@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Any
 
 
-from .logger import WranglerLogger
+from .logger import WranglerLoggable, WranglerLogger
 from .constants import (
     NBW_ROOT,
     NBW_PANTRY,
@@ -33,7 +33,7 @@ from .constants import (
 from . import utils
 
 
-class EnvironmentManager:
+class EnvironmentManager(WranglerLoggable):
     """Manages Python environment setup and package installation."""
 
     # Currently limited to uv, older build tools for packages not yet
@@ -54,7 +54,7 @@ class EnvironmentManager:
         mamba_command: str | Path = "micromamba",
         pip_command: str | Path = "pip",
     ):
-        self.logger = logger
+        super().__init__(logger)
         self.mamba_command = str(mamba_command)
         self.pip_command = str(pip_command)
         self.nbw_pantry_dir.mkdir(exist_ok=True, parents=True)

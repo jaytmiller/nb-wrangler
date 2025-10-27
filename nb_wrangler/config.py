@@ -22,7 +22,14 @@ from .constants import (
 )
 
 
-global_config = None  # Singleton instance of WranglerConfig
+args_config = None  # Singleton instance of WranglerConfig
+
+def get_args_config():
+    """Return the singleton config object based on WranglerConfig.from_args()
+    instantiated from a CLI / argparse object.
+    """
+    assert args_config is not None, "Premature fetch of global args_config variable."
+    return args_config
 
 
 @dataclass
@@ -31,7 +38,6 @@ class WranglerConfig:
 
     spec_file: Optional[str] = None
 
-    logger: Optional["logger.WranglerLogger"] = None
     mamba_command: Path = DEFAULT_MAMBA_COMMAND
     pip_command: Path = DEFAULT_PIP_COMMAND
     output_dir: Path = NBW_ROOT / "temps"
@@ -75,34 +81,23 @@ class WranglerConfig:
     update_spec_hash: bool = False
 
     env_overrides: str = ""
+    data_collect: bool = False
 
     workflow: str = "explicit"
 
     def __post_init__(self):
         """Post-initialization processing."""
-        self.logger = logger.WranglerLogger.from_config(self)
         self.repos_dir = Path(self.repos_dir)
-
-        # Validate log_times parameter
-        if self.log_times not in VALID_LOG_TIME_MODES:
-            raise ValueError(f"log_times must be one of {VALID_LOG_TIME_MODES}")
 
         if self.test_all:
             self.test_imports = True
             self.test_notebooks = ".*"
 
-        global global_config
-        if not global_config:
-            global_config = self
-        else:
-            raise RuntimeError(
-                "Unexpected global_config value.  Should be None during init."
-            )
-
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
         """Create WranglerConfig from argparse Namespace and spec file."""
-        return cls(
+        global args_config
+        args_config = cls(
             spec_file=args.spec_uri,
             # mamba_command=args.mamba_command,   # controlled via env var only
             # pip_command=args.pip_command,   # controlled via env var only
@@ -138,7 +133,9 @@ class WranglerConfig:
             update_spec_hash=args.update_spec_hash,
             workflow=args.workflow,
             env_overrides=args.env_overrides,
+            data_collect=args.data_collect,
         )
+        return args_config
 
     @property
     def env_with_overrides(self):
@@ -150,3 +147,8 @@ class WranglerConfig:
 
     def resolve_overrides(self, var):
         return utils.resolve_vars(var, self.env_with_overrides)
+
+class WranglerConfigurable:
+    """Mixin which reslts in self.config being defined for subclasses."""
+    def __init__(self, config: Optional[WranglerConfig] = None):
+        self.config = config or get_args_config()

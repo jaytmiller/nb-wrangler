@@ -13,12 +13,13 @@ import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
 import boto3  # type: ignore
 from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # type: ignore
 
-from ruamel.yaml import YAML, scalarstring  # type: ignore
+from ruamel.yaml import YAML, scalarstring, YAMLError  # type: ignore
 
 # NOTE: to keep this module easily importable everywhere in our code, avoid nb_wrangler imports
 
@@ -47,7 +48,6 @@ def yaml_dumps(obj) -> str:
 def yaml_block(s):
     """Use this to ensure a multiline string is rendered as a block in YAML."""
     return scalarstring.LiteralScalarString(s)
-
 
 # -----------------------------------------------------------------------------
 
@@ -117,6 +117,15 @@ class DataIntegrityError(DataHandlingError):
 
 class DataDownloadError(DataHandlingError):
     """Something went wrong with downloading a data item, most likely authentication or actual transfer."""
+
+
+def is_valid_url(url: str):
+    """Make sure `url` has a valid scheme like https:// and a valid net location."""
+    try:
+        result = urlparse(str(str).strip())
+        return all([result.scheme, result.netloc])
+    except Exception:
+        return False
 
 
 def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:

@@ -6,6 +6,8 @@ import pdb
 import traceback
 import datetime
 from pprint import pformat
+from typing import Optional
+from . import config
 
 
 from . import utils
@@ -230,3 +232,14 @@ class WranglerLogger:
             log_times=config.log_times,
             color=config.color,
         )
+
+def get_configured_logger():
+    """Return a logger associated with the current command line arguments
+    which define things like debugging, verbosity, colorization, and log times.
+    """
+    return WranglerLogger.from_config(config.get_args_config())
+
+class WranglerLoggable:
+    """Mixin to add standard logging support based on Wrangler config."""
+    def __init__(self, logger: Optional[WranglerLogger] = None):
+        self.logger = logger or get_configured_logger()

@@ -8,6 +8,7 @@ import pstats
 
 from . import wrangler
 from . import utils
+from . import logger
 from .logger import WranglerLogger
 from . import config as config_mod
 from .constants import (
@@ -229,6 +230,11 @@ def parse_args():
         nargs="*",
         help="""Environment variable overrides to apply when resolving abstract paths, particularly for data.""",
     )
+    parser.add_argument(
+        "--data-collect",
+        action="store_true",
+        help="""Collect data archive and installation info and add to spec.""",
+    )
     return parser.parse_args()
 
 
@@ -248,25 +254,25 @@ def main() -> int:
 
 def _main(args):
     """Main entry point for the CLI."""
+    config = config_mod.WranglerConfig.from_args(args)
+    log = logger.get_configured_logger()
     try:
         # Create configuration using simplified factory method
-        config = config_mod.WranglerConfig.from_args(args)
         if not config:
-            logger = WranglerLogger()
-            logger.error("Unable to initialize nb-wrangler. Stopping...")
+            log.error("Unable to initialize nb-wrangler. Stopping...")
             return 1
         config.spec_file = spec = utils.uri_to_local_path(args.spec_uri)
         if not spec:
-            config.logger.error("Failed reading URI:", args.spec_uri)
+            log.error("Failed reading URI:", args.spec_uri)
             exit_code = 1
         else:
             notebook_wrangler = wrangler.NotebookWrangler(config)
             exit_code = notebook_wrangler.main()
             notebook_wrangler.logger.print_log_counters()
     except KeyboardInterrupt:
-        return config.logger.error("Operation cancelled by user")
+        return log.error("Operation cancelled by user")
     except Exception as e:
-        exit_code = config.logger.exception(e, "Failed:")
+        exit_code = log.exception(e, "Failed:")
     return 1 if not exit_code else 0
 
 

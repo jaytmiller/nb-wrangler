@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import WranglerConfig
+from .logger import WranglerLoggable
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
 from .nb_processor import NotebookImportProcessor
@@ -15,14 +16,12 @@ from .injector import get_injector
 from . import utils
 
 
-class NotebookWrangler:
+class NotebookWrangler(WranglerLoggable):
     """Main wrangler class for processing notebooks."""
 
     def __init__(self, config: WranglerConfig):
         self.config = config
-        if config.logger is None:
-            raise RuntimeError("Logger not initialized in config")
-        self.logger = config.logger
+        super().__init__()
         self.logger.info("Loading and validating spec", self.config.spec_file)
         spec_manager = SpecManager.load_and_validate(
             self.logger,
@@ -190,6 +189,8 @@ class NotebookWrangler:
             (self.config.unpack_env, self._unpack_environment),
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
+
+            (self.config.data_collect, self._data_collect),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -245,6 +246,9 @@ class NotebookWrangler:
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
         )
+
+    def _data_collect(self):
+        pass
 
     def _delete_repos(self):
         """Delete notebook and SPI repo clones."""
