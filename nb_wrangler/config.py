@@ -6,10 +6,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 import argparse
-from functools import lru_cache
 
 from . import utils
-from . import logger
 from .constants import (
     NBW_ROOT,
     DEFAULT_MAMBA_COMMAND,
@@ -18,11 +16,20 @@ from .constants import (
     NOTEBOOK_TEST_JOBS,
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
-    VALID_LOG_TIME_MODES,
 )
 
 
 args_config = None  # Singleton instance of WranglerConfig
+
+
+def set_args_config(config: "WranglerConfig"):
+    """Set the global args_config variable to a singleton."""
+    assert isinstance(
+        config, WranglerConfig
+    ), "config should only be an instance of WranglerConfig."
+    global args_config
+    args_config = config
+
 
 def get_args_config():
     """Return the singleton config object based on WranglerConfig.from_args()
@@ -36,7 +43,7 @@ def get_args_config():
 class WranglerConfig:
     """Configuration class for NotebookWrangler."""
 
-    spec_file: Optional[str] = None
+    spec_file: str = ""
 
     mamba_command: Path = DEFAULT_MAMBA_COMMAND
     pip_command: Path = DEFAULT_PIP_COMMAND
@@ -148,7 +155,9 @@ class WranglerConfig:
     def resolve_overrides(self, var):
         return utils.resolve_vars(var, self.env_with_overrides)
 
+
 class WranglerConfigurable:
     """Mixin which reslts in self.config being defined for subclasses."""
+
     def __init__(self, config: Optional[WranglerConfig] = None):
         self.config = config or get_args_config()

@@ -5,22 +5,21 @@ import tempfile
 from pathlib import Path
 from typing import Optional
 
-from .logger import WranglerLogger
+from .logger import WranglerLoggable
 from .environment import EnvironmentManager
 from .constants import REPO_CLONE_TIMEOUT
 
 
-class RepositoryManager:
+class RepositoryManager(WranglerLoggable):
     """Manages git repository operations for notebook collections."""
 
     def __init__(
         self,
-        logger: WranglerLogger,
         repos_dir: Path,
         env_manager: EnvironmentManager | None = None,
     ):
+        super().__init__()
         self.repos_dir = repos_dir
-        self.logger = logger
         self.env_manager = env_manager
 
     def run(self, *args, **keys):

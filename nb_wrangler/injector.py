@@ -2,14 +2,14 @@ from pathlib import Path
 import shutil
 import re
 
-from .logger import WranglerLogger
+from .logger import WranglerLoggable
 from .repository import RepositoryManager
 from .spec_manager import SpecManager
 from . import utils
 
 
 def get_injector(
-    logger: WranglerLogger, repo_manager: RepositoryManager, spec_manager: SpecManager
+    repo_manager: RepositoryManager, spec_manager: SpecManager
 ) -> "SpiInjector":
     """
     Factory method to create a subclass of a Injector which is tuned to
@@ -18,10 +18,10 @@ def get_injector(
     Conceptually another subclass of Injector could be created to inject into
     a different image building system.
     """
-    return SpiInjector(logger, repo_manager, spec_manager)
+    return SpiInjector(repo_manager, spec_manager)
 
 
-class SpiInjector:
+class SpiInjector(WranglerLoggable):
     """
     A class for interacting with a Science Platform Images (SPI) respository,
     which includes finding extra package requirements for the curated environment
@@ -33,11 +33,10 @@ class SpiInjector:
 
     def __init__(
         self,
-        logger: WranglerLogger,
         repo_manager: RepositoryManager,
         spec_manager: SpecManager,
     ):
-        self.logger = logger
+        super().__init__()
         self.repo_manager = repo_manager
         self.spec_manager = spec_manager
         self.spi_path = Path(repo_manager.repos_dir) / self.repo_name

@@ -5,19 +5,19 @@ from pathlib import Path
 import copy
 
 from . import utils
-from .logger import WranglerLogger
+from .logger import WranglerLoggable
 from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
 
 
-class SpecManager:
+class SpecManager(WranglerLoggable):
     """Manages specification loading, validation, access, and persistence."""
 
-    def __init__(self, logger: WranglerLogger):
-        self.logger = logger
-        self._spec: dict[str, Any] = {}
+    def __init__(self):
+        super().__init__()
+        self._spec = {}
         self._is_validated = False
         self._source_file = Path("")
-        self._initial_spec_sha256: Optional[str]
+        self._initial_spec_sha256 = None
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -41,8 +41,8 @@ class SpecManager:
         return self.header["image_name"]
 
     @property
-    def spec_id(self) -> str:
-        return self.sha256[:6]
+    def spec_id(self) -> str | None:
+        return self.sha256[:6] if self.sha256 is not None else None
 
     @property
     def description(self) -> str:
@@ -149,11 +149,10 @@ class SpecManager:
     @classmethod
     def load_and_validate(
         cls,
-        logger: WranglerLogger,
         spec_file: str,
     ) -> Optional["SpecManager"]:
         """Factory method to load and validate a spec file."""
-        manager = cls(logger)
+        manager = cls()
         if manager.load_spec(spec_file) and manager.validate():
             # stash the unchecked initial checksum to check later
             # to ensure readonly workflows do not change it.
@@ -162,7 +161,7 @@ class SpecManager:
             manager._initial_spec_sha256 = manager.sha256
             return manager
         else:
-            logger.error("Failed to load and validate", spec_file)
+            manager.logger.error("Failed to load and validate", spec_file)
             return None
 
     def load_spec(self, spec_file: str | Path) -> bool:

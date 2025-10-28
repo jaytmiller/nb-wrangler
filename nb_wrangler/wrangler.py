@@ -13,6 +13,7 @@ from .environment import EnvironmentManager
 from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
+from .data_manager import RefdataValidator
 from . import utils
 
 
@@ -23,10 +24,7 @@ class NotebookWrangler(WranglerLoggable):
         self.config = config
         super().__init__()
         self.logger.info("Loading and validating spec", self.config.spec_file)
-        spec_manager = SpecManager.load_and_validate(
-            self.logger,
-            self.config.spec_file,
-        )
+        spec_manager = SpecManager.load_and_validate(self.config.spec_file)
         if spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
         self.spec_manager = spec_manager
@@ -37,13 +35,11 @@ class NotebookWrangler(WranglerLoggable):
             self.config.mamba_command,
             self.config.pip_command,
         )
-        self.repo_manager = RepositoryManager(
-            self.logger, config.repos_dir, self.env_manager
-        )
+        self.repo_manager = RepositoryManager(config.repos_dir, self.env_manager)
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
-        self.injector = get_injector(self.logger, self.repo_manager, self.spec_manager)
+        self.injector = get_injector(self.repo_manager, self.spec_manager)
 
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -189,7 +185,6 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.unpack_env, self._unpack_environment),
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
-
             (self.config.data_collect, self._data_collect),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
@@ -248,7 +243,15 @@ class NotebookWrangler(WranglerLoggable):
         )
 
     def _data_collect(self):
-        pass
+        """Collect data from notebook repos."""
+        repo_urls = self.spec_manager.get_outputs("notebook_repo_urls")
+        data_validator = RefdataValidator.from_notebook_repo_urls(
+            self.config.repos_dir, repo_urls
+        )
+        data_validator.validate()
+        return self.spec_manager.revise_and_save(
+            self.config.output_dir, data_spec_inputs=data_validator.todict()
+        )
 
     def _delete_repos(self):
         """Delete notebook and SPI repo clones."""

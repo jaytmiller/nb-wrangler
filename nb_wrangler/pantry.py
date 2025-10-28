@@ -45,18 +45,16 @@ ${NBW_ROOT}/
 
 from pathlib import Path
 
-from .logger import WranglerLogger
+from .logger import WranglerLoggable
 from .spec_manager import SpecManager
 from .environment import EnvironmentManager
 
+# from .constants import NBW_PANTRY
 
-NBW_ARCHIVE = NBW_PANTRY / shelves /
 
-
-class NbwPantry:
+class NbwPantry(WranglerLoggable):
     def __init__(
         self,
-        logger: WranglerLogger,
         spec_manager: SpecManager,
         env_manager: EnvironmentManager,
     ):
