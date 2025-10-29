@@ -89,6 +89,8 @@ class WranglerConfig:
 
     env_overrides: str = ""
     data_collect: bool = False
+    data_download: bool = False
+    data_update: bool = False
 
     workflow: str = "explicit"
 
@@ -141,6 +143,8 @@ class WranglerConfig:
             workflow=args.workflow,
             env_overrides=args.env_overrides,
             data_collect=args.data_collect,
+            data_download=args.data_download,
+            data_update=args.data_update,
         )
         return args_config
 

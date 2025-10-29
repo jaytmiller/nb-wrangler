@@ -186,6 +186,8 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
             (self.config.data_collect, self._data_collect),
+            (self.config.data_download, self._data_download),
+            (self.config.data_update, self._data_update),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -245,13 +247,22 @@ class NotebookWrangler(WranglerLoggable):
     def _data_collect(self):
         """Collect data from notebook repos."""
         repo_urls = self.spec_manager.get_outputs("notebook_repo_urls")
-        data_validator = RefdataValidator.from_notebook_repo_urls(
+        data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
-        data_validator.validate()
         return self.spec_manager.revise_and_save(
             self.config.output_dir, data_spec_inputs=data_validator.todict()
         )
+
+    def _data_download(self):
+        data_inputs = self.spec_manager.get_outputs("data_spec_inputs")
+        data_validator = RefdataValidator.from_dict(data_inputs)
+        urls = data_validator.get_data_urls()
+        self.logger.info("Downloading data urls: ", urls)
+        return True
+
+    def _data_update(self):
+        raise NotImplementedError("_data_update has not been implemented yet.")
 
     def _delete_repos(self):
         """Delete notebook and SPI repo clones."""

@@ -234,6 +234,14 @@ def parse_args():
         action="store_true",
         help="""Collect data archive and installation info and add to spec.""",
     )
+    parser.add_argument(
+        "--data-download", action="store_true", help="""Download data archives."""
+    )
+    parser.add_argument(
+        "--data-update",
+        action="store_true",
+        help="""Update metadata for data archives, e.g. length and hash.""",
+    )
     return parser.parse_args()
 
 

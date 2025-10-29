@@ -11,7 +11,8 @@ import sys
 # from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlparse
-import copy
+
+# import copy
 import re
 
 # from typing import Optional
@@ -421,6 +422,7 @@ class DataSection(WranglerLoggable):
 
     def todict(self):
         d = dict(self.__dict__)
+        d["data_url"] = d["data_url"][:]  # copy of list
         d.pop("logger", None)
         return d
 
@@ -428,79 +430,35 @@ class DataSection(WranglerLoggable):
         return utils.yaml_dumps(self.__dict__)
 
 
-class RefdataValidator(WranglerLoggable):
-
-    def __init__(self):
+class RefdataSpec(WranglerLoggable):
+    def __init__(self, install_files={}, other_variables={}):
         super().__init__()
-        self.all_data = {}
+        self.install_files = install_files
+        self.other_variables = other_variables
 
-    def load_data_sections(self, install_files: dict) -> dict[str, dict]:
-        result = dict()
-        for name, data_section in install_files.items():
-            section = DataSection(**data_section)
-            result[name] = section.todict()
-        return result
-
-    # ..........................................................................
-
-    def load_refdata_spec_dict(self, spec_dict: dict) -> dict[str, dict]:
+    def todict(self) -> dict[str, dict]:
         return dict(
-            install_files=self.load_data_sections(spec_dict["install_files"]),
-            other_variables=spec_dict.get("other_variables", {}),
+            install_files={
+                name: section.todict() for (name, section) in self.install_files.items()
+            },
+            other_variables=dict(self.other_variables),
         )
 
-    def load_refdata_spec_yaml(self, yaml_str: str) -> dict[str, dict]:
-        result: dict[str, dict] = dict(install_files={}, other_variables={})
-        spec_dict = utils.get_yaml().load(yaml_str)
-        return self.load_refdata_spec_dict(spec_dict)
-
-    def load_refdata_spec_file(self, refdata_path: str) -> dict[str, dict]:
-        rp = Path(refdata_path)
-        if rp.exists():
-            with rp.open("r") as stream:
-                return self.load_refdata_spec_yaml(stream.read())
-        else:
-            raise FileNotFoundError(f"Refdata file {refdata_path} not found.")
-        return result
-
-    # ..........................................................................
-
-    def load_refdata_specs(self, refdata_paths: list[str]) -> dict[str, dict]:
-        self.all_data = {}
-        for refdata_path in refdata_paths:
-            self.all_data[str(refdata_path)] = self.load_refdata_spec_file(refdata_path)
-        return copy.deepcopy(self.all_data)
-
-    @classmethod
-    def from_files(cls, refdata_paths: list[str]) -> "RefdataValidator":
-        result = cls()
-        result.load_refdata_specs(refdata_paths)
-        return result
-
-    @classmethod
-    def from_notebook_repo_urls(
-        cls, repo_dir: str, repo_urls: list[str]
-    ) -> "RefdataValidator":
-        files = []
-        for url in repo_urls:
-            url_name = Path(url).stem
-            files.append(str(Path(repo_dir) / url_name / constants.DATA_SPEC_NAME))
-        return cls.from_files(files)
-
     def __str__(self):
-        return utils.yaml_dumps(self.all_data)
+        return utils.yaml_dumps(self.todict())
 
-    def todict(self):
-        result = copy.deepcopy(self.all_data)
-        result.pop("logger", None)
-        return result
-
-    def validate_data_sections(self, refdata_path: str):
+    def validate_install_files(
+        self, refdata_path: str, install_files: dict[str, dict]
+    ) -> bool:
         self.logger.debug(
             f"Validating data sections for refdata file '{refdata_path}'."
         )
         errors = False
-        for name, section_dict in self.all_data[refdata_path]["install_files"].items():
+        if not isinstance(install_files, dict):
+            return self.logger.error(
+                "install_files is not a dict in refdata file '{refdata_path}'."
+            )
+        for name, section_dict in install_files.items():
             if not isinstance(name, str):
                 errors = self.logger.error(
                     f"Invalid data section name '{name}' in refdata file '{refdata_path}'."
@@ -510,25 +468,22 @@ class RefdataValidator(WranglerLoggable):
                     f"Invalid data section value '{section_dict}' in refdata file '{refdata_path}'."
                 )
             else:
-                section = DataSection(**section_dict)
-                errors = errors or section.validate(refdata_path, name)
+                self.install_files[name] = DataSection(**section_dict)
+                errors = errors or self.install_files[name].validate(refdata_path, name)
         return errors
 
-    def validate_install_files(self) -> bool:
-        errors = False
-        for refdata_path in self.all_data:
-            if self.validate_data_sections(refdata_path):
-                errors = self.logger.error(
-                    f"Validation failed for data sections of refdata file '{refdata_path}'."
-                )
-        return errors
-
-    def validate_env_dict(self, refdata_path: str, env_dict: dict[str, str]) -> bool:
+    def validate_other_variables(
+        self, refdata_path: str, other_variables: dict[str, str]
+    ) -> bool:
         self.logger.debug(
             f"Validating environment variable names and values for refdata file '{refdata_path}'."
         )
         error = False
-        for name, value in env_dict.items():
+        if not isinstance(other_variables, dict):
+            return self.logger.error(
+                "fInvalid other_variables type for refdata file '{refdata_path}'."
+            )
+        for name, value in other_variables.items():
             if not is_valid_env_name(name):
                 error = True
                 self.logger.error(
@@ -539,22 +494,90 @@ class RefdataValidator(WranglerLoggable):
                 self.logger.error(
                     f"Invalid environment value: '{value}' in refdata file '{refdata_path}'."
                 )
+            self.other_variables[name] = value
         return error
 
-    def validate_env_dicts(self):
-        self.logger.debug("Validating all environment variable names and values...")
-        errors = False
-        for refdata_path, env_dict in self.all_data.items():
-            errors = errors or self.validate_env_dict(refdata_path, env_dict)
-        return errors
+    @classmethod
+    def from_dict(cls, refdata_path: str, spec_dict: dict) -> "RefdataSpec":
+        self = cls()
+        if self.validate_install_files(
+            refdata_path, spec_dict["install_files"]
+        ) or self.validate_other_variables(refdata_path, spec_dict["other_variables"]):
+            raise ValueError("Failed to validate spec dictionary.")
+        return self
+
+    @classmethod
+    def from_yaml(cls, refdata_path: str, yaml_str: str) -> "RefdataSpec":
+        spec_dict = utils.get_yaml().load(yaml_str)
+        return cls.from_dict(refdata_path, spec_dict)
+
+    @classmethod
+    def from_file(cls, refdata_path: str) -> "RefdataSpec":
+        rp = Path(refdata_path)
+        if rp.exists():
+            with rp.open("r") as stream:
+                return cls.from_yaml(refdata_path, stream.read())
+        else:
+            raise FileNotFoundError(f"Refdata file {refdata_path} not found.")
+
+    def get_data_urls(self) -> list[tuple[str, str]]:
+        urls = []
+        for name, section in self.install_files.items():
+            for url in section.data_url:
+                urls.append((name, url))
+        return urls
+
+
+class RefdataValidator(WranglerLoggable):
+
+    def __init__(self, refdata_paths: list[str]):
+        super().__init__()
+        self.refdata_paths = refdata_paths
+        self.all_data: dict[str, "RefdataSpec"] = {}
+
+    # ..........................................................................
+
+    @classmethod
+    def from_files(cls, refdata_paths: list[str]) -> "RefdataValidator":
+        self = cls(refdata_paths)
+        for refdata_path in refdata_paths:
+            self.all_data[str(refdata_path)] = RefdataSpec.from_file(refdata_path)
+        self.validate_env_conflicts()
+        return self
+
+    @classmethod
+    def from_dict(cls, refdata_map: dict[str, dict]) -> "RefdataValidator":
+        self = cls(list(refdata_map.keys()))
+        for refdata_path, spec_dict in refdata_map.items():
+            self.all_data[str(refdata_path)] = RefdataSpec.from_dict(
+                refdata_path, spec_dict
+            )
+        self.validate_env_conflicts()
+        return self
+
+    @classmethod
+    def from_repo_urls(cls, repo_dir: str, repo_urls: list[str]) -> "RefdataValidator":
+        """Based on specs discovered at repo URLs, construct a RefdataValidator."""
+        return cls.from_files(
+            [
+                str(Path(repo_dir) / Path(url).stem / constants.DATA_SPEC_NAME)
+                for url in repo_urls
+            ]
+        )
+
+    def todict(self):
+        return {name: refdata.todict() for name, refdata in self.all_data.items()}
+
+    def __str__(self):
+        return utils.yaml_dumps(self.todict())
 
     def check_conflicts(self, refdata_path_i: str, refdata_path_j: str) -> bool:
         """Between two specs, ensure they do not have conflicting environment variables."""
         self.logger.debug(
             f"Validating environment variable conflicts between refdata files '{refdata_path_i}' and '{refdata_path_j}'."
         )
-        env_vars_i = self.all_data[refdata_path_i]["other_variables"]
-        env_vars_j = self.all_data[refdata_path_j]["other_variables"]
+        env_vars_i = self.all_data[refdata_path_i].other_variables
+        env_vars_j = self.all_data[refdata_path_j].other_variables
         already_seen = set()
         errors = False
         for name_i, value_i in env_vars_i.items():
@@ -582,12 +605,11 @@ class RefdataValidator(WranglerLoggable):
                     )
         return errors
 
-    def validate_env_vars(self) -> bool:
-        self.logger.info("Validating environment variables for all refdata specs...")
-        return self.validate_env_conflicts() or self.validate_env_dicts()
-
-    def validate(self) -> bool:
-        return self.validate_install_files() and self.validate_env_vars()
+    def get_data_urls(self) -> list[tuple[str, str]]:
+        urls = []
+        for spec in self.all_data.values():
+            urls += spec.get_data_urls()
+        return urls
 
 
 def main(argv):

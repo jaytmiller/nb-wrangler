@@ -27,7 +27,6 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 1e0e6fe1788e530794f2ed16fc791eb6bf73ee2b88d2c0c93e122299f086dba7
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
@@ -1959,3 +1958,46 @@ out:
       - nbsphinx
     references/science-platform-images/deployments/roman/environments/roman-cal/build-hints.pip:
       - '# build-hints.pip'
+  data_spec_inputs:
+    references/roman_notebooks/refdata_dependencies.yaml:
+      install_files:
+        pandeia:
+          version: '2025.9'
+          environment_variable: pandeia_refdata
+          install_path: ${HOME}/refdata/
+          data_path: pandeia_data-2025.9-roman
+          data_url:
+            - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+        stpsf:
+          version: 2.1.0
+          environment_variable: STPSF_PATH
+          install_path: ${HOME}/refdata/
+          data_path: stpsf-data
+          data_url:
+            - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+        stips:
+          version: 2.3.0
+          environment_variable: stips_data
+          install_path: ${HOME}/refdata/
+          data_path: stips_data
+          data_url:
+            - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
+        synphot:
+          version: 1.6.0
+          environment_variable: PYSYN_CDBS
+          install_path: ${HOME}/refdata/
+          data_path: grp/redcat/trds/
+          data_url:
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
+            - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+      other_variables:
+        CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
+        CRDS_CONTEXT: roman_0027.pmap
+        CRDS_PATH: ${HOME}/crds_cache
