@@ -441,23 +441,34 @@ class RefdataValidator(WranglerLoggable):
             result[name] = section.todict()
         return result
 
-    def load_refdata_spec(self, refdata_path: str) -> dict[str, dict]:
+    # ..........................................................................
+
+    def load_refdata_spec_dict(self, spec_dict: dict) -> dict[str, dict]:
+        return dict(
+            install_files=self.load_data_sections(spec_dict["install_files"]),
+            other_variables=spec_dict.get("other_variables", {}),
+        )
+
+    def load_refdata_spec_yaml(self, yaml_str: str) -> dict[str, dict]:
         result: dict[str, dict] = dict(install_files={}, other_variables={})
+        spec_dict = utils.get_yaml().load(yaml_str)
+        return self.load_refdata_spec_dict(spec_dict)
+
+    def load_refdata_spec_file(self, refdata_path: str) -> dict[str, dict]:
         rp = Path(refdata_path)
         if rp.exists():
-            spec_dict = utils.get_yaml().load(rp.open())
-            result["install_files"] = self.load_data_sections(
-                spec_dict["install_files"]
-            )
-            result["other_variables"] = spec_dict.get("other_variables", {})
+            with rp.open("r") as stream:
+                return self.load_refdata_spec_yaml(stream.read())
         else:
             raise FileNotFoundError(f"Refdata file {refdata_path} not found.")
         return result
 
+    # ..........................................................................
+
     def load_refdata_specs(self, refdata_paths: list[str]) -> dict[str, dict]:
         self.all_data = {}
         for refdata_path in refdata_paths:
-            self.all_data[str(refdata_path)] = self.load_refdata_spec(refdata_path)
+            self.all_data[str(refdata_path)] = self.load_refdata_spec_file(refdata_path)
         return copy.deepcopy(self.all_data)
 
     @classmethod
