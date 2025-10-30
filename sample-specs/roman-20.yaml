@@ -2013,40 +2013,52 @@ out:
           CRDS_CONTEXT: roman_0027.pmap
           CRDS_PATH: ${HOME}/crds_cache
     urls:
-      -   - roman_notebooks
+      - &id001
+          - roman_notebooks
           - pandeia
           - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
-      -   - roman_notebooks
+      - &id002
+          - roman_notebooks
           - stpsf
           - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
-      -   - roman_notebooks
+      - &id003
+          - roman_notebooks
           - stips
           - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
-      -   - roman_notebooks
+      - &id004
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
-      -   - roman_notebooks
+      - &id005
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
-      -   - roman_notebooks
+      - &id006
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
-      -   - roman_notebooks
+      - &id007
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
-      -   - roman_notebooks
+      - &id008
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
-      -   - roman_notebooks
+      - &id009
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
-      -   - roman_notebooks
+      - &id010
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
-      -   - roman_notebooks
+      - &id011
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
-      -   - roman_notebooks
+      - &id012
+          - roman_notebooks
           - synphot
           - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
       -   - roman_notebooks
@@ -2280,3 +2292,40 @@ out:
         CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
         CRDS_CONTEXT: roman_0027.pmap
         CRDS_PATH: ${HOME}/crds_cache
+  data_metadata:
+    *id001 :
+      - '578788837'
+      - 736766b93e12d5adff9499b3a69a676e78d12d0ddff3a5193430cbab688bb978
+    *id002 :
+      - '92295282'
+      - d30eb72b571b0e9f09a091909bf16f679f23c30d327ce6fc09ace227790be6bf
+    *id003 :
+      - '153097868'
+      - 15a430e67c7526abb4bd0f56379631ef7cb10a93f72b5d5dbd7919b441422d6a
+    *id004 :
+      - '425984'
+      - 769660bd2eaa85da344504e12b05cb97f415791f050cfb785c573c966ed3c2f7
+    *id005 :
+      - '90347520'
+      - 66faaaeeb04e855a09c6cb8bc9b748c8fbedf23b782208dba84e10c4f0fd450b
+    *id006 :
+      - '42772480'
+      - 8f7a220bc9480900c372015847057b06a2c218ae8b2dbf8020e6a1dd2990b42c
+    *id007 :
+      - '81684480'
+      - 95ca73356f38a703064c346e286f571b53f78964d5511d1b538ff086f5ce897e
+    *id008 :
+      - '1868328960'
+      - 1ffb5e136dc4f846cd95b83843eb89f7a5171f58732705b25f07a99c4d8cf50d
+    *id009 :
+      - '8695121920'
+      - 69b3ba91db2a3290bacbe48ef7b7626905567d89e7e03d11b3cefeadf5f26fd7
+    *id010 :
+      - '8909717'
+      - 01b2eae81852d56971796a62c82ff7f76256e1fdaabccf2f7f09151b1283640a
+    *id011 :
+      - '34160640'
+      - 3338b1fb400d752c02c06132e0ce804ef8a9751f6ff535b41d022f60b0364d81
+    *id012 :
+      - '121835520'
+      - b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b

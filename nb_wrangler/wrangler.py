@@ -268,9 +268,11 @@ class NotebookWrangler(WranglerLoggable):
         )
 
     def _data_download(self):
-        data_spec_inputs = self.spec_manager.get_outputs("data_spec_inputs")
-        data_validator = RefdataValidator.from_dict(data_spec_inputs)
-        urls = data_validator.get_data_urls()
+        data = self.spec_manager.get_outputs("data")
+        spec_inputs = data["spec_inputs"]
+        urls = data["urls"]
+        # data_validator = RefdataValidator.from_dict(spec_inputs)
+        # urls = data_validator.get_data_urls()
         self.logger.info("Downloading data urls: ", urls)
         data_metadata = self.pantry_shelf.download_all_data(urls)
         return self.spec_manager.revise_and_save(
