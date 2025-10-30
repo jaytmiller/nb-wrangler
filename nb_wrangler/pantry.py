@@ -48,8 +48,9 @@ from pathlib import Path
 from . import utils
 from .utils import DataDownloadError
 from .logger import WranglerLoggable
-
 from .constants import NBW_PANTRY, DATA_GET_TIMEOUT
+
+# from .data_manager import DataSectionUrl
 
 
 class NbwPantry(WranglerLoggable):
@@ -165,32 +166,34 @@ class NbwShelf(WranglerLoggable):
                 dest_stream.write(source_stream.read())
         return self.spec_path
 
-    def archive_path(self, archive_tuple: tuple[str]) -> Path:
+    def archive_path(self, archive_tuple: tuple[str, str, str]) -> Path:
+        part: str
         path = self.archive_root
         for part in archive_tuple[:-1]:
             path = path / part
         return path
 
-    def archive_url(self, archive_tuple: tuple[str]) -> str:
+    def archive_url(self, archive_tuple: tuple[str, str, str]) -> str:
         return archive_tuple[-1]
 
-    def archive_filepath(self, archive_tuple: tuple[str]) -> Path:
+    def archive_filepath(self, archive_tuple: tuple[str, str, str]) -> Path:
         archive_path = self.archive_path(archive_tuple)
         url = self.archive_url(archive_tuple)
         return archive_path / Path(url).name
 
     def download_all_data(
-        self, archive_tuples: list[tuple[str]], force: bool = False
-    ) -> dict[tuple[str], tuple[str]]:
+        self, archive_tuples: list[tuple[str, str, str]], force: bool = False
+    ) -> dict[tuple[str, str, str], tuple[str, str]]:
         result = {}
         for archive_tuple in archive_tuples:
             result[archive_tuple] = self.download_data(archive_tuple, force=force)
         return result
 
     def download_data(
-        self, archive_tuple: tuple[str], force: bool = False
-    ) -> tuple[str]:
+        self, archive_tuple: tuple[str, str, str], force: bool = False
+    ) -> tuple[str, str]:
         archive_path = self.archive_path(archive_tuple)
+        archive_path.mkdir(parents=True, exist_ok=True)
         filepath = self.archive_filepath(archive_tuple)
         url = self.archive_url(archive_tuple)
         if not filepath.exists() or force:
@@ -208,14 +211,18 @@ class NbwShelf(WranglerLoggable):
         return str(new_size), new_sha256
 
     def validate_all_data(
-        self, archive_tuples: list[tuple[str]], metadata_tuples: list[tuple[str]]
+        self,
+        archive_tuples: list[tuple[str, str, str]],
+        metadata_tuples: list[tuple[str, str]],
     ) -> bool:
         errors = False
         for i, archive_tuple in enumerate(archive_tuples):
             errors = self.validate_data(archive_tuple, metadata_tuples[i]) or errors
         return errors
 
-    def validate_data(self, archive_tuple: tuple[str], metadata: tuple[str]) -> bool:
+    def validate_data(
+        self, archive_tuple: tuple[str, str, str], metadata: tuple[str, str]
+    ) -> bool:
         new_path = self.archive_filepath(archive_tuple)
         new_size = new_path.stat().st_size
         new_sha256 = utils.sha256_file(new_path)

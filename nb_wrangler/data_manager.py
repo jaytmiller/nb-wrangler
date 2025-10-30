@@ -12,11 +12,12 @@ archives.
 """
 
 import sys
+import os
 from pathlib import Path
 from urllib.parse import urlparse
 import re
 from dataclasses import dataclass
-
+from collections import defaultdict
 
 from . import utils
 from .logger import WranglerLoggable, WranglerLogger
@@ -178,6 +179,10 @@ class DataSection(WranglerLoggable):
     def __str__(self):
         return utils.yaml_dumps(self.__dict__)
 
+    @property
+    def env_value(self):
+        return os.path.join(self.install_path, self.data_path)
+
 
 class RefdataSpec(WranglerLoggable):
     def __init__(self, install_files={}, other_variables={}):
@@ -276,6 +281,12 @@ class RefdataSpec(WranglerLoggable):
                 urls.append((name, url))
         return urls
 
+    def get_spec_vars(self) -> dict[str, str]:
+        result: defaultdict = defaultdict(dict)
+        for section_name, section in self.install_files.items():
+            result[section_name][section.environment_variable] = section.env_value
+        return dict(result)
+
 
 @dataclass
 class DataSectionUrl:
@@ -288,11 +299,11 @@ class DataSectionUrl:
 
     @property
     def repo_name(self) -> str:
-        return self.repo_path.name
+        return Path(self.repo_path).name
 
     @property
     def repo_path(self) -> str:
-        return Path(self.refdata_path).parent
+        return str(Path(self.refdata_path).parent)
 
 
 class RefdataValidator(WranglerLoggable):
@@ -372,10 +383,10 @@ class RefdataValidator(WranglerLoggable):
                     )
         return errors
 
-    def get_data_section_urls(self) -> list[tuple[str, DataSection, str, str]]:
+    def get_data_section_urls(self) -> list[DataSectionUrl]:
         return [
             DataSectionUrl(refdata_path, section_name, section, url)
-            for (refdata_path, refdata_spec) in self.all_data.items()
+            for refdata_path, refdata_spec in self.all_data.items()
             for section_name, section in refdata_spec.install_files.items()
             for url in section.data_url
         ]
@@ -387,25 +398,20 @@ class RefdataValidator(WranglerLoggable):
             for url in dsu.section.data_url
         ]
 
-    def get_data_section_vars(self) -> dict[tuple[str,str], tuple[str,str,str]]:
-        return {
-            (
-                dsu.repo_name,
-                dsu.section_name
-            ) : (
-                dsu.section.environment_variable,
-                dsu.section.install_path,
-                dsu.section.data_path,
-            )
-            for dsu in self.get_data_section_urls()
-        }
+    def get_data_section_vars(self) -> dict[str, dict[str, str]]:
+        result: defaultdict = defaultdict(dict)
+        for refdata_path, refdata_spec in self.all_data.items():
+            repo_name = Path(refdata_path).parent.stem
+            result[repo_name] = refdata_spec.get_spec_vars()
+        return dict(result)
 
-    def get_data_other_vars(self) -> list[tuple[str, str]]:
-        return {
-            Path(refdata_path).parent.stem: {var: value}
-            for (refdata_path, refdata) in self.all_data.items()
-            for (var, value) in refdata.other_variables.items()
-        }
+    def get_data_other_vars(self) -> dict[str, dict[str, str]]:
+        result: defaultdict = defaultdict(dict)
+        for refdata_path, refdata in self.all_data.items():
+            repo_name = Path(refdata_path).parent.stem
+            for var, value in refdata.other_variables.items():
+                result[repo_name][var] = value
+        return dict(result)
 
 
 def main(argv):
