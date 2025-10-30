@@ -82,6 +82,10 @@ class SpecManager(WranglerLoggable):
         return self._source_file
 
     @property
+    def shelf_name(self):
+        return self.moniker  # + "-" + self.spec_id
+
+    @property
     def archive_format(self) -> str:
         """Get the default archival format for the environment's binaries."""
         # Return default if not specified

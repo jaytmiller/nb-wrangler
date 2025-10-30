@@ -45,43 +45,34 @@ ${NBW_ROOT}/
 
 from pathlib import Path
 
+from . import utils
+from .utils import DataDownloadError
 from .logger import WranglerLoggable
-from .spec_manager import SpecManager
-from .environment import EnvironmentManager
 
-# from .constants import NBW_PANTRY
+from .constants import NBW_PANTRY, DATA_GET_TIMEOUT
 
 
 class NbwPantry(WranglerLoggable):
-    def __init__(
-        self,
-        spec_manager: SpecManager,
-        env_manager: EnvironmentManager,
-    ):
+    def __init__(self, path: Path = NBW_PANTRY):
         """
         Initialize the NbwPantry with a logger, a spec manager, and an environment manager.
 
         The pantry is responsible for managing shelves, cans, and the overall environment store.
         """
-        pass
+        super().__init__()
+        self.path = path
+        self.shelves = self.path / "shelves"
+        self.shelves.mkdir(parents=True, exist_ok=True)
 
-    def create_pantry(self) -> Path:
+    def get_shelf(self, shelf_name: str) -> "NbwShelf":
         """
         Create the central environment store directory structure.
         This includes metadata, specs, shelves, and archives directories.
         Returns the path to the created pantry.
         """
-        raise NotImplementedError("create_pantry not yet implemented")
+        return NbwShelf(self.shelves / shelf_name)
 
-    def create_shelf(self, spec_path: str | Path) -> Path:
-        """
-        Create a new shelf based on the provided specification.
-        The shelf will have subdirectories for cans, notebooks, and data.
-        Returns the path to the newly created shelf.
-        """
-        raise NotImplementedError("create_shelf not yet implemented")
-
-    def delete_shelf(self, spec_path: str | Path) -> bool:
+    def delete_shelf(self, shelf_name: str | Path) -> bool:
         """
         Delete an existing shelf.
         This operation should be cautious and may require confirmation.
@@ -111,7 +102,7 @@ class NbwPantry(WranglerLoggable):
         raise NotImplementedError("list_shelves not yet implemented")
 
 
-class NbwShelf:
+class NbwShelf(WranglerLoggable):
     """
     Represents a shelf in the environment store.
 
@@ -122,7 +113,123 @@ class NbwShelf:
 
     A shelf contains multiple cans (environments), notebook repositories, and data directories.
     This class may provide methods to manage the contents of a shelf.
+
+    spec-1-shelf/
+      wrangler-spec.yaml
+      archives/ (cans)
+        env-1-tar
+        repo-1.tar.gz   ...
+        data-1.tar.gz   ...
+      notebook_repos/  (unpacked notebooks)
+        repo-1/
+        repo-2/
+        ...
+      data/  (unpacked data)
+        data-1/
+        data-2/
+        ...
     """
+
+    def __init__(self, shelf_path: Path):
+        super().__init__()
+        self.path = shelf_path
+
+        self.path.mkdir(parents=True, exist_ok=True)
+        self.archive_root.mkdir(parents=True, exist_ok=True)
+        self.notebook_repos_path.mkdir(parents=True, exist_ok=True)
+        self.data_path.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def name(self):
+        return self.path.name
+
+    @property
+    def archive_root(self):
+        return self.path / "archives"
+
+    @property
+    def notebook_repos_path(self):
+        return self.path / "notebooks"
+
+    @property
+    def data_path(self):
+        return self.path / "data"
+
+    @property
+    def spec_path(self):
+        return self.path / "nbw-wranger-spec.yaml"
+
+    def set_wrangler_spec(self, wrangler_spec_path: str) -> Path:
+        with self.spec_path.open("w+") as dest_stream:
+            with Path(wrangler_spec_path).open("r") as source_stream:
+                dest_stream.write(source_stream.read())
+        return self.spec_path
+
+    def archive_path(self, archive_tuple: tuple[str]) -> Path:
+        path = self.archive_root
+        for part in archive_tuple[:-1]:
+            path = path / part
+        return path
+
+    def archive_url(self, archive_tuple: tuple[str]) -> str:
+        return archive_tuple[-1]
+
+    def archive_filepath(self, archive_tuple: tuple[str]) -> Path:
+        archive_path = self.archive_path(archive_tuple)
+        url = self.archive_url(archive_tuple)
+        return archive_path / Path(url).name
+
+    def download_all_data(
+        self, archive_tuples: list[tuple[str]], force: bool = False
+    ) -> dict[tuple[str], tuple[str]]:
+        result = {}
+        for archive_tuple in archive_tuples:
+            result[archive_tuple] = self.download_data(archive_tuple, force=force)
+        return result
+
+    def download_data(
+        self, archive_tuple: tuple[str], force: bool = False
+    ) -> tuple[str]:
+        archive_path = self.archive_path(archive_tuple)
+        filepath = self.archive_filepath(archive_tuple)
+        url = self.archive_url(archive_tuple)
+        if not filepath.exists() or force:
+            new_path = utils.robust_get(
+                url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path)
+            )
+            if filepath != new_path:
+                raise DataDownloadError(
+                    f"Failed to download data from '{url}' expected filepath '{filepath}' got '{new_path}'."
+                )
+        else:
+            new_path = filepath
+        new_size = new_path.stat().st_size
+        new_sha256 = utils.sha256_file(new_path)
+        return str(new_size), new_sha256
+
+    def validate_all_data(
+        self, archive_tuples: list[tuple[str]], metadata_tuples: list[tuple[str]]
+    ) -> bool:
+        errors = False
+        for i, archive_tuple in enumerate(archive_tuples):
+            errors = self.validate_data(archive_tuple, metadata_tuples[i]) or errors
+        return errors
+
+    def validate_data(self, archive_tuple: tuple[str], metadata: tuple[str]) -> bool:
+        new_path = self.archive_filepath(archive_tuple)
+        new_size = new_path.stat().st_size
+        new_sha256 = utils.sha256_file(new_path)
+        old_size, old_sha256 = metadata
+        errors = False
+        if new_size != old_size:
+            errors = self.logger.error(
+                f"Size mismatch for '{new_path}' expected '{old_size}' but got '{new_size}'."
+            )
+        if new_sha256 != old_sha256:
+            errors = self.logger.error(
+                f"SHA256 mismatch for '{new_path}' expected '{old_sha256}' but got '{new_sha256}'."
+            )
+        return errors
 
 
 class NbwCan:

@@ -88,6 +88,7 @@ class WranglerConfig:
     update_spec_hash: bool = False
 
     env_overrides: str = ""
+    pantry_add_spec: bool = False
     data_collect: bool = False
     data_download: bool = False
     data_update: bool = False
@@ -142,6 +143,7 @@ class WranglerConfig:
             update_spec_hash=args.update_spec_hash,
             workflow=args.workflow,
             env_overrides=args.env_overrides,
+            pantry_add_spec=args.pantry_add_spec,
             data_collect=args.data_collect,
             data_download=args.data_download,
             data_update=args.data_update,

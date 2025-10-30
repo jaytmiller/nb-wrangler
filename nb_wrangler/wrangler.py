@@ -14,6 +14,7 @@ from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
 from .data_manager import RefdataValidator
+from .pantry import NbwPantry
 from . import utils
 
 
@@ -40,7 +41,8 @@ class NotebookWrangler(WranglerLoggable):
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
         self.injector = get_injector(self.repo_manager, self.spec_manager)
-
+        self.pantry = NbwPantry()
+        self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self.config.repos_dir.mkdir(parents=True, exist_ok=True)
@@ -185,6 +187,7 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.unpack_env, self._unpack_environment),
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
+            (self.config.pantry_add_spec, self._pantry_add_spec),
             (self.config.data_collect, self._data_collect),
             (self.config.data_download, self._data_download),
             (self.config.data_update, self._data_update),
@@ -244,22 +247,37 @@ class NotebookWrangler(WranglerLoggable):
             nb_to_imports=nb_to_imports,
         )
 
+    def _pantry_add_spec(self):
+        """Add a new spec to the pantry."""
+
     def _data_collect(self):
         """Collect data from notebook repos."""
         repo_urls = self.spec_manager.get_outputs("notebook_repo_urls")
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
+        data = dict(
+            spec_inputs=data_validator.todict(),
+            urls=data_validator.get_data_urls(),
+            env_variables=data_validator.get_data_section_vars(),
+            other_variables=data_validator.get_data_other_vars(),
+        )
         return self.spec_manager.revise_and_save(
-            self.config.output_dir, data_spec_inputs=data_validator.todict()
+            self.config.output_dir,
+            data=data,
         )
 
     def _data_download(self):
-        data_inputs = self.spec_manager.get_outputs("data_spec_inputs")
-        data_validator = RefdataValidator.from_dict(data_inputs)
+        data_spec_inputs = self.spec_manager.get_outputs("data_spec_inputs")
+        data_validator = RefdataValidator.from_dict(data_spec_inputs)
         urls = data_validator.get_data_urls()
         self.logger.info("Downloading data urls: ", urls)
-        return True
+        data_metadata = self.pantry_shelf.download_all_data(urls)
+        return False
+        return self.spec_manager.revise_and_save(
+            self.config.output_dir,
+            data_metadata=data_metadata,
+        )
 
     def _data_update(self):
         raise NotImplementedError("_data_update has not been implemented yet.")

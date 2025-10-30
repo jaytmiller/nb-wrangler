@@ -230,6 +230,11 @@ def parse_args():
         help="""Environment variable overrides to apply when resolving abstract paths, particularly for data.""",
     )
     parser.add_argument(
+        "--pantry-add-spec",
+        action="store_true",
+        help="""Add the active spec to the pantry.  This creates a 'shelf' for one complete environment.""",
+    )
+    parser.add_argument(
         "--data-collect",
         action="store_true",
         help="""Collect data archive and installation info and add to spec.""",
