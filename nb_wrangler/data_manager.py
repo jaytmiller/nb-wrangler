@@ -393,9 +393,8 @@ class RefdataValidator(WranglerLoggable):
 
     def get_data_urls(self) -> list[tuple[str, str, str]]:
         return [
-            (dsu.repo_name, dsu.section_name, url)
+            (dsu.repo_name, dsu.section_name, dsu.url)
             for dsu in self.get_data_section_urls()
-            for url in dsu.section.data_url
         ]
 
     def get_data_section_vars(self) -> dict[str, dict[str, str]]:

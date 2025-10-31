@@ -181,12 +181,18 @@ class NbwShelf(WranglerLoggable):
         url = self.archive_url(archive_tuple)
         return archive_path / Path(url).name
 
+    def archive_rel_filepath(self, archive_tuple: tuple[str, str, str]) -> str:
+        s = str(self.archive_filepath(archive_tuple))
+        t = str(self.archive_root)
+        return s.removeprefix(t)[1:]
+
     def download_all_data(
         self, archive_tuples: list[tuple[str, str, str]], force: bool = False
     ) -> dict[tuple[str, str, str], dict[str, str]]:
         result = {}
         for archive_tuple in archive_tuples:
-            result[archive_tuple] = self.download_data(archive_tuple, force=force)
+            key = self.archive_rel_filepath(archive_tuple)
+            result[key] = self.download_data(archive_tuple, force=force)
         return result
 
     def download_data(
@@ -194,9 +200,10 @@ class NbwShelf(WranglerLoggable):
     ) -> dict[str, str]:
         archive_path = self.archive_path(archive_tuple)
         archive_path.mkdir(parents=True, exist_ok=True)
-        filepath = self.archive_filepath(archive_tuple)
+        abs_filepath = self.archive_filepath(archive_tuple)
+        filepath = self.archive_rel_filepath(archive_tuple)
         url = self.archive_url(archive_tuple)
-        if not filepath.exists() or force:
+        if not abs_filepath.exists() or force:
             self.logger.info(f"Downloading data from '{url}' to '{filepath}'.")
             new_path = utils.robust_get(
                 url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path)
@@ -207,7 +214,7 @@ class NbwShelf(WranglerLoggable):
                 )
         else:
             self.logger.info(f"File download to '{filepath}' already exists. Skipping downloads.")
-            new_path = filepath
+            new_path = abs_filepath
         new_size = new_path.stat().st_size
         self.logger.info(f"Computing sha256 for '{filepath}'.")
         new_sha256 = utils.sha256_file(new_path)
@@ -226,7 +233,7 @@ class NbwShelf(WranglerLoggable):
     def validate_data(
         self, archive_tuple: tuple[str, str, str], metadata: tuple[str, str]
     ) -> bool:
-        new_path = self.archive_filepath(archive_tuple)
+        new_path = self.archive_rel_filepath(archive_tuple)
         old_size, old_sha256 = metadata
         new_size, new_sha256 = self.collect_metadata(archive_tuple)
         errors = False
@@ -241,18 +248,18 @@ class NbwShelf(WranglerLoggable):
             )
         return errors
 
-    def collect_all_metadata(self, archive_tuples: list[tuple[str,str,str]]) -> list[tuple[str,str]]:
+    def collect_all_metadata(self, archive_tuples: list[tuple[str,str,str]]) -> dict[str,dict[str,str]]:
         return {
-            archive_tuple[2]: self.collect_metadata(archive
+            self.archive_rel_filepath(archive_tuple): self.collect_metadata(archive_tuple)
             for archive_tuple in archive_tuples
         }
 
 
-    def collect_metadata(self, archive_tuple: tuple[str, str, str]) -> tuple[str, str]:
+    def collect_metadata(self, archive_tuple: tuple[str, str, str]) -> dict[str, str]:
         new_path = self.archive_filepath(archive_tuple)
         new_size = str(new_path.stat().st_size)
         new_sha256 = utils.sha256_file(new_path)
-       return new_size, new_path
+        return dict(size=new_size, sha256=new_sha256)
 
 
 class NbwCan:
