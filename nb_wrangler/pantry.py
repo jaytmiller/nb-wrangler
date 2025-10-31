@@ -46,7 +46,8 @@ ${NBW_ROOT}/
 from pathlib import Path
 
 from . import utils
-from .utils import DataDownloadError
+
+# from .utils import DataDownloadError
 from .logger import WranglerLoggable
 from .constants import NBW_PANTRY, DATA_GET_TIMEOUT
 
@@ -145,19 +146,19 @@ class NbwShelf(WranglerLoggable):
         return self.path.name
 
     @property
-    def archive_root(self):
+    def archive_root(self) -> Path:
         return self.path / "archives"
 
     @property
-    def notebook_repos_path(self):
+    def notebook_repos_path(self) -> Path:
         return self.path / "notebooks"
 
     @property
-    def data_path(self):
+    def data_path(self) -> Path:
         return self.path / "data"
 
     @property
-    def spec_path(self):
+    def spec_path(self) -> Path:
         return self.path / "nbw-wranger-spec.yaml"
 
     def set_wrangler_spec(self, wrangler_spec_path: str) -> Path:
@@ -186,78 +187,88 @@ class NbwShelf(WranglerLoggable):
         t = str(self.archive_root)
         return s.removeprefix(t)[1:]
 
+    def archive_live_pantry_path(self, archive_tuple: tuple[str, str, str]) -> Path:
+        return self.data_path / Path(self.archive_rel_filepath(archive_tuple)).parent
+
     def download_all_data(
         self, archive_tuples: list[tuple[str, str, str]], force: bool = False
-    ) -> dict[tuple[str, str, str], dict[str, str]]:
-        result = {}
-        for archive_tuple in archive_tuples:
-            key = self.archive_rel_filepath(archive_tuple)
-            result[key] = self.download_data(archive_tuple, force=force)
-        return result
+    ) -> bool:  # dict[tuple[str, str, str], dict[str, str]]:
+        return bool(
+            any(
+                self.download_data(archive_tuple, force=force)
+                for archive_tuple in archive_tuples
+            )
+        )
 
     def download_data(
         self, archive_tuple: tuple[str, str, str], force: bool = False
-    ) -> dict[str, str]:
+    ) -> bool:
         archive_path = self.archive_path(archive_tuple)
         archive_path.mkdir(parents=True, exist_ok=True)
-        abs_filepath = self.archive_filepath(archive_tuple)
-        filepath = self.archive_rel_filepath(archive_tuple)
+        key = self.archive_rel_filepath(archive_tuple)
         url = self.archive_url(archive_tuple)
-        if not abs_filepath.exists() or force:
-            self.logger.info(f"Downloading data from '{url}' to '{filepath}'.")
-            new_path = utils.robust_get(
-                url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path)
-            )
-            if filepath != new_path:
-                raise DataDownloadError(
-                    f"Failed to download data from '{url}' expected filepath '{filepath}' got '{new_path}'."
+        if not self.archive_filepath(archive_tuple).exists() or force:
+            self.logger.info(f"Downloading data from '{url}' to archive file '{key}'.")
+            try:
+                utils.robust_get(url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path))
+            except Exception as e:
+                return self.logger.exception(
+                    e, f"Failed downloading '{url}' to archive file '{key}':"
                 )
         else:
-            self.logger.info(f"File download to '{filepath}' already exists. Skipping downloads.")
-            new_path = abs_filepath
-        new_size = new_path.stat().st_size
-        self.logger.info(f"Computing sha256 for '{filepath}'.")
-        new_sha256 = utils.sha256_file(new_path)
-        return dict(size=str(new_size), sha256=new_sha256)
+            self.logger.info(
+                f"Archive file for '{key}' already exists. Skipping downloads."
+            )
+        return True
 
     def validate_all_data(
         self,
         archive_tuples: list[tuple[str, str, str]],
-        metadata_tuples: list[tuple[str, str]],
+        data_metadata: dict[str, dict[str, str]],
     ) -> bool:
         errors = False
-        for i, archive_tuple in enumerate(archive_tuples):
-            errors = self.validate_data(archive_tuple, metadata_tuples[i]) or errors
+        for archive_tuple in archive_tuples:
+            key = self.archive_rel_filepath(archive_tuple)
+            errors = self.validate_data(archive_tuple, data_metadata[key]) or errors
         return errors
 
     def validate_data(
-        self, archive_tuple: tuple[str, str, str], metadata: tuple[str, str]
+        self, archive_tuple: tuple[str, str, str], metadata: dict[str, str]
     ) -> bool:
-        new_path = self.archive_rel_filepath(archive_tuple)
-        old_size, old_sha256 = metadata
-        new_size, new_sha256 = self.collect_metadata(archive_tuple)
         errors = False
-        self.logger.info(f"Validating data archive '{new_path}'.")
+        key = self.archive_rel_filepath(archive_tuple)
+        self.logger.info(f"Validating data archive '{key}'.")
+
+        old_size, old_sha256 = metadata["size"], metadata["sha256"]
+
+        d = self.collect_metadata(archive_tuple)
+        new_size, new_sha256 = d["size"], d["sha256"]
+
         if new_size != old_size:
             errors = self.logger.error(
-                f"Size mismatch for '{new_path}' expected '{old_size}' but got '{new_size}'."
+                f"Size mismatch for '{key}' expected '{old_size}' but got '{new_size}'."
             )
         if new_sha256 != old_sha256:
             errors = self.logger.error(
-                f"SHA256 mismatch for '{new_path}' expected '{old_sha256}' but got '{new_sha256}'."
+                f"SHA256 mismatch for '{key}' expected '{old_sha256}' but got '{new_sha256}'."
             )
         return errors
 
-    def collect_all_metadata(self, archive_tuples: list[tuple[str,str,str]]) -> dict[str,dict[str,str]]:
+    def collect_all_metadata(
+        self, archive_tuples: list[tuple[str, str, str]]
+    ) -> dict[str, dict[str, str]]:
         return {
-            self.archive_rel_filepath(archive_tuple): self.collect_metadata(archive_tuple)
+            self.archive_rel_filepath(archive_tuple): self.collect_metadata(
+                archive_tuple
+            )
             for archive_tuple in archive_tuples
         }
 
-
     def collect_metadata(self, archive_tuple: tuple[str, str, str]) -> dict[str, str]:
+        key = self.archive_rel_filepath(archive_tuple)
         new_path = self.archive_filepath(archive_tuple)
         new_size = str(new_path.stat().st_size)
+        self.logger.info(f"Computing sha256 for archive file '{key}'.")
         new_sha256 = utils.sha256_file(new_path)
         return dict(size=new_size, sha256=new_sha256)
 

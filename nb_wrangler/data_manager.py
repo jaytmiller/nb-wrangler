@@ -91,7 +91,7 @@ def is_valid_url(url: str):
     logger = WranglerLogger()
     try:
         result = urlparse(str(url).strip())
-        logger.info(f"Validating URL '{url}'.")
+        logger.debug(f"Validating URL '{url}'.")
         return all([result.scheme, result.netloc])
     except Exception as e:
         logger.exception(e, f"Invalid URL '{url}'.")

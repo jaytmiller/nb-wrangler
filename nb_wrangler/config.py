@@ -91,7 +91,9 @@ class WranglerConfig:
     pantry_add_spec: bool = False
     data_collect: bool = False
     data_download: bool = False
+    data_validate: bool = False
     data_update: bool = False
+    data_unpack_pantry: bool = False
 
     workflow: str = "explicit"
 
@@ -146,7 +148,9 @@ class WranglerConfig:
             pantry_add_spec=args.pantry_add_spec,
             data_collect=args.data_collect,
             data_download=args.data_download,
+            data_validate=args.data_validate,
             data_update=args.data_update,
+            data_unpack_pantry=args.data_unpack_pantry,
         )
         return args_config
 

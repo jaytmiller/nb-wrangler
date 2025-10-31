@@ -78,11 +78,11 @@ class SpecManager(WranglerLoggable):
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
 
     @property
-    def spec_file(self):
+    def spec_file(self) -> Path:
         return self._source_file
 
     @property
-    def shelf_name(self):
+    def shelf_name(self) -> str:
         return self.moniker  # + "-" + self.spec_id
 
     @property
@@ -105,7 +105,7 @@ class SpecManager(WranglerLoggable):
         """Get data from the output section of the spec."""
         return self._spec.get("out", {}).get(key, default)
 
-    def get_outputs(self, *output_names) -> list[Any]:
+    def get_outputs(self, *output_names) -> list[Any] | Any:
         """Get the named fields from the spec output section and
         return a tuple in order of `output_names`.
         """

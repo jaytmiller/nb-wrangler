@@ -14,7 +14,7 @@ import shlex
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 
 from .logger import WranglerLoggable, WranglerLogger
@@ -346,9 +346,9 @@ class EnvironmentManager(WranglerLoggable):
             f"Packed {source_dirpath} into {archive_filepath}",
         )
 
-    def unarchive(self, archive_filepath: Path, destination_dirpath: Path) -> bool:
+    def unarchive(self, archive_filepath: Path, destination_dirpath: Path, extract: Optional[str] = None) -> bool:
         destination_dirpath.mkdir(parents=True, exist_ok=True)
-        cmd = f"tar -axf {archive_filepath} {destination_dirpath.name}"
+        cmd = f"tar -axf {archive_filepath} {extract if extract is not None else destination_dirpath.name}"
         result = self.wrangler_run(cmd, cwd=destination_dirpath.parent, check=False)
         return self.handle_result(
             result,

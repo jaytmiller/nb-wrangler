@@ -240,12 +240,24 @@ def parse_args():
         help="""Collect data archive and installation info and add to spec.""",
     )
     parser.add_argument(
-        "--data-download", action="store_true", help="""Download data archives."""
+        "--data-download",
+        action="store_true",
+        help="Download data archive files to the pantry.",
     )
     parser.add_argument(
         "--data-update",
         action="store_true",
         help="""Update metadata for data archives, e.g. length and hash.""",
+    )
+    parser.add_argument(
+        "--data-validate",
+        action="store_true",
+        help="""Validate the archive files stored in pantry against metadata from the wrangler spec.""",
+    )
+    parser.add_argument(
+        "--data-unpack-pantry",
+        action="store_true",
+        help="""Unpack the data archive files stored in pantry into the live data store in the pantry.""",
     )
     return parser.parse_args()
 
