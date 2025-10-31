@@ -94,6 +94,9 @@ class WranglerConfig:
     data_validate: bool = False
     data_update: bool = False
     data_unpack_pantry: bool = False
+    data_pack_pantry: bool = False
+    data_locals_export: bool = False
+    data_pantry_export: bool = False
 
     workflow: str = "explicit"
 
@@ -151,6 +154,9 @@ class WranglerConfig:
             data_validate=args.data_validate,
             data_update=args.data_update,
             data_unpack_pantry=args.data_unpack_pantry,
+            data_pack_pantry=args.data_pack_pantry,
+            data_locals_export=args.data_locals_export,
+            data_pantry_export=args.data_pantry_export
         )
         return args_config
 

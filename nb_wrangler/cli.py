@@ -259,6 +259,21 @@ def parse_args():
         action="store_true",
         help="""Unpack the data archive files stored in pantry into the live data store in the pantry.""",
     )
+    parser.add_argument(
+        "--data-pack-pantry",
+        action="store_true",
+        help="""Pack the live data directories in the pantry into their corresponding archive files, must be in spec.""",
+    )
+    parser.add_argument(
+        "--data-locals-export",
+        action="store_true",
+        help="""Return data environment variables defined relative to the install_path in each section.""",
+    )
+    parser.add_argument(
+        "--data-pantry-export",
+        action="store_true",
+        help="""Return data environment variables defined relative to the pantry data directory for this environment.""",
+    )
     return parser.parse_args()
 
 

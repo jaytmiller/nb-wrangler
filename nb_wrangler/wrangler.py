@@ -197,6 +197,9 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.data_update, self._data_update),
             (self.config.data_validate, self._data_validate),
             (self.config.data_unpack_pantry, self._data_unpack_pantry),
+            (self.config.data_pack_pantry, self._data_pack_pantry),
+            (self.config.data_locals_export, self._data_locals_export),
+            (self.config.data_pantry_export, self._data_pantry_export),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -255,6 +258,8 @@ class NotebookWrangler(WranglerLoggable):
 
     def _pantry_add_spec(self):
         """Add a new spec to the pantry."""
+        self.pantry_shelf.set_wrangler_spec(self.config.spec_file)
+        return True
 
     def _data_collect(self):
         """Collect data from notebook repos."""
@@ -264,11 +269,12 @@ class NotebookWrangler(WranglerLoggable):
         )
         data = dict(
             spec_inputs=data_validator.todict(),
-            # section_variables=data_validator.get_data_section_vars(),
-            # other_variables=data_validator.get_data_other_vars(),
+            section_env_vars = data_validator.get_data_section_env_vars(),
+            pantry_env_vars = data_validator.get_data_pantry_env_vars(self.pantry_shelf.abstract_data_path),
+            other_env_vars = data_validator.get_data_other_env_vars(),
         )
         return self.spec_manager.revise_and_save(
-            self.config.output_dir,
+            Path(self.config.spec_file).parent,
             data=data,
         )
 
@@ -278,6 +284,37 @@ class NotebookWrangler(WranglerLoggable):
         data_validator = RefdataValidator.from_dict(spec_inputs)
         urls = data_validator.get_data_urls()
         return data, urls
+
+    def _data_locals_export(self):
+        """"""
+        data, _urls = self._get_data_url_tuples()
+        result = dict()
+        result.update(data["section_env_vars"])
+        result.update(data["other_env_vars"])
+        exports = ""
+        for var, value in result.items():
+            exports += f"export {var} " + value + "\n" 
+        data["local_exports"] = utils.yaml_block(exports)
+        return self.spec_manager.revise_and_save(
+            Path(self.config.spec_file).parent,
+            data=data,
+        )
+
+    def _data_pantry_export(self):
+        """"""
+        data, _urls = self._get_data_url_tuples()
+        result = dict()
+        result.update(data["pantry_env_vars"])
+        result.update(data["other_env_vars"])        
+        exports = ""
+        for var, value in result.items():
+            exports += f"export {var} " + value + "\n" 
+        data["pantry_exports"] = utils.yaml_block(exports)
+        return self.spec_manager.revise_and_save(
+            Path(self.config.spec_file).parent,
+            data=data,
+        )
+
 
     def _data_download(self):
         _data, urls = self._get_data_url_tuples()
@@ -289,7 +326,7 @@ class NotebookWrangler(WranglerLoggable):
         data, urls = self._get_data_url_tuples()
         data["metadata"] = self.pantry_shelf.collect_all_metadata(urls)
         return self.spec_manager.revise_and_save(
-            self.config.output_dir,
+            Path(self.config.spec_file).parent,
             data=data,
         )
 
@@ -310,14 +347,19 @@ class NotebookWrangler(WranglerLoggable):
         errors = False
         for archive_tuple in self._get_data_url_tuples()[1]:
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
-            dest_path = self.pantry_shelf.archive_live_pantry_path(archive_tuple) / "dummy"
+            dest_path = self.pantry_shelf.data_path
             self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
             errors = errors or self.env_manager.unarchive(src_archive, dest_path, "")   
         return errors
 
-    #     def _data_env_vars(self):
-    #         data = self.spec_manager.get_outputs("data")
-    #        _data_validator = RefdataValidator.from_dict(data["spec_inputs"])
+    def _data_pack_pantry(self):
+        errors = False
+        for archive_tuple in self._get_data_url_tuples()[1]:
+            dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
+            src_path = self.pantry_shelf.data_path
+            self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
+            errors = errors or self.env_manager.archive(dest_archive, src_path, "")   
+        return errors
 
     def _delete_repos(self):
         """Delete notebook and SPI repo clones."""

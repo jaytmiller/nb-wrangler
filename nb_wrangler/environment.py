@@ -336,10 +336,12 @@ class EnvironmentManager(WranglerLoggable):
             return True
         return False
 
-    def archive(self, archive_filepath: Path, source_dirpath: Path) -> bool:
+    def archive(self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = "") -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
-        cmd = f"tar -acf {archive_filepath} {source_dirpath.name}"
-        result = self.wrangler_run(cmd, cwd=source_dirpath.parent, check=False)
+        select = extract if extract is not None else source_dirpath.name
+        cmd = f"tar -axf {archive_filepath} {select}"
+        cwd = source_dirpath if extract is not None else source_dirpath.parent
+        result = self.wrangler_run(cmd, cwd=cwd, check=False)
         return self.handle_result(
             result,
             f"Failed to pack {source_dirpath} into {archive_filepath}:",
@@ -348,12 +350,14 @@ class EnvironmentManager(WranglerLoggable):
 
     def unarchive(self, archive_filepath: Path, destination_dirpath: Path, extract: Optional[str] = None) -> bool:
         destination_dirpath.mkdir(parents=True, exist_ok=True)
-        cmd = f"tar -axf {archive_filepath} {extract if extract is not None else destination_dirpath.name}"
-        result = self.wrangler_run(cmd, cwd=destination_dirpath.parent, check=False)
+        select = extract if extract is not None else destination_dirpath.name
+        cmd = f"tar -axf {archive_filepath} {select}"
+        cwd = destination_dirpath if extract is not None else destination_dirpath.parent
+        result = self.wrangler_run(cmd, cwd=cwd, check=False)
         return self.handle_result(
             result,
-            f"Failed to unpack {archive_filepath} into {destination_dirpath}: ",
-            f"Unpacked {archive_filepath} into {destination_dirpath}",
+            f"Failed to unpack {archive_filepath} into {cwd}: ",
+            f"Unpacked {archive_filepath} into {cwd}",
         )
 
     def pack_environment(

@@ -397,19 +397,22 @@ class RefdataValidator(WranglerLoggable):
             for dsu in self.get_data_section_urls()
         ]
 
-    def get_data_section_vars(self) -> dict[str, dict[str, str]]:
-        result: defaultdict = defaultdict(dict)
-        for refdata_path, refdata_spec in self.all_data.items():
-            repo_name = Path(refdata_path).parent.stem
-            result[repo_name] = refdata_spec.get_spec_vars()
-        return dict(result)
+    def get_data_section_env_vars(self) -> dict[str, str]:
+        return {
+            dsu.section.environment_variable : dsu.section.env_value
+            for dsu in self.get_data_section_urls()
+        }
+    
+    def get_data_pantry_env_vars(self, pantry_path: Path) -> dict[str, str]:
+        return {
+            dsu.section.environment_variable : str(pantry_path / dsu.section.data_path)
+            for dsu in self.get_data_section_urls()
+        }
 
-    def get_data_other_vars(self) -> dict[str, dict[str, str]]:
-        result: defaultdict = defaultdict(dict)
+    def get_data_other_env_vars(self) -> dict[str, str]:
+        result = dict()
         for refdata_path, refdata in self.all_data.items():
-            repo_name = Path(refdata_path).parent.stem
-            for var, value in refdata.other_variables.items():
-                result[repo_name][var] = value
+            result.update(refdata.other_variables)
         return dict(result)
 
 

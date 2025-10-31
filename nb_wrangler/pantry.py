@@ -158,6 +158,10 @@ class NbwShelf(WranglerLoggable):
         return self.path / "data"
 
     @property
+    def abstract_data_path(self):
+        return Path("${NBW_PANTRY}/shelves") / self.name / "data"
+
+    @property
     def spec_path(self) -> Path:
         return self.path / "nbw-wranger-spec.yaml"
 
@@ -186,9 +190,6 @@ class NbwShelf(WranglerLoggable):
         s = str(self.archive_filepath(archive_tuple))
         t = str(self.archive_root)
         return s.removeprefix(t)[1:]
-
-    def archive_live_pantry_path(self, archive_tuple: tuple[str, str, str]) -> Path:
-        return self.data_path / Path(self.archive_rel_filepath(archive_tuple)).parent
 
     def download_all_data(
         self, archive_tuples: list[tuple[str, str, str]], force: bool = False
