@@ -130,6 +130,7 @@ class NotebookTester:
                 output_mode="combined",
                 timeout=timeout,
                 check=False,
+                env=os.environ,
             )
             err = result.returncode != 0
             return err, result.stdout

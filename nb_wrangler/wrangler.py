@@ -369,7 +369,7 @@ class NotebookWrangler(WranglerLoggable):
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
             self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
-            errors = errors or self.env_manager.unarchive(src_archive, dest_path, "")
+            errors = self.env_manager.unarchive(src_archive, dest_path, "") or errors
         self.pantry_shelf.save_exports_file(
             "nbw-local-exports.sh", data["local_exports"]
         )
@@ -385,7 +385,7 @@ class NotebookWrangler(WranglerLoggable):
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
-            errors = errors or self.env_manager.archive(dest_archive, src_path, "")
+            errors = self.env_manager.archive(dest_archive, src_path, "") or errors
         return errors
 
     def _delete_repos(self):

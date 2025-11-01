@@ -223,7 +223,7 @@ class RefdataSpec(WranglerLoggable):
                 )
             else:
                 self.install_files[name] = DataSection(**section_dict)
-                errors = errors or self.install_files[name].validate(refdata_path, name)
+                errors = self.install_files[name].validate(refdata_path, name) or errors
         return errors
 
     def validate_other_variables(
@@ -378,8 +378,8 @@ class RefdataValidator(WranglerLoggable):
             for refdata_path_j in self.all_data.keys():
                 if (refdata_path_j, refdata_path_i) not in already_seen:
                     already_seen.add((refdata_path_i, refdata_path_j))
-                    errors = errors or self.check_conflicts(
-                        refdata_path_i, refdata_path_j
+                    errors = (
+                        self.check_conflicts(refdata_path_i, refdata_path_j) or errors
                     )
         return errors
 
