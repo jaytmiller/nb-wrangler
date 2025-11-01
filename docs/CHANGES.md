@@ -8,12 +8,12 @@
     - --data-download
     - --data-update
     - --data-validate
-    - --data-install (unpack)
-    - --data-remove  (delete)
-    - --data-repack  (repack and update spec metadata)
-    - --data-vars
-    - --data-list
-    - --data-share   (modifier to override install_data paths)
+    - --data-unpack
+    - --data-pack
+
+    - --data-curate     (spec definition workflow)
+    - --data-reinstall  (target system data installation)
+
 - Idemotently downloads data using HEAD size, etag
 - Validates locally using sha256
 - Packs / Unpacks data / Updates internal metadata for changes
