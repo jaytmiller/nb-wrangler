@@ -54,6 +54,20 @@ def parse_args():
         help="Install requirements defined by a pre-compiled spec.",
     )
     parser.add_argument(
+        "--data-curate",
+        dest="workflow",
+        action="store_const",
+        const="data-curation",
+        help="""Execute multi-step workflow to import data specs from notebook repos and collect metadata.""",
+    )
+    parser.add_argument(
+        "--data-reinstall",
+        dest="workflow",
+        action="store_const",
+        const="data-reinstall",
+        help="""Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.""",
+    )
+    parser.add_argument(
         "-t",
         "--test",
         dest="test_all",
@@ -263,16 +277,6 @@ def parse_args():
         "--data-pack-pantry",
         action="store_true",
         help="""Pack the live data directories in the pantry into their corresponding archive files, must be in spec.""",
-    )
-    parser.add_argument(
-        "--data-locals-export",
-        action="store_true",
-        help="""Return data environment variables defined relative to the install_path in each section.""",
-    )
-    parser.add_argument(
-        "--data-pantry-export",
-        action="store_true",
-        help="""Return data environment variables defined relative to the pantry data directory for this environment.""",
     )
     return parser.parse_args()
 

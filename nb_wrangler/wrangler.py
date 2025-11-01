@@ -110,6 +110,10 @@ class NotebookWrangler(WranglerLoggable):
                 return self._run_submit_build_workflow()
             case "reinstall":
                 return self._run_reinstall_spec_workflow()
+            case "data-curation":
+                return self._run_data_curation_workflow()
+            case "data-reinstall":
+                return self._run_data_reinstall_workflow()
             case _:
                 return self._run_explicit_steps()
 
@@ -130,6 +134,23 @@ class NotebookWrangler(WranglerLoggable):
                 self._compile_requirements,
                 self._initialize_environment,
                 self._install_packages,
+                self._save_final_spec,
+            ],
+        ):
+            return self._run_explicit_steps()
+        return False
+
+    def _run_data_curation_workflow(self) -> bool:
+        """Execute steps for data curation workflow, defining spec for data."""
+        if self.run_workflow(
+            "data collection / downloads / metadata capture / unpacking",
+            [
+                self._clone_repos,
+                self._data_collect,
+                self._data_download,
+                self._data_update,
+                self._data_validate,
+                self._data_unpack_pantry,
                 self._save_final_spec,
             ],
         ):
@@ -174,6 +195,20 @@ class NotebookWrangler(WranglerLoggable):
             return False
         return self._run_explicit_steps()
 
+    def _run_data_reinstall_workflow(self) -> bool:
+        """Execute steps for data curation workflow, defining spec for data."""
+        if self.run_workflow(
+            "data collection / downloads / metadata capture / unpacking",
+            [
+                self._validate_spec,
+                self._data_download,
+                self._data_validate,
+                self._data_unpack,
+            ],
+        ):
+            return self._run_explicit_steps()
+        return False
+
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         self.logger.info("Running explicitly selected steps, if any.")
@@ -198,8 +233,6 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.data_validate, self._data_validate),
             (self.config.data_unpack_pantry, self._data_unpack_pantry),
             (self.config.data_pack_pantry, self._data_pack_pantry),
-            (self.config.data_locals_export, self._data_locals_export),
-            (self.config.data_pantry_export, self._data_pantry_export),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -267,15 +300,25 @@ class NotebookWrangler(WranglerLoggable):
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
-        data = dict(
-            spec_inputs=data_validator.todict(),
-            section_env_vars = data_validator.get_data_section_env_vars(),
-            pantry_env_vars = data_validator.get_data_pantry_env_vars(self.pantry_shelf.abstract_data_path),
-            other_env_vars = data_validator.get_data_other_env_vars(),
+        section_env_vars = data_validator.get_data_section_env_vars()
+        pantry_env_vars = data_validator.get_data_pantry_env_vars(
+            self.pantry_shelf.abstract_data_path
         )
+        other_env_vars = data_validator.get_data_other_env_vars()
+        local_exports = dict()
+        local_exports.update(other_env_vars)
+        local_exports.update(section_env_vars)
+        local_exports.update(other_env_vars)
+        pantry_exports = dict()
+        pantry_exports.update(other_env_vars)
+        pantry_exports.update(pantry_env_vars)
         return self.spec_manager.revise_and_save(
             Path(self.config.spec_file).parent,
-            data=data,
+            data=dict(
+                spec_inputs=data_validator.todict(),
+                local_exports=local_exports,
+                pantry_exports=pantry_exports,
+            ),
         )
 
     def _get_data_url_tuples(self) -> tuple[dict[str, Any], list[tuple[str, str, str]]]:
@@ -284,37 +327,6 @@ class NotebookWrangler(WranglerLoggable):
         data_validator = RefdataValidator.from_dict(spec_inputs)
         urls = data_validator.get_data_urls()
         return data, urls
-
-    def _data_locals_export(self):
-        """"""
-        data, _urls = self._get_data_url_tuples()
-        result = dict()
-        result.update(data["section_env_vars"])
-        result.update(data["other_env_vars"])
-        exports = ""
-        for var, value in result.items():
-            exports += f"export {var} " + value + "\n" 
-        data["local_exports"] = utils.yaml_block(exports)
-        return self.spec_manager.revise_and_save(
-            Path(self.config.spec_file).parent,
-            data=data,
-        )
-
-    def _data_pantry_export(self):
-        """"""
-        data, _urls = self._get_data_url_tuples()
-        result = dict()
-        result.update(data["pantry_env_vars"])
-        result.update(data["other_env_vars"])        
-        exports = ""
-        for var, value in result.items():
-            exports += f"export {var} " + value + "\n" 
-        data["pantry_exports"] = utils.yaml_block(exports)
-        return self.spec_manager.revise_and_save(
-            Path(self.config.spec_file).parent,
-            data=data,
-        )
-
 
     def _data_download(self):
         _data, urls = self._get_data_url_tuples()
@@ -349,7 +361,12 @@ class NotebookWrangler(WranglerLoggable):
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
             self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
-            errors = errors or self.env_manager.unarchive(src_archive, dest_path, "")   
+            errors = errors or self.env_manager.unarchive(src_archive, dest_path, "")
+        local_exports, pantry_exports = self.spec_manager.get_outputs(
+            "local_exports", "pantry_exports"
+        )
+        self.save_exports_file("nbw-local-exports.sh", local_exports)
+        self.save_exports_file("nbw-pantry-exports.sh", pantry_exports)
         return errors
 
     def _data_pack_pantry(self):
@@ -358,7 +375,7 @@ class NotebookWrangler(WranglerLoggable):
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
-            errors = errors or self.env_manager.archive(dest_archive, src_path, "")   
+            errors = errors or self.env_manager.archive(dest_archive, src_path, "")
         return errors
 
     def _delete_repos(self):

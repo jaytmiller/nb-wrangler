@@ -193,13 +193,11 @@ class NbwShelf(WranglerLoggable):
 
     def download_all_data(
         self, archive_tuples: list[tuple[str, str, str]], force: bool = False
-    ) -> bool:  # dict[tuple[str, str, str], dict[str, str]]:
-        return bool(
-            any(
-                self.download_data(archive_tuple, force=force)
-                for archive_tuple in archive_tuples
-            )
-        )
+    ) -> bool:
+        errors = False
+        for archive_tuple in archive_tuples:
+            errors = self.download_data(archive_tuple, force=force) or errors
+        return errors
 
     def download_data(
         self, archive_tuple: tuple[str, str, str], force: bool = False
@@ -220,7 +218,7 @@ class NbwShelf(WranglerLoggable):
             self.logger.info(
                 f"Archive file for '{key}' already exists. Skipping downloads."
             )
-        return True
+        return False
 
     def validate_all_data(
         self,
@@ -272,6 +270,11 @@ class NbwShelf(WranglerLoggable):
         self.logger.info(f"Computing sha256 for archive file '{key}'.")
         new_sha256 = utils.sha256_file(new_path)
         return dict(size=new_size, sha256=new_sha256)
+
+    def save_exports_file(self, filename: str, exports: dict[str, str]) -> None:
+        with (self.path / filename).open("w+") as stream:
+            for var, value in exports.items():
+                stream.write(f"export {var}={value}\n")
 
 
 class NbwCan:

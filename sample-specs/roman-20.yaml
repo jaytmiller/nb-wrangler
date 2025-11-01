@@ -2000,34 +2000,20 @@ out:
           CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
           CRDS_CONTEXT: roman_0027.pmap
           CRDS_PATH: ${HOME}/crds_cache
-    section_env_vars:
+    local_exports:
+      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
+      CRDS_CONTEXT: roman_0027.pmap
+      CRDS_PATH: ${HOME}/crds_cache
       pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
       STPSF_PATH: ${HOME}/refdata/stpsf-data
       stips_data: ${HOME}/refdata/stips_data
       PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-    pantry_env_vars:
+    pantry_exports:
+      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
+      CRDS_CONTEXT: roman_0027.pmap
+      CRDS_PATH: ${HOME}/crds_cache
       pandeia_refdata: 
         ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/pandeia_data-2025.9-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stpsf-data
       stips_data: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stips_data
       PYSYN_CDBS: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/grp/redcat/trds
-    other_env_vars:
-      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
-      CRDS_CONTEXT: roman_0027.pmap
-      CRDS_PATH: ${HOME}/crds_cache
-    pantry_exports: |
-      export pandeia_refdata ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/pandeia_data-2025.9-roman
-      export STPSF_PATH ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stpsf-data
-      export stips_data ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stips_data
-      export PYSYN_CDBS ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/grp/redcat/trds
-      export CRDS_SERVER_URL https://roman-crds-tvac.stsci.edu
-      export CRDS_CONTEXT roman_0027.pmap
-      export CRDS_PATH ${HOME}/crds_cache
-    local_exports: |
-      export pandeia_refdata ${HOME}/refdata/pandeia_data-2025.9-roman
-      export STPSF_PATH ${HOME}/refdata/stpsf-data
-      export stips_data ${HOME}/refdata/stips_data
-      export PYSYN_CDBS ${HOME}/refdata/grp/redcat/trds/
-      export CRDS_SERVER_URL https://roman-crds-tvac.stsci.edu
-      export CRDS_CONTEXT roman_0027.pmap
-      export CRDS_PATH ${HOME}/crds_cache

@@ -336,7 +336,9 @@ class EnvironmentManager(WranglerLoggable):
             return True
         return False
 
-    def archive(self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = "") -> bool:
+    def archive(
+        self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = ""
+    ) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else source_dirpath.name
         cmd = f"tar -axf {archive_filepath} {select}"
@@ -348,7 +350,12 @@ class EnvironmentManager(WranglerLoggable):
             f"Packed {source_dirpath} into {archive_filepath}",
         )
 
-    def unarchive(self, archive_filepath: Path, destination_dirpath: Path, extract: Optional[str] = None) -> bool:
+    def unarchive(
+        self,
+        archive_filepath: Path,
+        destination_dirpath: Path,
+        extract: Optional[str] = None,
+    ) -> bool:
         destination_dirpath.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else destination_dirpath.name
         cmd = f"tar -axf {archive_filepath} {select}"

@@ -399,13 +399,13 @@ class RefdataValidator(WranglerLoggable):
 
     def get_data_section_env_vars(self) -> dict[str, str]:
         return {
-            dsu.section.environment_variable : dsu.section.env_value
+            dsu.section.environment_variable: dsu.section.env_value
             for dsu in self.get_data_section_urls()
         }
-    
+
     def get_data_pantry_env_vars(self, pantry_path: Path) -> dict[str, str]:
         return {
-            dsu.section.environment_variable : str(pantry_path / dsu.section.data_path)
+            dsu.section.environment_variable: str(pantry_path / dsu.section.data_path)
             for dsu in self.get_data_section_urls()
         }
 
