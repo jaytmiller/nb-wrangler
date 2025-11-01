@@ -337,11 +337,11 @@ class EnvironmentManager(WranglerLoggable):
         return False
 
     def archive(
-        self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = ""
+        self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = None
     ) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else source_dirpath.name
-        cmd = f"tar -axf {archive_filepath} {select}"
+        cmd = f"tar -acf {archive_filepath} {select}"
         cwd = source_dirpath if extract is not None else source_dirpath.parent
         result = self.wrangler_run(cmd, cwd=cwd, check=False)
         return self.handle_result(
