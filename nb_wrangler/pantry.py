@@ -151,7 +151,7 @@ class NbwShelf(WranglerLoggable):
 
     @property
     def notebook_repos_path(self) -> Path:
-        return self.path / "notebooks"
+        return self.path / "notebook-repos"
 
     @property
     def data_path(self) -> Path:

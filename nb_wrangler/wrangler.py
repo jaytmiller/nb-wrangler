@@ -4,6 +4,7 @@
 from pathlib import Path
 from typing import Any
 
+from .constants import NBW_URI
 from .config import WranglerConfig
 from .logger import WranglerLoggable
 from .spec_manager import SpecManager
@@ -29,20 +30,22 @@ class NotebookWrangler(WranglerLoggable):
         if spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
         self.spec_manager = spec_manager
-        if config.repos_dir is None:
-            raise RuntimeError("repos_dir not configured")
         self.env_manager = EnvironmentManager(
             self.logger,
             self.config.mamba_command,
             self.config.pip_command,
         )
+        self.pantry = NbwPantry()
+        self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
+        if self.config.repos_dir == NBW_URI:
+            self.config.repos_dir = self.pantry_shelf.notebook_repos_path
+        else:
+            self.config.repos_dir = Path(self.config.repos_dir)
         self.repo_manager = RepositoryManager(config.repos_dir, self.env_manager)
         self.notebook_import_processor = NotebookImportProcessor(self.logger)
         self.tester = NotebookTester(self.logger, self.config, self.env_manager)
         self.compiler = RequirementsCompiler(self.logger, self.env_manager)
         self.injector = get_injector(self.repo_manager, self.spec_manager)
-        self.pantry = NbwPantry()
-        self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self.config.repos_dir.mkdir(parents=True, exist_ok=True)

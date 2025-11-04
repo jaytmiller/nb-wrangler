@@ -16,6 +16,8 @@ from .constants import (
     NOTEBOOK_TEST_JOBS,
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
+    REPOS_DIR,
+    DATA_DIR,
 )
 
 
@@ -53,7 +55,8 @@ class WranglerConfig:
     log_times: str = DEFAULT_LOG_TIMES_MODE
     color: str = DEFAULT_COLOR_MODE
 
-    repos_dir: Path = Path("./references")
+    repos_dir: Path = Path(REPOS_DIR)
+    data_dir: Path(DATA_DIR)
     clone_repos: bool = False
     delete_repos: bool = False
 
@@ -95,13 +98,12 @@ class WranglerConfig:
     data_update: bool = False
     data_unpack_pantry: bool = False
     data_pack_pantry: bool = False
+    data_dir: str = DATA_DIR
 
     workflow: str = "explicit"
 
     def __post_init__(self):
         """Post-initialization processing."""
-        self.repos_dir = Path(self.repos_dir)
-
         if self.test_all:
             self.test_imports = True
             self.test_notebooks = ".*"

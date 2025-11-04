@@ -5,7 +5,7 @@
 setup_env() {
     export NBW_PYTHON_VERSION=${NBW_PYTHON_VERSION:-"3.11"}
     export NBW_ROOT=${NBW_ROOT:-"$HOME/.nbw-live"}
-    export NBW_PANTRY=${NBW_PANTRY:-"${NBW_ROOT}/pantry"}
+    export NBW_PANTRY=${NBW_PANTRY:-"$HOME/.nbw-pantry"}
     export NBW_MM=${NBW_MM:-"${NBW_ROOT}/mm"}
     export NBW_WRANGLER_ENV=${NBW_WRANGLER_ENV:-"nbwrangler"}
     export MAMBA_ROOT_PREFIX=${NBW_MM}

@@ -4,21 +4,24 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.2.0"
+__version__ = "0.5.0"
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
 NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
 NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
 NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
-NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", NBW_ROOT / "pantry"))
+NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
 
 if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
 if "PIP_CACHE_DIR" not in os.environ:
     os.environ["PIP_CACHE_DIR"] = str(NBW_CACHE / "pip")
 
-REPOS_DIR = Path("./references")
+REPOS_DIR = "references"
+DATA_DIR = "data"
+NBW_URI = "nbw://"
+
 DEFAULT_MAMBA_COMMAND = Path(
     os.environ.get("NBW_MAMBA_CMD", NBW_MM / "bin" / "micromamba")
 )

@@ -337,7 +337,10 @@ class EnvironmentManager(WranglerLoggable):
         return False
 
     def archive(
-        self, archive_filepath: Path, source_dirpath: Path, extract: Optional[str] = None
+        self,
+        archive_filepath: Path,
+        source_dirpath: Path,
+        extract: Optional[str] = None,
     ) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else source_dirpath.name
