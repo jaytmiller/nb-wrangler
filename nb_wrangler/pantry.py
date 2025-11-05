@@ -75,6 +75,11 @@ class NbwPantry(WranglerLoggable):
         """
         return NbwShelf(self.shelves / shelf_name)
 
+    def list_shelves(self) -> bool:
+        for shelf in self.shelves.glob("*"):
+            print(shelf.name)
+        return True
+
     def delete_shelf(self, shelf_name: str | Path) -> bool:
         """
         Delete an existing shelf.
@@ -96,13 +101,6 @@ class NbwPantry(WranglerLoggable):
         Returns the path to the archived file.
         """
         raise NotImplementedError("archive_shelf not yet implemented")
-
-    def list_shelves(self) -> list[str]:
-        """
-        List all shelves present in the pantry.
-        Returns a list of shelf names.
-        """
-        raise NotImplementedError("list_shelves not yet implemented")
 
 
 class NbwShelf(WranglerLoggable):
@@ -195,10 +193,10 @@ class NbwShelf(WranglerLoggable):
     def download_all_data(
         self, archive_tuples: list[tuple[str, str, str, str]], force: bool = False
     ) -> bool:
-        errors = False
+        no_errors = True
         for archive_tuple in archive_tuples:
-            errors = self.download_data(archive_tuple, force=force) or errors
-        return errors
+            no_errors = self.download_data(archive_tuple, force=force) and no_errors
+        return no_errors
 
     def download_data(
         self, archive_tuple: tuple[str, str, str, str], force: bool = False
@@ -219,23 +217,23 @@ class NbwShelf(WranglerLoggable):
             self.logger.info(
                 f"Archive file for '{key}' already exists. Skipping downloads."
             )
-        return False
+        return True
 
     def validate_all_data(
         self,
         archive_tuples: list[tuple[str, str, str, str]],
         data_metadata: dict[str, dict[str, str]],
     ) -> bool:
-        errors = False
+        no_errors = True
         for archive_tuple in archive_tuples:
             key = self.archive_rel_filepath(archive_tuple)
-            errors = self.validate_data(archive_tuple, data_metadata[key]) or errors
-        return errors
+            no_errors = self.validate_data(archive_tuple, data_metadata[key]) and no_errors
+        return no_errors
 
     def validate_data(
         self, archive_tuple: tuple[str, str, str, str], metadata: dict[str, str]
     ) -> bool:
-        errors = False
+        no_errors = True
         key = self.archive_rel_filepath(archive_tuple)
         self.logger.info(f"Validating data archive '{key}'.")
 
@@ -245,14 +243,14 @@ class NbwShelf(WranglerLoggable):
         new_size, new_sha256 = d["size"], d["sha256"]
 
         if new_size != old_size:
-            errors = self.logger.error(
+            no_errors = self.logger.error(
                 f"Size mismatch for '{key}' expected '{old_size}' but got '{new_size}'."
             )
         if new_sha256 != old_sha256:
-            errors = self.logger.error(
+            no_errors = self.logger.error(
                 f"SHA256 mismatch for '{key}' expected '{old_sha256}' but got '{new_sha256}'."
             )
-        return errors
+        return no_errors
 
     def collect_all_metadata(
         self, archive_tuples: list[tuple[str, str, str, str]]
@@ -278,28 +276,28 @@ class NbwShelf(WranglerLoggable):
                 stream.write(f"export {var}={value}\n")
 
     def delete_archives(self, data_delete: str, archive_tuples: list[tuple[str, str, str, str]]) -> bool:
-        errors = False
+        no_errors = True
         for archive_tuple in archive_tuples:
-            errors = self.delete_either(data_delete, archive_tuple) or errors
-        return errors
+            no_errors = self.delete_either(data_delete, archive_tuple) and no_errors
+        return no_errors
 
     def delete_either(self, data_delete: str, archive_tuple: tuple[str, str, str, str]) -> bool:
-        errors = False
+        no_errors = True
         if data_delete in ["archived", "both"]:
             delete_path = self.archive_filepath(archive_tuple)
             self.logger.info(f"Deleting data archive file at {delete_path}...")
             try:
                 delete_path.unlink(missing_ok=True)
             except Exception as e:
-                errors =  self.logger.exception(e, f"Failed deleting archive {delete_path}.")
+                no_errors =  self.logger.exception(e, f"Failed deleting archive {delete_path}.")
         if data_delete in ["unpacked", "both"]:
             delete_path = self.data_path / archive_tuple[3]
             self.logger.info(f"Deleting unpacked data directory at {delete_path}...")
             try:
                 shutil.rmtree(str(delete_path))
             except Exception as e:
-                errors = self.logger.exception(e, f"Failed deleting unpacked data directory {delete_path}.")
-        return errors
+                no_errors = self.logger.exception(e, f"Failed deleting unpacked data directory {delete_path}.")
+        return no_errors
 
 
 class NbwCan:

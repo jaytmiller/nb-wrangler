@@ -10,6 +10,8 @@
     - --data-validate
     - --data-unpack
     - --data-pack
+    - --data-delete (both, archived, unpacked, "")
+    - --data-select <regex> on (notebook repo, repo section, or archive URL)
 
     - --data-curate     (spec definition workflow)
     - --data-reinstall  (target system data installation)

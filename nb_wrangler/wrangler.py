@@ -233,6 +233,7 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
             (self.config.spec_add, self._spec_add),
+            (self.config.spec_list, self._spec_list),
             (self.config.data_collect, self._data_collect),
             (self.config.data_list, self._data_list),
             (self.config.data_download, self._data_download),
@@ -297,14 +298,20 @@ class NotebookWrangler(WranglerLoggable):
             nb_to_imports=nb_to_imports,
         )
 
-    def _spec_add(self):
+    def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""
         self.pantry_shelf.set_wrangler_spec(self.config.spec_file)
         return True
 
-    def _data_collect(self):
+    def _spec_list(self) -> bool:
+        """List the available shelves/specs in the pantry."""
+        self.logger.info("Listing available shelves/specs in pantry.")
+        return self.pantry.list_shelves()
+
+
+    def _data_collect(self) -> bool:
         """Collect data from notebook repos."""
-        self.logger.info("Collecing information from notebook repo data specs.")
+        self.logger.info("Collecing data information from notebook repo data specs.")
         repo_urls = self.spec_manager.get_output_data("notebook_repo_urls")
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
@@ -339,29 +346,29 @@ class NotebookWrangler(WranglerLoggable):
         urls = data_validator.get_data_urls(self.config.data_select)
         return data, urls
 
-    def _data_list(self):
+    def _data_list(self) -> bool:
         self.logger.info("Listing selected data archives.")
         _data, urls = self._get_data_url_tuples()
         for url in urls[:-1]:
             print(url)
         return True
 
-    def _data_download(self):
+    def _data_download(self) -> bool:
         self.logger.info("Downloading selected data archives.")
         _data, urls = self._get_data_url_tuples()
-        if self.pantry_shelf.download_all_data(urls):
+        if not self.pantry_shelf.download_all_data(urls):
             return self.logger.error("One or more data archive downloads failed.")
         return self.logger.info("Selected data downloaded successfully.")
 
-    def _data_delete(self):
+    def _data_delete(self) -> bool:
         self.logger.info(f"Deleting selected data files of types {self.config.data_delete}.")
         _data, urls = self._get_data_url_tuples()
-        if self.pantry_shelf.delete_archives(self.config.data_delete, urls):
+        if not self.pantry_shelf.delete_archives(self.config.data_delete, urls):
             return self.logger.error("One or more data archive deletes failed.")
         return self.logger.info(f"All selected data files of types {self.config.data_delete} removed successfully.")
 
 
-    def _data_update(self):
+    def _data_update(self) -> bool:
         self.logger.info("Collecting metadata for downloaded data archives.")
         data, urls = self._get_data_url_tuples()
         data["metadata"] = self.pantry_shelf.collect_all_metadata(urls)
@@ -370,12 +377,12 @@ class NotebookWrangler(WranglerLoggable):
             data=data,
         )
 
-    def _data_validate(self):
+    def _data_validate(self) -> bool:
         self.logger.info("Validating all downloaded data archives.")
         data, urls = self._get_data_url_tuples()
         metadata = data.get("metadata")
         if metadata:
-            if self.pantry_shelf.validate_all_data(urls, metadata):
+            if not self.pantry_shelf.validate_all_data(urls, metadata):
                 return self.logger.error("Some data archives did not validate.")
             else:
                 return self.logger.info("All data archives validated.")
@@ -384,41 +391,41 @@ class NotebookWrangler(WranglerLoggable):
                 "Before it can be validated, data metadata must be updated."
             )
 
-    def _data_unpack(self):
+    def _data_unpack(self) -> bool:
         self.logger.info("Unpacking downloaded data archives to live locations.")
-        errors = False
+        no_errors = True
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
             # self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
-            errors = self.env_manager.unarchive(src_archive, dest_path, "") or errors
+            no_errors = self.env_manager.unarchive(src_archive, dest_path, "") and no_errors
         self.pantry_shelf.save_exports_file(
             "nbw-local-exports.sh", data["local_exports"]
         )
         self.pantry_shelf.save_exports_file(
             "nbw-pantry-exports.sh", data["pantry_exports"]
         )
-        return errors
+        return no_errors
 
-    def _data_pack(self):
+    def _data_pack(self) -> bool:
         self.logger.info("Packing downloaded data archives from live locations.")
-        errors = False
+        no_errors = True
         for archive_tuple in self._get_data_url_tuples()[1]:
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             # self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
-            errors = self.env_manager.archive(dest_archive, src_path, "") or errors
-        return errors
+            no_errors = self.env_manager.archive(dest_archive, src_path, "") or no_errors
+        return no_errors
 
-    def _delete_repos(self):
+    def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""
         urls = self.spec_manager.get_outputs("notebook_repo_urls")
         if spi_url := self.spec_manager.get_outputs("injector_url"):
             urls.append(spi_url)
         return self.repo_manager.delete_repos(urls)
 
-    def _delete_spi_repo(self):
+    def _delete_spi_repo(self) -> bool:
         """Remove the 'SPI injector repo' used to make PR's for image builds
         ensuring the next copy will be clean.
         """

@@ -148,27 +148,27 @@ class DataSection(WranglerLoggable):
         self.data_url: list[str] = data_url
 
     def validate(self, refdata_path: str, section_name: str) -> bool:
-        errors = False
+        no_errors = True
         if not isinstance(self.version, (str, float)):
-            errors = self.logger.error(
+            no_errors = self.logger.error(
                 f"Invalid type '{type(self.version)}' for version in refdata file '{refdata_path}' section '{section_name}'.  Should be 'str'."
             )
         else:
             self.version = str(self.version)  # unify floats as str
         if not is_valid_env_name(self.environment_variable):
-            errors = self.logger.error(
+            no_errors = self.logger.error(
                 f"Invalid env var name '{self.environment_variable}' in refdata file '{refdata_path}' section '{section_name}'."
             )
         if not is_valid_abstract_path(self.install_path):
-            errors = self.logger.error(
+            no_errors = self.logger.error(
                 f"Invalid data install path '{self.install_path}' for refdata file '{refdata_path}' section '{section_name}'."
             )
         for url in self.data_url:
             if not is_valid_url(url):
-                errors = self.logger.error(
+                no_errors = self.logger.error(
                     f"Found invalid data URL '{url}' in refdata file '{refdata_path}' section '{section_name}'."
                 )
-        return errors
+        return no_errors
 
     def todict(self):
         d = dict(self.__dict__)
@@ -207,24 +207,24 @@ class RefdataSpec(WranglerLoggable):
         self.logger.debug(
             f"Validating data sections for refdata file '{refdata_path}'."
         )
-        errors = False
+        no_errors = True
         if not isinstance(install_files, dict):
             return self.logger.error(
                 "install_files is not a dict in refdata file '{refdata_path}'."
             )
         for name, section_dict in install_files.items():
             if not isinstance(name, str):
-                errors = self.logger.error(
+                no_errors = self.logger.error(
                     f"Invalid data section name '{name}' in refdata file '{refdata_path}'."
                 )
             if not isinstance(section_dict, dict):
-                errors = self.logger.error(
+                no_errors = self.logger.error(
                     f"Invalid data section value '{section_dict}' in refdata file '{refdata_path}'."
                 )
             else:
                 self.install_files[name] = DataSection(**section_dict)
-                errors = self.install_files[name].validate(refdata_path, name) or errors
-        return errors
+                no_errors = self.install_files[name].validate(refdata_path, name) and no_errors
+        return no_errors
 
     def validate_other_variables(
         self, refdata_path: str, other_variables: dict[str, str]
@@ -232,31 +232,29 @@ class RefdataSpec(WranglerLoggable):
         self.logger.debug(
             f"Validating environment variable names and values for refdata file '{refdata_path}'."
         )
-        error = False
+        no_errors = True
         if not isinstance(other_variables, dict):
             return self.logger.error(
                 "fInvalid other_variables type for refdata file '{refdata_path}'."
             )
         for name, value in other_variables.items():
             if not is_valid_env_name(name):
-                error = True
-                self.logger.error(
+                no_errors = self.logger.error(
                     f"Invalid environment name: '{name}' in refdata file '{refdata_path}'."
                 )
             if not is_valid_env_value(value):
-                error = True
-                self.logger.error(
+                no_errors = self.logger.error(
                     f"Invalid environment value: '{value}' in refdata file '{refdata_path}'."
                 )
             self.other_variables[name] = value
-        return error
+        return no_errors
 
     @classmethod
     def from_dict(cls, refdata_path: str, spec_dict: dict) -> "RefdataSpec":
         self = cls()
-        if self.validate_install_files(
+        if not self.validate_install_files(
             refdata_path, spec_dict["install_files"]
-        ) or self.validate_other_variables(refdata_path, spec_dict["other_variables"]):
+        ) or not self.validate_other_variables(refdata_path, spec_dict["other_variables"]):
             raise ValueError("Failed to validate spec dictionary.")
         return self
 
@@ -357,31 +355,31 @@ class RefdataValidator(WranglerLoggable):
         env_vars_i = self.all_data[refdata_path_i].other_variables
         env_vars_j = self.all_data[refdata_path_j].other_variables
         already_seen = set()
-        errors = False
+        no_errors = True
         for name_i, value_i in env_vars_i.items():
             for name_j, value_j in env_vars_j.items():
                 if name_i != name_j or (name_j, name_i) in already_seen:
                     continue
                 already_seen.add((name_i, name_j))
                 if value_i != value_j:
-                    errors = self.logger.error(
+                    no_errors = self.logger.error(
                         "Conflicting environment variable values for env var '{name_i}' in refdata specs '{refdata_path_i}' and '{refdata_path_j}'."
                     )
-        return errors
+        return no_errors
 
     def validate_env_conflicts(self) -> bool:
         """Across all specs,  ensure no two specs define the same env var with different values."""
         self.logger.debug("Validating no conflicts between any two refdata specs..." "")
         already_seen = set()
-        errors = False
+        no_errors = True
         for refdata_path_i in self.all_data.keys():
             for refdata_path_j in self.all_data.keys():
                 if (refdata_path_j, refdata_path_i) not in already_seen:
                     already_seen.add((refdata_path_i, refdata_path_j))
-                    errors = (
-                        self.check_conflicts(refdata_path_i, refdata_path_j) or errors
+                    no_errors = (
+                        self.check_conflicts(refdata_path_i, refdata_path_j) and no_errors
                     )
-        return errors
+        return no_errors
 
     def get_data_section_urls(self) -> list[DataSectionUrl]:
         return [
