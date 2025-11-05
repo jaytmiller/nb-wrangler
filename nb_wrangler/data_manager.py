@@ -223,7 +223,9 @@ class RefdataSpec(WranglerLoggable):
                 )
             else:
                 self.install_files[name] = DataSection(**section_dict)
-                no_errors = self.install_files[name].validate(refdata_path, name) and no_errors
+                no_errors = (
+                    self.install_files[name].validate(refdata_path, name) and no_errors
+                )
         return no_errors
 
     def validate_other_variables(
@@ -254,7 +256,9 @@ class RefdataSpec(WranglerLoggable):
         self = cls()
         if not self.validate_install_files(
             refdata_path, spec_dict["install_files"]
-        ) or not self.validate_other_variables(refdata_path, spec_dict["other_variables"]):
+        ) or not self.validate_other_variables(
+            refdata_path, spec_dict["other_variables"]
+        ):
             raise ValueError("Failed to validate spec dictionary.")
         return self
 
@@ -332,11 +336,11 @@ class RefdataValidator(WranglerLoggable):
         return self
 
     @classmethod
-    def from_repo_urls(cls, repo_dir: str, repo_urls: list[str]) -> "RefdataValidator":
+    def from_repo_urls(cls, repo_dir: Path, repo_urls: list[str]) -> "RefdataValidator":
         """Based on specs discovered at repo URLs, construct a RefdataValidator."""
         return cls.from_files(
             [
-                str(Path(repo_dir) / Path(url).stem / constants.DATA_SPEC_NAME)
+                str(repo_dir / Path(url).stem / constants.DATA_SPEC_NAME)
                 for url in repo_urls
             ]
         )
@@ -377,7 +381,8 @@ class RefdataValidator(WranglerLoggable):
                 if (refdata_path_j, refdata_path_i) not in already_seen:
                     already_seen.add((refdata_path_i, refdata_path_j))
                     no_errors = (
-                        self.check_conflicts(refdata_path_i, refdata_path_j) and no_errors
+                        self.check_conflicts(refdata_path_i, refdata_path_j)
+                        and no_errors
                     )
         return no_errors
 
@@ -390,11 +395,15 @@ class RefdataValidator(WranglerLoggable):
         ]
 
     def filter_data_url(self, dsu: DataSectionUrl, include_regex: str = ".*"):
-        return (re.match(include_regex, dsu.repo_name) or 
-                re.match(include_regex, dsu.section_name) or
-                re.match(include_regex, dsu.url))
+        return (
+            re.match(include_regex, dsu.repo_name)
+            or re.match(include_regex, dsu.section_name)
+            or re.match(include_regex, dsu.url)
+        )
 
-    def get_data_urls(self, include_regex: str = ".*") -> list[tuple[str, str, str, str]]:
+    def get_data_urls(
+        self, include_regex: str = ".*"
+    ) -> list[tuple[str, str, str, str]]:
         return [
             (dsu.repo_name, dsu.section_name, dsu.url, dsu.section.data_path)
             for dsu in self.get_data_section_urls()

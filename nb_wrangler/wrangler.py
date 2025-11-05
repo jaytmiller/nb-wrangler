@@ -308,7 +308,6 @@ class NotebookWrangler(WranglerLoggable):
         self.logger.info("Listing available shelves/specs in pantry.")
         return self.pantry.list_shelves()
 
-
     def _data_collect(self) -> bool:
         """Collect data from notebook repos."""
         self.logger.info("Collecing data information from notebook repo data specs.")
@@ -339,7 +338,9 @@ class NotebookWrangler(WranglerLoggable):
             ),
         )
 
-    def _get_data_url_tuples(self) -> tuple[dict[str, Any], list[tuple[str, str, str, str]]]:
+    def _get_data_url_tuples(
+        self,
+    ) -> tuple[dict[str, Any], list[tuple[str, str, str, str]]]:
         data = self.spec_manager.get_output_data("data")
         spec_inputs = data["spec_inputs"]
         data_validator = RefdataValidator.from_dict(spec_inputs)
@@ -361,12 +362,15 @@ class NotebookWrangler(WranglerLoggable):
         return self.logger.info("Selected data downloaded successfully.")
 
     def _data_delete(self) -> bool:
-        self.logger.info(f"Deleting selected data files of types {self.config.data_delete}.")
+        self.logger.info(
+            f"Deleting selected data files of types {self.config.data_delete}."
+        )
         _data, urls = self._get_data_url_tuples()
         if not self.pantry_shelf.delete_archives(self.config.data_delete, urls):
             return self.logger.error("One or more data archive deletes failed.")
-        return self.logger.info(f"All selected data files of types {self.config.data_delete} removed successfully.")
-
+        return self.logger.info(
+            f"All selected data files of types {self.config.data_delete} removed successfully."
+        )
 
     def _data_update(self) -> bool:
         self.logger.info("Collecting metadata for downloaded data archives.")
@@ -399,7 +403,9 @@ class NotebookWrangler(WranglerLoggable):
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
             # self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
-            no_errors = self.env_manager.unarchive(src_archive, dest_path, "") and no_errors
+            no_errors = (
+                self.env_manager.unarchive(src_archive, dest_path, "") and no_errors
+            )
         self.pantry_shelf.save_exports_file(
             "nbw-local-exports.sh", data["local_exports"]
         )
@@ -415,7 +421,9 @@ class NotebookWrangler(WranglerLoggable):
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             # self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
-            no_errors = self.env_manager.archive(dest_archive, src_path, "") or no_errors
+            no_errors = (
+                self.env_manager.archive(dest_archive, src_path, "") or no_errors
+            )
         return no_errors
 
     def _delete_repos(self) -> bool:
@@ -430,7 +438,7 @@ class NotebookWrangler(WranglerLoggable):
         ensuring the next copy will be clean.
         """
         return self.repo_manager.delete_repos(
-            [self.spec_manager.get_outputs("injector_url")]
+            [str(self.spec_manager.get_outputs("injector_url"))]
         )
 
     def _generate_target_mamba_spec(self) -> str | bool:

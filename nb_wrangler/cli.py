@@ -207,7 +207,7 @@ def parse_args():
     data_group.add_argument(
         "--data-list",
         action="store_true",
-        help="List out data archives which can be downloaded, stored, installed, etc.  Helps identify selection strings to operate on subsets of data."
+        help="List out data archives which can be downloaded, stored, installed, etc.  Helps identify selection strings to operate on subsets of data.",
     )
     data_group.add_argument(
         "--data-download",

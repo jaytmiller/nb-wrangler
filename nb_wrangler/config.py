@@ -99,7 +99,7 @@ class WranglerConfig:
     data_update: bool = False
     data_unpack: bool = False
     data_pack: bool = False
-    data_delete: str | None = None
+    data_delete: str = ""
     data_select: str = ".*"
 
     workflow: str = "explicit"
