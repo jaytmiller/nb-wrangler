@@ -49,14 +49,15 @@ class WranglerConfig:
 
     mamba_command: Path = DEFAULT_MAMBA_COMMAND
     pip_command: Path = DEFAULT_PIP_COMMAND
+
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE
     color: str = DEFAULT_COLOR_MODE
+    env_overrides: str = ""
 
     repos_dir: Path = Path(REPOS_DIR)
-    data_dir: Path(DATA_DIR)
     clone_repos: bool = False
     delete_repos: bool = False
 
@@ -90,17 +91,22 @@ class WranglerConfig:
     add_pip_hashes: bool = False
     update_spec_hash: bool = False
 
-    env_overrides: str = ""
-    pantry_add_spec: bool = False
+    data_dir: Path = Path(DATA_DIR)
     data_collect: bool = False
+    data_list: bool = False
     data_download: bool = False
     data_validate: bool = False
     data_update: bool = False
-    data_unpack_pantry: bool = False
-    data_pack_pantry: bool = False
-    data_dir: str = DATA_DIR
+    data_unpack: bool = False
+    data_pack: bool = False
+    data_delete: str | None = None
+    data_select: str = ".*"
 
     workflow: str = "explicit"
+
+    spec_select: str | None = None
+    spec_list: bool = False
+    spec_add: bool = False
 
     def __post_init__(self):
         """Post-initialization processing."""
@@ -114,12 +120,7 @@ class WranglerConfig:
         global args_config
         args_config = cls(
             spec_file=args.spec_uri,
-            # mamba_command=args.mamba_command,   # controlled via env var only
-            # pip_command=args.pip_command,   # controlled via env var only
-            verbose=args.verbose,
-            debug=args.debug,
-            log_times=args.log_times,
-            color=args.color,
+            workflow=args.workflow,
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,
@@ -130,10 +131,10 @@ class WranglerConfig:
             register_env=args.register_env,
             unregister_env=args.unregister_env,
             archive_format=args.archive_format,
+            compact=args.compact,
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,
             uninstall_packages=args.uninstall_packages,
-            compact=args.compact,
             test_notebooks=args.test_notebooks,
             test_imports=args.test_imports,
             test_all=args.test_all,
@@ -146,15 +147,24 @@ class WranglerConfig:
             ignore_spec_hash=args.ignore_spec_hash,
             add_pip_hashes=args.add_pip_hashes,
             update_spec_hash=args.update_spec_hash,
-            workflow=args.workflow,
-            env_overrides=args.env_overrides,
-            pantry_add_spec=args.pantry_add_spec,
             data_collect=args.data_collect,
+            data_list=args.data_list,
             data_download=args.data_download,
             data_validate=args.data_validate,
             data_update=args.data_update,
-            data_unpack_pantry=args.data_unpack_pantry,
-            data_pack_pantry=args.data_pack_pantry,
+            data_unpack=args.data_unpack,
+            data_pack=args.data_pack,
+            data_delete=args.data_delete,
+            data_dir=args.data_dir,
+            data_select=args.data_select,
+            spec_select=args.spec_select,
+            spec_list=args.spec_list,
+            spec_add=args.spec_add,
+            verbose=args.verbose,
+            debug=args.debug,
+            log_times=args.log_times,
+            color=args.color,
+            env_overrides=args.env_overrides,
         )
         return args_config
 

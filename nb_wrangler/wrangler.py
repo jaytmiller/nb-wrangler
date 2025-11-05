@@ -149,11 +149,12 @@ class NotebookWrangler(WranglerLoggable):
             "data collection / downloads / metadata capture / unpacking",
             [
                 self._clone_repos,
+                self._spec_add,
                 self._data_collect,
                 self._data_download,
                 self._data_update,
                 self._data_validate,
-                self._data_unpack_pantry,
+                self._data_unpack,
                 self._save_final_spec,
             ],
         ):
@@ -191,6 +192,7 @@ class NotebookWrangler(WranglerLoggable):
             [
                 # self._clone_repos,
                 self._validate_spec,
+                self._spec_add,
                 self._initialize_environment,
                 self._install_packages,
             ],
@@ -204,9 +206,10 @@ class NotebookWrangler(WranglerLoggable):
             "data download / validation / unpacking",
             [
                 self._validate_spec,
+                self._spec_add,
                 self._data_download,
                 self._data_validate,
-                self._data_unpack_pantry,
+                self._data_unpack,
             ],
         ):
             return self._run_explicit_steps()
@@ -229,13 +232,15 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.unpack_env, self._unpack_environment),
             (self.config.register_env, self._register_environment),
             (self.config.unregister_env, self._unregister_environment),
-            (self.config.pantry_add_spec, self._pantry_add_spec),
+            (self.config.spec_add, self._spec_add),
             (self.config.data_collect, self._data_collect),
+            (self.config.data_list, self._data_list),
             (self.config.data_download, self._data_download),
+            (self.config.data_delete, self._data_delete),
             (self.config.data_update, self._data_update),
             (self.config.data_validate, self._data_validate),
-            (self.config.data_unpack_pantry, self._data_unpack_pantry),
-            (self.config.data_pack_pantry, self._data_pack_pantry),
+            (self.config.data_unpack, self._data_unpack),
+            (self.config.data_pack, self._data_pack),
             (self.config.delete_repos, self._delete_repos),
             (self.config.uninstall_packages, self._uninstall_packages),
             (self.config.delete_env, self._delete_environment),
@@ -292,7 +297,7 @@ class NotebookWrangler(WranglerLoggable):
             nb_to_imports=nb_to_imports,
         )
 
-    def _pantry_add_spec(self):
+    def _spec_add(self):
         """Add a new spec to the pantry."""
         self.pantry_shelf.set_wrangler_spec(self.config.spec_file)
         return True
@@ -327,19 +332,34 @@ class NotebookWrangler(WranglerLoggable):
             ),
         )
 
-    def _get_data_url_tuples(self) -> tuple[dict[str, Any], list[tuple[str, str, str]]]:
+    def _get_data_url_tuples(self) -> tuple[dict[str, Any], list[tuple[str, str, str, str]]]:
         data = self.spec_manager.get_output_data("data")
         spec_inputs = data["spec_inputs"]
         data_validator = RefdataValidator.from_dict(spec_inputs)
-        urls = data_validator.get_data_urls()
+        urls = data_validator.get_data_urls(self.config.data_select)
         return data, urls
 
+    def _data_list(self):
+        self.logger.info("Listing selected data archives.")
+        _data, urls = self._get_data_url_tuples()
+        for url in urls[:-1]:
+            print(url)
+        return True
+
     def _data_download(self):
-        self.logger.info("Downloading all data archives.")
+        self.logger.info("Downloading selected data archives.")
         _data, urls = self._get_data_url_tuples()
         if self.pantry_shelf.download_all_data(urls):
             return self.logger.error("One or more data archive downloads failed.")
-        return self.logger.info("All data downloaded successfully.")
+        return self.logger.info("Selected data downloaded successfully.")
+
+    def _data_delete(self):
+        self.logger.info(f"Deleting selected data files of types {self.config.data_delete}.")
+        _data, urls = self._get_data_url_tuples()
+        if self.pantry_shelf.delete_archives(self.config.data_delete, urls):
+            return self.logger.error("One or more data archive deletes failed.")
+        return self.logger.info(f"All selected data files of types {self.config.data_delete} removed successfully.")
+
 
     def _data_update(self):
         self.logger.info("Collecting metadata for downloaded data archives.")
@@ -364,14 +384,14 @@ class NotebookWrangler(WranglerLoggable):
                 "Before it can be validated, data metadata must be updated."
             )
 
-    def _data_unpack_pantry(self):
+    def _data_unpack(self):
         self.logger.info("Unpacking downloaded data archives to live locations.")
         errors = False
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
-            self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
+            # self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
             errors = self.env_manager.unarchive(src_archive, dest_path, "") or errors
         self.pantry_shelf.save_exports_file(
             "nbw-local-exports.sh", data["local_exports"]
@@ -381,13 +401,13 @@ class NotebookWrangler(WranglerLoggable):
         )
         return errors
 
-    def _data_pack_pantry(self):
+    def _data_pack(self):
         self.logger.info("Packing downloaded data archives from live locations.")
         errors = False
         for archive_tuple in self._get_data_url_tuples()[1]:
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
-            self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
+            # self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
             errors = self.env_manager.archive(dest_archive, src_path, "") or errors
         return errors
 

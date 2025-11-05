@@ -34,7 +34,9 @@ def parse_args():
         help="URI to the YAML specification file:  simple path, file:// path, https://, http://, or s3://",
     )
 
-    workflows_group = parser.add_argument_group('Workflows', "Multi-step high level work flows for nb-wrangler tasks,")
+    workflows_group = parser.add_argument_group(
+        "Workflows", "Multi-step high level work flows for nb-wrangler tasks,"
+    )
     workflows_group.add_argument(
         "--curate",
         dest="workflow",
@@ -84,8 +86,10 @@ def parse_args():
         help="Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.",
     )
 
-
-    env_group = parser.add_argument_group('Environment', "Setup and management of spec'ed base environment managed by mamba.")
+    env_group = parser.add_argument_group(
+        "Environment",
+        "Setup and management of spec'ed base environment managed by mamba.",
+    )
     env_group.add_argument(
         "--init-env",
         "--env-init",
@@ -127,10 +131,13 @@ def parse_args():
         "--env-archive-format",
         default="",
         type=str,
-        help="Override format for environment pack/unpack, nominally one of: " + str(VALID_ARCHIVE_FORMATS),
+        help="Override format for environment pack/unpack, nominally one of: "
+        + str(VALID_ARCHIVE_FORMATS),
     )
 
-    packages_group = parser.add_argument_group('Packages', "Setup and management of spec'ed Python packages managed by pip.")
+    packages_group = parser.add_argument_group(
+        "Packages", "Setup and management of spec'ed Python packages managed by pip."
+    )
     packages_group.add_argument(
         "--compact",
         "--env-compact",
@@ -162,7 +169,7 @@ def parse_args():
         help="Remove the compiled packages from the target environment after processing.",
     )
 
-    testing_group = parser.add_argument_group('Testing', "Wrangler test commands.")
+    testing_group = parser.add_argument_group("Testing", "Wrangler test commands.")
     testing_group.add_argument(
         "--test-imports",
         action="store_true",
@@ -176,7 +183,6 @@ def parse_args():
         type=str,
         help="Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*",
     )
-
     testing_group.add_argument(
         "--jobs",
         default=NOTEBOOK_TEST_JOBS,
@@ -190,11 +196,18 @@ def parse_args():
         help="Timeout in seconds for notebook tests.",
     )
 
-    data_group = parser.add_argument_group('Data', "Setup and management of spec'ed application data.")
+    data_group = parser.add_argument_group(
+        "Data", "Setup and management of spec'ed application data."
+    )
     data_group.add_argument(
         "--data-collect",
         action="store_true",
         help="Collect data archive and installation info and add to spec.",
+    )
+    data_group.add_argument(
+        "--data-list",
+        action="store_true",
+        help="List out data archives which can be downloaded, stored, installed, etc.  Helps identify selection strings to operate on subsets of data."
     )
     data_group.add_argument(
         "--data-download",
@@ -224,7 +237,8 @@ def parse_args():
     data_group.add_argument(
         "--data-delete",
         type=str,
-        choices=["archived", "unpacked", "both"],
+        default="",
+        choices=["archived", "unpacked", "both", ""],
         help="Delete data archive and/or unpacked files.",
     )
     data_group.add_argument(
@@ -237,28 +251,33 @@ def parse_args():
         "--data-select",
         default=".*",
         metavar="REGEXP",
-        help="Regular expression to select data archives to operate on for most operations except."
+        help="Regular expression to select specific data archives to operate on.",
     )
 
-    notebook_group = parser.add_argument_group('Notebook Clones', "Setup and management of local clones of spec'ed notebook repos.")
-    parser.add_argument(
+    notebook_group = parser.add_argument_group(
+        "Notebook Clones",
+        "Setup and management of local clones of spec'ed notebook repos.",
+    )
+    notebook_group.add_argument(
         "--clone-repos",
         action="store_true",
         help="Clone notebook repos to the directory indicated by --repos-dir.",
     )
-    parser.add_argument(
+    notebook_group.add_argument(
         "--repos-dir",
         type=str,
         default=REPOS_DIR,
         help="Directory where notebook and other repos will be cloned.",
     )
-    parser.add_argument(
+    notebook_group.add_argument(
         "--delete-repos",
         action="store_true",
         help="Delete --repo-dir and clones after processing.",
     )
 
-    spec_group = parser.add_argument_group('Spec (nb-wrangler)', "Setup and management of wrangler spec itself.")
+    spec_group = parser.add_argument_group(
+        "Spec (nb-wrangler)", "Setup and management of wrangler spec itself."
+    )
     spec_group.add_argument(
         "--reset-spec",
         "--spec-reset",
@@ -281,18 +300,12 @@ def parse_args():
         metavar="SPEC_REGEX",
         help="Select a stored spec by regex to use as the context for this wrangler run.",
     )
-    
+
     spec_group.add_argument(
         "--validate-spec",
         "--spec-validate",
         action="store_true",
         help="Validate the specification file without performing any curation actions.",
-    )
-    spec_group.add_argument(
-        "--ignore-spec-hash",
-        "--spec-ignore-hash",
-        action="store_true",
-        help="Spec SHA256 hashes will not be added or verified upon re-installation.",
     )
     spec_group.add_argument(
         "--update-spec-hash",
@@ -301,13 +314,19 @@ def parse_args():
         help="Update spec SHA256 hash even if validation fails and continue processing.",
     )
     spec_group.add_argument(
+        "--ignore-spec-hash",
+        "--spec-ignore-hash",
+        action="store_true",
+        help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
+    )
+    spec_group.add_argument(
         "--add-pip-hashes",
         "--spec-add-pip-hashes",
         action="store_true",
-        help="Record PyPi hashes of requested packages for more robust verification during later installs.",
+        help="Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.",
     )
 
-    misc_group = parser.add_argument_group('Miscellaneous', "Global wrangler settings.")
+    misc_group = parser.add_argument_group("Miscellaneous", "Global wrangler settings.")
     misc_group.add_argument(
         "--verbose",
         action="store_true",

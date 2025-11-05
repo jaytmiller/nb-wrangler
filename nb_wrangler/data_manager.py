@@ -391,10 +391,16 @@ class RefdataValidator(WranglerLoggable):
             for url in section.data_url
         ]
 
-    def get_data_urls(self) -> list[tuple[str, str, str]]:
+    def filter_data_url(self, dsu: DataSectionUrl, include_regex: str = ".*"):
+        return (re.match(include_regex, dsu.repo_name) or 
+                re.match(include_regex, dsu.section_name) or
+                re.match(include_regex, dsu.url))
+
+    def get_data_urls(self, include_regex: str = ".*") -> list[tuple[str, str, str, str]]:
         return [
-            (dsu.repo_name, dsu.section_name, dsu.url)
+            (dsu.repo_name, dsu.section_name, dsu.url, dsu.section.data_path)
             for dsu in self.get_data_section_urls()
+            if self.filter_data_url(dsu, include_regex)
         ]
 
     def get_data_section_env_vars(self) -> dict[str, str]:
