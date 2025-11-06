@@ -127,7 +127,9 @@ fnc-validate-spec: fnc-compile
 DATA_STEPS = data-collect data-validate data-download data-update data-unpack data-pack \
 	data-list data-delete data-select
 
-DATA_WORKFLOWS =  wrangler-spec-curate data-curate data-reinstall
+DATA_WORKFLOWS =  wrangler-spec-curate data-test-curate data-test-reinstall
+
+DATA_SELECTED = 'pandeia|stpsf|other-spectra_multi_v2_sed'
 
 data-clean:
 	. ./nb-wrangler environment  &&  \
@@ -136,25 +138,25 @@ data-clean:
 	rm -rf references && \
 	git checkout -- data-test-spec.yaml
 
-data-functional: data-clean wrangler-spec-curate data-workflows # data-steps
+data-functional: data-clean wrangler-spec-curate data-test-workflows # data-test-steps
 
 wrangler-spec-curate:
 	cd tests/data-functional && \
 	../../nb-wrangler data-test-spec.yaml --reset-spec && \
 	../../nb-wrangler data-test-spec.yaml --curate
 
-data-workflows: data-clean ${DATA_WORKFLOWS}
+data-test-workflows: data-clean ${DATA_WORKFLOWS}
 
-data-curate:
+data-test-curate:
 	cd tests/data-functional && \
 	../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
-	../../nb-wrangler data-test-spec.yaml --data-curate --data-select 'pandeia|other-spectra_multi_v2_sed' --verbose
+	../../nb-wrangler data-test-spec.yaml --data-curate --data-select ${DATA_SELECTED} --verbose
 
-data-reinstall:
+data-test-reinstall:
 	cd tests/data-functional && \
-	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select 'pandeia|other-spectra_multi_v2_sed' --verbose
+	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select ${DATA_SELECTED} --verbose
 
-# data-steps: ${DATA_STEPS}
+# data-test-steps: ${DATA_STEPS}
 
 
 # ==========================================================================================================
