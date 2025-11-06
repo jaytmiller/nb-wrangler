@@ -1,5 +1,7 @@
 # nb-wrangler
 
+!Awesome nb-wrangler logo(.nb-wrangler-logo.png)
+
 ## Overview
 
 nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports
