@@ -3,24 +3,22 @@
 import sys
 from pathlib import Path
 
-from .logger import WranglerLogger
-from .environment import EnvironmentManager
+from .config import WranglerConfigurable
+from .logger import WranglerLoggable
+from .environment import WranglerEnvable
 from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
 from .utils import get_yaml, yaml_dumps
 
 
-class RequirementsCompiler:
+class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     """Compiles and resolves package requirements."""
 
     def __init__(
         self,
-        logger: WranglerLogger,
-        env_manager: EnvironmentManager,
         python_path: str = sys.executable,
         python_version: str = "3.11",
     ):
-        self.logger = logger
-        self.env_manager = env_manager
+        super().__init__()
         self.python_path = python_path
         self.python_version = python_version
 

@@ -253,6 +253,17 @@ class SpecManager(WranglerLoggable):
             return self.logger.error("Spec save to", self._source_file, "failed...")
         return True
 
+    def data_reset_spec(self) -> bool:
+        """Delete only the 'data' output field of the spec and make sure the source file reflects it."""
+        self.logger.debug("Resetting data section spec file.")
+        self._spec["out"].pop("data", None)
+        self.system.pop("spec_sha256", None)
+        if not self.validate():
+            return self.logger.error("Spec did not validate follwing data reset.")
+        if not self.save_spec_as(self._source_file):
+            return self.logger.error("Spec save to", self._source_file, "failed...")
+        return True
+
     # ---------------------------- hashes, crypto ----------------------------------
 
     @property

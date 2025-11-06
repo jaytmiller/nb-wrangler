@@ -5,12 +5,12 @@ from pathlib import Path
 from typing import Any
 
 from .constants import NBW_URI
-from .config import WranglerConfig
+from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
 from .nb_processor import NotebookImportProcessor
-from .environment import EnvironmentManager
+from .environment import WranglerEnvable
 from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
@@ -19,32 +19,25 @@ from .pantry import NbwPantry
 from . import utils
 
 
-class NotebookWrangler(WranglerLoggable):
+class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     """Main wrangler class for processing notebooks."""
 
-    def __init__(self, config: WranglerConfig):
-        self.config = config
+    def __init__(self):
         super().__init__()
         self.logger.info("Loading and validating spec", self.config.spec_file)
-        spec_manager = SpecManager.load_and_validate(self.config.spec_file)
-        if spec_manager is None:
+        self.spec_manager = SpecManager.load_and_validate(self.config.spec_file)
+        if self.spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
-        self.spec_manager = spec_manager
-        self.env_manager = EnvironmentManager(
-            self.logger,
-            self.config.mamba_command,
-            self.config.pip_command,
-        )
         self.pantry = NbwPantry()
         self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
         if self.config.repos_dir == NBW_URI:
             self.config.repos_dir = self.pantry_shelf.notebook_repos_path
         else:
             self.config.repos_dir = Path(self.config.repos_dir)
-        self.repo_manager = RepositoryManager(config.repos_dir, self.env_manager)
-        self.notebook_import_processor = NotebookImportProcessor(self.logger)
-        self.tester = NotebookTester(self.logger, self.config, self.env_manager)
-        self.compiler = RequirementsCompiler(self.logger, self.env_manager)
+        self.repo_manager = RepositoryManager(self.config.repos_dir)
+        self.notebook_import_processor = NotebookImportProcessor()
+        self.tester = NotebookTester()
+        self.compiler = RequirementsCompiler()
         self.injector = get_injector(self.repo_manager, self.spec_manager)
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -247,6 +240,7 @@ class NotebookWrangler(WranglerLoggable):
             (self.config.delete_env, self._delete_environment),
             (self.config.compact, self._compact),
             (self.config.reset_spec, self._reset_spec),
+            (self.config.data_reset_spec, self._data_reset_spec),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -592,6 +586,9 @@ class NotebookWrangler(WranglerLoggable):
 
     def _reset_spec(self) -> bool:
         return self.spec_manager.reset_spec()
+
+    def _data_reset_spec(self) -> bool:
+        return self.spec_manager.data_reset_spec()
 
     def _unpack_environment(self) -> bool:
         if not self.env_manager.unpack_environment(

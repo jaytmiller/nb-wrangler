@@ -4,15 +4,15 @@ import json
 import re
 from typing import Optional
 
-from .logger import WranglerLogger
+from .logger import WranglerLoggable
 from .constants import BUILTIN_PACKAGES
 
 
-class NotebookImportProcessor:
+class NotebookImportProcessor(WranglerLoggable):
     """Processes notebooks to extract imports."""
 
-    def __init__(self, logger: WranglerLogger):
-        self.logger = logger
+    def __init__(self):
+        super().__init__()
         self.import_pattern = re.compile(
             r"^(?:import\s+([a-zA-Z0-9_\.]+))|(?:from\s+([a-zA-Z0-9_\.]+)\s+import)"
         )

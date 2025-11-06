@@ -6,7 +6,8 @@ import pdb
 import traceback
 import datetime
 from pprint import pformat
-from typing import Optional
+
+# from typing import Optional
 from . import config
 
 
@@ -244,5 +245,7 @@ def get_configured_logger():
 class WranglerLoggable:
     """Mixin to add standard logging support based on Wrangler config."""
 
-    def __init__(self, logger: Optional[WranglerLogger] = None):
-        self.logger = logger or get_configured_logger()
+    def __init__(self):
+        # print("WranglerLoggable")
+        super().__init__()
+        self.logger = get_configured_logger()

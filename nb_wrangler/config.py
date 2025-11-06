@@ -4,7 +4,8 @@
 import os
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+
+# from typing import Optional
 import argparse
 
 from . import utils
@@ -92,6 +93,7 @@ class WranglerConfig:
     update_spec_hash: bool = False
 
     data_dir: Path = Path(DATA_DIR)
+    data_reset_spec: bool = False
     data_collect: bool = False
     data_list: bool = False
     data_download: bool = False
@@ -147,6 +149,7 @@ class WranglerConfig:
             ignore_spec_hash=args.ignore_spec_hash,
             add_pip_hashes=args.add_pip_hashes,
             update_spec_hash=args.update_spec_hash,
+            data_reset_spec=args.data_reset_spec,
             data_collect=args.data_collect,
             data_list=args.data_list,
             data_download=args.data_download,
@@ -183,5 +186,7 @@ class WranglerConfig:
 class WranglerConfigurable:
     """Mixin which reslts in self.config being defined for subclasses."""
 
-    def __init__(self, config: Optional[WranglerConfig] = None):
-        self.config = config or get_args_config()
+    def __init__(self):
+        # print("WranglerConfigurable")
+        super().__init__()
+        self.config = get_args_config()

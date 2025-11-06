@@ -1,6 +1,8 @@
 .PHONY: clean clean-pyc clean-test coverage dist docs help install lint lint/flake8 lint/black lint/mypy
 .DEFAULT_GOAL := help
 
+SHELL := /bin/bash
+
 define PROJECT
 nb_wrangler
 endef
@@ -40,6 +42,9 @@ setup:
 
 # ==========================================================================================================
 
+test-functional: setup functional data-functional
+
+
 functional: fnc-preclean fnc-bootstrap functional-develop functional-tests functional-reinstall functional-misc
 
 functional-develop: fnc-curate
@@ -53,7 +58,7 @@ functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
 
 
 fnc-preclean:
-	rm -rf ${HOME}/.nbw-live  ./references
+	rm -rf ${NBW_ROOT} ./references
 
 fnc-bootstrap: fnc-preclean
 	# curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
@@ -115,6 +120,40 @@ fnc-reset-spec: fnc-compile
 fnc-validate-spec: fnc-compile
 	./nb-wrangler   fnc-test-spec.yaml --validate-spec
 	git checkout -- fnc-test-spec.yaml
+
+
+# ==========================================================================================================
+
+DATA_STEPS = data-collect data-validate data-download data-update data-unpack data-pack \
+	data-list data-delete data-select
+
+DATA_WORKFLOWS =  wrangler-spec-curate data-curate data-reinstall
+
+data-clean:
+	. ./nb-wrangler environment  &&  \
+	cd tests/data-functional && \
+	rm -rf ${NBW_PANTRY} && \
+	rm -rf references
+
+data-functional: data-clean wrangler-spec-curate data-workflows # data-steps
+
+wrangler-spec-curate:
+	cd tests/data-functional && \
+	../../nb-wrangler data-test-spec.yaml --reset-spec && \
+	../../nb-wrangler data-test-spec.yaml --curate
+
+data-workflows: data-clean ${DATA_WORKFLOWS}
+
+data-curate:
+	cd tests/data-functional && \
+	../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
+	../../nb-wrangler data-test-spec.yaml --data-curate --data-select 'pandeia|other-spectra_multi_v2_sed' --verbose
+
+data-reinstall:
+	cd tests/data-functional && \
+	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select 'pandeia|other-spectra_multi_v2_sed' --verbose
+
+# data-steps: ${DATA_STEPS}
 
 
 # ==========================================================================================================
@@ -190,4 +229,4 @@ dist: clean ## builds source and wheel package
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
-	python setup.py install
+	pip install .

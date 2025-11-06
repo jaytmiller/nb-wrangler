@@ -235,6 +235,11 @@ def parse_args():
         help="""Pack the live data directories in the pantry into their corresponding archive files, must be in spec.""",
     )
     data_group.add_argument(
+        "--data-reset-spec",
+        action="store_true",
+        help="""Clear the 'data' sub-section of the 'out' section of the active nb-wrangler spec.""",
+    )
+    data_group.add_argument(
         "--data-delete",
         type=str,
         default="",
@@ -282,7 +287,7 @@ def parse_args():
         "--reset-spec",
         "--spec-reset",
         action="store_true",
-        help="Reset spec to its original state by deleting output fields.",
+        help="Reset spec to its original state by deleting output fields. Includes all outputs, i.e. data as well as basic curation.",
     )
     spec_group.add_argument(
         "--spec-add",
@@ -384,6 +389,7 @@ def main() -> int:
 def _main(args):
     """Main entry point for the CLI."""
     config = config_mod.WranglerConfig.from_args(args)
+    config_mod.set_args_config(config)
     log = logger.get_configured_logger()
     try:
         # Create configuration using simplified factory method
@@ -395,7 +401,7 @@ def _main(args):
             log.error("Failed reading URI:", args.spec_uri)
             exit_code = 1
         else:
-            notebook_wrangler = wrangler.NotebookWrangler(config)
+            notebook_wrangler = wrangler.NotebookWrangler()
             exit_code = notebook_wrangler.main()
             notebook_wrangler.logger.print_log_counters()
     except KeyboardInterrupt:

@@ -9,23 +9,16 @@ import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
 
-from .logger import WranglerLogger
-from .config import WranglerConfig
-from .environment import EnvironmentManager
+from .config import WranglerConfigurable
+from .logger import WranglerLoggable
+from .environment import WranglerEnvable
 
 
-class NotebookTester:
+class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     """Tests notebooks by executing them in isolated environments."""
 
-    def __init__(
-        self,
-        logger: WranglerLogger,
-        config: WranglerConfig,
-        env_manager: EnvironmentManager,
-    ):
-        self.logger = logger
-        self.config = config
-        self.env_manager = env_manager
+    def __init__(self):
+        super().__init__()
 
     def filter_notebooks(
         self, notebook_paths: list[str], test_patterns: str
