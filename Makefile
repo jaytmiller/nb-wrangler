@@ -42,7 +42,7 @@ setup:
 
 # ==========================================================================================================
 
-test-functional: setup functional data-functional
+test-functional: setup functional data-functional data-clean
 
 
 functional: fnc-preclean fnc-bootstrap functional-develop functional-tests functional-reinstall functional-misc
