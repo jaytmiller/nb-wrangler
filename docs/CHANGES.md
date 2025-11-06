@@ -16,15 +16,25 @@
     - --data-curate     (spec definition workflow)
     - --data-reinstall  (target system data installation)
 
-- Idemotently downloads data using HEAD size, etag
-- Validates locally using sha256
+- Downloads data and captures meta-data to spec
+- Validates local re-installs using sha256 and archive length
 - Packs / Unpacks data / Updates internal metadata for changes
-- Supports overriding env vars for data path resolution
 - Populates environments with data env vars pointing to unpacked data
 
 # 0.4.0  10-01-2025  Re-install and submit-for-build workflows
 
-- Added workflow for pushing wrangler spec to GitHub to trigger build
+- Added `--submit-for-build` workflow for pushing wrangler spec to GitHub to trigger build.  This
+  is v1.0 of the true wrangler image build paradigm and results in automatic image builds by GitHub Actions.
+  This is in prototype-only mode and requires curator setup on github to enable submissions.
+
+- Added `--inject-spi` workflow for dropping wrangler-defined requirements back into the standard
+  locations in science-platform-images original deployments.  This updates the local science-platform-images
+  clone in a way similar to that which a platform developer did during the original SPI build process,
+  nominally hand-copying package and notebook requirements into the SPI codebase, then building and PR'ing
+  those.  This is just a minimal short-cut and time-saver relative to classic builds under the assumption that the
+  wrangler has already been used to define the requirements. Anything outside the scope of requirements-drop-in,
+  including the image build and deployment itself, nominally still need to be handled with unchanged
+  original processes.  This may include additional work such as updating the post-start-hook appropriately.
 
 # 0.2.0  07-20-2025  Baseline nb-wrangler Python project with injection
 
