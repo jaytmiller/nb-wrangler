@@ -133,7 +133,8 @@ data-clean:
 	. ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
 	rm -rf ${NBW_PANTRY} && \
-	rm -rf references
+	rm -rf references && \
+	git checkout -- data-test-spec.yaml
 
 data-functional: data-clean wrangler-spec-curate data-workflows # data-steps
 

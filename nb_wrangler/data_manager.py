@@ -147,6 +147,8 @@ class DataSection(WranglerLoggable):
         self.data_path: str = data_path
         self.data_url: list[str] = data_url
 
+        self.logger.verbose = True
+
     def validate(self, refdata_path: str, section_name: str) -> bool:
         no_errors = True
         if not isinstance(self.version, (str, float)):
