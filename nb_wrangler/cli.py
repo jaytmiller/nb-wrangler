@@ -69,8 +69,6 @@ def parse_args():
             "inject_spi",
             "Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.",
         ),
-        ("-t", "test_all", "Test both imports and all notebooks."),
-        ("--test", "test_all", "Test both imports and all notebooks."),
     ]
     for flag, workflow_const, help in workflow_flags:
         workflows_group.add_argument(
@@ -170,6 +168,11 @@ def parse_args():
     )
 
     testing_group = parser.add_argument_group("Testing", "Wrangler test commands.")
+    testing_group.add_argument(
+        "-t", "--test-all",
+        action="store_true",
+        help="Run both --test-imports and --test-notebooks.",
+    )
     testing_group.add_argument(
         "--test-imports",
         action="store_true",
