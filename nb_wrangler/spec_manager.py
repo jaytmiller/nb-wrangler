@@ -331,7 +331,7 @@ class SpecManager(WranglerLoggable):
             "pip_requirement_files",
             "pip_map",
             "package_versions",
-            "data"
+            "data",
         ],
         "system": [
             "spec_version",
