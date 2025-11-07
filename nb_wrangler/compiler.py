@@ -91,10 +91,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         and comment lines.
         """
         package_versions = []
-        for req_file in requirements_files:
+        for req_file in sorted(requirements_files):
             lines = self.read_package_lines(req_file)
             package_versions.extend(lines)
-        return package_versions
+        return sorted(package_versions)
 
     def read_package_lines(self, requirements_file: Path) -> list[str]:
         """Read package lines from requirements file omitting blank and comment lines.
@@ -107,7 +107,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 line = line.strip()
                 if line and not line.startswith(("#", "--hash")):
                     lines.append(line)
-        return lines
+        return sorted(lines)
 
     def annotated_requirements(self, requirements_files: list[Path]) -> str:
         """Create an annotated input requirements listing to correlate version
@@ -118,7 +118,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         necessarily a common root import.
         """
         result: list[tuple[str, str]] = []
-        for req_file in requirements_files:
+        for req_file in sorted(requirements_files):
             lines = self.read_package_lines(req_file)
             result.extend((pkg, str(req_file)) for pkg in lines)  # note difference
         result = sorted(result)

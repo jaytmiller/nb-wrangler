@@ -21,16 +21,29 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         super().__init__()
 
     def filter_notebooks(
-        self, notebook_paths: list[str], test_patterns: str
+        self,
+        notebook_paths: list[str],
+        include_patterns: str,
+        exclude_patterns: str,
     ) -> list[str]:
         """Filter notebooks based on test patterns."""
         import re
 
         unique_notebooks = set()
         for nb_path in sorted(notebook_paths):
-            for regex in test_patterns.split(","):
-                if re.search(regex, nb_path):
-                    unique_notebooks.add(nb_path)
+            for include_regex in include_patterns.split(","):
+                if re.search(include_regex, nb_path):
+                    self.logger.debug(
+                        f"Including '{nb_path}' due to inclusion pattern '{include_regex}'."
+                    )
+                    for exclude_regex in exclude_patterns.split(","):
+                        if re.search(exclude_regex, nb_path):
+                            self.logger.debug(
+                                f"Excluding '{nb_path}' due to exclusion pattern '{exclude_regex}'."
+                            )
+                            break
+                    else:
+                        unique_notebooks.add(nb_path)
 
         filtered = sorted(unique_notebooks)
         self.logger.info(f"Filtered notebook list to {len(filtered)} entries")
@@ -38,13 +51,15 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def test_notebooks(self, environment: str, notebook_paths: list[str]) -> bool:
         """Test multiple notebooks in parallel."""
+
+        max_jobs = min(self.config.jobs, len(notebook_paths))
         self.logger.info(
-            f"Testing {len(notebook_paths)} notebooks with {self.config.jobs} jobs"
+            f"Testing {len(notebook_paths)} notebooks with {max_jobs} jobs"
         )
 
         failing_notebooks = []
 
-        with ProcessPoolExecutor(max_workers=self.config.jobs) as executor:
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
             results = executor.map(
                 self._test_single_notebook,
                 notebook_paths,

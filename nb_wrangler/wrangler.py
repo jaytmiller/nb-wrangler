@@ -37,7 +37,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.repo_manager = RepositoryManager(self.config.repos_dir)
         self.notebook_import_processor = NotebookImportProcessor()
         self.tester = NotebookTester()
-        self.compiler = RequirementsCompiler()
+        self.compiler = RequirementsCompiler(
+            python_version=self.spec_manager.python_version
+        )
         self.injector = get_injector(self.repo_manager, self.spec_manager)
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
@@ -99,19 +101,25 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow based on configured workflow type."""
-        match self.config.workflow:
-            case "curation":
-                return self._run_development_workflow()
-            case "submit-for-build":
-                return self._run_submit_build_workflow()
-            case "reinstall":
-                return self._run_reinstall_spec_workflow()
-            case "data-curation":
-                return self._run_data_curation_workflow()
-            case "data-reinstall":
-                return self._run_data_reinstall_workflow()
-            case _:
-                return self._run_explicit_steps()
+        no_errors = True
+        if self.config.workflows:
+            self.logger.info("Running workflows {self.config.workflows}.")
+        for workflow in self.config.workflows:
+            match workflow:
+                case "curation":
+                    status = self._run_development_workflow()
+                case "submit_for-build":
+                    status = self._run_submit_build_workflow()
+                case "reinstall":
+                    status = self._run_reinstall_spec_workflow()
+                case "data_curation":
+                    status = self._run_data_curation_workflow()
+                case "data_reinstall":
+                    status = self._run_data_reinstall_workflow()
+                case _:
+                    self.logger.error(f"Undefined workflow {workflow}.")
+            no_errors = status and no_errors
+        return self._run_explicit_steps() and no_errors
 
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
@@ -485,14 +493,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         with self.pip_output_file.open("r") as f:
             yaml_str = utils.yaml_block(f.read())
-        requirements_files_str = list(str(f) for f in requirements_files)
-        pip_map = utils.files_to_map(requirements_files_str)
-        return self.spec_manager.revise_and_save(
-            self.config.output_dir,
+        d = dict(
             add_sha256=not self.config.ignore_spec_hash,
             pip_compiler_output=yaml_str,
-            pip_requirements_files=requirements_files_str,
-            pip_map=pip_map,
+        )
+        if self.config.packages_diagnostics:
+            requirements_files_str = list(str(f) for f in requirements_files)
+            pip_map = utils.files_to_map(requirements_files_str)
+            d["pip_requirements_files"] = requirements_files_str
+            d["pip_map"] = pip_map
+        return self.spec_manager.revise_and_save(
+            self.config.output_dir,
+            **d,
         )
 
     def _initialize_environment(self) -> bool:
@@ -576,12 +588,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unconditionally test notebooks matching the configured pattern."""
         notebook_paths = self.spec_manager.get_outputs("test_notebooks")
         if filtered_notebooks := self.tester.filter_notebooks(
-            notebook_paths, self.config.test_notebooks or ""
+            notebook_paths,
+            self.config.test_notebooks or "",
+            self.config.test_notebooks_exclude,
         ):
             return self.tester.test_notebooks(self.env_name, filtered_notebooks)
         else:
             return self.logger.warning(
-                f"Found no notebooks to test matching regex '{self.config.test_notebooks}'."
+                "Found no notebooks to test matching inclusion patterns but not exclusion patterns."
             )
 
     def _reset_spec(self) -> bool:

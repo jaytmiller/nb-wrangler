@@ -19,6 +19,7 @@ from .constants import (
     DATA_DIR,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
+    NOTEBOOK_TEST_EXCLUDE,
     VALID_ARCHIVE_FORMATS,
 )
 
@@ -37,54 +38,48 @@ def parse_args():
     workflows_group = parser.add_argument_group(
         "Workflows", "Multi-step high level work flows for nb-wrangler tasks,"
     )
-    workflows_group.add_argument(
-        "--curate",
-        dest="workflow",
-        action="store_const",
-        const="curation",
-        help="Execute the curation workflow for spec development to add compiled requirements.",
-    )
-    workflows_group.add_argument(
-        "--submit-for-build",
-        dest="workflow",
-        action="store_const",
-        const="submit-for-build",
-        help="Submit fully elaborated requirements for automatic image building.",
-    )
-    workflows_group.add_argument(
-        "--reinstall",
-        dest="workflow",
-        action="store_const",
-        const="reinstall",
-        help="Install requirements defined by a pre-compiled spec.",
-    )
-    workflows_group.add_argument(
-        "--data-curate",
-        dest="workflow",
-        action="store_const",
-        const="data-curation",
-        help="""Execute multi-step workflow to import data specs from notebook repos and collect metadata.""",
-    )
-    workflows_group.add_argument(
-        "--data-reinstall",
-        dest="workflow",
-        action="store_const",
-        const="data-reinstall",
-        help="""Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.""",
-    )
-    workflows_group.add_argument(
-        "-t",
-        "--test",
-        dest="test_all",
-        action="store_true",
-        help="Test both imports and all notebooks.",
-    )
-
-    parser.add_argument(
-        "--inject-spi",
-        action="store_true",
-        help="Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.",
-    )
+    workflow_flags = [
+        (
+            "--curate",
+            "curation",
+            "Execute the curation workflow for spec development to add compiled requirements and build environments.",
+        ),
+        (
+            "--reinstall",
+            "reinstall",
+            "Install requirements defined by a pre-compiled spec.",
+        ),
+        (
+            "--data-curate",
+            "data_curation",
+            "Execute multi-step workflow to import data specs from notebook repos and collect metadata.",
+        ),
+        (
+            "--data-reinstall",
+            "data_reinstall",
+            "Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.",
+        ),
+        (
+            "--submit-for-build",
+            "submit_for_build",
+            "Submit fully elaborated requirements/spec for automatic image building.",
+        ),
+        (
+            "--inject-spi",
+            "inject_spi",
+            "Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.",
+        ),
+        ("-t", "test_all", "Test both imports and all notebooks."),
+        ("--test", "test_all", "Test both imports and all notebooks."),
+    ]
+    for flag, workflow_const, help in workflow_flags:
+        workflows_group.add_argument(
+            flag,
+            dest=workflow_const,
+            action="store_true",
+            help=help,
+        )
+    # See below for setup of args.workflows after parsing
 
     env_group = parser.add_argument_group(
         "Environment",
@@ -168,6 +163,11 @@ def parse_args():
         action="store_true",
         help="Remove the compiled packages from the target environment after processing.",
     )
+    packages_group.add_argument(
+        "--packages-diagnostics",
+        action="store_true",
+        help="Include extra outputs showing which requirements files are included and the packages they require.",
+    )
 
     testing_group = parser.add_argument_group("Testing", "Wrangler test commands.")
     testing_group.add_argument(
@@ -177,11 +177,18 @@ def parse_args():
     )
     testing_group.add_argument(
         "--test-notebooks",
+        "--test-notebooks-include",
         default=None,
         const=".*",
         nargs="?",
         type=str,
         help="Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*",
+    )
+    testing_group.add_argument(
+        "--test-notebooks-exclude",
+        default=NOTEBOOK_TEST_EXCLUDE,
+        type=str,
+        help="Exclude notebooks from notebook test, defaulting to none,  otherwise comma-separated-regex str,  e.g. pat1,pat2",
     )
     testing_group.add_argument(
         "--jobs",
@@ -287,7 +294,7 @@ def parse_args():
         "--reset-spec",
         "--spec-reset",
         action="store_true",
-        help="Reset spec to its original state by deleting output fields. Includes all outputs, i.e. data as well as basic curation.",
+        help="Reset spec to its original state by deleting output fields.  out.data section is preserved.",
     )
     spec_group.add_argument(
         "--spec-add",
@@ -369,7 +376,14 @@ def parse_args():
         help="""Environment variable overrides to apply when resolving abstract paths, particularly for data.""",
     )
 
-    return parser.parse_args()
+    parsed = parser.parse_args()
+
+    workflows = [
+        workflow[1] for workflow in workflow_flags if getattr(parsed, workflow[1], None)
+    ]
+    setattr(parsed, "workflows", workflows)
+
+    return parsed
 
 
 def main() -> int:

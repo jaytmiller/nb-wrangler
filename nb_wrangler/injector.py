@@ -185,6 +185,9 @@ Description:
         # self._inject("test_notebooks", self.test_path / "notebooks")
         self._inject("mamba_spec", self.env_yml)
         self._inject("pip_compiler_output", self.env_pip)
+        self._inject(
+            self.spec_manager.moniker, self.deployment_path / "MISSION_VERSION"
+        )
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )

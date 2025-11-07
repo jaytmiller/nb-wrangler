@@ -245,7 +245,10 @@ class SpecManager(WranglerLoggable):
     def reset_spec(self) -> bool:
         """Delete the output field of the spec and make sure the source file reflects it."""
         self.logger.debug("Resetting spec file.")
-        self._spec.pop("out", None)
+        out = self._spec.pop("out", None)
+        data = out.pop("data", None)
+        if data:
+            self._spec["out"] = dict(data=data)
         self.system.pop("spec_sha256", None)
         if not self.validate():
             return self.logger.error("Spec did not validate follwing reset.")
@@ -326,7 +329,9 @@ class SpecManager(WranglerLoggable):
             "spi_packages",
             "mamba_spec",
             "pip_requirement_files",
+            "pip_map",
             "package_versions",
+            "data"
         ],
         "system": [
             "spec_version",

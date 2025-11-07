@@ -15,6 +15,7 @@ from .constants import (
     DEFAULT_PIP_COMMAND,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
+    NOTEBOOK_TEST_EXCLUDE,
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
@@ -46,6 +47,8 @@ def get_args_config():
 class WranglerConfig:
     """Configuration class for NotebookWrangler."""
 
+    workflows: list[str]
+
     spec_file: str = ""
 
     mamba_command: Path = DEFAULT_MAMBA_COMMAND
@@ -74,8 +77,10 @@ class WranglerConfig:
     compile_packages: bool = False
     install_packages: bool = False
     uninstall_packages: bool = False
+    packages_diagnostics: bool = False
 
     test_notebooks: str | None = None
+    test_notebooks_exclude: str = NOTEBOOK_TEST_EXCLUDE
     test_imports: bool = False
     test_all: bool = False
 
@@ -104,8 +109,6 @@ class WranglerConfig:
     data_delete: str = ""
     data_select: str = ".*"
 
-    workflow: str = "explicit"
-
     spec_select: str | None = None
     spec_list: bool = False
     spec_add: bool = False
@@ -122,7 +125,7 @@ class WranglerConfig:
         global args_config
         args_config = cls(
             spec_file=args.spec_uri,
-            workflow=args.workflow,
+            workflows=args.workflows,
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,
@@ -137,7 +140,9 @@ class WranglerConfig:
             compile_packages=args.compile_packages,
             install_packages=args.install_packages,
             uninstall_packages=args.uninstall_packages,
+            packages_diagnostics=args.packages_diagnostics,
             test_notebooks=args.test_notebooks,
+            test_notebooks_exclude=args.test_notebooks_exclude,
             test_imports=args.test_imports,
             test_all=args.test_all,
             jobs=args.jobs,
