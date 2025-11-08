@@ -81,13 +81,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     @property
     def archive_format(self):
         """Combines default + optional spec value + optional cli override into final format."""
-        if self.config.archive_format:
+        if self.config.env_archive_format:
             self.logger.warning(
                 "Overriding spec'ed and/or default archive file format to",
-                self.config.archive_format,
+                self.config.env_archive_format,
                 "nominally to experiment, may not automatically unpack correctly.",
             )
-            return self.config.archive_format
+            return self.config.env_archive_format
         else:
             return self.spec_manager.archive_format
 
@@ -221,18 +221,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Running explicitly selected steps, if any.")
         flags_and_steps = [
             (self.config.clone_repos, self._clone_repos),
-            (self.config.compile_packages, self._compile_requirements),
-            (self.config.init_env, self._initialize_environment),
-            (self.config.install_packages, self._install_packages),
+            (self.config.packages_compile, self._compile_requirements),
+            (self.config.env_init, self._initialize_environment),
+            (self.config.packages_install, self._install_packages),
             (self.config.test_imports, self._test_imports),
             (self.config.test_notebooks, self._test_notebooks),
             (self.config.inject_spi, self.injector.inject),
-            (self.config.update_spec_hash, self._update_spec_sha256),
-            (self.config.validate_spec, self._validate_spec),
-            (self.config.pack_env, self._pack_environment),
-            (self.config.unpack_env, self._unpack_environment),
-            (self.config.register_env, self._register_environment),
-            (self.config.unregister_env, self._unregister_environment),
+            (self.config.spec_update_hash, self._update_spec_sha256),
+            (self.config.spec_validate, self._validate_spec),
+            (self.config.env_pack, self._pack_environment),
+            (self.config.env_unpack, self._unpack_environment),
+            (self.config.env_register, self._register_environment),
+            (self.config.env_unregister, self._unregister_environment),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
             (self.config.data_collect, self._data_collect),
@@ -244,10 +244,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_unpack, self._data_unpack),
             (self.config.data_pack, self._data_pack),
             (self.config.delete_repos, self._delete_repos),
-            (self.config.uninstall_packages, self._uninstall_packages),
-            (self.config.delete_env, self._delete_environment),
-            (self.config.compact, self._compact),
-            (self.config.reset_spec, self._reset_spec),
+            (self.config.packages_uninstall, self._uninstall_packages),
+            (self.config.env_delete, self._delete_environment),
+            (self.config.env_compact, self._env_compact),
+            (self.config.spec_reset, self._reset_spec),
             (self.config.data_reset_spec, self._data_reset_spec),
         ]
         for flag, step in flags_and_steps:
@@ -265,7 +265,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Setting up repository clones.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         if (
-            self.config.omit_spi_packages
+            self.config.packages_omit_spi
             and not self.config.inject_spi
             and not self.config.submit_for_build
         ):
@@ -292,7 +292,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
-            add_sha256=not self.config.ignore_spec_hash,
+            add_sha256=not self.config.spec_ignore_hash,
             notebook_repo_urls=notebook_repo_urls,
             injector_url=injector_url,
             test_notebooks=notebook_paths,
@@ -450,7 +450,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         mamba_packages = list(self.spec_manager.extra_mamba_packages)
         spec_out: dict[str, Any] = dict(injector_url=self.injector.url)
-        if not self.config.omit_spi_packages:
+        if not self.config.packages_omit_spi:
             spi_file_paths = self.injector.find_spi_mamba_files()
             spec_out["spi_files"] = [str(p) for p in spi_file_paths]
             spec_out["spi_packages"] = spi_packages = (
@@ -468,7 +468,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
             return self.spec_manager.revise_and_save(
                 self.config.output_dir,
-                add_sha256=not self.config.ignore_spec_hash,
+                add_sha256=not self.config.spec_ignore_hash,
                 **spec_out,
             )
 
@@ -485,16 +485,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         ):
             return False
         requirements_files.append(self.extra_pip_output_file)
-        if not self.config.omit_spi_packages:
+        if not self.config.packages_omit_spi:
             spi_requirements_files = self.injector.find_spi_pip_files()
             requirements_files.extend(spi_requirements_files)
         self.compiler.compile_requirements(
-            requirements_files, self.pip_output_file, self.config.add_pip_hashes
+            requirements_files, self.pip_output_file, self.config.spec_add_pip_hashes
         )
         with self.pip_output_file.open("r") as f:
             yaml_str = utils.yaml_block(f.read())
         d = dict(
-            add_sha256=not self.config.ignore_spec_hash,
+            add_sha256=not self.config.spec_ignore_hash,
             pip_compiler_output=yaml_str,
         )
         if self.config.packages_diagnostics:
@@ -511,7 +511,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unconditionally initialize the target environment."""
         if self.env_manager.environment_exists(self.env_name):
             return self.logger.info(
-                f"Environment {self.env_name} already exists, skipping re-install.  Use --delete-env to remove."
+                f"Environment {self.env_name} already exists, skipping re-install.  Use --env-delete to remove."
             )
         mamba_spec = str(self.spec_manager.get_outputs("mamba_spec"))
         with open(self.mamba_spec_file, "w+") as spec_file:
@@ -548,7 +548,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.debug("Copying spec to target environment.")
         return self.spec_manager.save_spec(
             self.env_manager.env_live_path(self.env_name),
-            add_sha256=not self.config.ignore_spec_hash,
+            add_sha256=not self.config.spec_ignore_hash,
         )
 
     def _save_final_spec(self) -> bool:
@@ -556,7 +556,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.debug("Updating spec with final results.")
         return self.spec_manager.save_spec(
             Path(self.config.spec_file).parent,
-            add_sha256=not self.config.ignore_spec_hash,
+            add_sha256=not self.config.spec_ignore_hash,
         )
 
     def _update_spec_sha256(self) -> bool:
@@ -565,7 +565,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
     def _validate_spec_sha256(self) -> bool:
-        if self.config.ignore_spec_hash:
+        if self.config.spec_ignore_hash:
             return self.logger.warning(
                 "Ignoring spec_sha256 checksum validation. Spec integrity unknown."
             )
@@ -625,7 +625,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.env_manager.unregister_environment(self.env_name)
         return self.env_manager.delete_environment(self.env_name)
 
-    def _compact(self) -> bool:
+    def _env_compact(self) -> bool:
         return self.env_manager.compact()
 
     def _register_environment(self) -> bool:  # post-start-hook / user support

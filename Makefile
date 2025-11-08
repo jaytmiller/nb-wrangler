@@ -78,10 +78,10 @@ fnc-install: fnc-curate fnc-uninstall
 	./nb-wrangler   fnc-test-spec.yaml --install
 
 fnc-pack-env: fnc-install
-	./nb-wrangler   fnc-test-spec.yaml --pack-env
+	./nb-wrangler   fnc-test-spec.yaml --env-pack
 
 fnc-unpack-env:  fnc-uninstall
-	./nb-wrangler   fnc-test-spec.yaml --unpack-env
+	./nb-wrangler   fnc-test-spec.yaml --env-unpack
 
 fnc-test-imports: fnc-install
 	./nb-wrangler   fnc-test-spec.yaml --test-imports
@@ -93,7 +93,7 @@ fnc-test: fnc-install
 	./nb-wrangler   fnc-test-spec.yaml -t
 
 fnc-compact: fnc-install
-	./nb-wrangler   fnc-test-spec.yaml --compact
+	./nb-wrangler   fnc-test-spec.yaml --env-compact
 
 fnc-compile: fnc-clone
 	./nb-wrangler   fnc-test-spec.yaml --compile
@@ -102,23 +102,23 @@ fnc-clone:
 	./nb-wrangler   fnc-test-spec.yaml --clone
 
 fnc-init-env: fnc-compile
-	./nb-wrangler   fnc-test-spec.yaml --init-env
+	./nb-wrangler   fnc-test-spec.yaml --env-init
 
 fnc-delete-env: fnc-init-env
-	./nb-wrangler   fnc-test-spec.yaml --delete-env
+	./nb-wrangler   fnc-test-spec.yaml --env-delete
 
 fnc-register-env: fnc-init-env
-	./nb-wrangler   fnc-test-spec.yaml --register-env
+	./nb-wrangler   fnc-test-spec.yaml --env-register
 
 fnc-unregister-env: fnc-init-env
-	./nb-wrangler   fnc-test-spec.yaml --unregister-env
+	./nb-wrangler   fnc-test-spec.yaml --env-unregister
 
 fnc-reset-spec: fnc-compile
-	./nb-wrangler   fnc-test-spec.yaml --reset-spec
+	./nb-wrangler   fnc-test-spec.yaml --spec-reset
 	git checkout -- fnc-test-spec.yaml
 
 fnc-validate-spec: fnc-compile
-	./nb-wrangler   fnc-test-spec.yaml --validate-spec
+	./nb-wrangler   fnc-test-spec.yaml --spec-validate
 	git checkout -- fnc-test-spec.yaml
 
 
@@ -142,7 +142,7 @@ data-functional: data-clean wrangler-spec-curate data-test-workflows # data-test
 
 wrangler-spec-curate:
 	cd tests/data-functional && \
-	../../nb-wrangler data-test-spec.yaml --reset-spec && \
+	../../nb-wrangler data-test-spec.yaml --spec-reset && \
 	../../nb-wrangler data-test-spec.yaml --curate
 
 data-test-workflows: data-clean ${DATA_WORKFLOWS}

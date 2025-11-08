@@ -142,11 +142,11 @@ The wrangler executes steps in a sequence, allowing for skipping steps that have
 - **Environment Creation:** Automatically creates a basic Python environment for package installation and testing.
 - **Target Environment Initialization:** Optionally initializes a target environment to facilitate requirement compilation, package installation, and testing. This includes creating a JupyterLab kernel required for notebook testing or use in JupyterLab.
 - **Package Compilation:** If `--compile-packages` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile-packages` is not specified, it uses the last compiled package set from the specification.
-- **Package Installation:** If `--install-packages` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
+- **Package Installation:** If `--packages-install` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
 - **Notebook Testing:** If `--test-notebooks` is specified, runs notebooks matching a comma-separated list of names or regular expressions. If no notebooks or regexps are provided, it runs all notebooks. This is a headless crash test that runs up to `--jobs [n]` notebooks in parallel, with a `--timeout [seconds]` to terminate runaway notebooks.
 - **Repository Cleanup:** If `--delete-repos` is specified, removes all cloned repositories.
-- **Spec Reset:** If `--reset-spec` is specified, removes the output section from the `spec.yaml` file.
-- **Environment Deletion:** If `--delete-env` is specified, removes the entire target environment. This dedicated environment approach prevents contamination between iterations.
+- **Spec Reset:** If `--spec-reset` is specified, removes the output section from the `spec.yaml` file.
+- **Environment Deletion:** If `--env-delete` is specified, removes the entire target environment. This dedicated environment approach prevents contamination between iterations.
 - **CI Submission:** If `--submit-for-build` is specified, the specification is forwarded to the CI pipeline, key information is provided to the build framework, and a corresponding image is automatically built and pushed to the hub (pending further development).
 - **Output Injection:** If `--inject-spi` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
 
@@ -165,28 +165,28 @@ The following command-line options are available:
 - `--profile`: Run with cProfile and output profiling results to console.
 - `--log-times`: Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.
 - `--color`: Colorize the log.
-- `--init-env`: Create and kernelize the target environment before curation run. See also --delete-env.
-- `--delete-env`: Completely delete the target environment after processing.
-- `--pack-env`: Pack the target environment into an archive file for distribution or archival.
-- `--unpack-env`: Unpack a previously packed archive file into the target environment directory.
-- `--register-env`: Register the target environment with Jupyter as a kernel.
-- `--unregister-env`: Unregister the target environment from Jupyter.
-- `--archive-format`: Format for pack/unpack, nominally one of: .tar.gz, .tar.xz, .tar, .tar.bz2, .tar.zst, .tar.lzma, .tar.lzo, .tar.lz
-- `--compact`: Compact the wrangler installation by deleting package caches, etc.
-- `--compile-packages`: Compile spec and input package lists to generate pinned requirements and other metadata for target environment.
-- `--omit-spi-packages`: Include the 'common' packages used by all missions in all current SPI based and mission environments, may affect GUI capabilty.
-- `--install-packages`: Install compiled base and pip requirements into target/test environment.
-- `--uninstall-packages`: Remove the compiled packages from the target environment after processing.
+- `--env-init`: Create and kernelize the target environment before curation run. See also --env-delete.
+- `--env-delete`: Completely delete the target environment after processing.
+- `--env-pack`: Pack the target environment into an archive file for distribution or archival.
+- `--env-unpack`: Unpack a previously packed archive file into the target environment directory.
+- `--env-register`: Register the target environment with Jupyter as a kernel.
+- `--env-unregister`: Unregister the target environment from Jupyter.
+- `--env-archive-format`: Format for pack/unpack, nominally one of: .tar.gz, .tar.xz, .tar, .tar.bz2, .tar.zst, .tar.lzma, .tar.lzo, .tar.lz
+- `--env-compact`: Compact the wrangler installation by deleting package caches, etc.
+- `--packages-compile`: Compile spec and input package lists to generate pinned requirements and other metadata for target environment.
+- `--packages-omit-spi`: Include the 'common' packages used by all missions in all current SPI based and mission environments, may affect GUI capabilty.
+- `--packages-install`: Install compiled base and pip requirements into target/test environment.
+- `--packages-uninstall`: Remove the compiled packages from the target environment after processing.
 - `--jobs`: Number of parallel jobs for notebook testing.
 - `--timeout`: Timeout in seconds for notebook tests.
 - `--inject-spi`: Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment'.
 - `--clone-repos`: Clone notebook repos to the directory indicated by --repos-dir.
 - `--repos-dir`: Directory where notebook and other repos will be cloned.
 - `--delete-repos`: Delete --repo-dir and clones after processing.
-- `--reset-spec`: Reset spec to its original state by deleting output fields.
-- `--validate-spec`: Validate the specification file without performing any curation actions.
-- `--ignore-spec-hash`: Spec SHA256 hashes will not be added or verified upon re-installation.
-- `--add-pip-hashes`: Record PyPi hashes of requested packages for easier verification during later installs.
+- `--spec-reset`: Reset spec to its original state by deleting output fields.
+- `--spec-validate`: Validate the specification file without performing any curation actions.
+- `--spec-ignore-hash`: Spec SHA256 hashes will not be added or verified upon re-installation.
+- `--spec-add-pip-hashes`: Record PyPi hashes of requested packages for easier verification during later installs.
 
 ## Missing Topics
 

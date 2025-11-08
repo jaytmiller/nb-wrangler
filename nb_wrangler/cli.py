@@ -84,46 +84,46 @@ def parse_args():
         "Setup and management of spec'ed base environment managed by mamba.",
     )
     env_group.add_argument(
-        "--init-env",
         "--env-init",
         action="store_true",
-        help="Create and kernelize the target environment before curation run. See also --delete-env.",
+        dest="env_init",
+        help="Create and kernelize the target environment before curation run. See also --env-delete.",
     )
     env_group.add_argument(
-        "--delete-env",
         "--env-delete",
         action="store_true",
+        dest="env_delete",
         help="Completely delete the target environment after processing.",
     )
     env_group.add_argument(
-        "--pack-env",
-        "-env-pack",
+        "--env-pack",
         action="store_true",
+        dest="env_pack",
         help="Pack the target environment into an archive file for distribution or archival.",
     )
     env_group.add_argument(
-        "--unpack-env",
         "--env-unpack",
         action="store_true",
+        dest="env_unpack",
         help="Unpack a previously packed archive file into the target environment directory.",
     )
     env_group.add_argument(
-        "--register-env",
         "--env-register",
         action="store_true",
+        dest="env_register",
         help="Register the target environment with Jupyter as a kernel.",
     )
     env_group.add_argument(
-        "--unregister-env",
         "--env-unregister",
         action="store_true",
+        dest="env_unregister",
         help="Unregister the target environment from Jupyter.",
     )
     env_group.add_argument(
-        "--archive-format",
         "--env-archive-format",
         default="",
         type=str,
+        dest="env_archive_format",
         help="Override format for environment pack/unpack, nominally one of: "
         + str(VALID_ARCHIVE_FORMATS),
     )
@@ -132,33 +132,33 @@ def parse_args():
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
     )
     packages_group.add_argument(
-        "--compact",
         "--env-compact",
         action="store_true",
+        dest="env_compact",
         help="Compact the wrangler installation by deleting package caches, etc.",
     )
     packages_group.add_argument(
-        "--compile-packages",
         "--packages-compile",
         action="store_true",
+        dest="packages_compile",
         help="Compile spec and input package lists to generate pinned requirements and other metadata for target environment.",
     )
     packages_group.add_argument(
-        "--omit-spi-packages",
         "--packages-omit-spi",
         action="store_true",
+        dest="packages_omit_spi",
         help="Include the 'common' packages used by all missions in all current SPI based mission environments, may affect GUI capabilty.",
     )
     packages_group.add_argument(
-        "--install-packages",
         "--packages-install",
         action="store_true",
+        dest="packages_install",
         help="Install compiled base and pip requirements into target/test environment.",
     )
     packages_group.add_argument(
-        "--uninstall-packages",
         "--packages-uninstall",
         action="store_true",
+        dest="packages_uninstall",
         help="Remove the compiled packages from the target environment after processing.",
     )
     packages_group.add_argument(
@@ -294,9 +294,9 @@ def parse_args():
         "Spec (nb-wrangler)", "Setup and management of wrangler spec itself."
     )
     spec_group.add_argument(
-        "--reset-spec",
         "--spec-reset",
         action="store_true",
+        dest="spec_reset",
         help="Reset spec to its original state by deleting output fields.  out.data section is preserved.",
     )
     spec_group.add_argument(
@@ -317,27 +317,27 @@ def parse_args():
     )
 
     spec_group.add_argument(
-        "--validate-spec",
         "--spec-validate",
         action="store_true",
+        dest="spec_validate",
         help="Validate the specification file without performing any curation actions.",
     )
     spec_group.add_argument(
-        "--update-spec-hash",
         "--spec-update-hash",
         action="store_true",
+        dest="spec_update_hash",
         help="Update spec SHA256 hash even if validation fails and continue processing.",
     )
     spec_group.add_argument(
-        "--ignore-spec-hash",
         "--spec-ignore-hash",
         action="store_true",
+        dest="spec_ignore_hash",
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
     )
     spec_group.add_argument(
-        "--add-pip-hashes",
         "--spec-add-pip-hashes",
         action="store_true",
+        dest="spec_add_pip_hashes",
         help="Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.",
     )
 
