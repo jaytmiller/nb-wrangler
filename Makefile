@@ -53,8 +53,8 @@ functional-reinstall: fnc-reinstall
 
 functional-tests:  fnc-test fnc-test-imports fnc-test-notebooks
 
-functional-misc: fnc-compact fnc-pack-env fnc-uninstall fnc-unpack-env \
-	fnc-unregister-env	fnc-register-env fnc-delete-env fnc-reset-spec
+functional-misc: fnc-compact fnc-env-pack fnc-packages-uninstall fnc-env-unpack \
+	fnc-env-unregister	fnc-env-register fnc-env-delete fnc-spec-reset fnc-packages-compile
 
 
 fnc-preclean:
@@ -71,53 +71,53 @@ fnc-curate:
 fnc-reinstall:
 	./nb-wrangler  fnc-test-spec.yaml --reinstall
 
-fnc-uninstall: fnc-curate
-	./nb-wrangler  fnc-test-spec.yaml --uninstall
+fnc-packages-uninstall: fnc-curate
+	./nb-wrangler  fnc-test-spec.yaml --packages-uninstall
 
-fnc-install: fnc-curate fnc-uninstall
-	./nb-wrangler   fnc-test-spec.yaml --install
+fnc-packages-install: fnc-curate fnc-packages-uninstall
+	./nb-wrangler   fnc-test-spec.yaml --packages-install
 
-fnc-pack-env: fnc-install
+fnc-env-pack: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --env-pack
 
-fnc-unpack-env:  fnc-uninstall
+fnc-env-unpack:  fnc-packages-uninstall
 	./nb-wrangler   fnc-test-spec.yaml --env-unpack
 
-fnc-test-imports: fnc-install
+fnc-test-imports: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --test-imports
 
-fnc-test-notebooks: fnc-install
+fnc-test-notebooks: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --test-notebooks
 
-fnc-test: fnc-install
+fnc-test: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml -t
 
-fnc-compact: fnc-install
+fnc-compact: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --env-compact
 
-fnc-compile: fnc-clone
-	./nb-wrangler   fnc-test-spec.yaml --compile
+fnc-packages-compile: fnc-clone-repos
+	./nb-wrangler   fnc-test-spec.yaml --packages-compile
 
-fnc-clone:
-	./nb-wrangler   fnc-test-spec.yaml --clone
+fnc-clone-repos:
+	./nb-wrangler   fnc-test-spec.yaml --clone-repos
 
-fnc-init-env: fnc-compile
+fnc-env-init: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --env-init
 
-fnc-delete-env: fnc-init-env
+fnc-env-delete: fnc-env-init
 	./nb-wrangler   fnc-test-spec.yaml --env-delete
 
-fnc-register-env: fnc-init-env
+fnc-env-register: fnc-env-init
 	./nb-wrangler   fnc-test-spec.yaml --env-register
 
-fnc-unregister-env: fnc-init-env
+fnc-env-unregister: fnc-env-init
 	./nb-wrangler   fnc-test-spec.yaml --env-unregister
 
-fnc-reset-spec: fnc-compile
+fnc-spec-reset: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --spec-reset
 	git checkout -- fnc-test-spec.yaml
 
-fnc-validate-spec: fnc-compile
+fnc-spec-validate: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --spec-validate
 	git checkout -- fnc-test-spec.yaml
 

@@ -27,7 +27,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: dec9ab237c4d6e5f914c08440d3639345eeebdd24b5666fdd3a7d2e97b296909
+  spec_sha256: 3f9410933731d6d7b21c83fc35613d64ceaf7e27fed04eaa1f3a0e1eb97baf69
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
@@ -178,11 +178,11 @@ out:
   spi_files:
     - references/science-platform-images/deployments/common/common-env/common.conda
   spi_packages:
+    - jupyter-packaging
+    - nodejs>=22.0
     - pip
     - pip-tools
     - setuptools
-    - jupyter-packaging
-    - nodejs>=22.0
   mamba_spec: |
     name: roman-cal
     channels:
@@ -195,7 +195,7 @@ out:
       - nodejs>=22.0
       - pip
       - pip-tools
-      - python=3.11
+      - python=3.12
       - setuptools
       - uv
       - wheel
@@ -207,11 +207,10 @@ out:
     aiohttp==3.13.2
         # via
         #   aiobotocore
-        #   fsspec
         #   jupyter-server-proxy
         #   papermill
         #   s3fs
-    aioitertools==0.12.0
+    aioitertools==0.13.0
         # via aiobotocore
     aiosignal==1.4.0
         # via aiohttp
@@ -248,18 +247,17 @@ out:
         # via argon2-cffi
     arrow==1.4.0
         # via isoduration
-    asdf==5.0.0
+    asdf==5.1.0
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
         #   asdf-astropy
         #   asdf-coordinates-schemas
-        #   astrocut
         #   crds
         #   gwcs
         #   jdaviz
@@ -272,12 +270,12 @@ out:
         #   stpipe
     asdf-astropy==0.8.0
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
         #   gwcs
         #   rad
@@ -305,26 +303,23 @@ out:
         #   stdatamodels
     asdf-wcs-schemas==0.5.0
         # via gwcs
-    asteval==1.0.6
+    asteval==1.0.7
         # via jdaviz
-    astrocut==1.1.0
-        # via -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
     astropy==7.1.1
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/stips/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/stpsf/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/synphot/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
         #   asdf-astropy
-        #   astrocut
         #   astroquery
         #   casa-formats-io
         #   crds
@@ -379,8 +374,6 @@ out:
         # via
         #   jupyterlab-server
         #   sphinx
-    backports-tarfile==1.2.0 ; python_full_version < '3.12'
-        # via jaraco-context
     beautifulsoup4==4.14.2
         # via
         #   astroquery
@@ -399,7 +392,6 @@ out:
         #   -r /home/ai/.nbw-live/temps/roman-20-roman-cal-extra-pip.txt
         #   -r references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   s3path
     botocore==1.40.61
         # via
         #   aiobotocore
@@ -424,9 +416,7 @@ out:
     bytecode==0.17.0
         # via ddtrace
     cachetools==6.2.1
-        # via
-        #   astrocut
-        #   solara-ui
+        # via solara-ui
     casa-formats-io==0.3.0
         # via spectral-cube
     certifi==2025.10.5
@@ -487,7 +477,7 @@ out:
         #   secretstorage
     cycler==0.12.1
         # via matplotlib
-    dask==2025.10.0
+    dask==2025.11.0
         # via
         #   casa-formats-io
         #   spectral-cube
@@ -555,7 +545,6 @@ out:
         #   aiosignal
     fsspec==2025.10.0
         # via
-        #   astrocut
         #   dask
         #   s3fs
     future==1.0.0
@@ -589,7 +578,6 @@ out:
         #   sqlalchemy
     gwcs==0.26.0
         # via
-        #   astrocut
         #   jdaviz
         #   ndcube
         #   roman-datamodels
@@ -631,9 +619,6 @@ out:
         # via sphinx
     importlib-metadata==8.7.0
         # via
-        #   asdf
-        #   dask
-        #   keyring
         #   opentelemetry-api
         #   stpipe
     iniconfig==2.3.0
@@ -907,12 +892,12 @@ out:
         #   werkzeug
     matplotlib==3.10.7
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/stips/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/stpsf/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/synphot/requirements.txt
@@ -1001,12 +986,12 @@ out:
         # via poppy
     numpy==2.3.4
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/pandeia/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/stpsf/requirements.txt
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   asdf
@@ -1081,8 +1066,6 @@ out:
         #   pysiaf
     opentelemetry-api==1.38.0
         # via ddtrace
-    overrides==7.7.0 ; python_full_version < '3.12'
-        # via jupyter-server
     packaging==25.0
         # via
         #   asdf
@@ -1146,8 +1129,8 @@ out:
         # via ipython
     photutils==2.3.0
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   jdaviz
         #   pandeia-engine
         #   romancal
@@ -1155,7 +1138,6 @@ out:
         #   stpsf
     pillow==12.0.0
         # via
-        #   astrocut
         #   bokeh
         #   bqplot-image-gl
         #   imageio
@@ -1350,7 +1332,6 @@ out:
     requests==2.32.5
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   astrocut
         #   astroquery
         #   ci-watson
         #   crds
@@ -1384,15 +1365,14 @@ out:
         # via solara-server
     roman-datamodels==0.27.0
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
-        #   astrocut
         #   romancal
         #   soc-roman-tools
     romancal==0.20.2
@@ -1405,19 +1385,16 @@ out:
         #   referencing
     s3fs==2025.10.0
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -c references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
-        #   -r references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
-        #   astrocut
         #   jdaviz
-    s3path==0.6.4
-        # via astrocut
     s3transfer==0.14.0
         # via boto3
     scikit-image==0.25.2
@@ -1427,10 +1404,9 @@ out:
         #   stcal
     scipy==1.16.3
         # via
-        #   -c references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
+        #   -r references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/content/notebooks/pandeia/requirements.txt
-        #   astrocut
         #   esutil
         #   glue-core
         #   glue-vispy-viewers
@@ -1479,8 +1455,6 @@ out:
         #   pyds9
         #   python-dateutil
         #   rfc3339-validator
-    smart-open==7.4.4
-        # via s3path
     smmap==5.0.2
         # via gitdb
     sniffio==1.3.1
@@ -1514,7 +1488,6 @@ out:
         #   specreduce
     spherical-geometry==1.3.3
         # via
-        #   astrocut
         #   romancal
         #   stcal
         #   tweakwcs
@@ -1681,7 +1654,6 @@ out:
         #   anywidget
         #   beautifulsoup4
         #   bqplot-image-gl
-        #   ipython
         #   opentelemetry-api
         #   pydantic
         #   pydantic-core
@@ -1740,7 +1712,6 @@ out:
         # via
         #   aiobotocore
         #   ddtrace
-        #   smart-open
     xlrd==2.0.2
         # via glue-core
     xmltodict==1.0.2
@@ -1759,216 +1730,6 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
-  pip_requirements_files:
-    - references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
-    - references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
-    - references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
-    - references/roman_notebooks/content/notebooks/pandeia/requirements.txt
-    - references/roman_notebooks/content/notebooks/stips/requirements.txt
-    - references/roman_notebooks/content/notebooks/synphot/requirements.txt
-    - references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
-    - references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
-    - references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
-    - references/roman_notebooks/content/notebooks/stpsf/requirements.txt
-    - references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
-    - references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
-    - references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
-    - /home/ai/.nbw-live/temps/roman-20-roman-cal-extra-pip.txt
-    - references/science-platform-images/deployments/common/common-env/required.pip
-    - references/science-platform-images/deployments/common/common-env/testing.pip
-    - references/science-platform-images/deployments/common/common-env/jupyter.pip
-    - references/science-platform-images/deployments/common/common-env/common.pip
-    - references/science-platform-images/deployments/common/common-env/docs.pip
-    - references/science-platform-images/deployments/roman/environments/roman-cal/build-hints.pip
-  pip_map:
-    references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt:
-      - asdf>=4.1.0
-      - roman_datamodels==0.27.0
-      - astropy>=7.0.1
-      - asdf-astropy>=0.7.1
-      - matplotlib>=3.10.0
-      - numpy>=2.2.3
-      - s3fs>=2025.5.1
-      - scipy>=1.15.2
-      - photutils>=2.2.0
-    references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt:
-      - asdf>=4.1.0
-      - astropy>=7.0.1
-      - asdf-astropy>=0.7.1
-      - photutils>=2.2.0
-      - roman_datamodels==0.27.0
-      - s3fs>=2025.5.1
-      - crds==13.0.3
-      - matplotlib>=3.10.0
-      - numpy>=2.2.3
-      - stpsf>=2.1.0
-    references/roman_notebooks/content/notebooks/data_visualization/requirements.txt:
-      - astropy>=7.0.1
-      - matplotlib>=3.10.0
-      - numpy>=2.2.3
-      - jdaviz>=4.3.1
-      - asdf>=4.1.0
-      - asdf-astropy>=0.7.1
-      - roman_datamodels==0.27.0
-      - s3fs>=2025.5.1
-    references/roman_notebooks/content/notebooks/pandeia/requirements.txt:
-      - pandeia.engine>=2024.12
-      - scipy>=1.15.2
-      - numpy>=2.2.3
-    references/roman_notebooks/content/notebooks/stips/requirements.txt:
-      - stips>=2.2.2
-      - astropy>=7.0.1
-      - matplotlib>=3.10.0
-      - 'esutil>=0.6.16 # --no-cache-dir option recommended on pip install'
-    references/roman_notebooks/content/notebooks/synphot/requirements.txt:
-      - astropy>=7.0.1
-      - matplotlib>=3.10.0
-      - synphot>=1.5.0
-      - stsynphot>=1.4.0
-      - stpsf>=2.1.0
-    references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt:
-      - astropy >= 7.0.1
-      - astroquery >= 0.4.10
-      - boto3 >= 1.37.3
-      - s3fs >= 2025.5.1
-      - roman_datamodels == 0.27.0
-    references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt:
-      - astropy>=7.0.1
-      - matplotlib>=3.10.0
-      - galsim>=2.6.3
-      - numpy>=2.2.3
-      - asdf>=4.1.0
-      - asdf-astropy>=0.7.1
-      - roman_datamodels==0.27.0
-      - s3fs>=2025.5.1
-      - scipy>=1.15.2
-      - synphot>=1.5.0
-      - stsynphot>=1.4.0
-      - stpsf>=2.1.0
-    references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt:
-      - astropy>=7.0.1
-      - asdf-astropy>=0.7.1
-      - asdf>=4.1.0
-      - romancal==0.20.2
-      - roman_datamodels==0.27.0
-      - s3fs>=2025.5.1
-    references/roman_notebooks/content/notebooks/stpsf/requirements.txt:
-      - astropy>=7.0.1
-      - stpsf>=2.1.0
-      - matplotlib>=3.10.0
-      - numpy>=2.2.3
-    references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt:
-      - astropy>=7.0.1
-      - romancal==0.20.2
-      - roman_datamodels==0.27.0
-      - s3fs>=2025.5.1
-      - matplotlib>=3.10.0
-    references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt:
-      - astropy>=7.0.1
-      - asdf>=4.1.0
-      - asdf-astropy>=0.7.1
-      - roman_datamodels==0.27.0
-      - matplotlib>=3.10.0
-      - s3fs>=2025.5.1
-    references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt:
-      - asdf>=4.1.0
-      - asdf-astropy>=0.7.1
-      - astrocut>=1.0.1
-      - astropy>=7.0.1
-      - matplotlib>=3.9.0
-      - numpy>=1.26.4
-      - s3fs>=2024.5.0
-    /home/ai/.nbw-live/temps/roman-20-roman-cal-extra-pip.txt:
-      - boto3
-    references/science-platform-images/deployments/common/common-env/required.pip:
-      - '# packages required for the framework to work'
-      - ''
-      - '# needed to install a kernel'
-      - ipykernel
-      - ''
-      - '# needed to run headless notebook tests'
-      - papermill
-      - ''
-      - '# required for git-sync-v4'
-      - GitPython
-    references/science-platform-images/deployments/common/common-env/testing.pip:
-      - ci-watson
-      - pytest
-      - pytest-doctestplus
-      - requests_mock
-      - pytest-openfiles
-      - '#pytest-cov'
-      - '#codecov'
-      - flake8
-      - distlib
-    references/science-platform-images/deployments/common/common-env/jupyter.pip:
-      - jupyterhub
-      - jupyterlab
-      - notebook
-      - bqplot
-      - glue-jupyter
-      - ipysplitpanes
-      - ipygoldenlayout
-      - jupyter-client
-      - ipython-genutils
-      - jupyter-core
-      - jupyterlab-widgets
-      - widgetsnbextension
-      - ipywidgets
-      - ipydatawidgets
-      - jupyterlab-pygments
-      - jupyter-server
-      - bqplot-image-gl
-      - jupyter-collaboration
-      - jupyter-server-proxy
-      - jupyter-packaging
-      - ipyevents
-      - ipympl
-      - ipyvolume
-      - ipyvuetify
-      - ipywebrtc
-      - ipykernel
-      - jupyter-resource-usage
-      - sidecar
-      - y-py
-      - ypy-websocket
-      - jupyter_bokeh
-      - solara
-      - ipypopout==2.0.0
-      - jupyterlab-tour
-      - anywidget
-      - jupytext
-    references/science-platform-images/deployments/common/common-env/common.pip:
-      - papermill
-      - '#nbconvert'
-      - ipykernel
-      - ipython
-      - boto3
-      - pyds9
-      - pipdeptree
-      - pip-tools
-      - pydeps
-      - numpy
-      - black
-      - jupyterhub
-      - nbgitpuller
-      - playwright
-      - flask
-      - psycopg2-binary
-      - requests
-      - ddtrace
-      - yq
-    references/science-platform-images/deployments/common/common-env/docs.pip:
-      - matplotlib
-      - sphinx
-      - sphinx-automodapi
-      - sphinx-rtd-theme
-      - stsci-rtd-theme
-      - sphinx-astropy
-      - '# sphinx-asdf'
-      - nbsphinx
-    references/science-platform-images/deployments/roman/environments/roman-cal/build-hints.pip:
-      - '# build-hints.pip'
   data:
     spec_inputs:
       references/roman_notebooks/refdata_dependencies.yaml:
@@ -2034,6 +1795,9 @@ out:
       roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
         size: '578788837'
         sha256: 736766b93e12d5adff9499b3a69a676e78d12d0ddff3a5193430cbab688bb978
+      roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz:
+        size: '92295282'
+        sha256: d30eb72b571b0e9f09a091909bf16f679f23c30d327ce6fc09ace227790be6bf
       roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
         size: '121835520'
         sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
