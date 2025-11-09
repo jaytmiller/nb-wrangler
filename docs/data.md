@@ -149,10 +149,6 @@ and later verifies the size and sha256 hash for each archive file.
 To efficiently support operation on the STScI science platforms,  nb-wrangler divides
 the disk storage it uses into two major areas:
 
-- **Live Storage**  - which may be ephemeral but is assumed to be high performance, e.g. a local SSD.  This makes a good place to store frequently used and readonly files for the current session, such as package caches or mamba installations.
-
-- **Persistent Storage** - which is preserved between login sessions but which is sometimes much slower than a local SSD,  particularly for large numbers of small files, such as those found in Python installations. Typically this might be e.g. a network file system such as EFS which is easily shared between containers on a compute cluster. Because it is persistent, it can make an excellent place for archive files such as data archives or pre-built Python installations,  thus saving time relative to repeat downloads and installs.  Because it can be shared,  it enables both shared data and shared compute environments for teams or generic platform use.
-
 In the case of a local personal installation of an nb-wrangler environment, generally
 both areas will reside on SSD with equivalent perfomance, and can even be mapped to a
 single top-level directory for both.
@@ -164,21 +160,192 @@ These storage areas are defined and located using environment variables, with th
 | NBW_ROOT            | $HOME/.nbw-live   | Fast but possibly emphemeral storage.    |
 | NBW_PANTRY          | $HOME/.nbw-pantry | Slower but should be persistent          |
 
+
 ### Persistent Storage
 
 On a containerized system such as JupyterHub or Docker, persistent storage such as
-personal $HOME directories or team directories survive individual container runs while
-other parts of the container file system are ephemeral and forgotten after every notebook session.
+personal $HOME directories or team directories survive individual container runs. Their disadvantage is generally inferior performance compared to other storage such as a local SSD,  particularly for large numbers of small files.
+
+Typically this might be e.g. a network file system such as EFS which is easily shared between containers on a compute cluster. Because it is persistent, it can make an excellent place for archive files such as data archives or pre-built Python installations,  thus saving time relative to repeat downloads and installs.  Because it can be shared,  it enables both shared data and shared compute environments for teams or generic platform use.
+
+nb-wrangler dubs its persistent storage area the `Pantry` which is a directory tree nominally pointed to by the `NBW_PANTRY` environment variable. The Pantry is designed to store persistent data for multiple nb-wrangler specs where each spec has its own subdirectory which contains both archive files and unpacked
+versions of files which are nominally intended to be shared. Currently two kinds of archives exist: data archives, and mamba environment archives.
 
 ### Live Storage
 
+On a containerized system such as JupyterHub or Docker, the container storage itself is nominally ephemeral, i.e. completely erased between user sessions, and typically backed by high performance hardware such as SSD's. nb-wrangler dubs its ephemeral storage area `Live`, a directory tree nominally pointed to by the `NBW_ROOT` environment variable. The Live storage area is both limited in size (e.g. <50G,  variable) and intended for files which are frequently accessed but not necessarily shared. In this regard live storage is equivalent in performance to pre-installed files in the container image. Thus conceptually, wrangler mamba environments unpacked from pre-installed archives to live storage should have equivalent performance to environments which were pre-installed,  and in the case of data,  potentially superior performance since data is generally too large to be directly included in a science platform image but not too large to be unpacked into private container storage.
+
 ## Wrangling / Curating Data
 
+The first phase of wrangling data is performed by notebook repo curators and/or plaform admins, and involves working with particular repos and notebooks to ensure that their required data is available in public archive files and referenced by the repo's `refdata_dependencies.yaml` spec file. As with environment creation, this phase can include adjusting notebooks, creating and adjusting the `refdata_dependencies.yaml` file, as well as creating, updating, and delivering new archive files to public repositories from which they can be downloaded by arbitrary nb-wrangler users. During curation, nb-wrangler downloads and unpacks the data archives if they are not already in the appropriate locations in the Pantry. Additionally, nb-wrangler sets up the environment to properly refer to the unpacked data so that notebooks can reference it in a platform independent way.  Once notebooks are correctly referencing their required data, they can be tested demonstrating that the entire end-to-end process of downloading notebooks and data,  and setting up supporting mamba environments, works.
+
+As part of curation, nb-wrangler additionally captures the length and sha256 of each archive file so that they can later be verified against the `refdata_dependencies.yaml` spec during future installations. Failures to validate indicate issues with data integrity relative to the time the wrangler spec was created.
+
 ### Example --data-curate Run
+
+```bash
+. ./nb-wrangler environment  &&  \
+cd tests/data-functional && \
+../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
+../../nb-wrangler data-test-spec.yaml --data-curate --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml
+INFO: 00:00:00.000 Running explicitly selected steps, if any.
+INFO: 00:00:00.000 Running step _data_reset_spec
+INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.028 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:00
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml
+INFO: 00:00:00.000 Running workflows {self.config.workflows}.
+INFO: 00:00:00.000 Running data collection / downloads / metadata capture / unpacking workflow
+INFO: 00:00:00.000 Setting up repository clones.
+INFO: 00:00:00.000 Using existing local clone at references/science-platform-images
+INFO: 00:00:00.000 Using existing local clone at references/roman_notebooks
+INFO: 00:00:00.001 Found 13 notebooks in all notebook repositories.
+INFO: 00:00:00.000 Processing 13 unique notebooks for imports.
+INFO: 00:00:00.002 Extracted 27 package imports from 13 notebooks.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/data-test-spec.yaml.
+INFO: 00:00:00.057 Collecing data information from notebook repo data specs.
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-local-exports.sh
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-pantry-exports.sh
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.032 Downloading selected data archives.
+INFO: 00:00:00.000 Downloading data from 'https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz' to archive file 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+--2025-11-09 14:28:23--  https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+Resolving stsci.box.com (stsci.box.com)... 74.112.186.157, 2620:117:bff0:12d::
+Connecting to stsci.box.com (stsci.box.com)|74.112.186.157|:443... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: /public/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz [following]
+--2025-11-09 14:28:23--  https://stsci.box.com/public/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+Reusing existing connection to stsci.box.com:443.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: https://stsci.app.box.com/public/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz [following]
+--2025-11-09 14:28:23--  https://stsci.app.box.com/public/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+Resolving stsci.app.box.com (stsci.app.box.com)... 74.112.186.157, 2620:117:bff0:12d::
+Connecting to stsci.app.box.com (stsci.app.box.com)|74.112.186.157|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://public.boxcloud.com/d/1/b1!plAhaWyanH7Ktyd4zvJlybAAekMoYfkp9kgkmSGfxj5RC4FYpUwLOz_jTppY6laAwXCfWpTpNUE741uMILtC289hsY7NRTZI60a5iIug-XRpTM89pDr1rGXqG9wCnMBg34MQ_V2lt560CdHMPaG7ONP4FVfY07yrcrLzuqVhco9uIwMBwx5bulenrQpPTzbffLuUPyfNSfECc2ExGdeqUI3AufAPkcfew-el9rWM2Ba_3rqroAc86lmeHxWgUzsKHy4pDVFkZsEAahywA364CL47ysuziWRgdMsdm_CAEuYQ3CyZbclcrAlN14u2BrEs8Nvyw-_e4eD2Vr8JHFjuyOT2TF0YFBtPoVmMwk_ueXwWlxp8QWXKijcJd2d8FXlZgl8t6clk9D-C9gFTx_Rz_VwJz3oWiYS0ZpvieJDItVtsKDckKBEXBbB-qV6cehx5lOCsOKWvV4KEE_tjnG_e_150v5Zp5Dan5V9KAGn9VZOkc_JCMGW_NZS5qak80ckDxd8CyTu3amNyOJW-AY-ar0pMzqAsSB4SIkeWO8iTLLGo4A98gt_iDdBiatYhlV23OTwgLkuM_cnvZ6KTd7VJqfoIKxNgd1r78Nwi8yrigLbd5t25oh0PDoGX0u7nILHNsODzBg_neQOIh-zGuJ2RMbsBKvtwWLV0YmzAmJoS5mrQoKjr2dpiaCHbx2Rh9IqYoWxcZrwJyQGzFfoD4H2aB2LwWJMtVHv4vmQRDEisQM9hs3ywqwb-ohjMNZV9VDrAANIrJJg5gCT9bdPyzvs38s_bi573Qfv4sZqgO_Q_i5TVo4fiCGX4BYtWetOUuKvTEOwNT80neS6bjEzA919ifk9ZFcO-UTsRWUt-MKqzleo0dzeLiGT62dqybcRK0JHgwsBU1W9Ovk10QluuviuyPQMicqXIQ1aujACdXmvzNjpmoVA39cZd2xIr81G5uw0GvPUVUQvvfeSHaKKvoEHIID_j3LNln4ssYQfHaw_D76frYouSei6byLEBSL742gSTU0pVeg8IC7onYuinSSyX8lxa_wlbjj09H-sDrDWmfG9xdG0q0obfw0G_cpi19_VFfAqK3PBXu1JPHmbo7rc2zRzOcOW__f8jgcwBj2Xajzq9zGXn78FSQvwf4f5U65MK_b2KjiTut1pc0BBBNleb4DeunSGJ2E-JK4w5ztPTwjE3rTs0ySJ0MPWuwy6yE3qJZY8BizwjIDJu3sRTiPioCImRrXjRtwjhxrRWeF_G4O1pMhZz7F62-i0SWwmtd_aoIoeAZBn2odQrsCwY3NyNIRpugN9vZQDbMTfvNC9x2PjhCZ-m7_MogwXzn93TDjp2AEYG_veoiZL9b99S3XU7v3Lt1S6NOuC16LL3TgKaXO_pqf6kYOPyGPn19LM4-ObPp7KVgsFSACk_Bf8kyxVMjf9kFjWzCtTllegP6cM3ZP3r2b0qJ2wnGcIx5lk3vigt2ArmErID6oo6zaxFADaCjURqNacyJqoClhcIaMkBuaIA3dqClURXcW_Zvq6Pf4pNYy3iva8s1mO1jIOcY1oLD1QMlRX0WTTSO0Y1lNBNwq9OsHs3hju3xEBoyN8diMYhLJmtIFELxA../download [following]
+--2025-11-09 14:28:24--  https://public.boxcloud.com/d/1/b1!plAhaWyanH7Ktyd4zvJlybAAekMoYfkp9kgkmSGfxj5RC4FYpUwLOz_jTppY6laAwXCfWpTpNUE741uMILtC289hsY7NRTZI60a5iIug-XRpTM89pDr1rGXqG9wCnMBg34MQ_V2lt560CdHMPaG7ONP4FVfY07yrcrLzuqVhco9uIwMBwx5bulenrQpPTzbffLuUPyfNSfECc2ExGdeqUI3AufAPkcfew-el9rWM2Ba_3rqroAc86lmeHxWgUzsKHy4pDVFkZsEAahywA364CL47ysuziWRgdMsdm_CAEuYQ3CyZbclcrAlN14u2BrEs8Nvyw-_e4eD2Vr8JHFjuyOT2TF0YFBtPoVmMwk_ueXwWlxp8QWXKijcJd2d8FXlZgl8t6clk9D-C9gFTx_Rz_VwJz3oWiYS0ZpvieJDItVtsKDckKBEXBbB-qV6cehx5lOCsOKWvV4KEE_tjnG_e_150v5Zp5Dan5V9KAGn9VZOkc_JCMGW_NZS5qak80ckDxd8CyTu3amNyOJW-AY-ar0pMzqAsSB4SIkeWO8iTLLGo4A98gt_iDdBiatYhlV23OTwgLkuM_cnvZ6KTd7VJqfoIKxNgd1r78Nwi8yrigLbd5t25oh0PDoGX0u7nILHNsODzBg_neQOIh-zGuJ2RMbsBKvtwWLV0YmzAmJoS5mrQoKjr2dpiaCHbx2Rh9IqYoWxcZrwJyQGzFfoD4H2aB2LwWJMtVHv4vmQRDEisQM9hs3ywqwb-ohjMNZV9VDrAANIrJJg5gCT9bdPyzvs38s_bi573Qfv4sZqgO_Q_i5TVo4fiCGX4BYtWetOUuKvTEOwNT80neS6bjEzA919ifk9ZFcO-UTsRWUt-MKqzleo0dzeLiGT62dqybcRK0JHgwsBU1W9Ovk10QluuviuyPQMicqXIQ1aujACdXmvzNjpmoVA39cZd2xIr81G5uw0GvPUVUQvvfeSHaKKvoEHIID_j3LNln4ssYQfHaw_D76frYouSei6byLEBSL742gSTU0pVeg8IC7onYuinSSyX8lxa_wlbjj09H-sDrDWmfG9xdG0q0obfw0G_cpi19_VFfAqK3PBXu1JPHmbo7rc2zRzOcOW__f8jgcwBj2Xajzq9zGXn78FSQvwf4f5U65MK_b2KjiTut1pc0BBBNleb4DeunSGJ2E-JK4w5ztPTwjE3rTs0ySJ0MPWuwy6yE3qJZY8BizwjIDJu3sRTiPioCImRrXjRtwjhxrRWeF_G4O1pMhZz7F62-i0SWwmtd_aoIoeAZBn2odQrsCwY3NyNIRpugN9vZQDbMTfvNC9x2PjhCZ-m7_MogwXzn93TDjp2AEYG_veoiZL9b99S3XU7v3Lt1S6NOuC16LL3TgKaXO_pqf6kYOPyGPn19LM4-ObPp7KVgsFSACk_Bf8kyxVMjf9kFjWzCtTllegP6cM3ZP3r2b0qJ2wnGcIx5lk3vigt2ArmErID6oo6zaxFADaCjURqNacyJqoClhcIaMkBuaIA3dqClURXcW_Zvq6Pf4pNYy3iva8s1mO1jIOcY1oLD1QMlRX0WTTSO0Y1lNBNwq9OsHs3hju3xEBoyN8diMYhLJmtIFELxA../download
+Resolving public.boxcloud.com (public.boxcloud.com)... 74.112.186.164, 2620:117:bff0:e2::
+Connecting to public.boxcloud.com (public.boxcloud.com)|74.112.186.164|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 578788837 (552M) [application/octet-stream]
+Saving to: ‘0qjvuqwkurhx1xd13i63j760cosep9wh.gz’
+
+0qjvuqwkurhx1xd13i63j760cosep9wh.gz                                100%[=============================================================================================================================================================>] 551.98M  43.5MB/s    in 13s     
+
+2025-11-09 14:28:38 (41.5 MB/s) - ‘0qjvuqwkurhx1xd13i63j760cosep9wh.gz’ saved [578788837/578788837]
+
+INFO: 00:00:15.210 Downloading data from 'https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz' to archive file 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+--2025-11-09 14:28:38--  https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+Resolving stsci.box.com (stsci.box.com)... 74.112.186.157, 2620:117:bff0:12d::
+Connecting to stsci.box.com (stsci.box.com)|74.112.186.157|:443... connected.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: /public/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz [following]
+--2025-11-09 14:28:38--  https://stsci.box.com/public/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+Reusing existing connection to stsci.box.com:443.
+HTTP request sent, awaiting response... 301 Moved Permanently
+Location: https://stsci.app.box.com/public/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz [following]
+--2025-11-09 14:28:38--  https://stsci.app.box.com/public/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+Resolving stsci.app.box.com (stsci.app.box.com)... 74.112.186.157, 2620:117:bff0:12d::
+Connecting to stsci.app.box.com (stsci.app.box.com)|74.112.186.157|:443... connected.
+HTTP request sent, awaiting response... 302 Found
+Location: https://public.boxcloud.com/d/1/b1!vb27Ewnoc9zGrdceiOepzhd8ezeG9x1i0E8cCDwf7vS6Ic2ZmDEdwIyE2V18H9hyrCrOWHa4V3rdl97_f_h8Ptf65BZp5D_C9NEsqDqMivBsPRQEIEZXx0HvC3DBBJ-8KRWwAfcodEJFaMGo_nNcykS0bmUiFTzE533w6chAFsz8_sdkySSiiDnYXOtc4jTJ40LOT3b7Imi8e3C1bTFFVxEppNgHgFDIAygt9id37yb4xW_iY1LVJ9eQcBwyor0NV-uCnG2at5MHfjuMm-AflomAOu3ETeRh3JRTmQZVhiBQupgWy5SI1ctT6H3eXXW4I7G9YCvyg9O-z0Bf5lqgZaTSMf5c324Ku5kkohMtzohoa5HFuyNvT-ALX9ha48e75giNR-YaNYSgwKk_rIJNqNv9MXm3MfGyJF6koJ2-dxyYqHqxgJKYWEi5Zy4QcZe-P7VzTVKs-zE9CN4ZYfpdBk1XSMzg6fg5eqiv4e04XGLVnOdGHnuv29w1tGKjJKMZySW69-jXuhZDeWSWS39N5hsfYRV5PdeaLvVyEDlOLCsKhGJLrT1v6IQQ55GGxt0KPFk7virGybBlKRSlu1VLmMGY1CJ71irySUXad1ZGIcU_kmHdUoDrd8PqMavJuBiEkMqsjJPwymjr9cBvfHpvBPxbamUB9B8iPYuMoSyG5JpPSJZXeesQZoXs3dB4wZPM7o_b1y9xnuykvY_oyjh12mek1fN-HJamMROOVIuUqdtKpJ0s_hKmKqzcVqBtWHHm7AXtSH7LlbnAqB50Puc93A4G8iXC_snd6EWmcS1Y_zoRtXNMpjF7SPI7Z78_6BRlehV5p5fcmm8FUnp0KPDdLnMuhAP8ZSUurreWlTXmAtUm11Z5RUUlh1uYba414Xsm6NFvqQJ7VidoUcLOODC6eTzLUozYAi-APlaFT-9xqPEDNPAQxQGUqXWtMt0lWPyXL7nGVeLp61eOyegcBtVbdXo9iVxaY-qwMaMrlG7VRc8JCOjah-mbTVo-HDcARB5crygFrOy032qnECFALkiWc8Yl4scv4tdbGCppU77fPuRi6KJk2kNqPgmvVpFbUV334rsrCwoUp-VhZSpJOr9TwJMt9vazhBJUU40hyhiyN1RXfcox_URdODxXOJl7yJlm-z0f23FeKW1FsPxJhOPQwyDBKfrszeHdkHonBXvJ8qop8nujWUcEEljrGliBVz_GE1LGVjvh85R7aGl8teF-Hy1yaKZr0E11Idvkr2Q3pC54xkF1hYvSu-uRn-GUEY6ZVRjr0GlV7LhRfeWijTQw2Qfn5ReE-grXwxrdi_Xsq5OIthSLYFUADP64HQVdhpN3iBgsLpfmX4f8Z9GWqJjt9SVB73cUyPGCBsjgmAEvru9jHOWC7FvuZ3hDQjUyYM8enCJlI66voysJIYh4tsideIMgB3UkR4urpd7Tllyf19NMeJ4Y07jtWs9z4N66r4NaGYjdzPy53EpkQa3KBSMEgkcPb2vKkXucVXRqBopNl70vu7JvmVjB5gaaGBvrYlB9DbqxpfD0tGZwL3FZ1vWy_NIap4MyZXmhRXXkoqnO4x7do-USDL5m6M1B9YRguA../download [following]
+--2025-11-09 14:28:39--  https://public.boxcloud.com/d/1/b1!vb27Ewnoc9zGrdceiOepzhd8ezeG9x1i0E8cCDwf7vS6Ic2ZmDEdwIyE2V18H9hyrCrOWHa4V3rdl97_f_h8Ptf65BZp5D_C9NEsqDqMivBsPRQEIEZXx0HvC3DBBJ-8KRWwAfcodEJFaMGo_nNcykS0bmUiFTzE533w6chAFsz8_sdkySSiiDnYXOtc4jTJ40LOT3b7Imi8e3C1bTFFVxEppNgHgFDIAygt9id37yb4xW_iY1LVJ9eQcBwyor0NV-uCnG2at5MHfjuMm-AflomAOu3ETeRh3JRTmQZVhiBQupgWy5SI1ctT6H3eXXW4I7G9YCvyg9O-z0Bf5lqgZaTSMf5c324Ku5kkohMtzohoa5HFuyNvT-ALX9ha48e75giNR-YaNYSgwKk_rIJNqNv9MXm3MfGyJF6koJ2-dxyYqHqxgJKYWEi5Zy4QcZe-P7VzTVKs-zE9CN4ZYfpdBk1XSMzg6fg5eqiv4e04XGLVnOdGHnuv29w1tGKjJKMZySW69-jXuhZDeWSWS39N5hsfYRV5PdeaLvVyEDlOLCsKhGJLrT1v6IQQ55GGxt0KPFk7virGybBlKRSlu1VLmMGY1CJ71irySUXad1ZGIcU_kmHdUoDrd8PqMavJuBiEkMqsjJPwymjr9cBvfHpvBPxbamUB9B8iPYuMoSyG5JpPSJZXeesQZoXs3dB4wZPM7o_b1y9xnuykvY_oyjh12mek1fN-HJamMROOVIuUqdtKpJ0s_hKmKqzcVqBtWHHm7AXtSH7LlbnAqB50Puc93A4G8iXC_snd6EWmcS1Y_zoRtXNMpjF7SPI7Z78_6BRlehV5p5fcmm8FUnp0KPDdLnMuhAP8ZSUurreWlTXmAtUm11Z5RUUlh1uYba414Xsm6NFvqQJ7VidoUcLOODC6eTzLUozYAi-APlaFT-9xqPEDNPAQxQGUqXWtMt0lWPyXL7nGVeLp61eOyegcBtVbdXo9iVxaY-qwMaMrlG7VRc8JCOjah-mbTVo-HDcARB5crygFrOy032qnECFALkiWc8Yl4scv4tdbGCppU77fPuRi6KJk2kNqPgmvVpFbUV334rsrCwoUp-VhZSpJOr9TwJMt9vazhBJUU40hyhiyN1RXfcox_URdODxXOJl7yJlm-z0f23FeKW1FsPxJhOPQwyDBKfrszeHdkHonBXvJ8qop8nujWUcEEljrGliBVz_GE1LGVjvh85R7aGl8teF-Hy1yaKZr0E11Idvkr2Q3pC54xkF1hYvSu-uRn-GUEY6ZVRjr0GlV7LhRfeWijTQw2Qfn5ReE-grXwxrdi_Xsq5OIthSLYFUADP64HQVdhpN3iBgsLpfmX4f8Z9GWqJjt9SVB73cUyPGCBsjgmAEvru9jHOWC7FvuZ3hDQjUyYM8enCJlI66voysJIYh4tsideIMgB3UkR4urpd7Tllyf19NMeJ4Y07jtWs9z4N66r4NaGYjdzPy53EpkQa3KBSMEgkcPb2vKkXucVXRqBopNl70vu7JvmVjB5gaaGBvrYlB9DbqxpfD0tGZwL3FZ1vWy_NIap4MyZXmhRXXkoqnO4x7do-USDL5m6M1B9YRguA../download
+Resolving public.boxcloud.com (public.boxcloud.com)... 74.112.186.164, 2620:117:bff0:e2::
+Connecting to public.boxcloud.com (public.boxcloud.com)|74.112.186.164|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 92295282 (88M) [application/octet-stream]
+Saving to: ‘kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz’
+
+kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz                                100%[=============================================================================================================================================================>]  88.02M  29.6MB/s    in 3.0s    
+
+2025-11-09 14:28:43 (29.6 MB/s) - ‘kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz’ saved [92295282/92295282]
+
+INFO: 00:00:04.780 Downloading data from 'https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar' to archive file 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+--2025-11-09 14:28:43--  https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+Resolving archive.stsci.edu (archive.stsci.edu)... 130.167.201.60
+Connecting to archive.stsci.edu (archive.stsci.edu)|130.167.201.60|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 121835520 (116M) [application/x-tar]
+Saving to: ‘hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar’
+
+hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar    100%[=============================================================================================================================================================>] 116.19M  8.60MB/s    in 12s     
+
+2025-11-09 14:28:55 (10.1 MB/s) - ‘hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar’ saved [121835520/121835520]
+
+INFO: 00:00:11.800 Selected data downloaded successfully.
+INFO: 00:00:00.000 Collecting metadata for downloaded data archives.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+INFO: 00:00:01.184 Computing sha256 for archive file 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+INFO: 00:00:00.193 Computing sha256 for archive file 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+INFO: 00:00:00.253 Revising spec file /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.033 Validating all downloaded data archives.
+INFO: 00:00:00.000 Validating data archive 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+INFO: 00:00:01.196 Validating data archive 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+INFO: 00:00:00.197 Validating data archive 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+INFO: 00:00:00.267 All data archives validated.
+INFO: 00:00:00.000 Unpacking downloaded data archives to live locations.
+INFO: 00:00:03.716 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.663 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.078 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-local-exports.sh
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-pantry-exports.sh
+INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml.
+INFO: 00:00:00.062 Workflow data collection / downloads / metadata capture / unpacking completed.
+INFO: 00:00:00.000 Running explicitly selected steps, if any.
+INFO: 00:00:00.000 Running explicitly selected steps, if any.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:39
+```
 
 ## Re-installing Data
 
 ### Example --data-reinstall Run
+
+```bash
+. ./nb-wrangler environment  &&  \
+cd tests/data-functional && \
+../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml
+INFO: 00:00:00.000 Running workflows {self.config.workflows}.
+INFO: 00:00:00.000 Running data download / validation / unpacking workflow
+INFO: 00:00:00.032 Downloading selected data archives.
+INFO: 00:00:00.000 Archive file for '0qjvuqwkurhx1xd13i63j760cosep9wh.gz' already exists a '/home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/pandeia'. Skipping downloads.
+INFO: 00:00:00.000 Archive file for 'kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz' already exists a '/home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/stpsf'. Skipping downloads.
+INFO: 00:00:00.000 Archive file for 'hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar' already exists a '/home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/synphot'. Skipping downloads.
+INFO: 00:00:00.000 Selected data downloaded successfully.
+INFO: 00:00:00.000 Validating all downloaded data archives.
+INFO: 00:00:00.000 Validating data archive 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz'.
+INFO: 00:00:01.187 Validating data archive 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz'.
+INFO: 00:00:00.200 Validating data archive 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+INFO: 00:00:00.000 Computing sha256 for archive file 'roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar'.
+INFO: 00:00:00.259 All data archives validated.
+INFO: 00:00:00.000 Unpacking downloaded data archives to live locations.
+INFO: 00:00:03.675 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.694 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.096 Unpacked /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/archives/roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar into /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/data
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-local-exports.sh
+INFO: 00:00:00.000 New data exports file available at /home/ai/.nbw-pantry/shelves/roman-20-roman-cal/nbw-pantry-exports.sh
+INFO: 00:00:00.000 Workflow data download / validation / unpacking completed.
+INFO: 00:00:00.000 Running explicitly selected steps, if any.
+INFO: 00:00:00.000 Running explicitly selected steps, if any.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:06
+```
 
 ## Environment Setup
 
