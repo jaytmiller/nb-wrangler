@@ -103,7 +103,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Execute the complete curation workflow based on configured workflow type."""
         no_errors = True
         if self.config.workflows:
-            self.logger.info("Running workflows {self.config.workflows}.")
+            self.logger.info(f"Running workflows {self.config.workflows}.")
         for workflow in self.config.workflows:
             match workflow:
                 case "curation":
@@ -131,7 +131,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
-        if self.run_workflow(
+        return self.run_workflow(
             "spec development / curation",
             [
                 self._clone_repos,
@@ -140,13 +140,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._install_packages,
                 self._save_final_spec,
             ],
-        ):
-            return self._run_explicit_steps()
-        return False
+        )
 
     def _run_data_curation_workflow(self) -> bool:
         """Execute steps for data curation workflow, defining spec for data."""
-        if self.run_workflow(
+        return self.run_workflow(
             "data collection / downloads / metadata capture / unpacking",
             [
                 self._clone_repos,
@@ -158,13 +156,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._data_unpack,
                 self._save_final_spec,
             ],
-        ):
-            return self._run_explicit_steps()
-        return False
+        )
 
     def _run_submit_build_workflow(self) -> bool:
         """Execute steps for the build submission workflow."""
-        if self.run_workflow(
+        return self.run_workflow(
             "submit-for-build",
             [
                 self._validate_spec,
@@ -172,9 +168,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._clone_repos,
                 self._submit_for_build,
             ],
-        ):
-            return self._run_explicit_steps()
-        return False
+        )
 
     def _run_reinstall_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
@@ -185,10 +179,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         assert self.spec_manager is not None  # guaranteed by __init__
         if not self.spec_manager.outputs_exist(*required_outputs):
             return self.logger.error(
-                "This workflow requires a precompiled spec with outputs for",
+                "This workflow requires a precompiled spec with outputs",
                 required_outputs,
             )
-        if not self.run_workflow(
+        return self.run_workflow(
             "install-compiled-spec",
             [
                 # self._clone_repos,
@@ -197,13 +191,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._initialize_environment,
                 self._install_packages,
             ],
-        ):
-            return False
-        return self._run_explicit_steps()
+        )
 
     def _run_data_reinstall_workflow(self) -> bool:
         """Execute steps for data curation workflow, defining spec for data."""
-        if self.run_workflow(
+        return self.run_workflow(
             "data download / validation / unpacking",
             [
                 self._validate_spec,
@@ -212,13 +204,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._data_validate,
                 self._data_unpack,
             ],
-        ):
-            return self._run_explicit_steps()
-        return False
+        )
 
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
-        self.logger.info("Running explicitly selected steps, if any.")
+        self.logger.info("Running any explicitly selected steps.")
         flags_and_steps = [
             (self.config.clone_repos, self._clone_repos),
             (self.config.packages_compile, self._compile_requirements),

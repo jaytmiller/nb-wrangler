@@ -2,16 +2,16 @@
 
 ## Commands
 - **Lint**: `make lint` (includes flake8, mypy, black, bandit)
-- **Test**: `make local-test` or `./local-test pytest` 
+- **Test**:`make test-functional` 
 - **Coverage**: `make coverage`
 - **Format**: `black nb_wrangler tests`
 - **Run tool**: `python -m nb_wrangler spec.yaml [options]`
 
 ## Architecture
-- **Core**: nb-wrangler orchestrates Jupyter notebook environment curation
+- **Core**: nb-wrangler orchestrates Jupyter notebook environment and data curation
 - **Components**: wrangler.py (main), spec_manager.py (YAML specs), environment.py (micromamba/uv envs), compiler.py (deps), repository.py (git), notebook_tester.py (headless testing)
 - **Dependencies**: micromamba, uv, papermill, jupyter, ruamel.yaml
-- **Environments**: Creates isolated envs under ~/.nb-wrangler for notebook testing
+- **Environments**: Creates isolated envs under ~/.nbw-live and ~/.nbw-pantry for notebook testing
 
 ## Code Style
 - **Type hints**: Required for all functions (Python 3.11+)

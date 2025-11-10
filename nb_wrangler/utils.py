@@ -126,10 +126,11 @@ class DataDownloadError(DataHandlingError):
 def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
     """More tolerant GET for recalitrant Box links wget can handle."""
     filepath = Path(cwd) / os.path.basename(url)
-    if (
-        filepath.exists()
-    ):  # wget does not overwrite existing files,  it adds .N to the name.
+
+    # wget does not overwrite existing files,  it adds .N to the name.
+    if filepath.exists():
         filepath.unlink()
+
     try:
         # Using wget instead of native code due to recalitrant Box links wget can handle
         # Two levels of timeout:  wget and subprocess.run.  Output direct to terminal.
@@ -137,7 +138,11 @@ def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
             ["wget", "--timeout", str(timeout), url], timeout=timeout + 5, cwd=cwd
         )
     except Exception as e:
+        # On failures, poor-man's method for now is to "delete it all".
+        if filepath.exists():
+            filepath.unlink()
         raise DataDownloadError(f"Failed downloading '{url}'.") from e
+
     return filepath
 
 

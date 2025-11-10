@@ -234,12 +234,16 @@ class WranglerLogger:
             color=config.color,
         )
 
+_LOGGER = None
 
 def get_configured_logger():
     """Return a logger associated with the current command line arguments
     which define things like debugging, verbosity, colorization, and log times.
     """
-    return WranglerLogger.from_config(config.get_args_config())
+    global _LOGGER
+    if _LOGGER is None:
+        _LOGGER = WranglerLogger.from_config(config.get_args_config())
+    return _LOGGER
 
 
 class WranglerLoggable:

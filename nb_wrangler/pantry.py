@@ -211,11 +211,11 @@ class NbwShelf(WranglerLoggable):
                 utils.robust_get(url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path))
             except Exception as e:
                 return self.logger.exception(
-                    e, f"Failed downloading '{url}' to archive file '{key}':"
+                    e, f"Failed downloading '{url}' to archive file '{key}' at '{archive_path}':"
                 )
         else:
             self.logger.info(
-                f"Archive file for '{key}' already exists. Skipping downloads."
+                f"Archive file for '{Path(key).name}' already exists a '{archive_path}'. Skipping downloads."
             )
         return True
 
@@ -294,22 +294,28 @@ class NbwShelf(WranglerLoggable):
         no_errors = True
         if data_delete in ["archived", "both"]:
             delete_path = self.archive_filepath(archive_tuple)
-            self.logger.info(f"Deleting data archive file at {delete_path}...")
-            try:
-                delete_path.unlink(missing_ok=True)
-            except Exception as e:
-                no_errors = self.logger.exception(
-                    e, f"Failed deleting archive {delete_path}."
-                )
+            if delete_path.exists():
+                self.logger.info(f"Deleting data archive file at {delete_path}...")
+                try:
+                    delete_path.unlink(missing_ok=True)
+                except Exception as e:
+                    no_errors = self.logger.exception(
+                        e, f"Failed deleting archive {delete_path}."
+                    )
+            else:
+                self.logger.info(f"No archive file found at {delete_path}.  Skipping packed delete.")
         if data_delete in ["unpacked", "both"]:
             delete_path = self.data_path / archive_tuple[3]
-            self.logger.info(f"Deleting unpacked data directory at {delete_path}...")
-            try:
-                shutil.rmtree(str(delete_path))
-            except Exception as e:
-                no_errors = self.logger.exception(
-                    e, f"Failed deleting unpacked data directory {delete_path}."
-                )
+            if delete_path.exists():
+                self.logger.info(f"Deleting unpacked data directory at {delete_path}...")
+                try:
+                    shutil.rmtree(str(delete_path))
+                except Exception as e:
+                    no_errors = self.logger.exception(
+                        e, f"Failed deleting unpacked data directory {delete_path}."
+                    )
+            else:
+                self.logger.info(f"No archive directory exists at {delete_path}.  Skipping unpacked delete. ")
         return no_errors
 
 
