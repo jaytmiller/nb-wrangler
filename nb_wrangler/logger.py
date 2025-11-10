@@ -234,7 +234,9 @@ class WranglerLogger:
             color=config.color,
         )
 
+
 _LOGGER = None
+
 
 def get_configured_logger():
     """Return a logger associated with the current command line arguments

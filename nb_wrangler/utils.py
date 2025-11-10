@@ -342,7 +342,7 @@ def clear_directory(directory_path):
             shutil.rmtree(item_path)  # Remove directory and all its contents
 
 
-def resolve_vars(template, mapping):
+def resolve_vars(template: str, mapping: dict[str, str]) -> str:
     """
     Resolve a `template` into a fully resolved string by replacing variable
     references in the `template` with the corresponding values for them found in
@@ -363,3 +363,17 @@ def resolve_vars(template, mapping):
         lambda m: mapping.get(m.group(1) or m.group(2) or m.group(3), m.group(0)),
         template,
     )
+
+
+def resolve_env(
+    env: dict[str, str], env_dict: dict[str, str] = dict(os.environ)
+) -> dict[str, str]:
+    """Based on `env_dict` which is nominally os.environ, replace all the variables
+    in every value of `env` with their corresponding values found in `env_dict`.
+    This essentially maks all absract paths in `env` literal with all variables
+    replaced by their current platform and session specific values.
+    """
+    result = dict(env)
+    for key, val in env.items():
+        result[key] = resolve_vars(val, env_dict)
+    return result

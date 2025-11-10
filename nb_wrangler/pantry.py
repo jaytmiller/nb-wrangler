@@ -45,6 +45,8 @@ ${NBW_ROOT}/
 
 import shutil
 from pathlib import Path
+from functools import cache
+
 
 from . import utils
 
@@ -76,6 +78,7 @@ class NbwPantry(WranglerLoggable):
         return NbwShelf(self.shelves / shelf_name)
 
     def list_shelves(self) -> bool:
+        """Print out the root path of each shelf, one per line."""
         for shelf in self.shelves.glob("*"):
             print(shelf.name)
         return True
@@ -211,7 +214,8 @@ class NbwShelf(WranglerLoggable):
                 utils.robust_get(url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path))
             except Exception as e:
                 return self.logger.exception(
-                    e, f"Failed downloading '{url}' to archive file '{key}' at '{archive_path}':"
+                    e,
+                    f"Failed downloading '{url}' to archive file '{key}' at '{archive_path}':",
                 )
         else:
             self.logger.info(
@@ -264,6 +268,7 @@ class NbwShelf(WranglerLoggable):
             for archive_tuple in archive_tuples
         }
 
+    @cache
     def collect_metadata(
         self, archive_tuple: tuple[str, str, str, str]
     ) -> dict[str, str]:
@@ -279,6 +284,7 @@ class NbwShelf(WranglerLoggable):
         with (self.path / filename).open("w+") as stream:
             for var, value in exports.items():
                 stream.write(f"export {var}={value}\n")
+        return True
 
     def delete_archives(
         self, data_delete: str, archive_tuples: list[tuple[str, str, str, str]]
@@ -303,11 +309,15 @@ class NbwShelf(WranglerLoggable):
                         e, f"Failed deleting archive {delete_path}."
                     )
             else:
-                self.logger.info(f"No archive file found at {delete_path}.  Skipping packed delete.")
+                self.logger.info(
+                    f"No archive file found at {delete_path}.  Skipping packed delete."
+                )
         if data_delete in ["unpacked", "both"]:
             delete_path = self.data_path / archive_tuple[3]
             if delete_path.exists():
-                self.logger.info(f"Deleting unpacked data directory at {delete_path}...")
+                self.logger.info(
+                    f"Deleting unpacked data directory at {delete_path}..."
+                )
                 try:
                     shutil.rmtree(str(delete_path))
                 except Exception as e:
@@ -315,7 +325,9 @@ class NbwShelf(WranglerLoggable):
                         e, f"Failed deleting unpacked data directory {delete_path}."
                     )
             else:
-                self.logger.info(f"No archive directory exists at {delete_path}.  Skipping unpacked delete. ")
+                self.logger.info(
+                    f"No archive directory exists at {delete_path}.  Skipping unpacked delete. "
+                )
         return no_errors
 
 

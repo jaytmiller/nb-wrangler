@@ -1,14 +1,15 @@
 # nb_wrangler/config.py
 """Configuration management for nb-wrangler."""
 
-import os
+# import os
 from dataclasses import dataclass
 from pathlib import Path
 
 # from typing import Optional
 import argparse
 
-from . import utils
+# from . import utils
+
 from .constants import (
     NBW_ROOT,
     DEFAULT_MAMBA_COMMAND,
@@ -19,7 +20,7 @@ from .constants import (
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DATA_DIR,
+    DEFAULT_DATA_ENVIRONMENT,
 )
 
 
@@ -59,7 +60,6 @@ class WranglerConfig:
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE
     color: str = DEFAULT_COLOR_MODE
-    env_overrides: str = ""
 
     repos_dir: Path = Path(REPOS_DIR)
     clone_repos: bool = False
@@ -97,7 +97,7 @@ class WranglerConfig:
     spec_add_pip_hashes: bool = False
     spec_update_hash: bool = False
 
-    data_dir: Path = Path(DATA_DIR)
+    data_environment: str = DEFAULT_DATA_ENVIRONMENT
     data_reset_spec: bool = False
     data_collect: bool = False
     data_list: bool = False
@@ -108,6 +108,8 @@ class WranglerConfig:
     data_pack: bool = False
     data_delete: str = ""
     data_select: str = ".*"
+    data_no_validation: bool = False
+    data_no_unpack_existing: bool = False
 
     spec_select: str | None = None
     spec_list: bool = False
@@ -163,8 +165,10 @@ class WranglerConfig:
             data_unpack=args.data_unpack,
             data_pack=args.data_pack,
             data_delete=args.data_delete,
-            data_dir=args.data_dir,
+            data_environment=args.data_environment,
             data_select=args.data_select,
+            data_no_validation=args.data_no_validation,
+            data_no_unpack_existing=args.data_no_unpack_existing,
             spec_select=args.spec_select,
             spec_list=args.spec_list,
             spec_add=args.spec_add,
@@ -172,20 +176,8 @@ class WranglerConfig:
             debug=args.debug,
             log_times=args.log_times,
             color=args.color,
-            env_overrides=args.env_overrides,
         )
         return args_config
-
-    @property
-    def env_with_overrides(self):
-        result = dict(os.environ)
-        for keyval in self.env_overrides:
-            key, val = keyval.split("=", 1)
-            result[key] = val
-        return result
-
-    def resolve_overrides(self, var):
-        return utils.resolve_vars(var, self.env_with_overrides)
 
 
 class WranglerConfigurable:

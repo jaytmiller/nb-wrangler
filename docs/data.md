@@ -70,10 +70,9 @@ other_variables:
   CRDS_PATH: ${HOME}/crds_cache    # Nexus CRDS caches are local for now
   ```
 
-This format is defined by the notebook repository maintainers, independent of the nb-wrangler tool,  and used by other systems such as the GitHub CI system for notebooks.
-Nevertheless nb-wrangler necessarily includes code which validates these files for
-it's own internal use and/or round-tripping through the nb-wrangler spec.  While nb-wrangler's environment curation does not directly include each requirements.txt file,
-nb-wrangler does add each refdata_dependencies.yaml file to the wrangler spec verbatim in addition to any other wrangler-computed information.
+This format is defined by the notebook repository maintainers, independent of the nb-wrangler tool, and used by other systems such as the GitHub CI system for notebooks.
+Nevertheless nb-wrangler necessarily includes code which validates these files for it's own internal use and/or roucontinguend-tripping through the nb-wrangler spec.  While
+nb-wrangler's environment curation does not directly include each requirements.txt file, nb-wrangler does add each  verbatim in addition to any other wrangler-computed information.
 
 nb-wrangler then adds additional metadata such as this:
 
@@ -303,6 +302,15 @@ INFO: 00:00:00.000 Elapsed: 00:00:39
 
 ## Re-installing Data
 
+The second phase of data wrangling is downloading, verifying, and installing the data in the target system.
+In this phase, the wrangler spec assembled `--curate` and `--data-curate` is viewed as readonly and the
+wrangler will target the overall install using its environment variables,  most critically `NBW_ROOT` and
+`NBW_PANTRY`. Re-installing the data involves downloading it locally, verifying the metadata, unpacking the
+data as directed, and configuring the environment to point to the installation locations.  Configuring the
+environment is achieved by a combination of bash scripts which can be sourced and/or env settings in the 
+JupyterLab kernel specs installed in user persistent storage.  It's worth noting that there is a `--data-select`
+paramter which can be give a regex used to match key fields of the data archive paths.
+
 ### Example --data-reinstall Run
 
 ```bash
@@ -338,7 +346,47 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:06
 ```
 
-## Environment Setup
+## Environment Variable Setup
 
-## Working on Data Selectively
+As can be seen in the `refdata_dependencies.yaml` example above and brief excerpt here:
+
+```yaml
+install_files:
+    pandeia:
+    version: 2025.9
+    data_url: 
+        - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+    environment_variable: pandeia_refdata
+    install_path: ${HOME}/refdata/
+    data_path: pandeia_data-2025.9-roman
+```
+
+each archive section such as `pandeia` above is associated with N different URLs all of
+which are expected to unpack to a `data_path` prefix directory using tar.  For each archive
+nb-wrangler unpacks, it runs `tar` or the equivalent relative to `install_path` to unpack
+individual files from the archive into usable locations. 
+
+Consequently, one `local` definition of nb-wrangler environment vars is something like:
+
+```sh
+export pandeia_refdata="${install_path}${data_path}"
+```
+
+Meanwhile a `pantry` definition of environment variables is more like:
+
+```sh
+export pandeia_refdata="${NBW_PANTRY}/shelves/<shelf>/data/${section}/${environment_variable}"
+```
+
+### Pantry Paths
+
+As previously discussed, nb-wrangler has a built-in persistent storage directory where it
+can store artifacts related to multiple wrangler specs,  where each wrangler spec is associated
+with one `Shelf`.  Within the shelf directory,  nb-wrangler further stores data archive files
+so that future sessions can proceed without re-downloading data.
+
+### Local Paths
+
+
+### Working on Data Selectively
 

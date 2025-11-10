@@ -179,7 +179,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
 
     def handle_result(
         self, result: CompletedProcess[Any] | str | None, fail: str, success: str = ""
-    ):
+    ) -> bool:
         """Provide standard handling for the check=False case of the xxx_run methods by
         issuing a success info or fail error and returning True or False respectively
         depending on the return code of a subprocess result.
@@ -266,15 +266,20 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             f"Package un-installation of {env_name} completed successfully.",
         )
 
-    def register_environment(self, env_name: str, display_name: str) -> bool:
+    def register_environment(
+        self, env_name: str, display_name: str, env_vars: dict[str, str]
+    ) -> bool:
         """Register Jupyter environment for the environment.
 
         nbwrangler environment should work here since it is modifying
         files under $HOME related to *any* jupyter environment the
         user has.
         """
+        env_switches = ""
+        for key, value in env_vars.items():
+            env_switches += f"--env '{key}' '{value}' "
         cmd = self._condition_cmd(
-            f"python -m ipykernel install --user --name {env_name} --display-name '{display_name}'"
+            f"python -m ipykernel install --user --name '{env_name}' --display-name '{display_name}' {env_switches}"
         )
         result = self.env_run(env_name, cmd, check=False)
         return self.handle_result(

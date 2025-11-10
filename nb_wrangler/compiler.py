@@ -160,7 +160,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         )
         return yaml_dumps(mamba_spec)
 
-    def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict):
+    def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict) -> bool:
         """Write mamba spec dictionary to YAML file."""
         try:
             with filepath.open("w+") as f:
@@ -170,7 +170,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.logger.debug(f"Wrote mamba spec to '{filepath}'")
         return True
 
-    def write_pip_requirements_file(self, filepath: str, package_versions: list):
+    def write_pip_requirements_file(
+        self, filepath: str, package_versions: list
+    ) -> bool:
         """Write package versions to pip requirements file."""
         try:
             with Path(filepath).open("w+") as f:

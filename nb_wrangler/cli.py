@@ -16,7 +16,7 @@ from .constants import (
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DATA_DIR,
+    DEFAULT_DATA_ENVIRONMENT,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     NOTEBOOK_TEST_EXCLUDE,
@@ -169,7 +169,8 @@ def parse_args():
 
     testing_group = parser.add_argument_group("Testing", "Wrangler test commands.")
     testing_group.add_argument(
-        "-t", "--test-all",
+        "-t",
+        "--test-all",
         action="store_true",
         help="Run both --test-imports and --test-notebooks.",
     )
@@ -257,16 +258,27 @@ def parse_args():
         help="Delete data archive and/or unpacked files.",
     )
     data_group.add_argument(
-        "--data-dir",
-        default=DATA_DIR,
+        "--data-environment",
+        choices=["local", "pantry"],
+        default=DEFAULT_DATA_ENVIRONMENT,
         type=str,
-        help="Define the root directory where data is unpacked",
+        help="Define whether to locate unpacked data within the pantry or at locations from the refdata specs.",
     )
     data_group.add_argument(
         "--data-select",
         default=".*",
         metavar="REGEXP",
         help="Regular expression to select specific data archives to operate on.",
+    )
+    data_group.add_argument(
+        "--data-no-validation",
+        action="store_true",
+        help="""Skip data validatation metadata collection and verification.""",
+    )
+    data_group.add_argument(
+        "--data-no-unpack-existing",
+        action="store_true",
+        help="""Skip data archive unpack if the target directory already exists indicating already unpacked.""",
     )
 
     notebook_group = parser.add_argument_group(

@@ -19,8 +19,9 @@ import re
 from dataclasses import dataclass
 from collections import defaultdict
 
+
 from . import utils
-from .logger import WranglerLoggable, WranglerLogger
+from .logger import WranglerLoggable, get_configured_logger
 from . import config
 from . import constants
 
@@ -88,7 +89,7 @@ other_variables:
 
 def is_valid_url(url: str):
     """Make sure `url` has a valid scheme like https:// and a valid net location."""
-    logger = WranglerLogger()
+    logger = get_configured_logger()
     try:
         result = urlparse(str(url).strip())
         logger.debug(f"Validating URL '{url}'.")
@@ -130,7 +131,7 @@ def is_valid_abstract_path(path: str):
 class DataSection(WranglerLoggable):
     """Represents a single data item in the ref. Attributes are all static
     values taken directly from a refdata_dependencies.yaml spec which are
-    later further resolved into more concrete installed valuesw"""
+    later further resolved into more concrete installed values."""
 
     def __init__(
         self,
@@ -417,15 +418,15 @@ class RefdataValidator(WranglerLoggable):
         )
         return filtered_urls
 
-    def get_data_section_env_vars(self) -> dict[str, str]:
+    def get_data_local_env_vars(self) -> dict[str, str]:
         return {
             dsu.section.environment_variable: dsu.section.env_value
             for dsu in self.get_data_section_urls()
         }
 
-    def get_data_pantry_env_vars(self, pantry_path: Path) -> dict[str, str]:
+    def get_data_pantry_env_vars(self, abstract_data_path: Path) -> dict[str, str]:
         return {
-            dsu.section.environment_variable: str(pantry_path / dsu.section.data_path)
+            dsu.section.environment_variable: str(abstract_data_path / dsu.section.data_path)
             for dsu in self.get_data_section_urls()
         }
 
@@ -434,6 +435,33 @@ class RefdataValidator(WranglerLoggable):
         for refdata_path, refdata in self.all_data.items():
             result.update(refdata.other_variables)
         return dict(result)
+
+    def get_local_exports(self) -> dict:
+        """Get env variables targeted at the locations specified in the refdata spec
+        only.
+
+        Note that these env variable definitions are still abstract.
+        """
+        local_env_vars = self.get_data_local_env_vars()
+        other_env_vars = self.get_data_other_env_vars()
+        local_exports = dict()
+        local_exports.update(local_env_vars)
+        local_exports.update(other_env_vars)
+        return local_exports
+
+    def get_pantry_exports(self, abstract_data_path: Path) -> dict:
+        """Get env variables targeted at internal pantry locations ignoring `install_path`
+        in the refdata spec in favor of wrangler management at `abstract_data_path`
+        which will be relative to $NBW_PANTRY.
+
+        Note that these env variable definitions are still abstract.
+        """
+        pantry_env_vars = self.get_data_pantry_env_vars(abstract_data_path)
+        other_env_vars = self.get_data_other_env_vars()
+        pantry_exports = dict()
+        pantry_exports.update(pantry_env_vars)
+        pantry_exports.update(other_env_vars)
+        return pantry_exports
 
 
 def main(argv):

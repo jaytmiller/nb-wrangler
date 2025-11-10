@@ -41,6 +41,8 @@ VALID_ARCHIVE_FORMATS = [
     ".tar.lz",
 ]
 
+DEFAULT_DATA_ENVIRONMENT = "pantry"
+
 # Notebook testing constants
 NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 30 * 60))  # 30 min
 NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))

@@ -307,20 +307,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
-        section_env_vars = data_validator.get_data_section_env_vars()
-        pantry_env_vars = data_validator.get_data_pantry_env_vars(
-            self.pantry_shelf.abstract_data_path
-        )
-        other_env_vars = data_validator.get_data_other_env_vars()
-        local_exports = dict()
-        local_exports.update(other_env_vars)
-        local_exports.update(section_env_vars)
-        local_exports.update(other_env_vars)
-        pantry_exports = dict()
-        pantry_exports.update(other_env_vars)
-        pantry_exports.update(pantry_env_vars)
+
+        local_exports = data_validator.get_local_exports()
         self.pantry_shelf.save_exports_file("nbw-local-exports.sh", local_exports)
+        pantry_exports = data_validator.get_pantry_exports(self.pantry_shelf.abstract_data_path)
         self.pantry_shelf.save_exports_file("nbw-pantry-exports.sh", pantry_exports)
+
+        self._register_environment()
+
         return self.spec_manager.revise_and_save(
             Path(self.config.spec_file).parent,
             data=dict(
@@ -365,6 +359,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
     def _data_update(self) -> bool:
+        if self.config.data_no_validation:
+            return self.logger.info(
+                "Skipping data validation due to --data-no-validation."
+            )
         self.logger.info("Collecting metadata for downloaded data archives.")
         data, urls = self._get_data_url_tuples()
         data["metadata"] = self.pantry_shelf.collect_all_metadata(urls)
@@ -374,6 +372,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
     def _data_validate(self) -> bool:
+        if self.config.data_no_validation:
+            return self.logger.info(
+                "Skipping data validation due to --data-no-validation."
+            )
         self.logger.info("Validating all downloaded data archives.")
         data, urls = self._get_data_url_tuples()
         metadata = data.get("metadata")
@@ -389,22 +391,31 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _data_unpack(self) -> bool:
         self.logger.info("Unpacking downloaded data archives to live locations.")
-        no_errors = True
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
-            # self.logger.info(f"Unpacking '{src_archive}' to '{dest_path}'.")
-            no_errors = (
-                self.env_manager.unarchive(src_archive, dest_path, "") and no_errors
-            )
-        self.pantry_shelf.save_exports_file(
+            final_path = dest_path / archive_tuple[3]
+            if final_path.exists():
+                self.logger.info(
+                    f"Skipping unpack for existing directory {final_path}."
+                )
+                continue
+            if not self.env_manager.unarchive(src_archive, dest_path, ""):
+                return self.logger.error(
+                    f"Failed unpacking '{src_archive}' to '{dest_path}'."
+                )
+        if not self.pantry_shelf.save_exports_file(
             "nbw-local-exports.sh", data["local_exports"]
-        )
-        self.pantry_shelf.save_exports_file(
+        ):
+            return self.logger.error("Failed exporting nbw-local-exports.sh")
+        if not self.pantry_shelf.save_exports_file(
             "nbw-pantry-exports.sh", data["pantry_exports"]
-        )
-        return no_errors
+        ):
+            return self.logger.error("Failed exporting nbw-local-exports.sh")
+        if not self._register_environment():
+            return self.logger.error("Failed registering environment.")
+        return True
 
     def _data_pack(self) -> bool:
         self.logger.info("Packing downloaded data archives from live locations.")
@@ -412,7 +423,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         for archive_tuple in self._get_data_url_tuples()[1]:
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
-            # self.logger.info(f"Packing '{dest_archive}' from '{src_path}'.")
             no_errors = (
                 self.env_manager.archive(dest_archive, src_path, "") or no_errors
             )
@@ -595,15 +605,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.spec_manager.data_reset_spec()
 
     def _unpack_environment(self) -> bool:
-        if not self.env_manager.unpack_environment(
+        if self.env_manager.unpack_environment(
             self.env_name, self.spec_manager.moniker, self.archive_format
         ):
-            return False
-        if not self.env_manager.register_environment(
-            self.env_name, self.kernel_display_name
-        ):
-            return False
-        return True
+            return self._register_environment()
+        return False
 
     def _pack_environment(self) -> bool:
         return self.env_manager.pack_environment(
@@ -618,11 +624,23 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _env_compact(self) -> bool:
         return self.env_manager.compact()
 
+    def _get_resolved_environment(self) -> dict:
+        data = self.spec_manager.get_output_data("data")
+        env_vars = data.get(self.config.data_environment + "_exports", {})
+        resolved_vars = utils.resolve_env(env_vars)
+        return resolved_vars
+
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        return self.env_manager.register_environment(
-            self.env_name, self.kernel_display_name
+        env_vars = self._get_resolved_environment()
+        self.logger.debug(
+            f"The resolved env vars for environment '{self.env_name}' are '{env_vars}'."
         )
+        if not self.env_manager.register_environment(
+            self.env_name, self.kernel_display_name, env_vars
+        ):
+            return False
+        return True
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""

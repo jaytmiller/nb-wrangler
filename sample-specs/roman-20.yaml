@@ -27,7 +27,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: ae7e1b1589c6bdb86dad9e02532cfa39d69bb03639f3e33ad8cbde83eb03a038
+  spec_sha256: adc96496a989e8d1a301f9f2b0aa365894e4ac2acac99ab87638c41fd495531c
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
@@ -1784,22 +1784,22 @@ out:
           CRDS_CONTEXT: roman_0027.pmap
           CRDS_PATH: ${HOME}/crds_cache
     local_exports:
-      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
-      CRDS_CONTEXT: roman_0027.pmap
-      CRDS_PATH: ${HOME}/crds_cache
       pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
       STPSF_PATH: ${HOME}/refdata/stpsf-data
       stips_data: ${HOME}/refdata/stips_data
       PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-    pantry_exports:
       CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
       CRDS_CONTEXT: roman_0027.pmap
       CRDS_PATH: ${HOME}/crds_cache
-      pandeia_refdata:
+    pantry_exports:
+      pandeia_refdata: 
         ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/pandeia_data-2025.9-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stpsf-data
       stips_data: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/stips_data
       PYSYN_CDBS: ${NBW_PANTRY}/shelves/roman-20-roman-cal/data/grp/redcat/trds
+      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
+      CRDS_CONTEXT: roman_0027.pmap
+      CRDS_PATH: ${HOME}/crds_cache
     metadata:
       roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
         size: '578788837'
