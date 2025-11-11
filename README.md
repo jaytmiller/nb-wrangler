@@ -285,12 +285,18 @@ The wrangler executes steps in a sequence, allowing for skipping steps that have
 
 The following command-line options are available:
 
-- `--curate`: Execute the curation workflow for spec development to add compiled requirements.
-- `--submit-for-build`: Submit fully elaborated requirements for image building.
+- `--curate`: Execute the curation workflow for spec development to add compiled requirements and build environments.
 - `--reinstall`: Install requirements defined by a pre-compiled spec.
-- `-t`, `--test`: Test both imports and all notebooks.
+- `--data-curate`: Execute multi-step workflow to import data specs from notebook repos and collect metadata.
+- `--data-reinstall`: Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.
+- `--submit-for-build`: Submit fully elaborated requirements/spec for automatic image building.
+- `--inject-spi`: Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.
+- `-t`, `--test-all`: Run both --test-imports and --test-notebooks.
 - `--test-imports`: Attempt to import every package explicitly imported by one of the spec'd notebooks.
-- `--test-notebooks`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*
+- `--test-notebooks`, `--test-notebooks-include`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*
+- `--test-notebooks-exclude`: Exclude notebooks from notebook test, defaulting to none, otherwise comma-separated-regex str, e.g. pat1,pat2
+- `--jobs`: Number of parallel jobs for notebook testing.
+- `--timeout`: Timeout in seconds for notebook tests.
 - `--verbose`: Enable DEBUG log output
 - `--debug`: Drop into debugging with pdb on exceptions.
 - `--profile`: Run with cProfile and output profiling results to console.
@@ -305,19 +311,34 @@ The following command-line options are available:
 - `--env-archive-format`: Format for pack/unpack, nominally one of: .tar.gz, .tar.xz, .tar, .tar.bz2, .tar.zst, .tar.lzma, .tar.lzo, .tar.lz
 - `--env-compact`: Compact the wrangler installation by deleting package caches, etc.
 - `--packages-compile`: Compile spec and input package lists to generate pinned requirements and other metadata for target environment.
-- `--packages-omit-spi`: Include the 'common' packages used by all missions in all current SPI based and mission environments, may affect GUI capabilty.
+- `--packages-omit-spi`: Include the 'common' packages used by all missions in all current SPI based mission environments, may affect GUI capability.
 - `--packages-install`: Install compiled base and pip requirements into target/test environment.
 - `--packages-uninstall`: Remove the compiled packages from the target environment after processing.
-- `--jobs`: Number of parallel jobs for notebook testing.
-- `--timeout`: Timeout in seconds for notebook tests.
-- `--inject-spi`: Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment'.
+- `--packages-diagnostics`: Include extra outputs showing which requirements files are included and the packages they require.
 - `--clone-repos`: Clone notebook repos to the directory indicated by --repos-dir.
 - `--repos-dir`: Directory where notebook and other repos will be cloned.
 - `--delete-repos`: Delete --repo-dir and clones after processing.
-- `--spec-reset`: Reset spec to its original state by deleting output fields.
+- `--spec-reset`: Reset spec to its original state by deleting output fields. The out.data section is preserved.
+- `--spec-add`: Add the active spec to the pantry. This creates a 'shelf' for one complete environment.
+- `--spec-list`: List all the available specs in the pantry.
+- `--spec-select`: Select a stored spec by regex to use as the context for this wrangler run.
 - `--spec-validate`: Validate the specification file without performing any curation actions.
-- `--spec-ignore-hash`: Spec SHA256 hashes will not be added or verified upon re-installation.
-- `--spec-add-pip-hashes`: Record PyPi hashes of requested packages for easier verification during later installs.
+- `--spec-update-hash`: Update spec SHA256 hash even if validation fails and continue processing.
+- `--spec-ignore-hash`: Spec SHA256 hashes will not be added or verified upon re-installation. Modifier to --validate and validation in general.
+- `--spec-add-pip-hashes`: Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.
+- `--data-collect`: Collect data archive and installation info and add to spec.
+- `--data-list`: List out data archives which can be downloaded, stored, installed, etc. Helps identify selection strings to operate on subsets of data.
+- `--data-download`: Download data archive files to the pantry.
+- `--data-update`: Update metadata for data archives, e.g. length and hash.
+- `--data-validate`: Validate the archive files stored in pantry against metadata from the wrangler spec.
+- `--data-unpack`: Unpack the data archive files stored in pantry to the directory spec'd in --data-dir.
+- `--data-pack`: Pack the live data directories in the pantry into their corresponding archive files, must be in spec.
+- `--data-reset-spec`: Clear the 'data' sub-section of the 'out' section of the active nb-wrangler spec.
+- `--data-delete`: Delete data archive and/or unpacked files.
+- `--data-environment`: Define whether to locate unpacked data within the pantry or at locations from the refdata specs.
+- `--data-select`: Regular expression to select specific data archives to operate on.
+- `--data-no-validation`: Skip data validation metadata collection and verification.
+- `--data-no-unpack-existing`: Skip data archive unpack if the target directory already exists indicating already unpacked.
 
 ## Missing Topics
 
@@ -325,4 +346,4 @@ The following command-line options are available:
 - **Configuration options:** A more comprehensive list of available configuration options and their effects.
 - **Error handling:** More information on how the tool handles various errors and provides feedback to the user.
 - **Advanced usage:** Potential use cases beyond basic curation, such as automated testing workflows or integration with other tools.
-```
+
