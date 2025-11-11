@@ -1,6 +1,7 @@
 # nb_wrangler/wrangler.py
 """Main NotebookWrangler class orchestrating the curation process."""
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -101,6 +102,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow based on configured workflow type."""
+        if not self._setup_environment():
+            return self.error("Failed to set up internal Python environment from spec.")
         no_errors = True
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
@@ -396,7 +399,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             dest_path = self.pantry_shelf.data_path
             final_path = dest_path / archive_tuple[3]
-            if final_path.exists():
+            if final_path.exists() and self.config.data_no_unpack_existing:
                 self.logger.info(
                     f"Skipping unpack for existing directory {final_path}."
                 )
@@ -624,12 +627,19 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _get_resolved_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")
-        if data is not None:
+        if data is not None and not self.config.data_env_vars_no_auto_add:
             env_vars = data.get(self.config.data_environment + "_exports", {})
             resolved_vars = utils.resolve_env(env_vars)
             return resolved_vars
         else:
             return {}
+
+    def _setup_environment(self) -> bool:
+        env_vars = self._get_resolved_environment()
+        for key, value in env_vars.items():
+            os.environ[key] = value
+            self.logger.debug(f"Setting environment '{key}' = '{value}' for wrangler and and notebooks.")
+        return True
             
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""

@@ -98,6 +98,7 @@ class WranglerConfig:
     spec_update_hash: bool = False
 
     data_environment: str = DEFAULT_DATA_ENVIRONMENT
+    data_env_vars_no_auto_add: bool = False
     data_reset_spec: bool = False
     data_collect: bool = False
     data_list: bool = False
@@ -166,6 +167,7 @@ class WranglerConfig:
             data_pack=args.data_pack,
             data_delete=args.data_delete,
             data_environment=args.data_environment,
+            data_env_vars_no_auto_add=args.data_env_vars_no_auto_add,
             data_select=args.data_select,
             data_no_validation=args.data_no_validation,
             data_no_unpack_existing=args.data_no_unpack_existing,

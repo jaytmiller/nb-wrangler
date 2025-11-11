@@ -265,6 +265,11 @@ def parse_args():
         help="Define whether to locate unpacked data within the pantry or at locations from the refdata specs.",
     )
     data_group.add_argument(
+        "--data-env-vars-no-auto-add",
+        action="store_true",
+        help="Do not automatically add data environment variables to nb-wrangler runtime."
+    )
+    data_group.add_argument(
         "--data-select",
         default=".*",
         metavar="REGEXP",
