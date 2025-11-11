@@ -518,9 +518,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             spec_file.write(mamba_spec)
         if not self.env_manager.create_environment(self.env_name, self.mamba_spec_file):
             return False
-        if not self.env_manager.register_environment(
-            self.env_name, self.kernel_display_name
-        ):
+        if not self._register_environment():
             return False
         return self._copy_spec_to_env()
 
@@ -626,10 +624,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _get_resolved_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")
-        env_vars = data.get(self.config.data_environment + "_exports", {})
-        resolved_vars = utils.resolve_env(env_vars)
-        return resolved_vars
-
+        if data is not None:
+            env_vars = data.get(self.config.data_environment + "_exports", {})
+            resolved_vars = utils.resolve_env(env_vars)
+            return resolved_vars
+        else:
+            return {}
+            
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
         env_vars = self._get_resolved_environment()

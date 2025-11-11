@@ -131,18 +131,20 @@ DATA_WORKFLOWS =  wrangler-spec-curate data-test-curate data-test-reinstall
 
 DATA_SELECTED = 'pandeia|stpsf|other-spectra_multi_v2_sed'
 
+DATA_CLEANUP = ../../nb-wrangler data-test-spec.yaml --data-delete both --data-select ${DATA_SELECTED}
+
 data-clean:
 	source ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
-	rm -rf ${NBW_PANTRY} && \
 	rm -rf references && \
 	git checkout -- data-test-spec.yaml
 
-data-functional: data-clean wrangler-spec-curate data-test-workflows # data-test-steps
+data-functional: data-clean wrangler-spec-curate data-test-workflows 
 
 wrangler-spec-curate:
 	source ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
+	${DATA_CLEANUP} && \
 	../../nb-wrangler data-test-spec.yaml --spec-reset && \
 	../../nb-wrangler data-test-spec.yaml --curate
 
@@ -151,13 +153,16 @@ data-test-workflows: data-clean ${DATA_WORKFLOWS}
 data-test-curate:
 	. ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
+	${DATA_CLEANUP} && \
 	../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
 	../../nb-wrangler data-test-spec.yaml --data-curate --data-select ${DATA_SELECTED}
 
 data-test-reinstall:
 	. ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
-	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select ${DATA_SELECTED}
+	${DATA_CLEANUP} && \
+	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select ${DATA_SELECTED} && \
+	rm -rf references
 
 # data-test-steps: ${DATA_STEPS}
 
