@@ -64,13 +64,77 @@ Deactivate either nbwrangler or the target environment with:
 source ./nb-wrangler deactivate
 ```
 
+## Overall nb-wrangler usage
+
+Overall usage of nb-wrangler entails two broad areas,  setting up notebooks and environments,  and setting
+up supporting data.  Whether working on environments or data,  there are two phases for each area:
+developing the wrangler spec (a process called curation),  and reinstalling systems based on the
+wrangler spec.  To that end, the wrangler has 4 key workflows which are detailed more below but can
+be invoked basically as follows:
+
+```bash
+# Phase 1  - curator work
+./nb-wrangler spec.yaml  --curate
+./nb-wrangler spec.yaml  --data-curate
+
+# Phase 2  - user and/or system admin work
+./nb-wrangler spec.yaml  --reinstall
+./nb-wrangler spec.yaml  --data-reinstall
+```
+
+Note that each workflow consists of multiple interdependent steps executed in the correct sequence,
+but individual steps are available for iteration as practical depending on the necessary prerequisite
+steps having already been executed.  To save time the wrangler uses a basic approach to avoid repeating
+previously accomplished work,  but in the presence of errors it may be necessary to delete part or all
+of the existing installation before recovering.
+
 ## Curation
 
-The wrangler prepares a custom version of the `spec.yaml` file. Then, run:
+You the wrangler prepares a custom version of the `spec.yaml` file. Then, run:
 
 ```bash
 nb-wrangler spec.yaml --curate [--verbose]
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
+INFO: 00:00:00.005 Running workflows ['curation'].
+INFO: 00:00:00.000 Running spec development / curation workflow
+INFO: 00:00:00.000 Setting up repository clones.
+INFO: 00:00:00.000 Using existing local clone at references/science-platform-images
+INFO: 00:00:00.000 Using existing local clone at references/mast_notebooks
+INFO: 00:00:00.000 Using existing local clone at references/tike_content
+INFO: 00:00:00.003 Found 8 notebooks in all notebook repositories.
+INFO: 00:00:00.000 Processing 8 unique notebooks for imports.
+INFO: 00:00:00.001 Extracted 7 package imports from 8 notebooks.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
+INFO: 00:00:00.011 Generating mamba spec for target environment /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-mamba.yml.
+INFO: 00:00:00.000 Found SPI extra 1 mamba requirements files.
+INFO: 00:00:00.001 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
+INFO: 00:00:00.012 Found 8 notebook requirements.txt files.
+INFO: 00:00:00.000 Found SPI extra 5 pip requirements files.
+INFO: 00:00:00.000 w/o hashes.
+INFO: 00:00:00.507 Compiled combined pip requirements to 352 package versions.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
+INFO: 00:00:00.053 Creating environment: tess
+INFO: 00:00:12.721 Environment tess created. It needs to be registered before JupyterLab will display it as an option.
+INFO: 00:00:00.356 Registered environment tess as a jupyter kernel making it visible to JupyterLab as 'TESS'.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.045 Installing packages from: ['/home/ai/.nbw-live/temps/tike-2025.07-beta-tess-pip.txt']
+INFO: 00:00:06.219 Package installation for tess completed successfully.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.045 Saving spec file to /home/ai/nb-wrangler/fnc-test-spec.yaml.
+INFO: 00:00:00.050 Workflow spec development / curation completed.
+INFO: 00:00:00.000 Running any explicitly selected steps.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:20
 ```
+
+This phases identifies the exact notebooks to be included by the spec,  as well as the s/w packages
+required to support those notebooks.  This information is added to the spec in exact detail to enable
+high fidelity reproduction of the s/w environment and exact package versions for future installs.
 
 ## Automatic Testing
 
@@ -88,9 +152,26 @@ For example, you can iterate fairly rapidly with:
 
 ```bash
 nb-wrangler spec.yaml --curate --test-imports
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
+INFO: 00:00:00.027 Running any explicitly selected steps.
+INFO: 00:00:00.000 Running step _test_imports
+INFO: 00:00:00.000 Testing 7 imports
+INFO: 00:00:00.309 Import of astropy succeeded.
+INFO: 00:00:00.188 Import of astroquery succeeded.
+INFO: 00:00:08.436 Import of lcviz succeeded.
+INFO: 00:00:01.641 Import of lightkurve succeeded.
+INFO: 00:00:00.212 Import of matplotlib succeeded.
+INFO: 00:00:00.119 Import of numpy succeeded.
+INFO: 00:00:00.629 Import of s3fs succeeded.
+INFO: 00:00:00.000 All imports succeeded.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:11
 ```
 
-to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` for more meaningful checks and verification that empirically viable package versions are installed.
+to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` 
+for more meaningful checks and verification that empirically viable package versions are installed.
 
 Note that successfully running notebooks may require correctly setting up local copies of data
 which are nominally defined in the file `refdata_dependencies.yaml` at the root of each notebook
@@ -103,7 +184,54 @@ A finished spec can be used to re-install corresponding Python environments in a
 
 ```bash
 nb-wrangler spec.yaml --reinstall
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
+INFO: 00:00:00.024 Running workflows ['reinstall'].
+INFO: 00:00:00.000 Running install-compiled-spec workflow
+INFO: 00:00:00.032 Creating environment: tess
+INFO: 00:00:06.159 Environment tess created. It needs to be registered before JupyterLab will display it as an option.
+INFO: 00:00:00.369 Registered environment tess as a jupyter kernel making it visible to JupyterLab as 'TESS'.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.045 Installing packages from: ['/home/ai/.nbw-live/temps/tike-2025.07-beta-tess-pip.txt']
+INFO: 00:00:01.766 Package installation for tess completed successfully.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.046 Workflow install-compiled-spec completed.
+INFO: 00:00:00.000 Running any explicitly selected steps.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:08
 ```
+
+## Data Wrangling
+
+Part of nb-wrangler's functionality is associated with managing the data required to test/run the spec'ed notebooks.
+
+Like the creation of the basic s/w environment, data wrangler has two main phases:
+
+### Data Curation
+
+This is the process of updating the wrangler spec based on per-repository `refdata_dependencies.yaml` files which
+define data requirements much as `requirements.txt` files define per-notebook package requirements.  This phase
+will likely revolved around setting up the data archives,  setting up repo `refdata_dependencies.yaml` files, and
+running the wrangler to import the information into the wrangler spec and augment it as needed:
+
+```bash
+./nb-wrangler sample-specs/roman-20.yaml --data-curate
+```
+
+### Data Reinstallation
+
+Once data archives have been fully set up, notebook repos configured, and the wrangler spec updated based
+on `refdata_dependencies.yaml` files, future users and system admins can install the spec'd data archives
+and set up wrangler notebook environments using:
+
+```bash
+./nb-wrangler sample-specs/roman-20.yaml --data-reinstall
+```
+
+### More Data Curation Details
+
+See [Data Curation](docs/data.md) for more information on wrangling data.
 
 ## Build Submission
 
@@ -115,6 +243,7 @@ gh auth login
 nb-wrangler spec.yaml --submit-for-build [--verbose]
 ```
 
+Build submission is a complex topic with some per-curator setup required to enable creating images.
 For additional detail see [Submit for Build](docs/submit.md).
 
 
@@ -143,6 +272,8 @@ The wrangler executes steps in a sequence, allowing for skipping steps that have
 - **Target Environment Initialization:** Optionally initializes a target environment to facilitate requirement compilation, package installation, and testing. This includes creating a JupyterLab kernel required for notebook testing or use in JupyterLab.
 - **Package Compilation:** If `--compile-packages` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile-packages` is not specified, it uses the last compiled package set from the specification.
 - **Package Installation:** If `--packages-install` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
+- **Data Curation:** Gathering requirements for data needed to support the spec'ed notebook repos.
+- **Data Re-installation:** Downloading and installing the data defined by the wrangler spec, and updating the JupyterLab environment with the requred environment variables to refer to it.
 - **Notebook Testing:** If `--test-notebooks` is specified, runs notebooks matching a comma-separated list of names or regular expressions. If no notebooks or regexps are provided, it runs all notebooks. This is a headless crash test that runs up to `--jobs [n]` notebooks in parallel, with a `--timeout [seconds]` to terminate runaway notebooks.
 - **Repository Cleanup:** If `--delete-repos` is specified, removes all cloned repositories.
 - **Spec Reset:** If `--spec-reset` is specified, removes the output section from the `spec.yaml` file.
