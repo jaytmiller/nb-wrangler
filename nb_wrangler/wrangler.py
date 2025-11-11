@@ -404,7 +404,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if self.config.data_env_vars_mode == "pantry":
                 dest_path = self.pantry_shelf.data_path
             else:
-                dest_path = archive_tuple[4]
+                resolved = utils.resolve_vars(archive_tuple[4], os.environ)
+                dest_path = Path(resolved)
             final_path = dest_path / archive_tuple[3]
             if final_path.exists() and self.config.data_no_unpack_existing:
                 self.logger.info(

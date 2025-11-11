@@ -283,11 +283,12 @@ class NbwShelf(WranglerLoggable):
         new_sha256 = utils.sha256_file(new_path)
         return dict(size=new_size, sha256=new_sha256)
 
-    def save_exports_file(self, filename: str, exports: dict[str, str]) -> None:
+    def save_exports_file(self, filename: str, exports: dict[str, str]) -> bool:
         self.logger.info("New data exports file available at", self.path / filename)
         with (self.path / filename).open("w+") as stream:
             for var, value in exports.items():
                 stream.write(f"export {var}={value}\n")
+        return True
 
     def delete_archives(
         self, data_delete: str, archive_tuples: list[tuple[str, str, str, str, str]]
