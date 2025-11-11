@@ -628,7 +628,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _get_resolved_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
-            env_vars = data.get(self.config.data_environment + "_exports", {})
+            env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
             resolved_vars = utils.resolve_env(env_vars)
             return resolved_vars
         else:

@@ -20,7 +20,7 @@ from .constants import (
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DEFAULT_DATA_ENVIRONMENT,
+    DEFAULT_DATA_ENV_VARS_MODE,
 )
 
 
@@ -97,7 +97,7 @@ class WranglerConfig:
     spec_add_pip_hashes: bool = False
     spec_update_hash: bool = False
 
-    data_environment: str = DEFAULT_DATA_ENVIRONMENT
+    data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_env_vars_no_auto_add: bool = False
     data_reset_spec: bool = False
     data_collect: bool = False
@@ -166,7 +166,7 @@ class WranglerConfig:
             data_unpack=args.data_unpack,
             data_pack=args.data_pack,
             data_delete=args.data_delete,
-            data_environment=args.data_environment,
+            data_env_vars_mode=args.data_env_vars_mode,
             data_env_vars_no_auto_add=args.data_env_vars_no_auto_add,
             data_select=args.data_select,
             data_no_validation=args.data_no_validation,

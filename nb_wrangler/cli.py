@@ -1,6 +1,7 @@
 # nb_wrangler/cli.py
 """Command line interface for nb-wrangler."""
 
+import os
 import sys
 import argparse
 import cProfile
@@ -16,7 +17,7 @@ from .constants import (
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
     REPOS_DIR,
-    DEFAULT_DATA_ENVIRONMENT,
+    DEFAULT_DATA_ENV_VARS_MODE,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     NOTEBOOK_TEST_EXCLUDE,
@@ -31,6 +32,8 @@ def parse_args():
     )
     parser.add_argument(
         "spec_uri",
+        nargs="?",
+        default=None,
         type=str,
         help="URI to the YAML specification file:  simple path, file:// path, https://, http://, or s3://",
     )
@@ -258,9 +261,9 @@ def parse_args():
         help="Delete data archive and/or unpacked files.",
     )
     data_group.add_argument(
-        "--data-environment",
+        "--data-env-vars-mode",
         choices=["local", "pantry"],
-        default=DEFAULT_DATA_ENVIRONMENT,
+        default=DEFAULT_DATA_ENV_VARS_MODE,
         type=str,
         help="Define whether to locate unpacked data within the pantry or at locations from the refdata specs.",
     )
@@ -409,7 +412,15 @@ def parse_args():
 def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
-
+    if args.spec_uri is None:
+        log = logger.WranglerLogger()
+        if os.environ.get("NBW_SPEC") is None:
+            log.error("No wrangler spec given and NBW_SPEC is not set, quitting...")
+            return 1
+        else:
+            spec = os.environ["NBW_SPEC"]
+            log.info(f"Using spec defined by NBW_SPEC = {spec}")
+            args.spec_uri = spec
     if args.profile:
         with cProfile.Profile() as pr:
             success = _main(args)
