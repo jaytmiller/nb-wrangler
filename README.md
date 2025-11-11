@@ -335,7 +335,8 @@ The following command-line options are available:
 - `--data-pack`: Pack the live data directories in the pantry into their corresponding archive files, must be in spec.
 - `--data-reset-spec`: Clear the 'data' sub-section of the 'out' section of the active nb-wrangler spec.
 - `--data-delete`: Delete data archive and/or unpacked files.
-- `--data-environment`: Define whether to locate unpacked data within the pantry or at locations from the refdata specs.
+- `--data-env-vars-mode`: Define whether to locate unpacked data within the pantry (default) or at locations from the refdata specs resolved locally (local).
+- `--data-env-vars-no-auto-add`: Do not automatically add environment variables to notebook sessions or wrangler operations.
 - `--data-select`: Regular expression to select specific data archives to operate on.
 - `--data-no-validation`: Skip data validation metadata collection and verification.
 - `--data-no-unpack-existing`: Skip data archive unpack if the target directory already exists indicating already unpacked.
