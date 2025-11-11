@@ -103,7 +103,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _main_uncaught_core(self) -> bool:
         """Execute the complete curation workflow based on configured workflow type."""
         if not self._setup_environment():
-            return self.error("Failed to set up internal Python environment from spec.")
+            return self.logger.error(
+                "Failed to set up internal Python environment from spec."
+            )
         no_errors = True
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
@@ -313,7 +315,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         local_exports = data_validator.get_local_exports()
         self.pantry_shelf.save_exports_file("nbw-local-exports.sh", local_exports)
-        pantry_exports = data_validator.get_pantry_exports(self.pantry_shelf.abstract_data_path)
+        pantry_exports = data_validator.get_pantry_exports(
+            self.pantry_shelf.abstract_data_path
+        )
         self.pantry_shelf.save_exports_file("nbw-pantry-exports.sh", pantry_exports)
 
         self._register_environment()
@@ -329,7 +333,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _get_data_url_tuples(
         self,
-    ) -> tuple[dict[str, Any], list[tuple[str, str, str, str]]]:
+    ) -> tuple[dict[str, Any], list[tuple[str, str, str, str, str]]]:
         data = self.spec_manager.get_output_data("data")
         spec_inputs = data["spec_inputs"]
         data_validator = RefdataValidator.from_dict(spec_inputs)
@@ -397,7 +401,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
-            dest_path = self.pantry_shelf.data_path
+            if self.config.data_env_vars_mode == "pantry":
+                dest_path = self.pantry_shelf.data_path
+            else:
+                dest_path = archive_tuple[4]
             final_path = dest_path / archive_tuple[3]
             if final_path.exists() and self.config.data_no_unpack_existing:
                 self.logger.info(
@@ -638,9 +645,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         env_vars = self._get_resolved_environment()
         for key, value in env_vars.items():
             os.environ[key] = value
-            self.logger.debug(f"Setting environment '{key}' = '{value}' for wrangler and and notebooks.")
+            self.logger.debug(
+                f"Setting environment '{key}' = '{value}' for wrangler and and notebooks."
+            )
         return True
-            
+
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
         env_vars = self._get_resolved_environment()

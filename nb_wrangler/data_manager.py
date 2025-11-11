@@ -406,9 +406,15 @@ class RefdataValidator(WranglerLoggable):
 
     def get_data_urls(
         self, include_regex: str = ".*"
-    ) -> list[tuple[str, str, str, str]]:
+    ) -> list[tuple[str, str, str, str, str]]:
         filtered_urls = [
-            (dsu.repo_name, dsu.section_name, dsu.url, dsu.section.data_path)
+            (
+                dsu.repo_name,
+                dsu.section_name,
+                dsu.url,
+                dsu.section.data_path,
+                dsu.section.install_path,
+            )
             for dsu in self.get_data_section_urls()
             if self.filter_data_url(dsu, include_regex)
         ]
@@ -426,7 +432,9 @@ class RefdataValidator(WranglerLoggable):
 
     def get_data_pantry_env_vars(self, abstract_data_path: Path) -> dict[str, str]:
         return {
-            dsu.section.environment_variable: str(abstract_data_path / dsu.section.data_path)
+            dsu.section.environment_variable: str(
+                abstract_data_path / dsu.section.data_path
+            )
             for dsu in self.get_data_section_urls()
         }
 

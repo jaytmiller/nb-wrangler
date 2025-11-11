@@ -23,6 +23,7 @@ extra_mamba_packages:
   - pip
 extra_pip_packages:
   - boto3
+  # - lsstdesc.coord
 system:
   spec_version: 1.0
   archive_format: .tar

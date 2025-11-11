@@ -173,28 +173,32 @@ class NbwShelf(WranglerLoggable):
                 dest_stream.write(source_stream.read())
         return self.spec_path
 
-    def archive_path(self, archive_tuple: tuple[str, str, str, str]) -> Path:
+    def archive_path(self, archive_tuple: tuple[str, str, str, str, str]) -> Path:
         part: str
         path = self.archive_root
-        for part in archive_tuple[:-2]:
+        for part in archive_tuple[:-3]:
             path = path / part
         return path
 
-    def archive_url(self, archive_tuple: tuple[str, str, str, str]) -> str:
-        return archive_tuple[-2]
+    def archive_url(self, archive_tuple: tuple[str, str, str, str, str]) -> str:
+        return archive_tuple[2]
 
-    def archive_filepath(self, archive_tuple: tuple[str, str, str, str]) -> Path:
+    def archive_filepath(self, archive_tuple: tuple[str, str, str, str, str]) -> Path:
         archive_path = self.archive_path(archive_tuple)
         url = self.archive_url(archive_tuple)
         return archive_path / Path(url).name
 
-    def archive_rel_filepath(self, archive_tuple: tuple[str, str, str, str]) -> str:
+    def archive_rel_filepath(
+        self, archive_tuple: tuple[str, str, str, str, str]
+    ) -> str:
         s = str(self.archive_filepath(archive_tuple))
         t = str(self.archive_root)
         return s.removeprefix(t)[1:]
 
     def download_all_data(
-        self, archive_tuples: list[tuple[str, str, str, str]], force: bool = False
+        self,
+        archive_tuples: list[tuple[str, str, str, str, str]],
+        force: bool = False,
     ) -> bool:
         no_errors = True
         for archive_tuple in archive_tuples:
@@ -202,7 +206,7 @@ class NbwShelf(WranglerLoggable):
         return no_errors
 
     def download_data(
-        self, archive_tuple: tuple[str, str, str, str], force: bool = False
+        self, archive_tuple: tuple[str, str, str, str, str], force: bool = False
     ) -> bool:
         archive_path = self.archive_path(archive_tuple)
         archive_path.mkdir(parents=True, exist_ok=True)
@@ -225,7 +229,7 @@ class NbwShelf(WranglerLoggable):
 
     def validate_all_data(
         self,
-        archive_tuples: list[tuple[str, str, str, str]],
+        archive_tuples: list[tuple[str, str, str, str, str]],
         data_metadata: dict[str, dict[str, str]],
     ) -> bool:
         no_errors = True
@@ -237,7 +241,7 @@ class NbwShelf(WranglerLoggable):
         return no_errors
 
     def validate_data(
-        self, archive_tuple: tuple[str, str, str, str], metadata: dict[str, str]
+        self, archive_tuple: tuple[str, str, str, str, str], metadata: dict[str, str]
     ) -> bool:
         no_errors = True
         key = self.archive_rel_filepath(archive_tuple)
@@ -259,7 +263,7 @@ class NbwShelf(WranglerLoggable):
         return no_errors
 
     def collect_all_metadata(
-        self, archive_tuples: list[tuple[str, str, str, str]]
+        self, archive_tuples: list[tuple[str, str, str, str, str]]
     ) -> dict[str, dict[str, str]]:
         return {
             self.archive_rel_filepath(archive_tuple): self.collect_metadata(
@@ -270,7 +274,7 @@ class NbwShelf(WranglerLoggable):
 
     @cache
     def collect_metadata(
-        self, archive_tuple: tuple[str, str, str, str]
+        self, archive_tuple: tuple[str, str, str, str, str]
     ) -> dict[str, str]:
         key = self.archive_rel_filepath(archive_tuple)
         new_path = self.archive_filepath(archive_tuple)
@@ -284,10 +288,9 @@ class NbwShelf(WranglerLoggable):
         with (self.path / filename).open("w+") as stream:
             for var, value in exports.items():
                 stream.write(f"export {var}={value}\n")
-        return True
 
     def delete_archives(
-        self, data_delete: str, archive_tuples: list[tuple[str, str, str, str]]
+        self, data_delete: str, archive_tuples: list[tuple[str, str, str, str, str]]
     ) -> bool:
         no_errors = True
         for archive_tuple in archive_tuples:
@@ -295,7 +298,7 @@ class NbwShelf(WranglerLoggable):
         return no_errors
 
     def delete_either(
-        self, data_delete: str, archive_tuple: tuple[str, str, str, str]
+        self, data_delete: str, archive_tuple: tuple[str, str, str, str, str]
     ) -> bool:
         no_errors = True
         if data_delete in ["archived", "both"]:
