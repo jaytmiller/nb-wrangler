@@ -151,14 +151,14 @@ wrangler-spec-curate:
 data-test-workflows: data-clean ${DATA_WORKFLOWS}
 
 data-test-curate:
-	. ./nb-wrangler environment  &&  \
+	source ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
 	${DATA_CLEANUP} && \
 	../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
 	../../nb-wrangler data-test-spec.yaml --data-curate --data-select ${DATA_SELECTED}
 
 data-test-reinstall:
-	. ./nb-wrangler environment  &&  \
+	source ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
 	${DATA_CLEANUP} && \
 	../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select ${DATA_SELECTED} && \

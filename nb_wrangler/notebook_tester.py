@@ -7,7 +7,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ProcessPoolExecutor
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -64,7 +64,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         failing_notebooks = []
 
-        with ThreadPoolExecutor(max_workers=max_jobs) as executor:
+        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
             results = executor.map(
                 self._test_single_notebook,
                 notebook_paths,
