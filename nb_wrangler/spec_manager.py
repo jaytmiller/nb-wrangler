@@ -413,18 +413,25 @@ class SpecManager(WranglerLoggable):
     def _validate_selected_notebooks_section(self) -> bool:
         """Validate selected_notebooks section."""
         no_errors = True
-        for i, entry in enumerate(self.selected_notebooks):
-            for key in self.REQUIRED_KEYWORDS["selected_notebooks"]:
+        for key in self.REQUIRED_KEYWORDS["selected_notebooks"]:
+            for i, entry in enumerate(self.selected_notebooks):
                 if key in entry:
                     break
             else:
-                no_errors = self.logger.error(
-                    f"Missing required '{key}' field in selected_notebooks[{i}]."
+                no_errors = (
+                    self.logger.error(
+                        f"Missing required '{key}' field in selected_notebooks[{i}]."
+                    )
+                    and no_errors
                 )
+        for i, entry in enumerate(self.selected_notebooks):
             for key in entry:
                 if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:  # type: ignore
-                    no_errors = self.logger.error(
-                        f"Unknown keyword '{key}' in selected_notebooks[{i}]."
+                    no_errors = (
+                        self.logger.error(
+                            f"Unknown keyword '{key}' in selected_notebooks[{i}]."
+                        )
+                        and no_errors
                     )
         return no_errors
 
@@ -469,7 +476,7 @@ class SpecManager(WranglerLoggable):
         for i, entry in enumerate(self.selected_notebooks):
             selection_repo = self._get_selection_repo(i, entry)
             clone_dir = self._get_repo_dir(repos_dir, selection_repo)
-            if not clone_dir:
+            if not clone_dir.exists():
                 self.logger.error(f"Repository not set up: {clone_dir}")
                 continue
             entry_root = entry.get("nb_root_directory", "")
@@ -481,7 +488,7 @@ class SpecManager(WranglerLoggable):
         )
         return sorted(list(notebook_paths))
 
-    def _get_repo_dir(self, repos_dir: Path, nb_repo: str) -> Optional[Path]:
+    def _get_repo_dir(self, repos_dir: Path, nb_repo: str) -> Path:
         """Get the path to the repository directory."""
         basename = os.path.basename(nb_repo).replace(".git", "")
         return repos_dir / basename

@@ -145,7 +145,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
     ) -> str:
         """Uncaught core processing of generate_mamba_spec."""
         dependencies = [
-            f"python={self.python_version}" if self.python_version else "3",
+            f"python={self.python_version}" if self.python_version else "python",
         ]
         dependencies += TARGET_PACKAGES
         dependencies += dependencies_in

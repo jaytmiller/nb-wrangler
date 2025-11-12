@@ -404,7 +404,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if self.config.data_env_vars_mode == "pantry":
                 dest_path = self.pantry_shelf.data_path
             else:
-                resolved = utils.resolve_vars(archive_tuple[4], os.environ)
+                resolved = utils.resolve_vars(archive_tuple[4], dict(os.environ))
                 dest_path = Path(resolved)
             final_path = dest_path / archive_tuple[3]
             if final_path.exists() and self.config.data_no_unpack_existing:
@@ -450,9 +450,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Remove the 'SPI injector repo' used to make PR's for image builds
         ensuring the next copy will be clean.
         """
-        return self.repo_manager.delete_repos(
-            [str(self.spec_manager.get_outputs("injector_url"))]
-        )
+        url = self.spec_manager.get_outputs("injector_url")
+        if not url:
+            self.logger.info("No injector repo to delete.")
+            return True
+        return self.repo_manager.delete_repos([str(url)])
 
     def _generate_target_mamba_spec(self) -> str | bool:
         """Unconditionally generate mamba environment .yml spec."""

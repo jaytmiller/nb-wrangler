@@ -7,7 +7,7 @@ import shutil
 import stat
 import sys
 import tempfile
-from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -29,14 +29,19 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Filter notebooks based on test patterns."""
         import re
 
+        include_patterns = include_patterns or ".*"
+        exclude_patterns = exclude_patterns or r"^$"
+        include_list = [p for p in include_patterns.split(",") if p]
+        exclude_list = [p for p in exclude_patterns.split(",") if p]
+
         unique_notebooks = set()
         for nb_path in sorted(notebook_paths):
-            for include_regex in include_patterns.split(","):
+            for include_regex in include_list:
                 if re.search(include_regex, nb_path):
                     self.logger.debug(
                         f"Including '{nb_path}' due to inclusion pattern '{include_regex}'."
                     )
-                    for exclude_regex in exclude_patterns.split(","):
+                    for exclude_regex in exclude_list:
                         if re.search(exclude_regex, nb_path):
                             self.logger.debug(
                                 f"Excluding '{nb_path}' due to exclusion pattern '{exclude_regex}'."
@@ -52,14 +57,14 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def test_notebooks(self, environment: str, notebook_paths: list[str]) -> bool:
         """Test multiple notebooks in parallel."""
 
-        max_jobs = min(self.config.jobs, len(notebook_paths))
+        max_jobs = max(1, min(self.config.jobs, len(notebook_paths)))
         self.logger.info(
             f"Testing {len(notebook_paths)} notebooks with {max_jobs} jobs"
         )
 
         failing_notebooks = []
 
-        with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+        with ThreadPoolExecutor(max_workers=max_jobs) as executor:
             results = executor.map(
                 self._test_single_notebook,
                 notebook_paths,

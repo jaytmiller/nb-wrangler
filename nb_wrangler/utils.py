@@ -4,7 +4,8 @@ import os
 import io
 import re
 import urllib.parse
-from typing import Optional
+
+# from typing import Optional
 import datetime
 import functools
 import hashlib
@@ -146,7 +147,7 @@ def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
     return filepath
 
 
-def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
+def uri_to_local_path(uri: str, timeout: int = 30) -> str:
     """Convert URI to local path if possible. Perform any required
     downloads based on the URI, nominally: none, HTTP, HTTPS, or S3.
 
@@ -179,7 +180,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return filename
         except requests.exceptions.RequestException as e:
             print(f"Error downloading file: {e}")
-            return None
+            raise e
 
     # Check for S3 URI
     elif uri.startswith("s3://"):  # XXXX untested
@@ -203,18 +204,17 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> Optional[str]:
             return filename
         except (NoCredentialsError, PartialCredentialsError) as e:
             print(f"AWS credentials error: {e}")
-            return None
+            raise e
         except Exception as e:
             print(f"Error downloading from S3: {e}")
-            return None
-
+            raise e
     # If URI doesn't match any of the supported types
     else:
         # Check if it's a relative or absolute local path
         if os.path.exists(uri):
             return os.path.abspath(uri)
         else:
-            return None
+            raise ValueError(f"Undefined URI format for spec {uri}.")
 
 
 @dataclass

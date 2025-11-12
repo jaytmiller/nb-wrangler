@@ -46,7 +46,6 @@ ${NBW_ROOT}/
 import shutil
 from pathlib import Path
 from functools import cache
-import shutils
 
 
 from . import utils
@@ -93,7 +92,8 @@ class NbwPantry(WranglerLoggable):
         This operation should be cautious and may require confirmation.
         Returns True if deletion was successful, False otherwise.
         """
-        shutils.rmtree(str(self.shelves / shelf_name))
+        shutil.rmtree(str(self.shelves / shelf_name))
+        return True
 
     def install_shelf(self, spec_path: str | Path) -> bool:
         """
