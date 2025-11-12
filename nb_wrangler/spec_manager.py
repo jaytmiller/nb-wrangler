@@ -418,20 +418,14 @@ class SpecManager(WranglerLoggable):
                 if key in entry:
                     break
             else:
-                no_errors = (
-                    self.logger.error(
-                        f"Missing required '{key}' field in selected_notebooks[{i}]."
-                    )
-                    and no_errors
+                no_errors = self.logger.error(
+                    f"Missing required '{key}' field in selected_notebooks[{i}]."
                 )
         for i, entry in enumerate(self.selected_notebooks):
             for key in entry:
                 if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:  # type: ignore
-                    no_errors = (
-                        self.logger.error(
-                            f"Unknown keyword '{key}' in selected_notebooks[{i}]."
-                        )
-                        and no_errors
+                    no_errors = self.logger.error(
+                        f"Unknown keyword '{key}' in selected_notebooks[{i}]."
                     )
         return no_errors
 

@@ -435,7 +435,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             no_errors = (
-                self.env_manager.archive(dest_archive, src_path, "") or no_errors
+                self.env_manager.archive(dest_archive, src_path, "") and no_errors
             )
         return no_errors
 
