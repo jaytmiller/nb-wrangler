@@ -431,7 +431,7 @@ def main() -> int:
     return success
 
 
-def _main(args):
+def _main(args) -> int:
     """Main entry point for the CLI."""
     config = config_mod.WranglerConfig.from_args(args)
     config_mod.set_args_config(config)

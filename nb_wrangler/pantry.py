@@ -83,13 +83,16 @@ class NbwPantry(WranglerLoggable):
             print(shelf.name)
         return True
 
+    def select_shelves(self, glob_expr: str) -> list[str]:
+        return [ str(shelf.name) for shelf in self.shelves.glob(glob_expr) ]
+
     def delete_shelf(self, shelf_name: str | Path) -> bool:
         """
         Delete an existing shelf.
         This operation should be cautious and may require confirmation.
         Returns True if deletion was successful, False otherwise.
         """
-        raise NotImplementedError("delete_shelf not yet implemented")
+        shutils.rmtree(str(self.shelves / shelf_name))
 
     def install_shelf(self, spec_path: str | Path) -> bool:
         """

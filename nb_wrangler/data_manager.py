@@ -87,7 +87,7 @@ other_variables:
 """
 
 
-def is_valid_url(url: str):
+def is_valid_url(url: str) -> bool:
     """Make sure `url` has a valid scheme like https:// and a valid net location."""
     logger = get_configured_logger()
     try:
