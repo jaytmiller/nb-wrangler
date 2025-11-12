@@ -319,12 +319,14 @@ class SpecManager(WranglerLoggable):
         "extra_pip_packages": [],
         "selected_notebooks": [
             "nb_repo",
+            "nb_branch",
             "nb_root_directory",
             "include_subdirs",
             "exclude_subdirs",
         ],
         "out": [
             "notebook_repo_urls",
+            "notebook_repo_branches",
             "test_notebooks",
             "spi_packages",
             "mamba_spec",
@@ -463,6 +465,21 @@ class SpecManager(WranglerLoggable):
             if nb_repo not in urls:
                 urls.append(nb_repo)
         return sorted(list(set(urls)))
+
+    def get_repository_branches(self) -> dict[str, str | None]:
+        """Get repository URLs mapped to their branches from the spec."""
+        self._ensure_validated()
+        repo_branches: dict[str, str | None] = {}
+        for i, entry in enumerate(self.selected_notebooks):
+            nb_repo = self._get_selection_repo(i, entry)
+            nb_branch = entry.get("nb_branch", "main")
+            if nb_repo in repo_branches and repo_branches[nb_repo] != nb_branch:
+                self.logger.warning(
+                    f"Conflicting branches for {nb_repo}: {repo_branches[nb_repo]} vs {nb_branch}. Using first occurrence."
+                )
+            elif nb_repo not in repo_branches:
+                repo_branches[nb_repo] = nb_branch
+        return repo_branches
 
     def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
         """Collect paths to all notebooks specified by the spec."""

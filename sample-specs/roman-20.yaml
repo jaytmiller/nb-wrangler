@@ -12,6 +12,7 @@ image_spec_header:
 # these are the useful tike_content notebooks
 selected_notebooks:
   - nb_repo: https://github.com/spacetelescope/roman_notebooks
+    nb_branch: dev
     nb_root_directory: content/notebooks/
     include_subdirs:
       - .*/
@@ -28,7 +29,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 00c8b06e320cc9963d190a95aaf5e1f02a1903d9a0c6587e00306141443b0aa2
+  spec_sha256: 2f0caf500d1f1897aa70296e8101a0966fef4cab823fed64b8d17d4688e73c03
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
@@ -1165,7 +1166,7 @@ out:
         # via
         #   pip-tools
         #   pipdeptree
-    pip-tools==7.5.1
+    pip-tools==7.5.2
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     pipdeptree==2.30.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
@@ -1852,3 +1853,5 @@ out:
       roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
         size: '121835520'
         sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
+  notebook_repo_branches:
+    https://github.com/spacetelescope/roman_notebooks: dev

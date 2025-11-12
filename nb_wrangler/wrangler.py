@@ -259,6 +259,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """
         self.logger.info("Setting up repository clones.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
+        notebook_repo_branches = self.spec_manager.get_repository_branches()
         if (
             self.config.packages_omit_spi
             and not self.config.inject_spi
@@ -269,7 +270,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             injector_url = self.injector.url
             if not self.repo_manager.setup_repos([injector_url], single_branch=False):
                 return False
-        if not self.repo_manager.setup_repos(notebook_repo_urls):
+        if not self.repo_manager.setup_repos(notebook_repo_urls, repo_branches=notebook_repo_branches):
             return False
         notebook_paths = self.spec_manager.collect_notebook_paths(
             self.config.repos_dir, notebook_repo_urls
@@ -289,6 +290,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             notebook_repo_urls=notebook_repo_urls,
+            notebook_repo_branches=notebook_repo_branches,
             injector_url=injector_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
