@@ -46,6 +46,7 @@ ${NBW_ROOT}/
 import shutil
 from pathlib import Path
 from functools import cache
+import shutils
 
 
 from . import utils
@@ -84,7 +85,7 @@ class NbwPantry(WranglerLoggable):
         return True
 
     def select_shelves(self, glob_expr: str) -> list[str]:
-        return [ str(shelf.name) for shelf in self.shelves.glob(glob_expr) ]
+        return [str(shelf.name) for shelf in self.shelves.glob(glob_expr)]
 
     def delete_shelf(self, shelf_name: str | Path) -> bool:
         """
