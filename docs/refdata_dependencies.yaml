@@ -1,3 +1,10 @@
+The following example of a notebook repo *refdata_dependencies.yaml* file was developed to specify data dependencies
+for a Python environment in a notebook-repo-defined format.  
+
+The example below is the initial prototype definition for
+Roman 20 development and may be updated as Roman 20 development is completed:
+
+```
 # For each Python package that requires a data installation, give the
 # package name and:
 #   version - package version number
@@ -53,3 +60,23 @@ other_variables:
   CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
   CRDS_CONTEXT: roman_0027.pmap
   CRDS_PATH: ${HOME}/crds_cache    # Nexus CRDS caches are local for now
+```
+
+The spec contains two high level sections:
+
+- install_files - defines a series of named data archive `section`s each of which defines one aspect of roman-20's refdata and specifies the download of one or more archive files and related infromation.
+- other_variables - defines environment variables that do not require an data download and install. For each variable, the name of the variable is given followed by a value.
+
+Within each named `section` of install there are the following fields:
+
+- version - specifies the version of this data section taken in aggregate
+- data_url - the data_url is a list of URLs of tarballs to install.  each url must include a viable tar file archive and compression identifying file extension, e.g. .tgz
+- environment_variable - variable to reference the installed data of *this section* from notebooks, scripts, and other programs.
+- install_path - location at which `tar` will run to unpack the archive.
+- data_path - path extension to be added to `install_path` to define full path for the data. for typical archives, this should be a single top level directory rather than deep path taken relative to the root of the data source system.
+
+For Nexus setup, the install_path value can be overridden to point to a shared data path.  To that end the wrangler has several data archive unpacking modes:
+
+- local - data should be unpacked at the location of `install_path` specified by refdata_depenencies.yaml interpreted within the local environment.
+- pantry - data should be unpacked at a standard directory of the pantry shelf for this wrangler spec, persistent on science platforms.
+- live - data should be unpacked at a standard directory of the wrangler's live storage area defined by NBW_LIVE, possibly ephemeral on science platforms.
