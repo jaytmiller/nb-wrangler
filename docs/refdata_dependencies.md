@@ -1,5 +1,5 @@
 The following example of a notebook repo *refdata_dependencies.yaml* file was developed to specify data dependencies
-for a Python environment in a notebook-repo-defined format.  
+for a Python environment in a notebook-repo-defined format.
 
 The example below is the initial prototype definition for
 Roman 20 development and may be updated as Roman 20 development is completed:
@@ -67,9 +67,9 @@ The spec contains two high level sections:
 - install_files - defines a series of named data archive `section`s each of which defines one aspect of roman-20's refdata and specifies the download of one or more archive files and related infromation.
 - other_variables - defines environment variables that do not require an data download and install. For each variable, the name of the variable is given followed by a value.
 
-Within each named `section` of install there are the following fields:
+Within each named `section` of install_files there are the following fields:
 
-- version - specifies the version of this data section taken in aggregate
+- version - specifies the version of this data section taken in aggregate for all its URL's
 - data_url - the data_url is a list of URLs of tarballs to install.  each url must include a viable tar file archive and compression identifying file extension, e.g. .tgz
 - environment_variable - variable to reference the installed data of *this section* from notebooks, scripts, and other programs.
 - install_path - location at which `tar` will run to unpack the archive.

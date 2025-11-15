@@ -341,9 +341,21 @@ The following command-line options are available:
 - `--data-no-validation`: Skip data validation metadata collection and verification.
 - `--data-no-unpack-existing`: Skip data archive unpack if the target directory already exists indicating already unpacked.
 
+## Wrangler input spec and input formats:
+
+- [Wrangler Spec](docs/spec-format.md) - YAML spec format native to nb-wrangler that is used to define applicable notebook repos and Python environments, one per wrangler build.
+- Notebook Repo - A single public git repository hosting notebooks to be supported by this wrangler build,  typically found on GitHub owned by the `spacetelescope` orginazation.
+- [Refdata Spec](docs/refdata_dependencies.md) - YAML spec format for specifying data dependencies in a notebook-repo-defined format,  one per notebook repo located at the root.
+- Notebook .ipynb - A JupyterLab notebook included in this Wrangler build.
+- Requirements.txt - An optional per-notebook requirements file that specifies additional dependencies and/or Python package versions required by the notebook.
+
+Note that the process of "wrangling" is to combine the above inputs and resolve any possible conflicts which might take the form of incompatible Python packages
+being requested by two different notebooks,  different versions of the same data being requested by the same repo, etc.  By consolidating requirements and resolving any
+conflicts, the resulting build should be capable of running all notebooks specified by any of the given repos within a single combined environment.
+
+
 ## Missing Topics
 
-- **Detailed explanation of `spec.yaml` structure:** While mentioned, a more detailed breakdown of the YAML file's sections and their purpose would be beneficial.
 - **Configuration options:** A more comprehensive list of available configuration options and their effects.
 - **Error handling:** More information on how the tool handles various errors and provides feedback to the user.
 - **Advanced usage:** Potential use cases beyond basic curation, such as automated testing workflows or integration with other tools.
