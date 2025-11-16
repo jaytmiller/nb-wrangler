@@ -1,80 +1,120 @@
-# Managing Notebook Reference Data using nb-wrangler
+# Managing Notebook Reference Data with nb-wrangler
 
 ## Data Curation
 
-Similar to notebook and environment curation, nb-wrangler has workflows that allow you to curate data files.  The basic inputs defining the data associated with a wrangler
-spec are kept in `refdata_dependencies.yaml` files which are found in the root directory of applicable notebook repositories.  Like requirements.txt files these data definition files are written by the notebook repository maintainers, and are added to the nb-wrangler spec and then further interpreted by nb-wrangler to properly support the download, installation, location via environment variables, and usage
-of the data. Note that the wrangler further augments the data definition with the length
-and hash of each data archive file but that these require at least one download to compute prior to existing to help verify the integrity of downloads;  consequently
-the metadata scheme is not foolproof, but should fortify the long term integrity checking of the data as well as re-installation on additional platforms.
+`nb-wrangler` streamlines the management of data files required by notebooks. This process, known as data curation, relies on `refdata_dependencies.yaml` files. These YAML files, typically located in the root directory of notebook repositories, define the data associated with a `nb-wrangler` spec.
+
+Similar to `requirements.txt` for Python packages, `refdata_dependencies.yaml` files are maintained by notebook repository owners. `nb-wrangler` interprets these definitions to handle the download, installation, and location of data, making it accessible via environment variables.
+
+`nb-wrangler` also augments these data definitions with metadata like the length and hash of each data archive file. This metadata, computed after the initial download, helps verify data integrity during subsequent installations, though it's not foolproof.
 
 ### refdata_dependencies.yaml
 
-The refdata_dependencies.yaml file provided by applicable notebook repositories has an initial format that looks like this:
+
+
+The `refdata_dependencies.yaml` file, provided by notebook repositories, defines data requirements. Its initial format is as follows:
+
+
 
 ```yaml
-# For each Python package that requires a data installation, give the
-# package name and:
-#   version - package version number
-#   data_url - the data_url is a list of URLs of tarballs to install
-#   environment_variable - variable to reference the installed data
-#   install_path - top directory under which to install the data
-#   data_path - name of the directory the tarball is expended into
-# The final path to the data is the join os install_path + data_path.
-#
-# For Nexus setup, the install_path value can be overridden to point
-# to a shared data path (instead of $HOME).
+
+# Defines data installations for Python packages.
+
 install_files:
+
   pandeia:
+
     version: 2025.9
-    data_url: 
+
+    data_url:
+
       - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
-    environment_variable: pandeia_refdata
-    install_path: ${HOME}/refdata/
-    data_path: pandeia_data-2025.9-roman
+
+    environment_variable: pandeia_refdata # Environment variable to reference installed data
+
+    install_path: ${HOME}/refdata/        # Top directory for data installation
+
+    data_path: pandeia_data-2025.9-roman  # Directory name for unpacked tarball
+
+    # Final path: install_path + data_path.
+
+    # install_path can be overridden for shared data paths (e.g., Nexus setup).
+
   stpsf:
+
     version: 2.1.0
+
     data_url:
+
       - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+
     environment_variable: STPSF_PATH
+
     install_path: ${HOME}/refdata/
+
     data_path: stpsf-data
+
   stips:
+
     version: 2.3.0
+
     data_url:
+
       - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
+
     environment_variable: stips_data
+
     install_path: ${HOME}/refdata/
+
     data_path: stips_data
+
   synphot:
+
     version: 1.6.0
+
     data_url:
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
+
       - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+
     environment_variable: PYSYN_CDBS
+
     install_path: ${HOME}/refdata/
+
     data_path: grp/redcat/trds/
-# Add environment variables that do not require an data download
-# and install. For each variable, the name of the variable is given
-# followed by a value.
+
+# Environment variables that do not require a data download.
+
 other_variables:
+
   CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
+
   CRDS_CONTEXT: roman_0027.pmap
-  CRDS_PATH: ${HOME}/crds_cache    # Nexus CRDS caches are local for now
+
+  CRDS_PATH: ${HOME}/crds_cache
+
   ```
 
-This format is defined by the notebook repository maintainers, independent of the nb-wrangler tool, and used by other systems such as the GitHub CI system for notebooks.
-Nevertheless nb-wrangler necessarily includes code which validates these files for it's own internal use and/or roucontinguend-tripping through the nb-wrangler spec.  While
-nb-wrangler's environment curation does not directly include each requirements.txt file, nb-wrangler does add each  verbatim in addition to any other wrangler-computed information.
 
-nb-wrangler then adds additional metadata such as this:
+
+This format is defined by notebook repository maintainers and used by other systems (e.g., GitHub CI). `nb-wrangler` validates these files for its internal use and integrates them into the `nb-wrangler` spec. While `nb-wrangler`'s environment curation doesn't directly include each `requirements.txt` file, it does add each verbatim, along with any other `nb-wrangler`-computed information.
+
+`nb-wrangler` then adds additional metadata to the spec, such as:
 
 ```yaml
     local_exports:
@@ -131,56 +171,79 @@ nb-wrangler then adds additional metadata such as this:
       roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
         size: '121835520'
         sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
-
 ```
 
-In the additional data you (and nb-wrangler) can find:
+This additional data includes:
 
-- **local_exports**  - information on data locations as defined by refdata_dependencies.yaml for personal use.  in addition there are general purpose env vars. 
+-   **`local_exports`**: Defines data locations for personal use, based on `refdata_dependencies.yaml`, along with general-purpose environment variables.
+-   **`pantry_exports`**: Specifies data locations within the `$NBW_PANTRY` persistent storage area, supporting shared installations for teams. Notebooks should ideally operate relative to these paths without modification.
+-   **`metadata`**: `nb-wrangler`-computed archive file hashes (SHA256) and sizes. These are used to verify data consistency between the initial curation and subsequent re-installation workflows. Failures indicate potential data integrity issues.
 
-- **pantry_exports**  - information on data locations as defined by nb-wrangler to locate data in the $NBW_PANTRY persistent storage area that supports shared installations for teams. ideally notebooks operate relative to these without change.
-
-- **metadata**  - nb-wrangler computed archive file hashes and lengths to verify consistency between the wrangler's initial data curation workflow and the data re-installation workflow.   For each downloaded archive nb-wrangler computes, records,
-and later verifies the size and sha256 hash for each archive file.
-
-## nb-wrangler's Storage Categories
-
-To efficiently support operation on the STScI science platforms,  nb-wrangler divides
-the disk storage it uses into two major areas:
-
-In the case of a local personal installation of an nb-wrangler environment, generally
-both areas will reside on SSD with equivalent perfomance, and can even be mapped to a
-single top-level directory for both.
-
-These storage areas are defined and located using environment variables, with the default values shown below:
-
-| Env Variable        | Default Location  | Description                              |
-| ------------------- | ----------------- | ---------------------------------------- |
-| NBW_ROOT            | $HOME/.nbw-live   | Fast but possibly emphemeral storage.    |
-| NBW_PANTRY          | $HOME/.nbw-pantry | Slower but should be persistent          |
+## Storage Categories
 
 
-### Persistent Storage
+To operate efficiently on STScI science platforms, `nb-wrangler` utilizes two main disk storage areas. 
 
-On a containerized system such as JupyterHub or Docker, persistent storage such as
-personal $HOME directories or team directories survive individual container runs. Their disadvantage is generally inferior performance compared to other storage such as a local SSD,  particularly for large numbers of small files.
+For local personal installations, both areas can reside on SSDs, offering equivalent performance, and can even be mapped to a single top-level directory.
 
-Typically this might be e.g. a network file system such as EFS which is easily shared between containers on a compute cluster. Because it is persistent, it can make an excellent place for archive files such as data archives or pre-built Python installations,  thus saving time relative to repeat downloads and installs.  Because it can be shared,  it enables both shared data and shared compute environments for teams or generic platform use.
 
-nb-wrangler dubs its persistent storage area the `Pantry` which is a directory tree nominally pointed to by the `NBW_PANTRY` environment variable. The Pantry is designed to store persistent data for multiple nb-wrangler specs where each spec has its own subdirectory which contains both archive files and unpacked
-versions of files which are nominally intended to be shared. Currently two kinds of archives exist: data archives, and mamba environment archives.
 
-### Live Storage
+These storage areas are defined and located using environment variables, with default values shown below:
 
-On a containerized system such as JupyterHub or Docker, the container storage itself is nominally ephemeral, i.e. completely erased between user sessions, and typically backed by high performance hardware such as SSD's. nb-wrangler dubs its ephemeral storage area `Live`, a directory tree nominally pointed to by the `NBW_ROOT` environment variable. The Live storage area is both limited in size (e.g. <50G,  variable) and intended for files which are frequently accessed but not necessarily shared. In this regard live storage is equivalent in performance to pre-installed files in the container image. Thus conceptually, wrangler mamba environments unpacked from pre-installed archives to live storage should have equivalent performance to environments which were pre-installed,  and in the case of data,  potentially superior performance since data is generally too large to be directly included in a science platform image but not too large to be unpacked into private container storage.
+
+
+| Env Variable | Default Location  | Description                                        |
+| :----------- | :---------------- | :------------------------------------------------- |
+| `NBW_ROOT`   | `$HOME/.nbw-live` | Fast, ephemeral storage for frequently accessed files. |
+| `NBW_PANTRY` | `$HOME/.nbw-pantry`| Slower, persistent storage for shared archives and installations. |
+
+
+
+### Persistent Storage (Pantry)
+
+
+
+On containerized systems (e.g., JupyterHub, Docker), persistent storage like user `$HOME` directories or team directories survives individual container runs. While crucial for data longevity, their performance can be inferior to other storage types (e.g., local SSDs), especially for numerous small files.
+
+
+
+Typically, this might be a network file system (e.g., EFS) easily shared across containers in a compute cluster. Its persistence makes it ideal for storing archive files such as data archives or pre-built Python installations, reducing repeated downloads and installations. Its shareability enables shared data and compute environments for teams or general platform use.
+
+
+
+`nb-wrangler` refers to its persistent storage area as the `Pantry`, typically pointed to by the `NBW_PANTRY` environment variable. The Pantry is structured to store persistent data for multiple `nb-wrangler` specs, with each spec having its own subdirectory for both archive files and unpacked versions of files intended for sharing. Currently, it stores data archives and Mamba environment archives.
+
+
+
+### Live Storage (Live)
+
+
+
+On containerized systems, the container storage itself is typically ephemeral (erased between user sessions) but often backed by high-performance hardware like SSDs. `nb-wrangler` terms its ephemeral storage area `Live`, usually pointed to by the `NBW_ROOT` environment variable. Live storage is limited in size (e.g., <50GB, variable) and designed for frequently accessed but not necessarily shared files. It offers performance comparable to pre-installed files in the container image. Conceptually, `nb-wrangler` Mamba environments unpacked from pre-installed archives to live storage should perform similarly to pre-installed environments. For data, it can offer superior performance, as data is often too large for direct inclusion in a science platform image but suitable for unpacking into private container storage.
 
 ## Wrangling / Curating Data
 
-The first phase of wrangling data is performed by notebook repo curators and/or plaform admins, and involves working with particular repos and notebooks to ensure that their required data is available in public archive files and referenced by the repo's `refdata_dependencies.yaml` spec file. As with environment creation, this phase can include adjusting notebooks, creating and adjusting the `refdata_dependencies.yaml` file, as well as creating, updating, and delivering new archive files to public repositories from which they can be downloaded by arbitrary nb-wrangler users. During curation, nb-wrangler downloads and unpacks the data archives if they are not already in the appropriate locations in the Pantry. Additionally, nb-wrangler sets up the environment to properly refer to the unpacked data so that notebooks can reference it in a platform independent way.  Once notebooks are correctly referencing their required data, they can be tested demonstrating that the entire end-to-end process of downloading notebooks and data,  and setting up supporting mamba environments, works.
 
-As part of curation, nb-wrangler additionally captures the length and sha256 of each archive file so that they can later be verified against the `refdata_dependencies.yaml` spec during future installations. Failures to validate indicate issues with data integrity relative to the time the wrangler spec was created.
 
-### Example --data-curate Run
+The initial phase of data wrangling involves notebook repository curators and/or platform administrators ensuring that required data is available in public archive files and referenced in the repository's `refdata_dependencies.yaml` spec file. This phase includes:
+
+
+
+*   Adjusting notebooks.
+
+*   Creating and modifying the `refdata_dependencies.yaml` file.
+
+*   Creating, updating, and delivering new archive files to public repositories for `nb-wrangler` users to download.
+
+
+
+During curation, `nb-wrangler` downloads and unpacks data archives into the appropriate Pantry locations if they don't already exist. It also configures the environment to correctly reference the unpacked data, enabling platform-independent notebook access. Once notebooks correctly reference their data, the entire end-to-end process (downloading notebooks and data, setting up Mamba environments) can be tested.
+
+
+
+As part of curation, `nb-wrangler` captures the length and SHA256 hash of each archive file. These are later verified against the `refdata_dependencies.yaml` spec during future installations. Validation failures indicate data integrity issues relative to when the `nb-wrangler` spec was created.
+
+### Example --data-curate
 
 ```bash
 ../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
@@ -302,16 +365,27 @@ INFO: 00:00:00.000 Elapsed: 00:00:39
 
 ## Re-installing Data
 
-The second phase of data wrangling is downloading, verifying, and installing the data in the target system.
-In this phase, the wrangler spec assembled `--curate` and `--data-curate` is viewed as readonly and the
-wrangler will target the overall install using its environment variables,  most critically `NBW_ROOT` and
-`NBW_PANTRY`. Re-installing the data involves downloading it locally, verifying the metadata, unpacking the
-data as directed, and configuring the environment to point to the installation locations.  Configuring the
-environment is achieved by a combination of bash scripts which can be sourced and/or env settings in the 
-JupyterLab kernel specs installed in user persistent storage.  It's worth noting that there is a `--data-select`
-parameter which can be give a regex used to match key fields of the data archive paths.
 
-### Example --data-reinstall Run
+
+The second phase of data wrangling involves downloading, verifying, and installing data on the target system. In this phase, the `nb-wrangler` spec (assembled during `--curate` and `--data-curate` operations) is treated as read-only. `nb-wrangler` uses its environment variables, primarily `NBW_ROOT` and `NBW_PANTRY`, to manage the overall installation.
+
+
+
+Re-installing data includes:
+
+1.  Downloading data locally.
+
+2.  Verifying its metadata (size and SHA256 hash).
+
+3.  Unpacking the data as specified.
+
+4.  Configuring the environment to point to the installation locations.
+
+
+
+Environment configuration is achieved through a combination of bash scripts (which can be sourced) and environment settings within JupyterLab kernel specs, installed in user persistent storage. The `--data-select` parameter allows users to specify a regular expression to match key fields of data archive paths, enabling selective re-installation.
+
+### Example --data-reinstall
 
 ```bash
 ../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
@@ -348,58 +422,66 @@ INFO: 00:00:00.000 Elapsed: 00:00:06
 
 ## Installed Environment Variable Setup
 
-As can be seen in this breif excerpt of the `refdata_dependencies.yaml` example abovee:
 
-```yaml
-pandeia:
-    version: 2025.9
-    data_url: 
-    - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
-    environment_variable: pandeia_refdata
-    install_path: ${HOME}/refdata/
-    data_path: pandeia_data-2025.9-roman
-```
 
-each archive section such as `pandeia` is associated with an environment variable
-which should point to the root location of its unpacked data so that it can be 
-referenced by notebooks in an installation independent way.
+As seen in the `refdata_dependencies.yaml` example, each archive section (e.g., `pandeia`) is associated with an `environment_variable`. This variable should point to the root location of its unpacked data, allowing notebooks to reference it independently of the installation path.
+
+
 
 ### Data Install Locations
 
-#### Pantry Mode
 
-A `pantry` definition of an environment variable is something like:
 
-```sh
-export install_path_override="${NBW_PANTRY}/shelves/<shelf>/data/${section}"
-export pandeia_refdata="${install_path_override}/${data_path}"
-```
+`nb-wrangler` supports two primary modes for defining data installation locations:
 
-Note that in this instance nb-wrangler replaces `install_path` with a standard
-location in the pantry on the shelf for that spec.  This is the **default** for
-nb-wrangler so unpacked data is always stored at a location unique to a particular
-spec which enables switching between different versions of code and related data.
 
-#### Spec Mode
 
-The `spec` definition of nb-wrangler environment vars is something like:
+#### *Pantry Mode (Default)*
+
+In Pantry Mode, `nb-wrangler` replaces the `install_path` with a standard location within the Pantry for that specific spec. 
+
+This ensures that unpacked data is always stored in a location unique to a particular spec, facilitating seamless switching between different versions of code and their associated data.
+
+Conceptual example of a `pantry` mode definition for an environment variable:
+
+
 
 ```sh
-export pandeia_refdata="${install_path}${data_path}"
+install_path_override="${NBW_PANTRY}/shelves/<shelf>/data/${section}"
+
+export pandeia_refdata="<install_path_override>/<data_path>"
 ```
 
-where the spec fully defines the location of data installation
-*outside* the pantry.  This mode can be selected using `--data-env-vars-mode spec`
-when packing or unpacking the data.
+where *install_path_override* is only defined to clarify how Pantry mode differs from Spec mode and `<>` notation
+is used to show substitution of spec values vs. literal shell syntax.
 
-### Automatic env var kernel registration
+#### *Spec Mode*
 
-Regardless of where all archive sections are unpacked,  nb-wrangler will add their corresponding
-environment variable definitions to the JupyterLab kernel spec so that they automatically become 
-available for use in notebooks.
+Spec Mode allows the `refdata_dependencies.yaml` to fully define the data installation location *outside* the Pantry. 
 
-### Shell env var exports
+This mode can be activated using the `--data-env-vars-mode spec` option during data packing or unpacking.
 
-In addition to defining env vars in the kernel spec,  nb-wrangler generates "exports" files
-named `nbw-pantry-exports.sh` and `nbw-local-exports.sh` which can be used to define data
-locations for shells and JupyterLab terminals.
+Conceptual example of a `spec` mode definition for an `nb-wrangler` environment variable:
+
+
+```sh
+export pandeia_refdata="<install_path>/<data_path>"
+```
+
+where again `<>` notation is used to show substitution of values vs. literal shell syntax and operations.
+
+
+
+### Automatic Environment Variable Kernel Registration
+
+
+
+Regardless of where archive sections are unpacked, `nb-wrangler` automatically adds their corresponding environment variable definitions to the JupyterLab kernel spec. This makes these variables available for use within notebooks without manual configuration.
+
+
+
+### Shell Environment Variable Exports
+
+
+
+In addition to kernel registration, `nb-wrangler` generates "exports" files named `nbw-pantry-exports.sh` and `nbw-local-exports.sh`. These files can be sourced to define data locations for shell environments and JupyterLab terminals.
