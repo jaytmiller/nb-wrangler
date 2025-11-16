@@ -637,7 +637,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _env_compact(self) -> bool:
         return self.env_manager.compact()
 
-    def _get_resolved_environment(self) -> dict:
+    def _get_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
             env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
@@ -648,7 +648,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return {}
 
     def _setup_environment(self) -> bool:
-        env_vars = self._get_resolved_environment()
+        env_vars = self._get_environment()
+        env_vars = utils.resolve_env(env_vars)
         for key, value in env_vars.items():
             os.environ[key] = value
             self.logger.debug(
@@ -658,7 +659,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        env_vars = self._get_resolved_environment()
+        env_vars = self._get_environment()
         self.logger.debug(
             f"The resolved env vars for environment '{self.env_name}' are '{env_vars}'."
         )
