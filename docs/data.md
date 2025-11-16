@@ -309,7 +309,7 @@ wrangler will target the overall install using its environment variables,  most 
 data as directed, and configuring the environment to point to the installation locations.  Configuring the
 environment is achieved by a combination of bash scripts which can be sourced and/or env settings in the 
 JupyterLab kernel specs installed in user persistent storage.  It's worth noting that there is a `--data-select`
-paramter which can be give a regex used to match key fields of the data archive paths.
+parameter which can be give a regex used to match key fields of the data archive paths.
 
 ### Example --data-reinstall Run
 
@@ -346,47 +346,60 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:06
 ```
 
-## Environment Variable Setup
+## Installed Environment Variable Setup
 
-As can be seen in the `refdata_dependencies.yaml` example above and brief excerpt here:
+As can be seen in this breif excerpt of the `refdata_dependencies.yaml` example abovee:
 
 ```yaml
-install_files:
-    pandeia:
+pandeia:
     version: 2025.9
     data_url: 
-        - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+    - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
     environment_variable: pandeia_refdata
     install_path: ${HOME}/refdata/
     data_path: pandeia_data-2025.9-roman
 ```
 
-each archive section such as `pandeia` above is associated with N different URLs all of
-which are expected to unpack to a `data_path` prefix directory using tar.  For each archive
-nb-wrangler unpacks, it runs `tar` or the equivalent relative to `install_path` to unpack
-individual files from the archive into usable locations. 
+each archive section such as `pandeia` is associated with an environment variable
+which should point to the root location of its unpacked data so that it can be 
+referenced by notebooks in an installation independent way.
 
-Consequently, one `local` definition of nb-wrangler environment vars is something like:
+### Data Install Locations
+
+#### Pantry Mode
+
+A `pantry` definition of an environment variable is something like:
+
+```sh
+export install_path_override="${NBW_PANTRY}/shelves/<shelf>/data/${section}"
+export pandeia_refdata="${install_path_override}/${data_path}"
+```
+
+Note that in this instance nb-wrangler replaces `install_path` with a standard
+location in the pantry on the shelf for that spec.  This is the **default** for
+nb-wrangler so unpacked data is always stored at a location unique to a particular
+spec which enables switching between different versions of code and related data.
+
+#### Spec Mode
+
+The `spec` definition of nb-wrangler environment vars is something like:
 
 ```sh
 export pandeia_refdata="${install_path}${data_path}"
 ```
 
-Meanwhile a `pantry` definition of environment variables is more like:
+where the spec fully defines the location of data installation
+*outside* the pantry.  This mode can be selected using `--data-env-vars-mode spec`
+when packing or unpacking the data.
 
-```sh
-export pandeia_refdata="${NBW_PANTRY}/shelves/<shelf>/data/${section}/${environment_variable}"
-```
+### Automatic env var kernel registration
 
-### Pantry Paths
+Regardless of where all archive sections are unpacked,  nb-wrangler will add their corresponding
+environment variable definitions to the JupyterLab kernel spec so that they automatically become 
+available for use in notebooks.
 
-As previously discussed, nb-wrangler has a built-in persistent storage directory where it
-can store artifacts related to multiple wrangler specs,  where each wrangler spec is associated
-with one `Shelf`.  Within the shelf directory,  nb-wrangler further stores data archive files
-so that future sessions can proceed without re-downloading data.
+### Shell env var exports
 
-### Local Paths
-
-
-### Working on Data Selectively
-
+In addition to defining env vars in the kernel spec,  nb-wrangler generates "exports" files
+named `nbw-pantry-exports.sh` and `nbw-local-exports.sh` which can be used to define data
+locations for shells and JupyterLab terminals.

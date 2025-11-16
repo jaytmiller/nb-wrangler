@@ -4,39 +4,21 @@
 
 ## Overview
 
-nb-wrangler streamlines the process of curating JupyterLab notebooks, their runtime environments, and ultimately supports
-automatically building and testing Docker images based on notebook requirements. It achieves this by:
+`nb-wrangler` is a command-line tool that streamlines the curation of JupyterLab notebooks and their runtime environments. It automates the process of building and testing container images from notebook requirements, ensuring that notebooks have the correct dependencies to run successfully.
 
-- Bootstrapping a dedicated environment for nb-wrangler.
-- Loading, saving, and validating notebook curation specifications.
-- Cloning associated notebook and image build repositories.
-- Creating a dedicated environment to manage notebook package dependencies.
-- Compiling loose `requirements.txt` files into versioned dependencies for the target environment.
-- Installing notebook dependencies in the target environment.
-- Explicitly testing all top-level notebook imports in the installed environment.
-- Running notebooks headless within the target environment.
-- Injecting relevant package, test, and notebook output into an external notebook image build system.
-- Submitting completed specifications and/or related image build pull requests to trigger automatic builds.
-- Performing various cleanup tasks, such as removing clones, packages, and environments.
+Key features include:
 
-The project utilizes foundational tools:
+- **Environment Management:** Bootstraps its own dedicated Conda environments, isolated from your system's Python.
+- **Dependency Resolution:** Compiles `requirements.txt` files from multiple notebooks into a single, consistent set of versioned dependencies.
+- **Automated Testing:** Tests notebooks and their package imports to verify the environment.
+- **Data Management:** Manages the data required to run notebooks.
+- **Image Building:** Integrates with a build system to automatically create container images.
 
-- **micromamba:** A lightweight, self-contained version of mamba (a free, open-source alternative to conda).
-- **uv:** A new, fast pip-like package installer written in Rust.
+The project uses `micromamba` for environment management and `uv` for fast package installation.
 
-nb-wrangler aims to install 2-3 dedicated environments under `$HOME/.nbw-live`:
+## Installation
 
-- **micromamba:** A self-contained installation tool, not a base environment.
-- **nbwrangler:** A full micromamba environment containing nb-wrangler and its dependencies.
-- **spec defined environment:** The notebook environment being curated.
-
-These environments are independent of your existing Python environments and can be easily registered as notebook kernels in JupyterHub.
-
-The location of nb-wrangler files can be changed by setting the `NBW_ROOT` environment variable. This is useful for team environments or relocating to faster storage.
-
-## Installing
-
-Bootstrapping the system creates the `$HOME/.nbw-live` directory and the nbwrangler environment under `$HOME`.
+To get started, bootstrap `nb-wrangler` to create the necessary environments and directories (by default in `$HOME/.nbw-live`):
 
 ```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
@@ -44,319 +26,170 @@ chmod +x nb-wrangler
 source ./nb-wrangler bootstrap
 ```
 
-Afterward, the nbwrangler "curation" environment can be re-activated using:
+After bootstrapping, you can activate the `nb-wrangler` environment with:
 
 ```bash
 source ./nb-wrangler environment
 ```
 
-Consider adding the nb-wrangler bash script to your shell's PATH or RC file.
-
-The target environment can be activated with:
+To activate the environment for a specific notebook or set of notebooks, use:
 
 ```bash
-source ./nb-wrangler activate ENVIRONMENT_NAME
+source ./nb-wrangler activate <ENVIRONMENT_NAME>
 ```
 
-Deactivate either nbwrangler or the target environment with:
+To deactivate the current environment, run:
 
 ```bash
 source ./nb-wrangler deactivate
 ```
 
-## Overall nb-wrangler usage
+## How It Works
 
-Overall usage of nb-wrangler entails two broad areas,  setting up notebooks and environments,  and setting
-up supporting data.  Whether working on environments or data,  there are two phases for each area:
-developing the wrangler spec (a process called curation),  and reinstalling systems based on the
-wrangler spec.  To that end, the wrangler has 4 key workflows which are detailed more below but can
-be invoked basically as follows:
+The `nb-wrangler` workflow is divided into two main phases: **curation** and **reinstallation**.
 
+### Phase 1: Curation
+
+Curation is the process of defining the notebooks, Python packages, and data required for a specific environment. This is done by creating a `spec.yaml` file that describes the desired environment.
+
+The main curation workflows are:
+
+- **`--curate`:** Compiles notebook requirements, creates the environment, and installs dependencies.
+- **`--data-curate`:** Gathers data requirements from notebook repositories and adds them to the spec.
+
+Example:
 ```bash
-# Phase 1  - curator work
-./nb-wrangler spec.yaml  --curate
-./nb-wrangler spec.yaml  --data-curate
+# Curate the software environment
+./nb-wrangler spec.yaml --curate
 
-# Phase 2  - user and/or system admin work
-./nb-wrangler spec.yaml  --reinstall
-./nb-wrangler spec.yaml  --data-reinstall
+# Curate the data dependencies
+./nb-wrangler spec.yaml --data-curate
 ```
 
-Note that each workflow consists of multiple interdependent steps executed in the correct sequence,
-but individual steps are available for iteration as practical depending on the necessary prerequisite
-steps having already been executed.  To save time the wrangler uses a basic approach to avoid repeating
-previously accomplished work,  but in the presence of errors it may be necessary to delete part or all
-of the existing installation before recovering.
+The curation process involves:
+1.  **Choosing notebooks:** Selecting the notebooks to be included in the environment.
+2.  **Resolving dependencies:** Identifying and resolving any conflicts between Python packages.
+3.  **Defining data sources:** Specifying the data required by the notebooks.
+4.  **Testing:** Building the environment and testing the notebooks to ensure they run correctly.
 
-## Curation
+### Phase 2: Reinstallation
 
-You the wrangler prepares a custom version of the `spec.yaml` file. Then, run:
+Reinstallation is the process of creating a new environment from a completed `spec.yaml` file. This is useful for reproducing an environment on a different machine or for a different user.
 
+The main reinstallation workflows are:
+
+- **`--reinstall`:** Recreates the software environment from a spec.
+- **`--data-reinstall`:** Installs the data required by the notebooks.
+
+Example:
 ```bash
-nb-wrangler spec.yaml --curate [--verbose]
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
-INFO: 00:00:00.005 Running workflows ['curation'].
-INFO: 00:00:00.000 Running spec development / curation workflow
-INFO: 00:00:00.000 Setting up repository clones.
-INFO: 00:00:00.000 Using existing local clone at references/science-platform-images
-INFO: 00:00:00.000 Using existing local clone at references/mast_notebooks
-INFO: 00:00:00.000 Using existing local clone at references/tike_content
-INFO: 00:00:00.003 Found 8 notebooks in all notebook repositories.
-INFO: 00:00:00.000 Processing 8 unique notebooks for imports.
-INFO: 00:00:00.001 Extracted 7 package imports from 8 notebooks.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
-INFO: 00:00:00.011 Generating mamba spec for target environment /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-mamba.yml.
-INFO: 00:00:00.000 Found SPI extra 1 mamba requirements files.
-INFO: 00:00:00.001 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
-INFO: 00:00:00.012 Found 8 notebook requirements.txt files.
-INFO: 00:00:00.000 Found SPI extra 5 pip requirements files.
-INFO: 00:00:00.000 w/o hashes.
-INFO: 00:00:00.507 Compiled combined pip requirements to 352 package versions.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/fnc-test-spec.yaml.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/fnc-test-spec.yaml.
-INFO: 00:00:00.053 Creating environment: tess
-INFO: 00:00:12.721 Environment tess created. It needs to be registered before JupyterLab will display it as an option.
-INFO: 00:00:00.356 Registered environment tess as a jupyter kernel making it visible to JupyterLab as 'TESS'.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
-INFO: 00:00:00.045 Installing packages from: ['/home/ai/.nbw-live/temps/tike-2025.07-beta-tess-pip.txt']
-INFO: 00:00:06.219 Package installation for tess completed successfully.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
-INFO: 00:00:00.045 Saving spec file to /home/ai/nb-wrangler/fnc-test-spec.yaml.
-INFO: 00:00:00.050 Workflow spec development / curation completed.
-INFO: 00:00:00.000 Running any explicitly selected steps.
-INFO: 00:00:00.000 Exceptions: 0
-INFO: 00:00:00.000 Errors: 0
-INFO: 00:00:00.000 Warnings: 0
-INFO: 00:00:00.000 Elapsed: 00:00:20
+# Reinstall the software environment
+./nb-wrangler spec.yaml --reinstall
+
+# Reinstall the data
+./nb-wrangler spec.yaml --data-reinstall
 ```
 
-This phases identifies the exact notebooks to be included by the spec,  as well as the s/w packages
-required to support those notebooks.  This information is added to the spec in exact detail to enable
-high fidelity reproduction of the s/w environment and exact package versions for future installs.
+## Automated Testing
 
-## Automatic Testing
+`nb-wrangler` provides several options for testing the curated environment:
 
-For both curation and reinstallation work flows it's useful to execute tests to demonstrate that the installation is
-working correctly with the specified notebooks.  To that end,  nb-wrangler has additional switches which can be added
-with the following effects:
+- **`--test-imports`:** Imports the packages used by the notebooks to quickly check for missing dependencies.
+- **`--test-notebooks`:** Executes the notebooks headlessly to perform a more thorough check.
+- **`-t` or `--test-all`:** Runs both import and notebook tests.
 
-- `--test-imports`  directs nb-wrangler to import the packages found imported by the notebooks. Fast, if the import succeeds the test passes.
-
-- `--test-notebooks`  directs nb-wrangler to execute the specified notebooks headless. If the notebook raises an exception the test fails.
-
-- `-t` directs nb-wrangler to run both `--test-imports` and `--test-notebooks`.
-
-For example, you can iterate fairly rapidly with:
-
+Example:
 ```bash
+# Run import tests during curation
 nb-wrangler spec.yaml --curate --test-imports
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
-INFO: 00:00:00.027 Running any explicitly selected steps.
-INFO: 00:00:00.000 Running step _test_imports
-INFO: 00:00:00.000 Testing 7 imports
-INFO: 00:00:00.309 Import of astropy succeeded.
-INFO: 00:00:00.188 Import of astroquery succeeded.
-INFO: 00:00:08.436 Import of lcviz succeeded.
-INFO: 00:00:01.641 Import of lightkurve succeeded.
-INFO: 00:00:00.212 Import of matplotlib succeeded.
-INFO: 00:00:00.119 Import of numpy succeeded.
-INFO: 00:00:00.629 Import of s3fs succeeded.
-INFO: 00:00:00.000 All imports succeeded.
-INFO: 00:00:00.000 Exceptions: 0
-INFO: 00:00:00.000 Errors: 0
-INFO: 00:00:00.000 Warnings: 0
-INFO: 00:00:00.000 Elapsed: 00:00:11
+
+# Run all tests
+nb-wrangler spec.yaml --curate -t
 ```
 
-to verify that the notebook dependencies have been accounted for on some level, then switch to `--test-notebooks` 
-for more meaningful checks and verification that empirically viable package versions are installed.
+## Advanced Usage
 
-Note that successfully running notebooks may require correctly setting up local copies of data
-which are nominally defined in the file `refdata_dependencies.yaml` at the root of each notebook
-repository that requires it.  The wrangler automation for this is currently being developed,
-check for it using `--help` but don't be surprised if you must do data setup manually for now.
+### Build Submission
 
-## Reinstall
-
-A finished spec can be used to re-install corresponding Python environments in any nb-wrangler installation as follows:
-
-```bash
-nb-wrangler spec.yaml --reinstall
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
-INFO: 00:00:00.024 Running workflows ['reinstall'].
-INFO: 00:00:00.000 Running install-compiled-spec workflow
-INFO: 00:00:00.032 Creating environment: tess
-INFO: 00:00:06.159 Environment tess created. It needs to be registered before JupyterLab will display it as an option.
-INFO: 00:00:00.369 Registered environment tess as a jupyter kernel making it visible to JupyterLab as 'TESS'.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
-INFO: 00:00:00.045 Installing packages from: ['/home/ai/.nbw-live/temps/tike-2025.07-beta-tess-pip.txt']
-INFO: 00:00:01.766 Package installation for tess completed successfully.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
-INFO: 00:00:00.046 Workflow install-compiled-spec completed.
-INFO: 00:00:00.000 Running any explicitly selected steps.
-INFO: 00:00:00.000 Exceptions: 0
-INFO: 00:00:00.000 Errors: 0
-INFO: 00:00:00.000 Warnings: 0
-INFO: 00:00:00.000 Elapsed: 00:00:08
-```
-
-## Data Wrangling
-
-Part of nb-wrangler's functionality is associated with managing the data required to test/run the spec'ed notebooks.
-
-Like the creation of the basic s/w environment, data wrangler has two main phases:
-
-### Data Curation
-
-This is the process of updating the wrangler spec based on per-repository `refdata_dependencies.yaml` files which
-define data requirements much as `requirements.txt` files define per-notebook package requirements.  This phase
-will likely revolved around setting up the data archives,  setting up repo `refdata_dependencies.yaml` files, and
-running the wrangler to import the information into the wrangler spec and augment it as needed:
-
-```bash
-./nb-wrangler sample-specs/roman-20.yaml --data-curate
-```
-
-### Data Reinstallation
-
-Once data archives have been fully set up, notebook repos configured, and the wrangler spec updated based
-on `refdata_dependencies.yaml` files, future users and system admins can install the spec'd data archives
-and set up wrangler notebook environments using:
-
-```bash
-./nb-wrangler sample-specs/roman-20.yaml --data-reinstall
-```
-
-### More Data Curation Details
-
-See [Data Curation](docs/data.md) for more information on wrangling data.
-
-## Build Submission
-
-After completing development of a spec, you can submit it to https://github.com/spacetelescope/science-platform-images
-to automatically build a Docker image which becomes available for use on the relevant STScI science platforms.
+After you have curated a spec, you can submit it to a build service to automatically create a container image.
 
 ```bash
 gh auth login
-nb-wrangler spec.yaml --submit-for-build [--verbose]
+nb-wrangler spec.yaml --submit-for-build
 ```
 
-Build submission is a complex topic with some per-curator setup required to enable creating images.
-For additional detail see [Submit for Build](docs/submit.md).
+For more information, see the [Build Submission documentation](docs/submit.md).
 
+### SPI Injection
 
-## Science Platform Images (SPI) Injection
+`nb-wrangler` can also inject the package and test requirements from a spec into the classic Science Platform Images (SPI) repository layout. This is a transitional feature to support older build processes.
 
-Out of conservatism nb-wrangler supports a build mode called `SPI Injection` which essentially
-injects the package and test requirements defined by a wrangler spec into the classic
-science platform images repo layout we've been using for years. This leverages the wrangler
-spec by completing the formerly manual developer task of copying package specs from Jira
-to a mission environment's definition directories.  From that point forward however there is
-no additional wrangler automation for this mode.  The build, scan, tagging, push, and PR'ing
-all need to be completed manually. Nevertheless, while we're in the process of introducing
-nb-wrangler,  SPI Injection may be handy if we're required to build two versions of the images,
-wrangler and classic.  See [SPI Injection](docs/inject-spi.md) for more information on this
-fallback / transition mode of builds.
-
-## Basic Flow
-
-The wrangler executes steps in a sequence, allowing for skipping steps that have already completed. This enables iteration without repeatedly recompiling and reinstalling packages. If any step fails, the process exits with an error. Most features are controlled by command-line options.
-
-- **Spec Management:** Loads, validates, updates, and saves the YAML notebook specification. Validation is currently incomplete but checks for required keywords.
-- **Repository Management:** Optionally clones Git repositories for notebooks if a local clone doesn't exist; otherwise, it updates existing clones. `--repos-dir` specifies the directory for cloning, defaulting to a `notebook-repos` subdirectory of the current directory.
-- **Notebook Discovery:** Searches for notebooks based on directory paths and include/exclude patterns.
-- **Requirements Gathering:** Locates `requirements.txt` files within notebooks to specify Python package version constraints.
-- **Environment Creation:** Automatically creates a basic Python environment for package installation and testing.
-- **Target Environment Initialization:** Optionally initializes a target environment to facilitate requirement compilation, package installation, and testing. This includes creating a JupyterLab kernel required for notebook testing or use in JupyterLab.
-- **Package Compilation:** If `--compile-packages` is specified, creates both a conda environment `.yml` file and a locked pip `requirements.txt` file by compiling all discovered notebook requirements. If `--compile-packages` is not specified, it uses the last compiled package set from the specification.
-- **Package Installation:** If `--packages-install` is specified, installs the compiled packages in the conda environment. After installation, it attempts to import packages listed in notebook files for basic sanity checks.
-- **Data Curation:** Gathering requirements for data needed to support the spec'ed notebook repos.
-- **Data Re-installation:** Downloading and installing the data defined by the wrangler spec, and updating the JupyterLab environment with the requred environment variables to refer to it.
-- **Notebook Testing:** If `--test-notebooks` is specified, runs notebooks matching a comma-separated list of names or regular expressions. If no notebooks or regexps are provided, it runs all notebooks. This is a headless crash test that runs up to `--jobs [n]` notebooks in parallel, with a `--timeout [seconds]` to terminate runaway notebooks.
-- **Repository Cleanup:** If `--delete-repos` is specified, removes all cloned repositories.
-- **Spec Reset:** If `--spec-reset` is specified, removes the output section from the `spec.yaml` file.
-- **Environment Deletion:** If `--env-delete` is specified, removes the entire target environment. This dedicated environment approach prevents contamination between iterations.
-- **CI Submission:** If `--submit-for-build` is specified, the specification is forwarded to the CI pipeline, key information is provided to the build framework, and a corresponding image is automatically built and pushed to the hub (pending further development).
-- **Output Injection:** If `--inject-spi` is specified, extracts key output information (e.g., mamba and pip requirements, import tests, supported notebooks) from the specification and injects it into a clone of the science platform images build, enabling manual builds.
+See the [SPI Injection documentation](docs/inject-spi.md) for more details.
 
 ## Configuration Options
 
-The following command-line options are available:
+`nb-wrangler` provides a wide range of command-line options to customize its behavior. Here are some of the most common ones, grouped by function:
 
-- `--curate`: Execute the curation workflow for spec development to add compiled requirements and build environments.
-- `--reinstall`: Install requirements defined by a pre-compiled spec.
-- `--data-curate`: Execute multi-step workflow to import data specs from notebook repos and collect metadata.
-- `--data-reinstall`: Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.
-- `--submit-for-build`: Submit fully elaborated requirements/spec for automatic image building.
-- `--inject-spi`: Inject curation products into the Science Platform Images repo clone at the specified existing 'deployment' to jump start 'classic builds'.
-- `-t`, `--test-all`: Run both --test-imports and --test-notebooks.
-- `--test-imports`: Attempt to import every package explicitly imported by one of the spec'd notebooks.
-- `--test-notebooks`, `--test-notebooks-include`: Test spec'ed notebooks matching patterns (comma-separated regexes) in target environment. Default regex: .*
-- `--test-notebooks-exclude`: Exclude notebooks from notebook test, defaulting to none, otherwise comma-separated-regex str, e.g. pat1,pat2
+### Workflows
+
+Workflows are commands that execute an ordered sequence of steps to accomplish some end-to-end task:
+
+- `--curate`: Run the full curation workflow to define notebooks and Python environment.
+- `--reinstall`: Reinstall an environment from a spec.
+- `--data-curate`: Curate data dependencies.
+- `--data-reinstall`: Reinstall data dependencies.
+- `--submit-for-build`: Submit a spec for an automated image build.
+- `--inject-spi`: Inject a spec into the SPI repository.
+
+### Testing
+- `-t`, `--test-all`: Run all tests.
+- `--test-imports`: Test package imports.
+- `--test-notebooks`: Test notebook execution.
 - `--jobs`: Number of parallel jobs for notebook testing.
-- `--timeout`: Timeout in seconds for notebook tests.
-- `--verbose`: Enable DEBUG log output
-- `--debug`: Drop into debugging with pdb on exceptions.
-- `--profile`: Run with cProfile and output profiling results to console.
-- `--log-times`: Include timestamps in log messages, either as absolute/normal or elapsed times, both, or none.
-- `--color`: Colorize the log.
-- `--env-init`: Create and kernelize the target environment before curation run. See also --env-delete.
-- `--env-delete`: Completely delete the target environment after processing.
-- `--env-pack`: Pack the target environment into an archive file for distribution or archival.
-- `--env-unpack`: Unpack a previously packed archive file into the target environment directory.
-- `--env-register`: Register the target environment with Jupyter as a kernel.
-- `--env-unregister`: Unregister the target environment from Jupyter.
-- `--env-archive-format`: Format for pack/unpack, nominally one of: .tar.gz, .tar.xz, .tar, .tar.bz2, .tar.zst, .tar.lzma, .tar.lzo, .tar.lz
-- `--env-compact`: Compact the wrangler installation by deleting package caches, etc.
-- `--packages-compile`: Compile spec and input package lists to generate pinned requirements and other metadata for target environment.
-- `--packages-omit-spi`: Include the 'common' packages used by all missions in all current SPI based mission environments, may affect GUI capability.
-- `--packages-install`: Install compiled base and pip requirements into target/test environment.
-- `--packages-uninstall`: Remove the compiled packages from the target environment after processing.
-- `--packages-diagnostics`: Include extra outputs showing which requirements files are included and the packages they require.
-- `--clone-repos`: Clone notebook repos to the directory indicated by --repos-dir.
-- `--repos-dir`: Directory where notebook and other repos will be cloned.
-- `--delete-repos`: Delete --repo-dir and clones after processing.
-- `--spec-reset`: Reset spec to its original state by deleting output fields. The out.data section is preserved.
-- `--spec-add`: Add the active spec to the pantry. This creates a 'shelf' for one complete environment.
-- `--spec-list`: List all the available specs in the pantry.
-- `--spec-select`: Select a stored spec by regex to use as the context for this wrangler run.
-- `--spec-validate`: Validate the specification file without performing any curation actions.
-- `--spec-update-hash`: Update spec SHA256 hash even if validation fails and continue processing.
-- `--spec-ignore-hash`: Spec SHA256 hashes will not be added or verified upon re-installation. Modifier to --validate and validation in general.
-- `--spec-add-pip-hashes`: Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.
-- `--data-collect`: Collect data archive and installation info and add to spec.
-- `--data-list`: List out data archives which can be downloaded, stored, installed, etc. Helps identify selection strings to operate on subsets of data.
-- `--data-download`: Download data archive files to the pantry.
-- `--data-update`: Update metadata for data archives, e.g. length and hash.
-- `--data-validate`: Validate the archive files stored in pantry against metadata from the wrangler spec.
-- `--data-unpack`: Unpack the data archive files stored in pantry to the directory spec'd in --data-dir.
-- `--data-pack`: Pack the live data directories in the pantry into their corresponding archive files, must be in spec.
-- `--data-reset-spec`: Clear the 'data' sub-section of the 'out' section of the active nb-wrangler spec.
-- `--data-delete`: Delete data archive and/or unpacked files.
-- `--data-env-vars-mode`: Define whether to locate unpacked data within the pantry (default) or at locations from the refdata specs resolved locally (local).
-- `--data-env-vars-no-auto-add`: Do not automatically add environment variables to notebook sessions or wrangler operations.
-- `--data-select`: Regular expression to select specific data archives to operate on.
-- `--data-no-validation`: Skip data validation metadata collection and verification.
-- `--data-no-unpack-existing`: Skip data archive unpack if the target directory already exists indicating already unpacked.
+- `--timeout`: Timeout for notebook tests.
 
-## Wrangler input spec and input formats:
+### Environment Management
+- `--env-init`: Create and kernelize the target environment.
+- `--env-delete`: Delete the target environment.
+- `--env-pack`: Pack the environment into an archive.
+- `--env-unpack`: Unpack an environment from an archive.
+- `--env-register`: Register the environment as a Jupyter kernel.
+- `--env-unregister`: Unregister the environment from Jupyter.
 
-- [Wrangler Spec](docs/spec-format.md) - YAML spec format native to nb-wrangler that is used to define applicable notebook repos and Python environments, one per wrangler build.
-- Notebook Repo - A single public git repository hosting notebooks to be supported by this wrangler build,  typically found on GitHub owned by the `spacetelescope` orginazation.
-- [Refdata Spec](docs/refdata_dependencies.md) - YAML spec format for specifying data dependencies in a notebook-repo-defined format,  one per notebook repo located at the root.
-- Notebook .ipynb - A JupyterLab notebook included in this Wrangler build.
-- Requirements.txt - An optional per-notebook requirements file that specifies additional dependencies and/or Python package versions required by the notebook.
+### Package Management
+- `--packages-compile`: Compile package requirements.
+- `--packages-install`: Install packages into the environment.
+- `--packages-uninstall`: Uninstall packages from the environment.
 
-Note that the process of "wrangling" is to combine the above inputs and resolve any possible conflicts which might take the form of incompatible Python packages
-being requested by two different notebooks,  different versions of the same data being requested by the same repo, etc.  By consolidating requirements and resolving any
-conflicts, the resulting build should be capable of running all notebooks specified by any of the given repos within a single combined environment.
+### Repository Management
+- `--clone-repos`: Clone notebook repositories.
+- `--repos-dir`: Directory for cloned repositories.
+- `--delete-repos`: Delete cloned repositories.
 
+### Spec Management
+- `--spec-reset`: Reset the spec file to its original state.
+- `--spec-add`: Add the spec to the pantry (a local collection of specs).
+- `--spec-list`: List available specs in the pantry.
+- `--spec-select`: Select a spec from the pantry.
 
-## Missing Topics
+For a full list of options, run `nb-wrangler --help`.
 
-- **Configuration options:** A more comprehensive list of available configuration options and their effects.
-- **Error handling:** More information on how the tool handles various errors and provides feedback to the user.
-- **Advanced usage:** Potential use cases beyond basic curation, such as automated testing workflows or integration with other tools.
+## Input Formats
+
+`nb-wrangler` uses several input formats to define the environment:
+
+- **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md).
+- **Notebook Repo:** A Git repository containing Jupyter notebooks.
+- **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the science platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
+- **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
+- **Notebook (`.ipynb`):** A Jupyter notebook.
+- **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook.
+
+The goal of "wrangling" is to combine these inputs, resolve any conflicts, and produce a single, unified environment that can run all the specified notebooks.
+
+## Future Development
+
+- More comprehensive documentation for configuration options.
+- Improved error handling and user feedback.
+- Advanced use cases and integrations.
 

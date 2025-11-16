@@ -315,8 +315,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.repos_dir, repo_urls
         )
 
-        local_exports = data_validator.get_local_exports()
-        self.pantry_shelf.save_exports_file("nbw-local-exports.sh", local_exports)
+        spec_exports = data_validator.get_spec_exports()
+        self.pantry_shelf.save_exports_file("nbw-spec-exports.sh", spec_exports)
         pantry_exports = data_validator.get_pantry_exports(
             self.pantry_shelf.abstract_data_path
         )
@@ -328,7 +328,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             Path(self.config.spec_file).parent,
             data=dict(
                 spec_inputs=data_validator.todict(),
-                local_exports=local_exports,
+                spec_exports=spec_exports,
                 pantry_exports=pantry_exports,
             ),
         )
@@ -419,13 +419,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     f"Failed unpacking '{src_archive}' to '{dest_path}'."
                 )
         if not self.pantry_shelf.save_exports_file(
-            "nbw-local-exports.sh", data["local_exports"]
+            "nbw-spec-exports.sh", data["spec_exports"]
         ):
-            return self.logger.error("Failed exporting nbw-local-exports.sh")
+            return self.logger.error("Failed exporting nbw-spec-exports.sh")
         if not self.pantry_shelf.save_exports_file(
             "nbw-pantry-exports.sh", data["pantry_exports"]
         ):
-            return self.logger.error("Failed exporting nbw-local-exports.sh")
+            return self.logger.error("Failed exporting nbw-spec-exports.sh")
         if not self._register_environment():
             return self.logger.error("Failed registering environment.")
         return True
@@ -641,8 +641,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
             env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
-            resolved_vars = utils.resolve_env(env_vars)
-            return resolved_vars
+            return env_vars
+            # resolved_vars = utils.resolve_env(env_vars)
+            # return resolved_vars
         else:
             return {}
 

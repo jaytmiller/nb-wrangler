@@ -123,6 +123,12 @@ def parse_args():
         help="Unregister the target environment from Jupyter.",
     )
     env_group.add_argument(
+        "--env-compact",
+        action="store_true",
+        dest="env_compact",
+        help="Compact the wrangler installation by deleting package caches, etc.",
+    )
+    env_group.add_argument(
         "--env-archive-format",
         default="",
         type=str,
@@ -133,12 +139,6 @@ def parse_args():
 
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
-    )
-    packages_group.add_argument(
-        "--env-compact",
-        action="store_true",
-        dest="env_compact",
-        help="Compact the wrangler installation by deleting package caches, etc.",
     )
     packages_group.add_argument(
         "--packages-compile",
@@ -262,7 +262,7 @@ def parse_args():
     )
     data_group.add_argument(
         "--data-env-vars-mode",
-        choices=["local", "pantry"],
+        choices=["pantry", "spec"],
         default=DEFAULT_DATA_ENV_VARS_MODE,
         type=str,
         help="Define whether to locate unpacked data within the pantry or at locations from the refdata specs.",

@@ -424,7 +424,7 @@ class RefdataValidator(WranglerLoggable):
         )
         return filtered_urls
 
-    def get_data_local_env_vars(self) -> dict[str, str]:
+    def get_data_spec_env_vars(self) -> dict[str, str]:
         return {
             dsu.section.environment_variable: dsu.section.env_value
             for dsu in self.get_data_section_urls()
@@ -444,18 +444,18 @@ class RefdataValidator(WranglerLoggable):
             result.update(refdata.other_variables)
         return dict(result)
 
-    def get_local_exports(self) -> dict:
+    def get_spec_exports(self) -> dict:
         """Get env variables targeted at the locations specified in the refdata spec
         only.
 
         Note that these env variable definitions are still abstract.
         """
-        local_env_vars = self.get_data_local_env_vars()
+        spec_env_vars = self.get_data_spec_env_vars()
         other_env_vars = self.get_data_other_env_vars()
-        local_exports = dict()
-        local_exports.update(local_env_vars)
-        local_exports.update(other_env_vars)
-        return local_exports
+        spec_exports = dict()
+        spec_exports.update(spec_env_vars)
+        spec_exports.update(other_env_vars)
+        return spec_exports
 
     def get_pantry_exports(self, abstract_data_path: Path) -> dict:
         """Get env variables targeted at internal pantry locations ignoring `install_path`
