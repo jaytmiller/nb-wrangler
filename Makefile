@@ -186,7 +186,7 @@ clean-pyc: ## remove Python file artifacts
 
 clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
-	rm -fr .pytest_cache
+	rm -fr .pytest_cache nb_wranger/.pytest_cache
 	rm -fr $$TEST_OUTPUTS
 
 clean-other:
