@@ -24,12 +24,19 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     def handle_result(self, *args, **keys):
         return self.env_manager.handle_result(*args, **keys)
 
-    def setup_repos(self, repo_urls: list[str], single_branch=False, repo_branches: Optional[dict[str, str | None]] = None) -> bool:
+    def setup_repos(
+        self,
+        repo_urls: list[str],
+        single_branch=False,
+        repo_branches: Optional[dict[str, str | None]] = None,
+    ) -> bool:
         """set up all specified repositories."""
         self.logger.debug(f"Setting up repos. urls={repo_urls}.")
         for repo_url in repo_urls:
             branch = repo_branches.get(repo_url) if repo_branches else None
-            repo_path = self._setup_remote_repo(repo_url, single_branch=single_branch, branch=branch)
+            repo_path = self._setup_remote_repo(
+                repo_url, single_branch=single_branch, branch=branch
+            )
             if not repo_path:
                 return False
         return True
@@ -57,16 +64,20 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 self.logger.exception(e, f"Failed to setup repository {repo_url}.")
                 return None
 
-    def _clone_repo(self, repo_url: str, repo_dir: Path, single_branch=True, branch: Optional[str] = None) -> Path:
+    def _clone_repo(
+        self,
+        repo_url: str,
+        repo_dir: Path,
+        single_branch=True,
+        branch: Optional[str] = None,
+    ) -> Path:
         """Clone a new repository."""
         single_branch_arg = "--single-branch" if single_branch else ""
         branch_arg = f"--branch {branch}" if branch else ""
         clone_args = " ".join(filter(None, [single_branch_arg, branch_arg]))
 
         branch_msg = f" (branch: {branch})" if branch else ""
-        self.logger.info(
-            f"Cloning repository {repo_url}{branch_msg} to {repo_dir}."
-        )
+        self.logger.info(f"Cloning repository {repo_url}{branch_msg} to {repo_dir}.")
         if self.env_manager is None:
             raise RuntimeError("Environment manager not available")
         self.run(

@@ -270,7 +270,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             injector_url = self.injector.url
             if not self.repo_manager.setup_repos([injector_url], single_branch=False):
                 return False
-        if not self.repo_manager.setup_repos(notebook_repo_urls, repo_branches=notebook_repo_branches):
+        if not self.repo_manager.setup_repos(
+            notebook_repo_urls, repo_branches=notebook_repo_branches
+        ):
             return False
         notebook_paths = self.spec_manager.collect_notebook_paths(
             self.config.repos_dir, notebook_repo_urls
@@ -572,10 +574,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             add_sha256=not self.config.spec_ignore_hash,
         )
         if self.pantry_shelf.spec_path.exists():
-            no_errors = self.spec_manager.save_spec_as(
-                self.pantry_shelf.spec_path,
-                add_sha256=not self.config.spec_ignore_hash,
-            ) and no_errors
+            no_errors = (
+                self.spec_manager.save_spec_as(
+                    self.pantry_shelf.spec_path,
+                    add_sha256=not self.config.spec_ignore_hash,
+                )
+                and no_errors
+            )
         return no_errors
 
     def _update_spec_sha256(self) -> bool:

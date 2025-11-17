@@ -31,6 +31,7 @@ from .constants import (
     ENV_CREATE_TIMEOUT,
     INSTALL_PACKAGES_TIMEOUT,
     IMPORT_TEST_TIMEOUT,
+    ARCHIVE_TIMEOUT,
 )
 from . import utils
 
@@ -348,7 +349,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         select = extract if extract is not None else source_dirpath.name
         cmd = f"tar -acf {archive_filepath} {select}"
         cwd = source_dirpath if extract is not None else source_dirpath.parent
-        result = self.wrangler_run(cmd, cwd=cwd, check=False)
+        result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to pack {source_dirpath} into {archive_filepath}:",
@@ -365,7 +366,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         select = extract if extract is not None else destination_dirpath.name
         cmd = f"tar -axf {archive_filepath} {select}"
         cwd = destination_dirpath if extract is not None else destination_dirpath.parent
-        result = self.wrangler_run(cmd, cwd=cwd, check=False)
+        result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to unpack {archive_filepath} into {cwd}: ",
