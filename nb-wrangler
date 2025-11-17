@@ -151,14 +151,7 @@ case $NBW_COMMAND in
         ;;
 esac
 
-if [ -e ${NBW_MAMBA} ]; then
-    eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
-fi
-
 case $NBW_COMMAND in
-    boot*|env*)
-        ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
-        ;;
     live-backup)
         cd ${NBW_ROOT}/..
         mkdir -p ${NBW_BACKUPS}
@@ -179,13 +172,20 @@ case $NBW_COMMAND in
         cd ${NBW_PANTRY}/..
         tar xf ${NBW_BACKUPS}/nbw-pantry-backup.tar
         ;;
+    boot*|env*)
+        eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
+        ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
+        ;;
     act*)
+        eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
         ${NBW_MAMBA} activate $*
         ;;
     deact*)
+        eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
         ${NBW_MAMBA} deactivate
         ;;
     *)
+        eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
         ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
         python -m nb_wrangler $NBW_COMMAND $*
         ;;
