@@ -567,10 +567,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _save_final_spec(self) -> bool:
         """Overwrite the original spec with the updated spec."""
         self.logger.debug("Updating spec with final results.")
-        return self.spec_manager.save_spec(
+        no_errors = self.spec_manager.save_spec(
             Path(self.config.spec_file).parent,
             add_sha256=not self.config.spec_ignore_hash,
         )
+        if self.pantry_shelf.spec_path.exists():
+            no_errors = self.spec_manager.save_spec_as(
+                self.pantry_shelf.spec_path,
+                add_sha256=not self.config.spec_ignore_hash,
+            ) and no_errors
+        return no_errors
 
     def _update_spec_sha256(self) -> bool:
         return self.spec_manager.save_spec(

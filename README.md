@@ -16,6 +16,16 @@ Key features include:
 
 The project uses `micromamba` for environment management and `uv` for fast package installation.
 
+## Science Platform Pre-install
+
+Before installing/bootstrapping on the science platform, set the environment variable `NBW_ROOT` to temporary container storage:
+
+```sh
+export NBW_ROOT=/tmp/nbw-live
+```
+
+This is required for adequate cloud performance when creating Python environments and should be done at the start of each session. This step can be skipped for local installations.
+
 ## Installation
 
 To get started, bootstrap `nb-wrangler` to create the necessary environments and directories (by default in `$HOME/.nbw-live`):
@@ -173,6 +183,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-select`: Select a spec from the pantry.
 
 For a full list of options, run `nb-wrangler --help`.
+
 
 ## Input Formats
 

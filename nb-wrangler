@@ -6,6 +6,7 @@ setup_env() {
     export NBW_PYTHON_VERSION=${NBW_PYTHON_VERSION:-"3.11"}
     export NBW_ROOT=${NBW_ROOT:-"$HOME/.nbw-live"}
     export NBW_PANTRY=${NBW_PANTRY:-"$HOME/.nbw-pantry"}
+    export NBW_BACKUPS=${NBW_BACKUPS:-"$HOME/.nbw-backups"}
     export NBW_MM=${NBW_MM:-"${NBW_ROOT}/mm"}
     export NBW_WRANGLER_ENV=${NBW_WRANGLER_ENV:-"nbwrangler"}
     export MAMBA_ROOT_PREFIX=${NBW_MM}
@@ -150,11 +151,33 @@ case $NBW_COMMAND in
         ;;
 esac
 
-eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
+if [ -e ${NBW_MAMBA} ]; then
+    eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
+fi
 
 case $NBW_COMMAND in
     boot*|env*)
         ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
+        ;;
+    live-backup)
+        cd ${NBW_ROOT}/..
+        mkdir -p ${NBW_BACKUPS}
+        tar cf ${NBW_BACKUPS}/nbw-live-backup.tar $(basename ${NBW_ROOT})
+        ;;
+    live-restore)
+        mkdir -p ${NBW_ROOT}
+        cd ${NBW_ROOT}
+        tar xf ${NBW_BACKUPS}/nbw-live-backup.tar
+        ;;
+    pantry-backup)
+        cd ${NBW_PANTRY}/..
+        mkdir -p ${NBW_BACKUPS}
+        tar cf ${NBW_BACKUPS}/nbw-pantry-backup.tar $(basename ${NBW_PANTRY})
+        ;;
+    pantry-restore)
+        mkdir -p ${NBW_PANTRY}
+        cd ${NBW_PANTRY}/..
+        tar xf ${NBW_BACKUPS}/nbw-pantry-backup.tar
         ;;
     act*)
         ${NBW_MAMBA} activate $*
