@@ -603,8 +603,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
-        if test_imports := self.spec_manager.get_outputs("test_imports"):
-            return self.env_manager.test_imports(self.env_name, test_imports)
+        if nb_to_imports := self.spec_manager.get_outputs("nb_to_imports"):
+            return self.env_manager.test_nb_imports(self.env_name, nb_to_imports)
         else:
             return self.logger.warning("Found no imports to check in spec'd notebooks.")
 

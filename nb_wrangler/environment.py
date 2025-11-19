@@ -9,6 +9,7 @@ uv is used to manage pip packages in the target environment.
 environmentsinstall non-pip Python packages
 """
 
+import os
 import json
 import shlex
 import subprocess
@@ -415,6 +416,33 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             return True
         except Exception as e:
             return self.logger.exception(e, f"Failed to compact wrangler: {e}")
+
+    def test_nb_imports(
+        self, env_name: str, nb_to_imports: dict[str, list[str]]
+    ) -> bool:
+        """This code is necessary only because some notebook repos permit notebooks to have
+        local .py files in the same dir as the notebook.  Hence to run the notebook correctly,
+        one needs to be in the notebook's directory or a copy of it for the .py file to import
+        correctly.  The alternative of sticking the nb directory on PYTHONPATH has the problem
+        where different notebooks might decide to include "my_requirements.py" and one of them
+        will get the wrong version.
+        """
+        self.logger.info(
+            f"Testing imports by notebook for {len(nb_to_imports)} notebooks..."
+        )
+        no_errors = True
+        for notebook, imports in nb_to_imports.items():
+            try:
+                here = os.getcwd()
+                os.chdir(Path(notebook).parent)
+                self.logger.info(f"Testing imports for {notebook}.")
+                no_errors = self.test_imports(env_name, imports) and no_errors
+            except Exception as e:
+                self.logger.exception(f"Failed due to exception: {e}.")
+                no_errors = False
+            finally:
+                os.chdir(here)
+        return no_errors
 
     def test_imports(self, env_name: str, imports: list[str]) -> bool:
         """Test package imports."""

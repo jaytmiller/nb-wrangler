@@ -17,11 +17,9 @@ class NotebookImportProcessor(WranglerLoggable):
             r"^(?:import\s+([a-zA-Z0-9_\.]+))|(?:from\s+([a-zA-Z0-9_\.]+)\s+import)"
         )
 
-    def extract_imports(
-        self, notebook_paths
-    ) -> tuple[list[str], list[dict[str, list[str]]]]:
+    def extract_imports(self, notebook_paths) -> tuple[list[str], dict[str, list[str]]]:
         """Extract import statements from notebooks."""
-        nb_to_imports: list[dict[str, list[str]]] = []
+        nb_to_imports: dict[str, list[str]] = {}
         unique_notebooks: set[str] = set(notebook_paths)
         total_imports: set[str] = set()
         self.logger.info(
@@ -33,7 +31,7 @@ class NotebookImportProcessor(WranglerLoggable):
                 imports = self._extract_imports_from_notebook(nb_dict)
                 for imp in imports:
                     total_imports.add(imp)
-                nb_to_imports.append({nb_path_str: imports})
+                nb_to_imports[nb_path_str] = imports
                 self.logger.debug(
                     f"Extracted {len(imports)} package imports from notebook {nb_path_str}: {imports}"
                 )

@@ -148,9 +148,17 @@ class WranglerLogger:
         )
         color_and_time_handler = logging.StreamHandler()
         color_and_time_handler.setFormatter(color_and_time_formatter)
+        file_handler = logging.FileHandler("nb-wrangler.log")
+        file_handler_formatter = ColorAndTimeFormatter(
+            log_times=self.log_times, color="off"
+        )
+        file_handler.setFormatter(file_handler_formatter)
         logging.basicConfig(
             level=logging.DEBUG if self.verbose else logging.INFO,
-            handlers=[color_and_time_handler],
+            handlers=[
+                color_and_time_handler,
+                file_handler,
+            ],
             force=True,  # Override any existing configuration
             # format="%(levelname)s - %(message)s",
             # datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
