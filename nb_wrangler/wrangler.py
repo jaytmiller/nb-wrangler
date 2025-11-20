@@ -121,6 +121,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     status = self._run_data_curation_workflow()
                 case "data_reinstall":
                     status = self._run_data_reinstall_workflow()
+                case "reset_curation":
+                    status = self._run_reset_curation()
                 case _:
                     self.logger.error(f"Undefined workflow {workflow}.")
             no_errors = status and no_errors
@@ -208,6 +210,17 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._data_download,
                 self._data_validate,
                 self._data_unpack,
+            ],
+        )
+
+    def _run_reset_curation(self) -> bool:
+        return self.run_workflow(
+            "reset curation",
+            [
+                self._delete_environment,
+                self._env_compact,
+                self._reset_spec,
+                self._save_final_spec
             ],
         )
 

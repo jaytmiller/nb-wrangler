@@ -53,6 +53,11 @@ def parse_args():
             "Install requirements defined by a pre-compiled spec.",
         ),
         (
+            "--reset-curation",
+            "reset_curation",
+            "Reset the environment, spec to force re-evuation of all inputs (env-delete, env-compact, spec-reset). NOTE: excludes deleting current repos;  can add --repos-delete",
+        ),
+        (
             "--data-curate",
             "data_curation",
             "Execute multi-step workflow to import data specs from notebook repos and collect metadata.",
@@ -150,7 +155,7 @@ def parse_args():
         "--packages-omit-spi",
         action="store_true",
         dest="packages_omit_spi",
-        help="Include the 'common' packages used by all missions in all current SPI based mission environments, may affect GUI capabilty.",
+        help="Don't include the 'common' packages used by all missions in all current SPI based mission environments, may affect GUI capabilty.",
     )
     packages_group.add_argument(
         "--packages-install",
@@ -389,14 +394,6 @@ def parse_args():
         choices=VALID_COLOR_MODES,
         default=DEFAULT_COLOR_MODE,
         help="Colorize the log.",
-    )
-    parser.add_argument(
-        "-e",
-        "--env-overrides",
-        type=str,
-        metavar="VAR=val",
-        nargs="*",
-        help="""Environment variable overrides to apply when resolving abstract paths, particularly for data.""",
     )
 
     parsed = parser.parse_args()

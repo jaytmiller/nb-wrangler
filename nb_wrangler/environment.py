@@ -216,14 +216,17 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
 
     def delete_environment(self, env_name: str) -> bool:
         """Delete an existing environment."""
-        self.logger.info(f"Deleting environment: {env_name}")
-        command = self.mamba_command + " env remove --yes -n " + env_name
-        result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
-        return self.handle_result(
-            result,
-            f"Failed to delete environment {env_name}: \n",
-            f"Environment {env_name} deleted. It's totally gone, file storage reclaimed.",
-        )
+        if self.environment_exists(env_name):
+            self.logger.info(f"Deleting environment: {env_name}")
+            command = self.mamba_command + " env remove --yes -n " + env_name
+            result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
+            return self.handle_result(
+                result,
+                f"Failed to delete environment {env_name}: \n",
+                f"Environment {env_name} deleted. It's totally gone, file storage reclaimed.",
+            )
+        else:
+            return self.logger.warning(f"Skipping --delete-environment for {env_name} wrangler does not believe exists.")
 
     def install_packages(self, env_name: str, requirements_paths: list[Path]) -> bool:
         """Install the compiled package lists."""
@@ -292,13 +295,16 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
 
     def unregister_environment(self, env_name: str) -> bool:
         """Unregister Jupyter environment for the environment."""
-        cmd = f"jupyter kernelspec uninstall -y {env_name}"
-        result = self.wrangler_run(cmd, check=False)
-        return self.handle_result(
-            result,
-            f"Failed to unregister Jupyter kernel {env_name}: ",
-            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} still exists but is no longer offered by JupyterLab.",
-        )
+        if self.environment_exists(env_name):
+            cmd = f"jupyter kernelspec uninstall -y {env_name}"
+            result = self.wrangler_run(cmd, check=False)
+            return self.handle_result(
+                result,
+                f"Failed to unregister Jupyter kernel {env_name}: ",
+                f"Unregistered Jupyter kernel {env_name}. Environment {env_name} still exists but is no longer offered by JupyterLab.",
+            )
+        else:
+            return self.logger.warning(f"Skipping --env-unregister for {env_name} that wrangler does not believe exists.")
 
     def environment_exists(self, env_name: str) -> bool:
         """Return True IFF `env_name` exists."""
