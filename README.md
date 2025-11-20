@@ -146,6 +146,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 
 - `--curate`: Run the full curation workflow to define notebooks and Python environment.
 - `--reinstall`: Reinstall an environment from a spec.
+- `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates.  Sometimes needed to iterate --curation,  particlarly after revising notebook repos.
 - `--data-curate`: Curate data dependencies.
 - `--data-reinstall`: Reinstall data dependencies.
 - `--submit-for-build`: Submit a spec for an automated image build.
