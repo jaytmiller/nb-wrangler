@@ -46,7 +46,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 82d9072af1fa8135e63f01d65b45f8b35bdd36dc52f46b8dd02d17e367513c3c
+  spec_sha256: 3479194332c577e4c77c274826957f7d4f80edd0a94be5e98cc3f0bfce3c943f
 out:
   data:
     spec_inputs:
@@ -362,7 +362,9 @@ out:
     asdf-wcs-schemas==0.5.0
         # via gwcs
     astrocut==1.1.0
-        # via -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
+        # via
+        #   -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
+        #   -r references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
     astropy==7.1.1
         # via
         #   -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
@@ -377,7 +379,6 @@ out:
         #   galsim
         #   glue-core
         #   gwcs
-        #   pandeia-engine
         #   photutils
         #   poppy
         #   pysiaf
@@ -431,7 +432,7 @@ out:
         # via flask
     bokeh==3.8.1
         # via
-        #   -c references/roman_notebooks/notebooks/rist/requirements.txt
+        #   -r references/roman_notebooks/notebooks/rist/requirements.txt
         #   dask
         #   jupyter-bokeh
     boto3==1.40.70
@@ -532,7 +533,7 @@ out:
         # via
         #   -r references/roman_notebooks/notebooks/romanisim/requirements.txt
         #   distributed
-    ddtrace==3.18.1
+    ddtrace==4.0.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.17
         # via ipykernel
@@ -623,13 +624,13 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   glue-vispy-viewers
-    glue-vispy-viewers==1.2.3
+    glue-vispy-viewers==1.3.0
         # via glue-jupyter
     greenlet==3.2.4
         # via
         #   playwright
         #   sqlalchemy
-    gwcs==0.26.0
+    gwcs==0.26.1
         # via
         #   astrocut
         #   roman-datamodels
@@ -899,8 +900,6 @@ out:
         # via rfc3987-syntax
     lazy-loader==0.4
         # via scikit-image
-    legacy-cgi==2.6.4 ; python_full_version >= '3.13'
-        # via ddtrace
     locket==1.0.0
         # via
         #   distributed
@@ -1016,8 +1015,8 @@ out:
         # via poppy
     numpy==2.3.4
         # via
-        #   -c references/roman_notebooks/notebooks/rist/requirements.txt
-        #   -r references/roman_notebooks/notebooks/pandeia/requirements.txt
+        #   -c references/roman_notebooks/notebooks/pandeia/requirements.txt
+        #   -r references/roman_notebooks/notebooks/rist/requirements.txt
         #   -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/notebooks/romanisim/requirements.txt
         #   -r references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
@@ -1052,7 +1051,6 @@ out:
         #   numexpr
         #   opencv-python-headless
         #   pandas
-        #   pandeia-engine
         #   photutils
         #   poppy
         #   pyerfa
@@ -1076,6 +1074,7 @@ out:
         #   tifffile
         #   tweakwcs
         #   vispy
+        #   xarray
     numpydoc==1.9.0
         # via sphinx-astropy
     oauthlib==3.3.1
@@ -1120,18 +1119,18 @@ out:
         #   sphinx-automodapi
         #   tweakwcs
         #   vispy
+        #   xarray
     pamela==1.2.0 ; sys_platform != 'win32'
         # via jupyterhub
     pandas==2.3.3
         # via
-        #   -c references/roman_notebooks/notebooks/rist/requirements.txt
+        #   -r references/roman_notebooks/notebooks/rist/requirements.txt
         #   bokeh
         #   bqplot
         #   dask
         #   glue-core
         #   romancal
-    pandeia-engine==2025.9
-        # via -r references/roman_notebooks/notebooks/pandeia/requirements.txt
+        #   xarray
     pandocfilters==1.5.1
         # via nbconvert
     papermill==2.6.0
@@ -1150,7 +1149,6 @@ out:
         # via ipython
     photutils==2.3.0
         # via
-        #   pandeia-engine
         #   romancal
         #   romanisim
         #   stpsf
@@ -1196,8 +1194,6 @@ out:
         # via
         #   aiohttp
         #   yarl
-    protobuf==6.33.1
-        # via ddtrace
     psutil==7.1.3
         # via
         #   distributed
@@ -1279,7 +1275,7 @@ out:
         #   ci-watson
         #   pytest-doctestplus
         #   pytest-openfiles
-    pytest-doctestplus==1.5.0
+    pytest-doctestplus==1.6.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/testing.pip
         #   sphinx-astropy
@@ -1410,13 +1406,12 @@ out:
         #   stcal
     scipy==1.16.3
         # via
-        #   -c references/roman_notebooks/notebooks/rist/requirements.txt
-        #   -r references/roman_notebooks/notebooks/pandeia/requirements.txt
+        #   -c references/roman_notebooks/notebooks/pandeia/requirements.txt
+        #   -r references/roman_notebooks/notebooks/rist/requirements.txt
         #   astrocut
         #   glue-core
         #   glue-vispy-viewers
         #   gwcs
-        #   pandeia-engine
         #   photutils
         #   poppy
         #   pysiaf
@@ -1441,7 +1436,6 @@ out:
         #   galsim
         #   jupyter-packaging
         #   jupyterlab
-        #   pandeia-engine
         #   pip-tools
     shapely==2.1.2
         # via glue-core
@@ -1539,9 +1533,7 @@ out:
     stpipe==0.11.1
         # via romancal
     stpsf==2.1.0
-        # via
-        #   -r references/roman_notebooks/notebooks/synphot/requirements.txt
-        #   -r references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
+        # via -r references/roman_notebooks/notebooks/synphot/requirements.txt
     stsci-imagestats==1.8.4
         # via
         #   romancal
@@ -1551,13 +1543,10 @@ out:
     stsci-stimage==0.3.0
         # via tweakwcs
     stsynphot==1.5.0
-        # via
-        #   -r references/roman_notebooks/notebooks/synphot/requirements.txt
-        #   pandeia-engine
+        # via -r references/roman_notebooks/notebooks/synphot/requirements.txt
     synphot==1.6.0
         # via
         #   -r references/roman_notebooks/notebooks/synphot/requirements.txt
-        #   pandeia-engine
         #   stpsf
         #   stsynphot
     tblib==3.2.2
@@ -1692,6 +1681,8 @@ out:
         #   aiobotocore
         #   ddtrace
         #   smart-open
+    xarray==2025.10.1
+        # via -r references/roman_notebooks/notebooks/rist/requirements.txt
     xlrd==2.0.2
         # via glue-core
     xmltodict==1.0.2
