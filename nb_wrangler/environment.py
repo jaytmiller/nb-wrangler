@@ -226,7 +226,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"Environment {env_name} deleted. It's totally gone, file storage reclaimed.",
             )
         else:
-            return self.logger.warning(f"Skipping --delete-environment for {env_name} wrangler does not believe exists.")
+            return self.logger.warning(
+                f"Skipping --delete-environment for {env_name} wrangler does not believe exists."
+            )
 
     def install_packages(self, env_name: str, requirements_paths: list[Path]) -> bool:
         """Install the compiled package lists."""
@@ -304,7 +306,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"Unregistered Jupyter kernel {env_name}. Environment {env_name} still exists but is no longer offered by JupyterLab.",
             )
         else:
-            return self.logger.warning(f"Skipping --env-unregister for {env_name} that wrangler does not believe exists.")
+            return self.logger.warning(
+                f"Skipping --env-unregister for {env_name} that wrangler does not believe exists."
+            )
 
     def environment_exists(self, env_name: str) -> bool:
         """Return True IFF `env_name` exists."""
