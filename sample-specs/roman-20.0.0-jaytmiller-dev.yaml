@@ -6,7 +6,7 @@
 # Roman Cutouts
 # Roman I-sim
 # Time domain sim tutorials
-# CRDS examples 
+# CRDS examples
 # Low priority but ready
 
 # Synphot
@@ -14,12 +14,13 @@
 
 # Image header information
 image_spec_header:
-  image_name: roman-20.0.0
+  image_name: roman-20.0.0-jmiller-demo
   deployment_name: roman  # currenty tike, roman, or jwebbinar
-  kernel_name: roman-cal      # currently tess, roman-cal, or masterclass (and conda env name)
-  display_name: Roman Research Nexus     # menu item in JupyterLab kernel selection list
+  kernel_name: roman-cal-jmiller      # currently tess, roman-cal, or masterclass (and conda env name)
+  display_name: Roman Cal (jmiller demo)     # menu item in JupyterLab kernel selection list
   description: |
-    This is a demo of a possible Roman notebook image build using nb-wrangler
+    This is a demo of a possible Roman notebook image build using nb-wrangler built relative to a
+    modified fork of the roman_notebooks repo from spacetelescope.
   valid_on: 2025-11-01
   expires_on: 2026-05-01
   python_version: 3.12
@@ -101,11 +102,11 @@ out:
       CRDS_CONTEXT: roman_0027.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
-      pandeia_refdata: 
+      pandeia_refdata:
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/pandeia_data-2025.9-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stpsf-data
       stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
-      PYSYN_CDBS: 
+      PYSYN_CDBS:
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
       CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
       CRDS_CONTEXT: roman_0027.pmap

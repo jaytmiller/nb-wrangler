@@ -6,7 +6,7 @@
 # Roman Cutouts
 # Roman I-sim
 # Time domain sim tutorials
-# CRDS examples 
+# CRDS examples
 # Low priority but ready
 
 # Synphot
@@ -25,8 +25,8 @@ image_spec_header:
   python_version: 3.12
 # these are the useful tike_content notebooks
 selected_notebooks:
-  - nb_repo: https://github.com/jaytmiller/roman_notebooks
-    nb_branch: jaytmiller-dev
+  - nb_repo: https://github.com/spacetelescope/roman_notebooks
+    nb_branch: main
     nb_root_directory: notebooks/
     include_subdirs:
       - pandeia/.*
@@ -101,11 +101,11 @@ out:
       CRDS_CONTEXT: roman_0027.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
-      pandeia_refdata: 
+      pandeia_refdata:
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/pandeia_data-2025.9-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stpsf-data
       stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
-      PYSYN_CDBS: 
+      PYSYN_CDBS:
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
       CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
       CRDS_CONTEXT: roman_0027.pmap
