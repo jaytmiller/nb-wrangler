@@ -47,7 +47,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: d84739cd5b11082499227fe27f98644f1e86db8972d745c814384d6288785c1c
+  spec_sha256: 8f757f8a546191a5564c655a0bf8980df33577a463ee56242dd9947cc85efb64
 out:
   data:
     spec_inputs:
@@ -102,11 +102,11 @@ out:
       CRDS_CONTEXT: roman_0027.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
-      pandeia_refdata:
+      pandeia_refdata: 
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/pandeia_data-2025.9-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stpsf-data
       stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
-      PYSYN_CDBS:
+      PYSYN_CDBS: 
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
       CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
       CRDS_CONTEXT: roman_0027.pmap
