@@ -321,7 +321,9 @@ class NbwShelf(WranglerLoggable):
                     f"No archive file found at {delete_path}.  Skipping packed delete."
                 )
         if data_delete in ["unpacked", "both"]:
-            delete_path = self.data_path / archive_tuple[3]
+            # Deletion requires deleting the top-level directory where the archive was unpacked.
+            # For a data_path like 'grp/redcat/trds', we delete 'grp'.
+            delete_path = self.data_path / Path(archive_tuple[3]).parts[0]
             if delete_path.exists():
                 self.logger.info(
                     f"Deleting unpacked data directory at {delete_path}..."
