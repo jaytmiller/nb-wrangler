@@ -36,7 +36,7 @@ chmod +x nb-wrangler
 source ./nb-wrangler bootstrap
 ```
 
-After bootstrapping, you can activate the `nb-wrangler` environment with:
+After bootstrapping, you can activate the `nbwrangler` environment with:
 
 ```bash
 source ./nb-wrangler environment

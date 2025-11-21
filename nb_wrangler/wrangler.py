@@ -115,6 +115,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     status = self._run_development_workflow()
                 case "submit_for_build":
                     status = self._run_submit_build_workflow()
+                case "inject_spi":
+                    status = self._inject_spi_workflow()
                 case "reinstall":
                     status = self._run_reinstall_spec_workflow()
                 case "data_curation":
@@ -177,6 +179,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             ],
         )
 
+    def _inject_spi_workflow(self) -> bool:
+        """Execute steps for the build submission workflow."""
+        return self.run_workflow(
+            "inject-spi",
+            [
+                self._validate_spec,
+                self._delete_spi_repo,
+                self._clone_repos,
+                self._inject_spi,
+            ],
+        )
+
     def _run_reinstall_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
         required_outputs = (
@@ -234,7 +248,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.packages_install, self._install_packages),
             (self.config.test_imports, self._test_imports),
             (self.config.test_notebooks, self._test_notebooks),
-            (self.config.inject_spi, self.injector.inject),
             (self.config.spec_update_hash, self._update_spec_sha256),
             (self.config.spec_validate, self._validate_spec),
             (self.config.env_pack, self._pack_environment),
@@ -698,4 +711,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.env_manager.unregister_environment(self.env_name)
 
     def _submit_for_build(self) -> bool:
+        """PR the spec and trigger a wrangler image build."""
         return self.injector.submit_for_build()
+    
+    def _inject_spi(self) -> bool:
+        """Populat the local SPI clone with requirements and info from the spec."""
+        return self.injector.inject()
