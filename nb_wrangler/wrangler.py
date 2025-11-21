@@ -113,7 +113,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             match workflow:
                 case "curation":
                     status = self._run_development_workflow()
-                case "submit_for-build":
+                case "submit_for_build":
                     status = self._run_submit_build_workflow()
                 case "reinstall":
                     status = self._run_reinstall_spec_workflow()
