@@ -16,7 +16,7 @@
 image_spec_header:
   image_name: roman-20.0.0-jmiller-demo
   deployment_name: roman  # currenty tike, roman, or jwebbinar
-  kernel_name: roman-cal-jmiller      # currently tess, roman-cal, or masterclass (and conda env name)
+  kernel_name: roman-cal  # currently tess, roman-cal, or masterclass (must pre-exist in SPI for now)
   display_name: Roman Cal (jmiller demo)     # menu item in JupyterLab kernel selection list
   description: |
     This is a demo of a possible Roman notebook image build using nb-wrangler built relative to a
@@ -47,7 +47,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 8f757f8a546191a5564c655a0bf8980df33577a463ee56242dd9947cc85efb64
+  spec_sha256: 1e9d092d840ea3168f01646451e706d2ff8299b80e4fc35d05b565d4e1394f5b
 out:
   data:
     spec_inputs:

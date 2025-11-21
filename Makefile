@@ -121,6 +121,11 @@ fnc-spec-validate: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --spec-validate
 	git checkout -- fnc-test-spec.yaml
 
+fnc-inject-spi: fnc-packages-compile
+	rm -rf inject-spi-references
+	./nb-wrangler   fnc-test-spec.yaml --inject-spi  --repos-dir  inject-spi-references
+
+
 
 # ==========================================================================================================
 
