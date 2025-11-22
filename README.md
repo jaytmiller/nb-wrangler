@@ -153,6 +153,9 @@ Note that particularly for curation but also for reinstallation
 there is the assumption that tests may fail and it may be necessary
 to circle back to earlier steps, make fixes, and iterate.
 
+For more information on notebooks and environment curation see [Managing Notebook Selection and Environment](docs/curation.md)
+For more information on supporting data see [Managing Notebook Reference Data](docs/data.md)
+
 ## Advanced Usage
 
 ### Test Failures and Process Iteration
