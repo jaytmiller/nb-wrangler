@@ -199,6 +199,7 @@ clean-other:
 	rm -f .coverage
 	rm -fr htmlcov/
 	rm -rf .mypy_cache
+	rm -f nb-wrangler.log
 
 lint/flake8: ## check style with flake8
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \
