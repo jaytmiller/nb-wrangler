@@ -156,7 +156,7 @@ to circle back to earlier steps, make fixes, and iterate.
 
 ## Advanced Usage
 
-### Test Failues and Process Iteration
+### Test Failures and Process Iteration
 
 If you encounter errors in the test phase and need to circle back to
 earlier steps,  depending on what work needs to be repeated,  you may
