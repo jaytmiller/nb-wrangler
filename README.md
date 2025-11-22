@@ -45,8 +45,7 @@ Two other points are worthy of note:
 
 ## Science Platform Pre-install
 
-Before installing/bootstrapping on the science platform, set the environment
-variable `NBW_ROOT` to point to temporary container storage:
+Before installing/bootstrapping on the Science Platform, set the environment variable `NBW_ROOT` to temporary container storage:
 
 ```sh
 export NBW_ROOT=/tmp/nbw-live
@@ -185,7 +184,7 @@ After you have curated a spec, you can submit it to a build service to automatic
 
 ```bash
 gh auth login
-nb-wrangler spec.yaml --submit-for-build
+./nb-wrangler spec.yaml --submit-for-build
 ```
 
 For more information, see the [Build Submission documentation](docs/submit.md).
@@ -206,7 +205,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 
 - `--curate`: Run the full curation workflow to define notebooks and Python environment.
 - `--reinstall`: Reinstall an environment from a spec.
-- `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates.  Sometimes needed to iterate --curation,  particlarly after revising notebook repos.
+- `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates. Sometimes needed to iterate --curate, particularly after revising notebook repos.
 - `--data-curate`: Curate data dependencies.
 - `--data-reinstall`: Reinstall data dependencies.
 - `--submit-for-build`: Submit a spec for an automated image build.
@@ -243,7 +242,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-list`: List available specs in the pantry.
 - `--spec-select`: Select a spec from the pantry.
 
-For a full list of options, run `nb-wrangler --help`.
+For a full list of options, run `./nb-wrangler --help`.
 
 
 ## Input Formats
@@ -252,13 +251,11 @@ For a full list of options, run `nb-wrangler --help`.
 
 - **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md).
 - **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g. [TIKE Content](https://github.com/spacetelescope/tike_content) or [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks) 
-- **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the science platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
+- **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
 - **Notebook (`.ipynb`):** Jupyter notebooks.
-- **Requirements (`requirements.txt`):** A file specifying Python package
-  dependencies for a notebook.
-- **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in
-  a notebook directory to factor out lengthy custom code from the notebook.
+- **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in it's notebook directory.
+- **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory to factor out lengthy custom code from the notebook.
 
 The goal of "wrangling" is to combine these inputs, resolve any conflicts, and produce a single, unified environment that can run all the specified notebooks.
 
