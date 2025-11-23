@@ -220,7 +220,11 @@ class NbwShelf(WranglerLoggable):
             self.logger.info(f"Downloading data from '{url}' to archive file '{key}'.")
             try:
                 utils.robust_get(
-                    url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path), quiet=""
+                    url,
+                    timeout=DATA_GET_TIMEOUT,
+                    cwd=str(archive_path),
+                    quiet="",
+                    continue_from_error="",
                 )
             except Exception as e:
                 return self.logger.exception(
