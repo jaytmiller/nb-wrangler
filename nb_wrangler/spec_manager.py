@@ -525,9 +525,11 @@ class SpecManager(WranglerLoggable):
         )
 
         remaining_notebooks = included_notebooks - excluded_notebooks
-        self.logger.debug(
-            f"Selected {len(remaining_notebooks)} notebooks under {base_path}: {remaining_notebooks}."
+        self.logger.info(
+            f"Selected {len(remaining_notebooks)} notebooks under {base_path} repository:"
         )
+        for notebook in remaining_notebooks:
+            self.logger.info(f"Found {Path(notebook).name} under {base_path}.")
         return remaining_notebooks
 
     def _matching_files(
