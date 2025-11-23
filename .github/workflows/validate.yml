@@ -28,7 +28,12 @@ jobs:
             source ./nb-wrangler environment
             make lint
 
-      - name: Functional Tests
+      - name: Env Functional Tests
         run: |
             source ./nb-wrangler environment
             make functional
+
+      - name: Data Functional Tests
+        run: |
+            source ./nb-wrangler environment
+            make data-functional
