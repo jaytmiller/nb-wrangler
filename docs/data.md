@@ -485,3 +485,27 @@ Regardless of where archive sections are unpacked, `nb-wrangler` automatically a
 
 
 In addition to kernel registration, `nb-wrangler` generates "exports" files named `nbw-pantry-exports.sh` and `nbw-local-exports.sh`. These files can be sourced to define data locations for shell environments and JupyterLab terminals.
+
+
+## Error Recovery Methods
+
+For data curation there are a variety of commands you can issue that can help recover from errors or failures:
+
+```sh
+nb-wrangler spec.yaml --data-reset-spec [--data-delete both] [--data-select regex] [--delete-repos] [--reset-log]
+```
+
+In particular, data downloading and unpacking can both be time consuming and more prone to failure
+than normal due to network interruptions, etc.  
+
+To clear a failed download to enable restarting the download, use `--data-delete archived` and/or 
+`--data-delete unpacked` and/or `--data-delete both`
+
+**CAUTION:** 
+
+- DO NOT USE `--data-delete` unless you're willing to re-download and/or unpack them again,  both of which will take time and may fail again.
+- USE `--data-select regex` to cherry pick specific data archives to operate on, particularly for deletion of failed archives.   Dry run with `--data-list` instead to verify your picks.
+- DO NOT USE `--delete-repos` unless you have not made changes to your repo clones, these will of course be lost.
+
+
+

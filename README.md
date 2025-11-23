@@ -158,22 +158,6 @@ For more information on supporting data see [Managing Notebook Reference Data](d
 
 ## Advanced Usage
 
-Similarly for data curation you can:
-
-```sh
-nb-wrangler spec.yaml --data-reset-spec [--data-delete both] [--data-select regex] [--delete-repos] [--reset-log]
-```
-
-In particular, data downloading and unpacking can both be time consuming and more prone to failure
-than normal due to network interruptions, etc.  To clear a failed download to enable restarting the
-download, use `--data-delete archived` and/or `--data-delete unpacked` and/or `--data-delete both`
-
-**CAUTION:** 
-
-- DO NOT USE `--data-delete` unless you're willing to re-download and/or unpack them again,  both of which will take time and may fail again.
-- USE `--data-select regex` to cherry pick specific data archives to operate on, particularly for deletion of failed archives.   Dry run with `--data-list` instead to verify your picks.
-- DO NOT USE `--delete-repos` unless you have not made changes to your repo clones, these will of course be lost.
-
 ### Build Submission
 
 After you have curated a spec, you can submit it to a build service to automatically create a container image.
@@ -254,10 +238,3 @@ For a full list of options, run `./nb-wrangler --help`.
 - **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory to factor out lengthy custom code from the notebook.
 
 The goal of "wrangling" is to combine these inputs, resolve any conflicts, and produce a single, unified environment that can run all the specified notebooks.
-
-## Future Development
-
-- More comprehensive documentation for configuration options.
-- Improved error handling and user feedback.
-- Advanced use cases and integrations.
-
