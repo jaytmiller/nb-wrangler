@@ -13,6 +13,8 @@ Science Platform environment.
 - Add any extra mamba packages or mamba version constraints;  minimize these to those not available by pip
 - Add any extra pip packages or pip version constraints not defined in requirements.txt files
 
+## Notebook and Environment Curation
+
 Once the curator's inputs are specified,  *run nb-wrangler* like this:
 
 ```bash
@@ -68,14 +70,19 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:43
 ```
 
-to download repos, scrape requirements, and build the corresponding environment.
+to download repos, scrape requirements, and build the corresponding environment. As part of this
+curation run, nb-wrangler adds or updates the `out` section of the wrangler spec with the results
+of the curation such as the notebooks found, imports to be tested, complete list of pip dependencies,
+etc.  This extra information can then be used to re-install exactly the same environment later
+without the risk of recomputing something different.
+
 
 As a quick check on the built environment you can try out the notebook imports with `--test-imports`:
 
 ```sh
 ./nb-wrangler my-spec.yaml --test-imports
 
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml
+INFO: 00:00:00.000 Loading and validating spec sample-specs/roman-20.0.0.yaml
 INFO: 00:00:00.037 Running any explicitly selected steps.
 INFO: 00:00:00.000 Running step _test_imports
 INFO: 00:00:00.000 Testing imports by notebook for 7 notebooks...
@@ -168,48 +175,100 @@ INFO: 00:00:00.000 Elapsed: 00:00:26
 in 26 seconds that the environment does not support `dask` so there is still more 
 work to do with  notebook and/or spec curation.
 
-As a short-cut to avoid constantly retyping the spec path you can also:
+Note that sometimes notebooks require data to run successfully so you may also 
+need to `--data-reinstall` before you can successfully `--test-notebooks`.
 
-```bash
-export NBW_SPEC=/full/path/to/the/spec.yaml
-./nb-wrangler --curate --test-imports
-... output omitted,  see above ...
-```
-
-Once the environment is built successfully, you can automatically run all of the notebooks headlessly with:
+Once the environment is built successfully and any required data is installed,
+you can automatically run all of the notebooks headlessly with:
 
 ```sh
-./nb-wrangler my-spec.yaml --test-notebooks
+./nb-wrangler fnc-test-spec.yaml --test-notebooks
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
+INFO: 00:00:00.032 Running any explicitly selected steps.
+INFO: 00:00:00.000 Running step _test_notebooks
+INFO: 00:00:00.000 Filtered notebook list to 8 entries
+INFO: 00:00:00.000 Testing 8 notebooks with 4 jobs
+*********** Testing 'identifying_transiting_planet_signals.ipynb' on environment 'tess' ************
+Input Notebook:  identifying_transiting_planet_signals.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+*************** Tested identifying_transiting_planet_signals.ipynb OK 0:00:45.259911 ***************
+*********** Testing 'instrumental_noise_4_electronic_noise.ipynb' on environment 'tess' ************
+Input Notebook:  instrumental_noise_4_electronic_noise.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+*************** Tested instrumental_noise_4_electronic_noise.ipynb OK 0:00:13.091890 ***************
+******************* Testing 'beginner_how_to_use_lc.ipynb' on environment 'tess' *******************
+Input Notebook:  beginner_how_to_use_lc.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+********************** Tested beginner_how_to_use_lc.ipynb OK 0:00:04.365442 ***********************
+******************** Testing 'beginner_tour_lc_tp.ipynb' on environment 'tess' *********************
+Input Notebook:  beginner_tour_lc_tp.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+************************ Tested beginner_tour_lc_tp.ipynb OK 0:00:07.977189 ************************
+************************ Testing 'data-access.ipynb' on environment 'tess' *************************
+Input Notebook:  data-access.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+**************************** Tested data-access.ipynb OK 0:00:08.415362 ****************************
+*********************** Testing 'lcviz_tutorial.ipynb' on environment 'tess' ***********************
+Input Notebook:  lcviz_tutorial.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+************************** Tested lcviz_tutorial.ipynb OK 0:00:15.030356 ***************************
+**************************** Testing 'tglc.ipynb' on environment 'tess' ****************************
+Input Notebook:  tglc.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+******************************* Tested tglc.ipynb OK 0:00:06.194112 ********************************
+***************** Testing 'zooniverse_view_lightcurve.ipynb' on environment 'tess' *****************
+Input Notebook:  zooniverse_view_lightcurve.ipynb
+Output Notebook: test.ipynb
+Executing notebook with kernel: tess
+******************** Tested zooniverse_view_lightcurve.ipynb OK 0:00:09.276549 *********************
+INFO: 00:00:45.270 All notebooks passed tests
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:45
 ```
 
-## Introduction
+## Notebook and Environment Reinstallation
 
-This section discusses working with the aspects of `nb-wrangler` that let you choose repos
-and notebooks which will be covered by a spec, as well as the basic properties of the
-environment being defined such as environment name, display name, image name Python version,
-etc.
+At some later time and/or different location you can re-install a wrangler spec which was developed
+using `--curate` as follows:
 
-For more information on defining the wrangler spec to get started see [Wrangler Spec Format](spec-format.md)
+```sh
+./nb-wrangler fnc-test-spec.yaml --reinstall
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
+INFO: 00:00:00.038 Running workflows ['reinstall'].
+INFO: 00:00:00.000 Running install-compiled-spec workflow
+INFO: 00:00:00.000 Running step _validate_spec.
+INFO: 00:00:00.029 Running step _spec_add.
+INFO: 00:00:00.000 Running step _initialize_environment.
+INFO: 00:00:00.010 Creating environment: tess
+INFO: 00:00:07.306 Environment tess created. It needs to be registered before JupyterLab will display it as an option.
+INFO: 00:00:00.412 Registered environment tess as a jupyter kernel making it visible to JupyterLab as 'TESS'.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.065 Running step _install_packages.
+INFO: 00:00:00.000 Installing packages from: ['/home/ai/.nbw-live/temps/tike-2025.07-beta-tess-pip.txt']
+INFO: 00:00:02.211 Package installation for tess completed successfully.
+INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/tess/fnc-test-spec.yaml.
+INFO: 00:00:00.054 Workflow install-compiled-spec completed.
+INFO: 00:00:00.000 Running any explicitly selected steps.
+INFO: 00:00:00.000 Exceptions: 0
+INFO: 00:00:00.000 Errors: 0
+INFO: 00:00:00.000 Warnings: 0
+INFO: 00:00:00.000 Elapsed: 00:00:10
+```
 
-Curation involves iteratively updating notebooks repos, packages, and available reference
-data until the desired combination of repos and notebooks actually work together in some fashion;
-these fundamentals are independent of nb-wrangler. In the context of nb-wrangler,  curation
-also involves defining specs which specify the notebooks, Packages, and data needed by one 
-tested, working, self-consistent environment. So nb-wrangler does not, of itself, make the 
-fundamentals work. nb-wrangler makes it easier to specify, build, test, distribute, and 
-re-install solutions supporting multiple notebook repos and/or notebooks with a single Python
-and reference data environment. 
+As above with `--curate`  after `--reinstall` you should execute `--test-imports` to make sure the environment and
+notebooks are working correctly.  Note that sometimes notebooks require data to run successfully so you may also 
+need to `--data-reinstall` before you can successfully `--test-notebooks`.
 
-In terms of information, nb-wrangler spec (and repo refdata_dependencies.yaml specs) define:
-
-1. Notebooks which fulfill the purpose of this build.  Maybe it is a "generic" Roman environment.
-2. Mutually consistent mamba and Python packages which can support these notebooks.
-3. A set of reference data needed by these notebooks.
-4. Environment variables defining data locations.
-5. Environment variables defining other constant values such as CRDS_CONTEXT.
-6. A set of "import tests" implicitly defined by the notebooks.
-
-## Curation Fastpath
+## Other Curation Tips and Tricks
 
 ### Setting key nb-wrangler environment variables
 
@@ -233,7 +292,7 @@ export NBW_ROOT="/tmp/nbw-live"
 export NBW_PANTRY="$HOME/.nbw-pantry"
 ```
 
-**TIP:** Add those to .bashrc and .bash_profile to make sure they are always added to any new shells.
+**TIP:** Add env vars to .bashrc and .bash_profile to make sure they are always added to any new shells.
 
 Note that the entire distinction between ROOT and PANTRY has to do with the underlying
 performance and persistence of the associated storage.  The above setup is intended so
@@ -244,7 +303,8 @@ on the science platform.  Nevertheless, maye require unpacking to restore )
 ### Bootstrapping
 
 After setting env vars as above, See [README.md](../README.md) for instructions on bootstrapping
-the nb-wrangler software. This will install
+the nb-wrangler software. This will install a micromamba and an nbwrangler environment in a standalone
+configuration isolated from any other Python environments you may have.
 
 
 ### Failures and Process Iteration
