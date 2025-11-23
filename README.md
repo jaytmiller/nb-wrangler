@@ -153,33 +153,26 @@ Note that particularly for curation but also for reinstallation
 there is the assumption that tests may fail and it may be necessary
 to circle back to earlier steps, make fixes, and iterate.
 
-For more information on notebooks and environment curation see [Managing Notebook Selection and Environment](docs/curation.md)
+For more information on notebooks and environment curation see [Managing Notebook Selection and Environment](docs/notebooks_and_environment.md)
 For more information on supporting data see [Managing Notebook Reference Data](docs/data.md)
 
 ## Advanced Usage
 
-### Test Failures and Process Iteration
-
-If you encounter errors in the test phase and need to circle back to
-earlier steps,  depending on what work needs to be repeated,  you may
-need to `--reset-curation` to remove artifacts of earlier runs which
-would otherwise short circuit the required repeat work as "already performed".
-
-Environment curation can be reset like this:
-
-```sh
-nb-wrangler spec.yaml --reset-curation [--delete-repos]
-```
-
-This results in resetting the spec, deleting the environment, clearing package
-caches, and any other required cleanup needed before resuming curation of
-modified inputs.
-
 Similarly for data curation you can:
 
 ```sh
-nb-wrangler spec.yaml --data-reset-spec --data-delete both [--delete-repos]
+nb-wrangler spec.yaml --data-reset-spec [--data-delete both] [--data-select regex] [--delete-repos] [--reset-log]
 ```
+
+In particular, data downloading and unpacking can both be time consuming and more prone to failure
+than normal due to network interruptions, etc.  To clear a failed download to enable restarting the
+download, use `--data-delete archived` and/or `--data-delete unpacked` and/or `--data-delete both`
+
+**CAUTION:** 
+
+- DO NOT USE `--data-delete` unless you're willing to re-download and/or unpack them again,  both of which will take time and may fail again.
+- USE `--data-select regex` to cherry pick specific data archives to operate on, particularly for deletion of failed archives.   Dry run with `--data-list` instead to verify your picks.
+- DO NOT USE `--delete-repos` unless you have not made changes to your repo clones, these will of course be lost.
 
 ### Build Submission
 
