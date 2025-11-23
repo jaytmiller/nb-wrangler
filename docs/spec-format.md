@@ -59,7 +59,7 @@ This section provides metadata about the image and Python environment
 ### **selected_notebooks**
 
 Defines a list of repo and notebook selections  and is the heart of the wrangler spec since it also implies 
-Python package and data requirements.
+Python package (per-notebook `requirements.txt`) and data requirements (global per-repo `refdata_dependencies.yaml`).
 
 As part of the curation process the wrangler will automatically clone 
 each notebook respository so that it can be searched for requirements files of different kinds and
