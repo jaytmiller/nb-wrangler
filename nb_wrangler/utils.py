@@ -124,8 +124,20 @@ class DataDownloadError(DataHandlingError):
     """Something went wrong with downloading a data item, most likely authentication or actual transfer."""
 
 
-def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
-    """More tolerant GET for recalitrant Box links wget can handle."""
+def robust_get(
+    url: str,
+    cwd: str = ".",
+    timeout: int = 30,
+    continue_from_error: str = "--continue",
+    quiet: str = "--no-verbose",
+) -> Path:
+    """More tolerant GET for recalitrant Box links wget can handle.
+
+    Set continue_from_error to '' if wget's --continue option is not desired.
+    Set quiet to '' if wget's --no-verbose option is not desired.
+
+    Return <filepath>
+    """
     filepath = Path(cwd) / os.path.basename(url)
 
     # wget does not overwrite existing files,  it adds .N to the name.
@@ -136,11 +148,13 @@ def robust_get(url: str, cwd: str = ".", timeout: int = 30) -> Path:
         # Using wget instead of native code due to recalitrant Box links wget can handle
         # Two levels of timeout:  wget and subprocess.run.  Output direct to terminal.
         subprocess.run(
-            ["wget", "--timeout", str(timeout), url], timeout=timeout + 5, cwd=cwd
+            ["wget", quiet, continue_from_error, "--timeout", str(timeout), url],
+            timeout=timeout + 5,
+            cwd=cwd,
         )
     except Exception as e:
-        # On failures, poor-man's method for now is to "delete it all".
-        if filepath.exists():
+        # # On failures, poor-man's method is to "delete it all and start over".
+        if not continue_from_error and filepath.exists():
             filepath.unlink()
         raise DataDownloadError(f"Failed downloading '{url}'.") from e
 

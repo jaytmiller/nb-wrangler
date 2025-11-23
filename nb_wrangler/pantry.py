@@ -219,7 +219,9 @@ class NbwShelf(WranglerLoggable):
         if not self.archive_filepath(archive_tuple).exists() or force:
             self.logger.info(f"Downloading data from '{url}' to archive file '{key}'.")
             try:
-                utils.robust_get(url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path))
+                utils.robust_get(
+                    url, timeout=DATA_GET_TIMEOUT, cwd=str(archive_path), quiet=""
+                )
             except Exception as e:
                 return self.logger.exception(
                     e,

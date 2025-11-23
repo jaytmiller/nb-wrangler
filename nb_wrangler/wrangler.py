@@ -412,6 +412,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
         self.logger.info("Collecting metadata for downloaded data archives.")
         data, urls = self._get_data_url_tuples()
+        self.logger.debug(f"Collecting metadata for {urls}.")
         data["metadata"] = self.pantry_shelf.collect_all_metadata(urls)
         return self.spec_manager.revise_and_save(
             Path(self.config.spec_file).parent,
