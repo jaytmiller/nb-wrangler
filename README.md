@@ -13,6 +13,7 @@ Key features include:
 - **Automated Testing:** Tests notebooks and their package imports to verify the environment.
 - **Data Management:** Manages the data required to run notebooks.
 - **Image Building:** Integrates with a build system to automatically create container images.
+- **Local Installs:** Works equally well doing local installs with no Docker overhead or learning curve.
 
 The project uses `micromamba` for environment management and `uv` for fast pip
 package installation.
@@ -51,9 +52,8 @@ Before installing/bootstrapping on the Science Platform, set the environment var
 export NBW_ROOT=/tmp/nbw-live
 ```
 
-This is required for adequate cloud performance when creating Python
-environments and should be done at the start of each session. This step 
-can be skipped for local installations.
+This is required for adequate cloud performance when creating Python environments and should be done at the start of each session. This step 
+can be skipped for local installations.   Again,  for each session, `NB_ROOT` must be redefined.
 
 ## Installation
 
@@ -71,11 +71,17 @@ After bootstrapping, you can activate and/or reactivate the `nbwrangler` environ
 source ./nb-wrangler environment
 ```
 
+This command sets up the shell environment and activates the `nbwrangler` Python environment so
+that it replaces any other Python you had activated previously and is ready to start executing
+wrangler commands.
+
 To activate the environment for a specific notebook or set of notebooks, use:
 
 ```bash
 source ./nb-wrangler activate <ENVIRONMENT_NAME>
 ```
+
+where `ENVIRONMENT_NAME` is the name of a Python environment which has been installed by nb-wrangler.
 
 To deactivate the current environment, run:
 
@@ -133,8 +139,7 @@ The main reinstallation workflows are:
 
 - **`--reinstall`:** Recreates the software environment from a spec.
 - **`--data-reinstall`:** Installs the data required by the notebooks.
-- **`--test, --test-imports, --test-notebooks`:** Tests the notebook imports and 
-  notebooks themselves in the context of the environment and data installation.
+- **`--test, --test-imports, --test-notebooks`:** Tests the notebook imports and notebooks themselves within the defined environment and data.
 
 
 Example:
@@ -149,8 +154,7 @@ Example:
 ./nb-wrangler spec.yaml --test-all
 ```
 
-Note that particularly for curation but also for reinstallation
-there is the assumption that tests may fail and it may be necessary
+For both curation and reinstallation there is the assumption that tests may fail and it may be necessary
 to circle back to earlier steps, make fixes, and iterate.
 
 For more information on notebooks and environment curation see [Managing Notebook Selection and Environment](docs/notebooks_and_environment.md)
@@ -166,7 +170,7 @@ After you have curated a spec, you can submit it to a build service to automatic
 gh auth login
 ./nb-wrangler spec.yaml --submit-for-build
 ```
-
+The `--submit-for-build` command requires a valid `GitHub Personal Access Token (PAT)` with the necessary permissions and collaborator status with the targeted SPI repo.
 For more information, see the [Build Submission documentation](docs/submit.md).
 
 ### SPI Injection
@@ -229,12 +233,12 @@ For a full list of options, run `./nb-wrangler --help`.
 
 `nb-wrangler` uses several input formats to define the environment:
 
-- **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md).
-- **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g. [TIKE Content](https://github.com/spacetelescope/tike_content) or [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks) 
+- **Notebook (`.ipynb`):** Jupyter notebooks.  The wrangler helps develop and distribute environments to run a related set of notebooks anywhere.
+- **Wrangler Spec (`spec.yaml`):** The main wrangler YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md).
+- **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks) 
 - **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
-- **Notebook (`.ipynb`):** Jupyter notebooks.
 - **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in it's notebook directory.
 - **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory to factor out lengthy custom code from the notebook.
 
-The goal of "wrangling" is to combine these inputs, resolve any conflicts, and produce a single, unified environment that can run all the specified notebooks.
+The goal of nb-wrangler is to combine these inputs, resolve any conflicts, and create a unified environment capable of running all specified notebooks.
