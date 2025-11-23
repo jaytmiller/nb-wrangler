@@ -59,6 +59,7 @@ class WranglerConfig:
     verbose: bool = False
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE
+    reset_log: bool = False
     color: str = DEFAULT_COLOR_MODE
 
     repos_dir: Path = Path(REPOS_DIR)
@@ -177,6 +178,7 @@ class WranglerConfig:
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,
+            reset_log=args.reset_log,
             color=args.color,
         )
         return args_config

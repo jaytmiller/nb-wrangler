@@ -383,6 +383,9 @@ def parse_args():
         help="Run with cProfile and output profiling results to console.",
     )
     misc_group.add_argument(
+        "--reset-log", action="store_true", help="Delete nb-wrangler.log file."
+    )
+    misc_group.add_argument(
         "--log-times",
         type=str,
         choices=VALID_LOG_TIME_MODES,

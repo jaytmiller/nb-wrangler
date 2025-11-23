@@ -5,7 +5,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .constants import NBW_URI
+from .constants import NBW_URI, LOG_FILE
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .spec_manager import SpecManager
@@ -106,6 +106,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.error(
                 "Failed to set up internal Python environment from spec."
             )
+        # Convention is that success returns True,  failure returns False
         no_errors = True
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
@@ -133,7 +134,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
         for step in steps:
-            self.logger.debug(f"Running step {step.__name__}.")
+            self.logger.info(f"Running step {step.__name__}.")
             if not step():
                 return self.logger.error(f"FAILED running step {step.__name__}.")
         return self.logger.info("Workflow", name, "completed.")
@@ -235,6 +236,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._env_compact,
                 self._reset_spec,
                 self._save_final_spec,
+                self._reset_log,
             ],
         )
 
@@ -270,6 +272,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_compact, self._env_compact),
             (self.config.spec_reset, self._reset_spec),
             (self.config.data_reset_spec, self._data_reset_spec),
+            (self.config.reset_log, self._reset_log),
         ]
         for flag, step in flags_and_steps:
             if flag:
@@ -278,6 +281,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     self.logger.error("FAILED step", step.__name__, "... stopping...")
                     return False
         return True
+
+    def _reset_log(self):
+        """Reset the log file."""
+        self.logger.info(
+            f"Resetting / deleting log file.  No {LOG_FILE} will be created for this wrangler run."
+        )
+        return self.logger._close_and_remove_logfile()
 
     def _clone_repos(self) -> bool:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
@@ -713,7 +723,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _submit_for_build(self) -> bool:
         """PR the spec and trigger a wrangler image build."""
         return self.injector.submit_for_build()
-    
+
     def _inject_spi(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""
         return self.injector.inject()

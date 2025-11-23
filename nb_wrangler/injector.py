@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 import re
+from typing import Optional
 
 from .logger import WranglerLoggable
 from .repository import RepositoryManager
@@ -186,14 +187,18 @@ Description:
         self._inject("mamba_spec", self.env_yml)
         self._inject("pip_compiler_output", self.env_pip)
         self._inject(
-            None, self.deployment_path / "MISSION_VERSION", self.spec_manager.moniker,
+            None,
+            self.deployment_path / "MISSION_VERSION",
+            self.spec_manager.moniker,
         )
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )
         return self.logger.info("SPI injection complete.")
 
-    def _inject(self, field: str, where: str | Path, literal: str = None) -> None:
+    def _inject(
+        self, field: Optional[str], where: str | Path, literal: Optional[str] = None
+    ) -> None:
         self.logger.info(f"Injecting field {field} to {where}")
         with open(str(where), "w") as f:
             if field:
@@ -201,7 +206,9 @@ Description:
             elif literal is not None:
                 obj = literal
             else:
-                raise RuntimeError("Attempt to inject invalid field {field} or literal {literal} to {where}")
+                raise RuntimeError(
+                    "Attempt to inject invalid field {field} or literal {literal} to {where}"
+                )
             if isinstance(obj, dict):
                 utils.get_yaml().dump(obj, f)
             elif isinstance(obj, list):

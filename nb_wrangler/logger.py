@@ -1,6 +1,7 @@
 """Logging utilities for nb-wrangler."""
 
 import sys
+import os
 import logging
 import pdb
 import traceback
@@ -16,6 +17,7 @@ from .constants import (
     VALID_LOG_TIME_MODES,
     DEFAULT_LOG_TIMES_MODE,
     DEFAULT_COLOR_MODE,
+    LOG_FILE,
 )
 
 
@@ -148,22 +150,28 @@ class WranglerLogger:
         )
         color_and_time_handler = logging.StreamHandler()
         color_and_time_handler.setFormatter(color_and_time_formatter)
-        file_handler = logging.FileHandler("nb-wrangler.log")
+        self.file_handler = logging.FileHandler(LOG_FILE)
         file_handler_formatter = ColorAndTimeFormatter(
             log_times=self.log_times, color="off"
         )
-        file_handler.setFormatter(file_handler_formatter)
+        self.file_handler.setFormatter(file_handler_formatter)
         logging.basicConfig(
             level=logging.DEBUG if self.verbose else logging.INFO,
             handlers=[
                 color_and_time_handler,
-                file_handler,
+                self.file_handler,
             ],
             force=True,  # Override any existing configuration
             # format="%(levelname)s - %(message)s",
             # datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
         )
-        self.logger = logging.getLogger("wrangler")
+        self.logger = logging.getLogger()
+
+    def _close_and_remove_logfile(self) -> bool:
+        self.file_handler.close()
+        self.logger.removeHandler(self.file_handler)
+        os.remove(LOG_FILE)
+        return True
 
     def _lformat(self, *args) -> str:
         return " ".join(map(str, args))
