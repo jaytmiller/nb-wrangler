@@ -150,26 +150,28 @@ class WranglerLogger:
         )
         color_and_time_handler = logging.StreamHandler()
         color_and_time_handler.setFormatter(color_and_time_formatter)
-        self.file_handler = logging.FileHandler(LOG_FILE)
+        file_handler = logging.FileHandler(LOG_FILE)
         file_handler_formatter = ColorAndTimeFormatter(
             log_times=self.log_times, color="off"
         )
-        self.file_handler.setFormatter(file_handler_formatter)
+        file_handler.setFormatter(file_handler_formatter)
         logging.basicConfig(
             level=logging.DEBUG if self.verbose else logging.INFO,
             handlers=[
                 color_and_time_handler,
-                self.file_handler,
+                file_handler,
             ],
             force=True,  # Override any existing configuration
             # format="%(levelname)s - %(message)s",
             # datefmt="%Y-%m-%dT%H:%M:%S",  # ISO 8601 format
         )
-        self.logger = logging.getLogger()
 
     def _close_and_remove_logfile(self) -> bool:
-        self.file_handler.close()
-        self.logger.removeHandler(self.file_handler)
+        logger = logging.getLogger()
+        for handler in logger.handlers[:]:
+            if isinstance(handler, logging.FileHandler):
+                logger.removeHandler(handler)
+                handler.close()
         os.remove(LOG_FILE)
         return True
 
@@ -178,28 +180,32 @@ class WranglerLogger:
 
     def error(self, *args) -> bool:
         """Log an error message and return False."""
+        logger = logging.getLogger()
         msg = self._lformat(*args)
         self.errors.append(msg)
-        self.logger.error(msg)
+        logger.error(msg)
         if self.debug_mode:
             pdb.set_trace()
         return False
 
     def info(self, *args) -> bool:
         """Log an info message and return True."""
-        self.logger.info(self._lformat(*args))
+        logger = logging.getLogger()
+        logger.info(self._lformat(*args))
         return True
 
     def warning(self, *args) -> bool:
         """Log a warning message and return True."""
+        logger = logging.getLogger()
         msg = self._lformat(*args)
         self.warnings.append(msg)
-        self.logger.warning(msg)
+        logger.warning(msg)
         return True
 
     def debug(self, *args) -> None:
         """Log a debug message."""
-        self.logger.debug(self._lformat(*args))
+        logger = logging.getLogger()
+        logger.debug(self._lformat(*args))
         return None  # falsy,  but neither True nor False
 
     def exception(self, e: Exception, *args) -> bool:
