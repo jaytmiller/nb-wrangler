@@ -30,6 +30,7 @@ dependencies = [
     "setuptools",
     "boto3",
     "httpx",
+    "ddtrace"
 ]
 
 [project.optional-dependencies]
