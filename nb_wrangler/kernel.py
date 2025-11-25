@@ -27,7 +27,7 @@ def add_env_vars_to_kernelspec(kernel_name, env_vars):
 
 
 # Example usage:
-env_vars_to_add = {"MY_VAR": "my_value", "ANOTHER_VAR": "another_value"}
+# env_vars_to_add = {"MY_VAR": "my_value", "ANOTHER_VAR": "another_value"}
 
 # Replace 'python3' with your specific kernel name if different
-add_env_vars_to_kernelspec("python3", env_vars_to_add)
+# add_env_vars_to_kernelspec("python3", env_vars_to_add)

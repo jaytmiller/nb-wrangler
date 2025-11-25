@@ -93,7 +93,7 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(str(url).strip())
         logger.debug(f"Validating URL '{url}'.")
-        return all([result.scheme, result.netloc])
+        return result.scheme in ['http', 'https', 'ftp', 's3', 'file'] and all([result.scheme, result.netloc])
     except Exception as e:
         logger.exception(e, f"Invalid URL '{url}'.")
         return False
@@ -325,7 +325,8 @@ class RefdataValidator(WranglerLoggable):
         self = cls(refdata_paths)
         for refdata_path in refdata_paths:
             self.all_data[str(refdata_path)] = RefdataSpec.from_file(refdata_path)
-        self.validate_env_conflicts()
+        if not self.validate_env_conflicts():
+            raise ValueError("Environment conflicts found in refdata specs.")
         return self
 
     @classmethod
@@ -361,32 +362,25 @@ class RefdataValidator(WranglerLoggable):
         )
         env_vars_i = self.all_data[refdata_path_i].other_variables
         env_vars_j = self.all_data[refdata_path_j].other_variables
-        already_seen = set()
         no_errors = True
-        for name_i, value_i in env_vars_i.items():
-            for name_j, value_j in env_vars_j.items():
-                if name_i != name_j or (name_j, name_i) in already_seen:
-                    continue
-                already_seen.add((name_i, name_j))
+        for name, value_i in env_vars_i.items():
+            if name in env_vars_j:
+                value_j = env_vars_j[name]
                 if value_i != value_j:
                     no_errors = self.logger.error(
-                        "Conflicting environment variable values for env var '{name_i}' in refdata specs '{refdata_path_i}' and '{refdata_path_j}'."
+                        f"Conflicting environment variable values for env var '{name}' in refdata specs '{refdata_path_i}' and '{refdata_path_j}'."
                     )
         return no_errors
 
     def validate_env_conflicts(self) -> bool:
         """Across all specs,  ensure no two specs define the same env var with different values."""
         self.logger.debug("Validating no conflicts between any two refdata specs..." "")
-        already_seen = set()
+        paths = list(self.all_data.keys())
         no_errors = True
-        for refdata_path_i in self.all_data.keys():
-            for refdata_path_j in self.all_data.keys():
-                if (refdata_path_j, refdata_path_i) not in already_seen:
-                    already_seen.add((refdata_path_i, refdata_path_j))
-                    no_errors = (
-                        self.check_conflicts(refdata_path_i, refdata_path_j)
-                        and no_errors
-                    )
+        for i in range(len(paths)):
+            for j in range(i + 1, len(paths)):
+                if not self.check_conflicts(paths[i], paths[j]):
+                    no_errors = False
         return no_errors
 
     def get_data_section_urls(self) -> list[DataSectionUrl]:

@@ -95,7 +95,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         cmd = (
             f"uv pip compile --quiet --output-file {str(output_file)} --python {self.python_path}"
             + f" --python-version {self.python_version} --universal {hash_sw} "
-            + "--no-header --annotate --constraints"
+            + "--no-header --annotate"
         )
         for f in requirements_files:
             cmd += " " + str(f)
