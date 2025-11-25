@@ -50,39 +50,32 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         """
         if not requirements_files:
             return self.logger.warning("No requirements files to compile.")
-        self.logger.info(
-            "Compiling combined pip requirements to determine package versions "
-            "adding hashes."
-            if use_hashes
-            else "w/o hashes."
-        )
 
         all_requirements = set()
         for req_file in requirements_files:
             all_requirements.update(self.read_package_lines(req_file))
-
         sorted_requirements = sorted(list(all_requirements))
+        self.logger.debug(f"Combined requirements into a single list of packages: {sorted_requirements}")
 
-        with tempfile.NamedTemporaryFile(
-            mode="w+", delete=False, suffix=".txt", prefix="tmp-requirements-"
-        ) as temp_req_file:
-            temp_req_path = Path(temp_req_file.name)
-            temp_req_file.write("\n".join(sorted_requirements))
+        temp_req_path = self.config.output_dir / "tmp-requirements.txt"
+        with temp_req_path.open(mode="w+") as temp_req_handle:
+            temp_req_handle.write("\n".join(sorted_requirements))
+
+        self.logger.info(
+            "Compiling combined pip requirements to determine package versions " +
+            ("adding hashes." if use_hashes else "w/o hashes.")
+        )
 
         if not self._run_uv_compile(output_path, [temp_req_path], use_hashes):
             self.logger.error(
                 "========== Failed compiling combined pip requirements =========="
             )
-            self.logger.error(self.annotated_requirements(requirements_files))
-            temp_req_path.unlink()
-            return False
+            return self.logger.error(self.annotated_requirements(requirements_files))
 
         package_versions = self.read_package_lines(output_path)
-        self.logger.info(
+        return self.logger.info(
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
         )
-        temp_req_path.unlink()
-        return True
 
     def _run_uv_compile(
         self,
