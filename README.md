@@ -195,13 +195,6 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--submit-for-build`: Submit a spec for an automated image build.
 - `--inject-spi`: Inject a spec into the SPI repository.
 
-### Testing
-- `-t`, `--test-all`: Run all tests.
-- `--test-imports`: Test package imports.
-- `--test-notebooks`: Test notebook execution.
-- `--jobs`: Number of parallel jobs for notebook testing.
-- `--timeout`: Timeout for notebook tests.
-
 ### Environment Management
 - `--env-init`: Create and kernelize the target environment.
 - `--env-delete`: Delete the target environment.
@@ -209,11 +202,41 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--env-unpack`: Unpack an environment from an archive.
 - `--env-register`: Register the environment as a Jupyter kernel.
 - `--env-unregister`: Unregister the environment from Jupyter.
+- `--env-compact`: Compact the wrangler installation by deleting package caches.
+- `--env-archive-format`: Override format for environment pack/unpack.
+- `--env-print-name`: Print the environment name for the spec.
 
 ### Package Management
 - `--packages-compile`: Compile package requirements.
 - `--packages-install`: Install packages into the environment.
 - `--packages-uninstall`: Uninstall packages from the environment.
+- `--packages-omit-spi`: Don't include 'common' SPI packages.
+- `--packages-diagnostics`: Show which requirements files are included and their required packages.
+
+### Testing
+- `-t`, `--test-all`: Run all tests.
+- `--test-imports`: Test package imports.
+- `--test-notebooks`: Test notebook execution.
+- `--test-notebooks-exclude`: Exclude notebooks from testing.
+- `--jobs`: Number of parallel jobs for notebook testing.
+- `--timeout`: Timeout for notebook tests.
+
+### Data Management
+- `--data-collect`: Collect data archive and installation info and add to spec.
+- `--data-list`: List data archives.
+- `--data-download`: Download data archives to the pantry.
+- `--data-update`: Update metadata for data archives (e.g., length and hash).
+- `--data-validate`: Validate pantry archives against the spec.
+- `--data-unpack`: Unpack data archives.
+- `--data-pack`: Pack live data directories into archive files.
+- `--data-reset-spec`: Clear the 'data' sub-section of the 'out' section of the spec.
+- `--data-delete`: Delete data archives and/or unpacked files.
+- `--data-env-vars-mode`: Define where to locate unpacked data (pantry or spec locations).
+- `--data-print-exports`: Print shell exports for data environment variables.
+- `--data-env-vars-no-auto-add`: Do not automatically add data environment variables to the runtime environment.
+- `--data-select`: Regex to select specific data archives.
+- `--data-no-validation`: Skip data validation.
+- `--data-no-unpack-existing`: Skip unpack if the target directory exists.
 
 ### Repository Management
 - `--clone-repos`: Clone notebook repositories.
@@ -225,6 +248,18 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-add`: Add the spec to the pantry (a local collection of specs).
 - `--spec-list`: List available specs in the pantry.
 - `--spec-select`: Select a spec from the pantry.
+- `--spec-validate`: Validate the spec file.
+- `--spec-update-hash`: Update spec hash even if validation fails.
+- `--spec-ignore-hash`: Do not add or verify the spec hash.
+- `--spec-add-pip-hashes`: Record PyPI hashes for packages.
+
+### Miscellaneous
+- `--verbose`: Enable DEBUG log output.
+- `--debug`: Drop into debugger on exceptions.
+- `--profile`: Run with cProfile and print stats.
+- `--reset-log`: Delete the log file.
+- `--log-times`: Configure timestamps in log messages.
+- `--color`: Colorize log output.
 
 For a full list of options, run `./nb-wrangler --help`.
 
