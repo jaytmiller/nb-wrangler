@@ -141,6 +141,11 @@ def parse_args():
         help="Override format for environment pack/unpack, nominally one of: "
         + str(VALID_ARCHIVE_FORMATS),
     )
+    env_group.add_argument(
+        "--env-print-name",
+        action="store_true",
+        help="Print the environment name associated with this spec to stdout."
+    )
 
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
@@ -273,9 +278,14 @@ def parse_args():
         help="Define whether to locate unpacked data within the pantry or at locations from the refdata specs.",
     )
     data_group.add_argument(
+        "--data-print-exports",
+        action="store_true",
+        help="Print sh/bash/zsh exports for data environment variables so they can be sourced or stored."
+    )
+    data_group.add_argument(
         "--data-env-vars-no-auto-add",
         action="store_true",
-        help="Do not automatically add data environment variables to nb-wrangler runtime.",
+        help="Do not automatically add data environment variables to nb-wrangler runtime os.environ.",
     )
     data_group.add_argument(
         "--data-select",

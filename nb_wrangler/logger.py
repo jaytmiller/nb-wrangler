@@ -123,6 +123,20 @@ class ColorAndTimeFormatter(logging.Formatter):
         return formatter.format(record)
 
 
+# NOTE:
+# Because WranglerLogger's are used as an attributes of other subsystems,
+# we need to be careful about what kinds of objects are stored as attributes
+# of the WranglerLogger to prevent pickling/unpickling issues with subprocess
+# runners, e.g. the notebook tester.   In particular, the code below
+# repeatedly fetches the root Python logger using:
+#    logger = logging.getLogger()
+# and this requirement is why it isn't just fetched once and stashed as
+# an attribute.  If we did, then whenever a WranglerLogger is pickled
+# we would also implicitly be pickling the root logger... which has issues.
+# If it turns out this is a recurring theme and nuisance with other subsystems
+# as well, then Python's pickling protocols/hooks can probably be used to duck
+# the issue by defining what is and is not pickled for the class-at-hand.
+
 class WranglerLogger:
     """Enhanced logger with error tracking and debug support."""
 

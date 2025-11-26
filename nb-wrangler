@@ -180,6 +180,13 @@ case $NBW_COMMAND in
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
         ${NBW_MAMBA} activate $*
         ;;
+    setenv)
+        # source nb-wrangler setenv <spec>
+        eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
+        ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
+        eval $(python -m nb_wrangler $* --data-print-exports 2>/dev/null)
+        ${NBW_MAMBA} activate $(python -m nb_wrangler $* --env-print-name 2>/dev/null)
+        ;; 
     deact*)
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
         ${NBW_MAMBA} deactivate

@@ -256,6 +256,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_unpack, self._unpack_environment),
             (self.config.env_register, self._register_environment),
             (self.config.env_unregister, self._unregister_environment),
+            (self.config.env_print_name, self._env_print_name),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
             (self.config.data_collect, self._data_collect),
@@ -266,6 +267,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_validate, self._data_validate),
             (self.config.data_unpack, self._data_unpack),
             (self.config.data_pack, self._data_pack),
+            (self.config.data_print_exports, self._data_print_exports),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
             (self.config.env_delete, self._delete_environment),
@@ -370,6 +372,21 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 pantry_exports=pantry_exports,
             ),
         )
+    
+    def _data_print_exports(self) -> bool:
+        """Print out the data environment variables on stdout according to the selected data
+        storage mode.  Since this can get called before data has ever been collected, let it
+        succeed normally even if no env vars are defined in the spec yet.
+        """
+        data = self.spec_manager.get_outputs("data")
+        mode = self.config.data_env_vars_mode
+        exports = data.get(mode + "_exports")
+        if exports is None:
+            self.logger.debug("Data environment for mode '{mode}' is not defined yet.  No environment variables to list.")
+        else:
+            for var, value in exports.items():
+                print(f'export {var}="{value}"')
+        return True
 
     def _get_data_url_tuples(
         self,
@@ -684,6 +701,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _env_compact(self) -> bool:
         return self.env_manager.compact()
+    
+    def _env_print_name(self) -> bool:
+        print(self.env_name)
+        return True
 
     def _get_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")

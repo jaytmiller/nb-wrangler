@@ -74,6 +74,7 @@ class WranglerConfig:
     env_unregister: bool = False
     env_compact: bool = False
     env_archive_format: str = ""
+    env_print_name: bool = False
 
     packages_compile: bool = False
     packages_install: bool = False
@@ -99,6 +100,7 @@ class WranglerConfig:
     spec_update_hash: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
+    data_print_exports: bool = False
     data_env_vars_no_auto_add: bool = False
     data_reset_spec: bool = False
     data_collect: bool = False
@@ -141,6 +143,7 @@ class WranglerConfig:
             env_unregister=args.env_unregister,
             env_archive_format=args.env_archive_format,
             env_compact=args.env_compact,
+            env_print_name=args.env_print_name,
             packages_compile=args.packages_compile,
             packages_install=args.packages_install,
             packages_uninstall=args.packages_uninstall,
@@ -168,6 +171,7 @@ class WranglerConfig:
             data_pack=args.data_pack,
             data_delete=args.data_delete,
             data_env_vars_mode=args.data_env_vars_mode,
+            data_print_exports=args.data_print_exports,
             data_env_vars_no_auto_add=args.data_env_vars_no_auto_add,
             data_select=args.data_select,
             data_no_validation=args.data_no_validation,
