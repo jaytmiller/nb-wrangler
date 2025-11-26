@@ -93,7 +93,9 @@ def is_valid_url(url: str) -> bool:
     try:
         result = urlparse(str(url).strip())
         logger.debug(f"Validating URL '{url}'.")
-        return result.scheme in ['http', 'https', 'ftp', 's3', 'file'] and all([result.scheme, result.netloc])
+        return result.scheme in ["http", "https", "ftp", "s3", "file"] and all(
+            [result.scheme, result.netloc]
+        )
     except Exception as e:
         logger.exception(e, f"Invalid URL '{url}'.")
         return False

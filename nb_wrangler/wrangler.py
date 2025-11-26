@@ -372,7 +372,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 pantry_exports=pantry_exports,
             ),
         )
-    
+
     def _data_print_exports(self) -> bool:
         """Print out the data environment variables on stdout according to the selected data
         storage mode.  Since this can get called before data has ever been collected, let it
@@ -382,7 +382,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         mode = self.config.data_env_vars_mode
         exports = data.get(mode + "_exports")
         if exports is None:
-            self.logger.debug("Data environment for mode '{mode}' is not defined yet.  No environment variables to list.")
+            self.logger.debug(
+                "Data environment for mode '{mode}' is not defined yet.  No environment variables to list."
+            )
         else:
             for var, value in exports.items():
                 print(f'export {var}="{value}"')
@@ -701,7 +703,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _env_compact(self) -> bool:
         return self.env_manager.compact()
-    
+
     def _env_print_name(self) -> bool:
         print(self.env_name)
         return True

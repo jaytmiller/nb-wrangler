@@ -144,7 +144,7 @@ def parse_args():
     env_group.add_argument(
         "--env-print-name",
         action="store_true",
-        help="Print the environment name associated with this spec to stdout."
+        help="Print the environment name associated with this spec to stdout.",
     )
 
     packages_group = parser.add_argument_group(
@@ -280,7 +280,7 @@ def parse_args():
     data_group.add_argument(
         "--data-print-exports",
         action="store_true",
-        help="Print sh/bash/zsh exports for data environment variables so they can be sourced or stored."
+        help="Print sh/bash/zsh exports for data environment variables so they can be sourced or stored.",
     )
     data_group.add_argument(
         "--data-env-vars-no-auto-add",

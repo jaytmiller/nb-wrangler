@@ -137,6 +137,7 @@ class ColorAndTimeFormatter(logging.Formatter):
 # as well, then Python's pickling protocols/hooks can probably be used to duck
 # the issue by defining what is and is not pickled for the class-at-hand.
 
+
 class WranglerLogger:
     """Enhanced logger with error tracking and debug support."""
 

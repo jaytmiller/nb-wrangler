@@ -1,7 +1,6 @@
 """Requirements compilation and dependency resolution."""
 
 import sys
-import tempfile
 from pathlib import Path
 
 from .config import WranglerConfigurable
@@ -55,15 +54,17 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         for req_file in requirements_files:
             all_requirements.update(self.read_package_lines(req_file))
         sorted_requirements = sorted(list(all_requirements))
-        self.logger.debug(f"Combined requirements into a single list of packages: {sorted_requirements}")
+        self.logger.debug(
+            f"Combined requirements into a single list of packages: {sorted_requirements}"
+        )
 
         temp_req_path = self.config.output_dir / "tmp-requirements.txt"
         with temp_req_path.open(mode="w+") as temp_req_handle:
             temp_req_handle.write("\n".join(sorted_requirements))
 
         self.logger.info(
-            "Compiling combined pip requirements to determine package versions " +
-            ("adding hashes." if use_hashes else "w/o hashes.")
+            "Compiling combined pip requirements to determine package versions "
+            + ("adding hashes." if use_hashes else "w/o hashes.")
         )
 
         if not self._run_uv_compile(output_path, [temp_req_path], use_hashes):
