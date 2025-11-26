@@ -51,7 +51,9 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                         unique_notebooks.add(nb_path)
 
         filtered = sorted(unique_notebooks)
-        self.logger.info(f"Filtered notebook list to {len(filtered)} entries")
+        self.logger.info(f"Filtered notebook list to {len(filtered)} entries:")
+        for notebook in filtered:
+            self.logger.info(notebook)
         return filtered
 
     def test_notebooks(self, environment: str, notebook_paths: list[str]) -> bool:

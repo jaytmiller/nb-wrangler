@@ -65,7 +65,7 @@ CURATOR_PACKAGES = ["papermill"] + TARGET_PACKAGES
 # Logger configuration constants
 VALID_LOG_TIME_MODES = ["none", "normal", "elapsed", "both"]
 DEFAULT_LOG_TIMES_MODE = "elapsed"
-VALID_COLOR_MODES = ["auto", "on", "off"]
+VALID_COLOR_MODES = ["auto", "on", "yes", "off", "no"]
 DEFAULT_COLOR_MODE = "auto"
 LOG_FILE = os.environ.get("NBW_LOG_FILE", "nb-wrangler.log")
 

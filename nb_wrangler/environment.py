@@ -86,6 +86,8 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         return self.nbw_pantry_dir / "shelves" / moniker.lower() / "archives"
 
     def env_archive_path(self, moniker: str, archive_format: str) -> Path:
+        if not archive_format.startswith("."):
+            archive_format = "." + archive_format
         return self.archive_path(moniker) / ("env-" + moniker.lower() + archive_format)
 
     def mm_envs_dir(self, env_name: str) -> Path:
@@ -363,7 +365,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
         return self.handle_result(
             result,
-            f"Failed to pack {source_dirpath} into {archive_filepath}:",
+            f"Failed to pack {source_dirpath} into {archive_filepath}:\n",
             f"Packed {source_dirpath} into {archive_filepath}",
         )
 
@@ -380,7 +382,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
         return self.handle_result(
             result,
-            f"Failed to unpack {archive_filepath} into {cwd}: ",
+            f"Failed to unpack {archive_filepath} into {cwd}:\n",
             f"Unpacked {archive_filepath} into {cwd}",
         )
 

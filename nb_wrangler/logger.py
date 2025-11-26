@@ -91,7 +91,7 @@ class ColorAndTimeFormatter(logging.Formatter):
     def use_color(self):
         if self.color == "auto" and sys.stderr.isatty():
             return True
-        elif self.color == "on":
+        elif self.color in ["on", "yes"]:
             return True
         else:
             return False
