@@ -482,7 +482,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     f"Skipping unpack for existing directory {final_path}."
                 )
                 continue
-            if not self.env_manager.unarchive(src_archive, dest_path, ""):
+            if not self.pantry_shelf.unarchive(src_archive, dest_path, ""):
                 return self.logger.error(
                     f"Failed unpacking '{src_archive}' to '{dest_path}'."
                 )
@@ -505,7 +505,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             src_path = self.pantry_shelf.data_path
             no_errors = (
-                self.env_manager.archive(dest_archive, src_path, "") and no_errors
+                self.pantry_shelf.archive(dest_archive, src_path, "") and no_errors
             )
         return no_errors
 
@@ -701,14 +701,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.spec_manager.data_reset_spec()
 
     def _unpack_environment(self) -> bool:
-        if self.env_manager.unpack_environment(
+        if self.pantry_shelf.unpack_environment(
             self.env_name, self.spec_manager.moniker, self.archive_format
         ):
             return self._register_environment()
         return False
 
     def _pack_environment(self) -> bool:
-        return self.env_manager.pack_environment(
+        return self.pantry_shelf.pack_environment(
             self.env_name, self.spec_manager.moniker, self.archive_format
         )
 

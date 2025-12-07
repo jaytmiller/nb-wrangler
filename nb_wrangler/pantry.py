@@ -47,14 +47,14 @@ import shutil
 from pathlib import Path
 from functools import cache
 import os
+from typing import Optional
 
 from . import utils
 
 # from .utils import DataDownloadError
 from .logger import WranglerLoggable
-from .constants import NBW_PANTRY, DATA_GET_TIMEOUT
-
-# from .data_manager import DataSectionUrl
+from .environment import WranglerEnvable
+from .constants import NBW_PANTRY, DATA_GET_TIMEOUT, ARCHIVE_TIMEOUT
 
 
 class NbwPantry(WranglerLoggable):
@@ -110,7 +110,7 @@ class NbwPantry(WranglerLoggable):
         raise NotImplementedError("archive_shelf not yet implemented")
 
 
-class NbwShelf(WranglerLoggable):
+class NbwShelf(WranglerLoggable, WranglerEnvable):
     """
     Represents a shelf in the environment store.
 
@@ -154,6 +154,12 @@ class NbwShelf(WranglerLoggable):
     @property
     def archive_root(self) -> Path:
         return self.path / "archives"
+
+    def env_archive_path(self, moniker: str, archive_format: str) -> Path:
+        """Return the path for a packed environment within the shelf."""
+        if not archive_format.startswith("."):
+            archive_format = "." + archive_format
+        return self.archive_root / ("env-" + moniker.lower() + archive_format)
 
     @property
     def notebook_repos_path(self) -> Path:
@@ -384,6 +390,70 @@ class NbwShelf(WranglerLoggable):
                 self.logger.error(f"Failed to create symlink: {e}")
                 return False
         return True
+
+    def archive(
+        self,
+        archive_filepath: Path,
+        source_dirpath: Path,
+        extract: Optional[str] = None,
+    ) -> bool:
+        archive_filepath.parent.mkdir(parents=True, exist_ok=True)
+        select = extract if extract is not None else source_dirpath.name
+        cmd = f"tar -acf {archive_filepath} {select}"
+        cwd = source_dirpath if extract is not None else source_dirpath.parent
+        result = self.env_manager.wrangler_run(
+            cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT
+        )
+        return self.env_manager.handle_result(
+            result,
+            f"Failed to pack {source_dirpath} into {archive_filepath}:\n",
+            f"Packed {source_dirpath} into {archive_filepath}",
+        )
+
+    def unarchive(
+        self,
+        archive_filepath: Path,
+        destination_dirpath: Path,
+        extract: Optional[str] = None,
+    ) -> bool:
+        destination_dirpath.mkdir(parents=True, exist_ok=True)
+        select = extract if extract is not None else ""
+        cmd = f"tar -axf {archive_filepath} {select}"
+        cwd = destination_dirpath
+        result = self.env_manager.wrangler_run(
+            cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT
+        )
+        return self.env_manager.handle_result(
+            result,
+            f"Failed to unpack {archive_filepath} into {cwd}:\n",
+            f"Unpacked {archive_filepath} into {cwd}",
+        )
+
+    def unpack_environment(
+        self, env_name: str, moniker: str, archive_format: str
+    ) -> bool:
+        return self.unarchive(
+            self.env_archive_path(moniker, archive_format),
+            self.env_manager.mm_envs_dir(env_name),
+            extract=env_name,
+        )
+
+    def pack_wrangler(self, archive_filepath: Path | str) -> bool:
+        archive_path = Path(archive_filepath)
+        archive_path.parent.mkdir(parents=True, exist_ok=True)
+        return self.archive(archive_path, self.env_manager.nbw_root_dir)
+
+    def unpack_wrangler(self, archive_filepath: Path | str) -> bool:
+        archive_path = Path(archive_filepath)
+        return self.unarchive(archive_path, self.env_manager.nbw_root_dir)
+
+    def pack_environment(
+        self, env_name: str, moniker: str, archive_format: str
+    ) -> bool:
+        return self.archive(
+            self.env_archive_path(moniker, archive_format),
+            self.env_manager.env_live_path(env_name),
+        )
 
 
 class NbwCan:

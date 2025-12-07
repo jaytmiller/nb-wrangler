@@ -15,7 +15,7 @@ import shlex
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 
 from .logger import WranglerLoggable
@@ -32,7 +32,6 @@ from .constants import (
     ENV_CREATE_TIMEOUT,
     INSTALL_PACKAGES_TIMEOUT,
     IMPORT_TEST_TIMEOUT,
-    ARCHIVE_TIMEOUT,
 )
 from . import utils
 
@@ -81,14 +80,6 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
     @property
     def nbw_cache_dir(self) -> Path:
         return Path(NBW_CACHE)
-
-    def archive_path(self, moniker: str):
-        return self.nbw_pantry_dir / "shelves" / moniker.lower() / "archives"
-
-    def env_archive_path(self, moniker: str, archive_format: str) -> Path:
-        if not archive_format.startswith("."):
-            archive_format = "." + archive_format
-        return self.archive_path(moniker) / ("env-" + moniker.lower() + archive_format)
 
     def mm_envs_dir(self, env_name: str) -> Path:
         if self.is_base_env_alias(env_name):
@@ -351,65 +342,6 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             )
             return True
         return False
-
-    def archive(
-        self,
-        archive_filepath: Path,
-        source_dirpath: Path,
-        extract: Optional[str] = None,
-    ) -> bool:
-        archive_filepath.parent.mkdir(parents=True, exist_ok=True)
-        select = extract if extract is not None else source_dirpath.name
-        cmd = f"tar -acf {archive_filepath} {select}"
-        cwd = source_dirpath if extract is not None else source_dirpath.parent
-        result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
-        return self.handle_result(
-            result,
-            f"Failed to pack {source_dirpath} into {archive_filepath}:\n",
-            f"Packed {source_dirpath} into {archive_filepath}",
-        )
-
-    def unarchive(
-        self,
-        archive_filepath: Path,
-        destination_dirpath: Path,
-        extract: Optional[str] = None,
-    ) -> bool:
-        destination_dirpath.mkdir(parents=True, exist_ok=True)
-        select = extract if extract is not None else destination_dirpath.name
-        cmd = f"tar -axf {archive_filepath} {select}"
-        cwd = destination_dirpath if extract is not None else destination_dirpath.parent
-        result = self.wrangler_run(cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT)
-        return self.handle_result(
-            result,
-            f"Failed to unpack {archive_filepath} into {cwd}:\n",
-            f"Unpacked {archive_filepath} into {cwd}",
-        )
-
-    def pack_environment(
-        self, env_name: str, moniker: str, archive_format: str
-    ) -> bool:
-        return self.archive(
-            self.env_archive_path(moniker, archive_format),
-            self.env_live_path(env_name),
-        )
-
-    def unpack_environment(
-        self, env_name: str, moniker: str, archive_format: str
-    ) -> bool:
-        return self.unarchive(
-            self.env_archive_path(moniker, archive_format),
-            self.env_live_path(env_name),
-        )
-
-    def pack_wrangler(self, archive_filepath: Path | str) -> bool:
-        archive_path = Path(archive_filepath)
-        archive_path.parent.mkdir(parents=True, exist_ok=True)
-        return self.archive(archive_path, self.nbw_root_dir)
-
-    def unpack_wrangler(self, archive_filepath: Path | str) -> bool:
-        archive_path = Path(archive_filepath)
-        return self.unarchive(archive_path, self.nbw_root_dir)
 
     def compact(self) -> bool:
         """Clear cach directories w/o deleting the top level dir, only
