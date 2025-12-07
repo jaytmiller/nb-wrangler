@@ -42,11 +42,12 @@ extra_mamba_packages:
 extra_pip_packages:
   - boto3
   - lsstdesc.coord
+  - dask[complete]
 system:
   spec_version: 1.0
   archive_format: .tar
-  spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: abe07071cf446154ead9eb5cbcd0589da06f132071460f17c69af6a215073ad8
+  spi_url: https://github.com/spacetelescope/science-platform-images.git
+  spec_sha256: aa88a603ba035fee55dc8bb86ea1490a815205cfea500e7adc1a2419b000d0b0
 out:
   data:
     spec_inputs:
@@ -151,7 +152,7 @@ out:
     - https://github.com/spacetelescope/roman_notebooks
   notebook_repo_branches:
     https://github.com/spacetelescope/roman_notebooks: main
-  injector_url: https://github.com/jaytmiller/science-platform-images.git
+  injector_url: https://github.com/spacetelescope/science-platform-images.git
   test_notebooks:
     - references/roman_notebooks/notebooks/pandeia/pandeia.ipynb
     - references/roman_notebooks/notebooks/rist/rist.ipynb
