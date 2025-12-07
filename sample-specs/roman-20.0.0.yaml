@@ -19,7 +19,7 @@ image_spec_header:
   kernel_name: roman-cal      # currently tess, roman-cal, or masterclass (and conda env name)
   display_name: Roman Research Nexus     # menu item in JupyterLab kernel selection list
   description: |
-    This is a demo of a possible Roman notebook image build using nb-wrangler
+    This spec is for the production version of roman-20.
   valid_on: 2025-12-12
   expires_on: 2026-06-01
   python_version: 3.12
@@ -32,8 +32,8 @@ selected_notebooks:
       - pandeia/.*
       - rist/.*
       - roman_cutouts/.*
-      # - romanisim/.*
-      # - time_domain_simulations/.*
+      - romanisim/.*
+      - time_domain_simulations/.*
       - crds_examples/.*
       - synphot/.*
     exclude_subdirs: []
@@ -46,7 +46,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 736ac1b456d61d9e6385506ed4118e82327a987586026440606175b9159adc8c
+  spec_sha256: d9c933f295c85b2a8d5c6a2b8e1f60592d66070212bf24226e13b363c188f38c
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
@@ -57,23 +57,36 @@ out:
     - references/roman_notebooks/notebooks/pandeia/pandeia.ipynb
     - references/roman_notebooks/notebooks/rist/rist.ipynb
     - references/roman_notebooks/notebooks/roman_cutouts/roman_cutouts.ipynb
+    - references/roman_notebooks/notebooks/romanisim/romanisim.ipynb
     - references/roman_notebooks/notebooks/synphot/synphot.ipynb
+    - references/roman_notebooks/notebooks/time_domain_simulations/time_domain_simulations.ipynb
   test_imports:
+    - argparse
     - asdf
     - astrocut
     - astropy
+    - astroquery
+    - dask
+    - dataclasses
+    - galsim
+    - glob
     - importlib
     - matplotlib
     - notebook_data_dependencies
     - numpy
     - pandeia
     - plot_rist
+    - pysiaf
     - roman_datamodels
+    - romancal
+    - romanisim
     - s3fs
     - scipy
+    - sncosmo
     - stpsf
     - stsynphot
     - synphot
+    - typing
     - warnings
   nb_to_imports:
     references/roman_notebooks/notebooks/pandeia/pandeia.ipynb:
@@ -93,6 +106,23 @@ out:
       - roman_datamodels
       - s3fs
       - warnings
+    references/roman_notebooks/notebooks/romanisim/romanisim.ipynb:
+      - argparse
+      - asdf
+      - astropy
+      - astroquery
+      - dask
+      - dataclasses
+      - galsim
+      - importlib
+      - matplotlib
+      - notebook_data_dependencies
+      - numpy
+      - pysiaf
+      - roman_datamodels
+      - romanisim
+      - s3fs
+      - typing
     references/roman_notebooks/notebooks/synphot/synphot.ipynb:
       - astropy
       - importlib
@@ -102,6 +132,25 @@ out:
       - stpsf
       - stsynphot
       - synphot
+    references/roman_notebooks/notebooks/time_domain_simulations/time_domain_simulations.ipynb:
+      - argparse
+      - asdf
+      - astrocut
+      - astropy
+      - dataclasses
+      - galsim
+      - glob
+      - importlib
+      - matplotlib
+      - notebook_data_dependencies
+      - numpy
+      - pysiaf
+      - roman_datamodels
+      - romancal
+      - romanisim
+      - sncosmo
+      - typing
+      - warnings
   spi_files:
     - references/science-platform-images/deployments/common/common-env/common.conda
   spi_packages:
@@ -185,12 +234,17 @@ out:
         #   gwcs
         #   rad
         #   roman-datamodels
+        #   romancal
+        #   romanisim
+        #   stcal
+        #   stpipe
     asdf-astropy==0.9.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   gwcs
         #   rad
         #   roman-datamodels
+        #   romancal
     asdf-coordinates-schemas==0.4.0
         # via
         #   asdf-astropy
@@ -217,8 +271,10 @@ out:
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   asdf-astropy
         #   astrocut
+        #   astropy-healpix
         #   astroquery
         #   crds
+        #   galsim
         #   glue-core
         #   gwcs
         #   pandeia-engine
@@ -227,16 +283,26 @@ out:
         #   pysiaf
         #   pyvo
         #   roman-datamodels
+        #   romancal
+        #   romanisim
+        #   sncosmo
         #   spherical-geometry
+        #   stcal
+        #   stpipe
         #   stpsf
         #   stsynphot
         #   synphot
+        #   tweakwcs
+    astropy-healpix==1.1.2
+        # via romanisim
     astropy-iers-data==0.2025.12.1.0.45.12
         # via astropy
     astropy-sphinx-theme==2.0
         # via sphinx-astropy
     astroquery==0.4.11
-        # via stpsf
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   stpsf
     asttokens==3.0.1
         # via stack-data
     async-lru==2.0.5
@@ -265,6 +331,7 @@ out:
     bokeh==3.8.1
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   dask
         #   jupyter-bokeh
     boto3==1.41.5
         # via
@@ -315,12 +382,18 @@ out:
     click==8.3.1
         # via
         #   black
+        #   dask
+        #   distributed
         #   flask
         #   papermill
         #   pip-tools
         #   rich-click
         #   solara-server
         #   uvicorn
+    cloudpickle==3.1.2
+        # via
+        #   dask
+        #   distributed
     colorama==0.4.6
         # via
         #   build
@@ -340,13 +413,23 @@ out:
         #   bokeh
         #   matplotlib
     crds==13.0.6
-        # via ci-watson
+        # via
+        #   ci-watson
+        #   romancal
+        #   romanisim
+        #   stpipe
     cryptography==46.0.3
         # via
         #   certipy
         #   secretstorage
     cycler==0.12.1
         # via matplotlib
+    cython==3.2.2
+        # via romanisim
+    dask==2025.11.0
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   distributed
     ddtrace==4.0.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     debugpy==1.8.17
@@ -354,18 +437,26 @@ out:
     decorator==5.2.1
         # via ipython
     defusedxml==0.7.1
-        # via nbconvert
+        # via
+        #   nbconvert
+        #   romanisim
     deprecation==2.1.0
         # via jupyter-packaging
     dill==0.4.0
         # via glue-core
     distlib==0.4.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    distributed==2025.11.0
+        # via dask
     docutils==0.21.2
         # via
         #   nbsphinx
         #   sphinx
         #   sphinx-rtd-theme
+    drizzle==2.1.1
+        # via
+        #   romancal
+        #   stcal
     echo==0.11.1
         # via
         #   glue-core
@@ -378,6 +469,8 @@ out:
         # via openpyxl
     executing==2.2.1
         # via stack-data
+    extinction==0.4.8
+        # via sncosmo
     fast-histogram==0.14
         # via
         #   glue-core
@@ -405,9 +498,14 @@ out:
     fsspec==2025.12.0
         # via
         #   astrocut
+        #   dask
         #   s3fs
     future==1.0.0
         # via lsstdesc-coord
+    galsim==2.7.2
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   romanisim
     gitdb==4.0.12
         # via gitpython
     gitpython==3.1.45
@@ -432,12 +530,18 @@ out:
         # via
         #   astrocut
         #   roman-datamodels
+        #   romancal
+        #   romanisim
+        #   stcal
+        #   tweakwcs
     h11==0.16.0
         # via
         #   httpcore
         #   uvicorn
     h5py==3.15.1
-        # via glue-core
+        # via
+        #   glue-core
+        #   sncosmo
     hsluv==5.0.4
         # via vispy
     html5lib==1.1
@@ -463,7 +567,9 @@ out:
     imagesize==1.4.1
         # via sphinx
     importlib-metadata==8.7.0
-        # via opentelemetry-api
+        # via
+        #   opentelemetry-api
+        #   stpipe
     iniconfig==2.3.0
         # via pytest
     ipydatawidgets==4.3.5
@@ -561,6 +667,8 @@ out:
     jinja2==3.1.6
         # via
         #   bokeh
+        #   dask
+        #   distributed
         #   flask
         #   jupyter-server
         #   jupyterhub
@@ -587,6 +695,8 @@ out:
         #   jupyter-server-ydoc
         #   jupyterlab-server
         #   nbformat
+        #   romancal
+        #   romanisim
     jsonschema-specifications==2025.9.1
         # via jsonschema
     jupyter-app-launcher==0.3.2
@@ -694,12 +804,22 @@ out:
         # via rfc3987-syntax
     lazy-loader==0.4
         # via scikit-image
+    locket==1.0.0
+        # via
+        #   distributed
+        #   partd
+    looseversion==1.3.0
+        # via sncosmo
     lsstdesc-coord==1.3.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   galsim
     lxml==6.0.2
         # via pysiaf
     lz4==4.4.5
-        # via roman-datamodels
+        # via
+        #   dask
+        #   roman-datamodels
     mako==1.3.10
         # via alembic
     markdown==3.10
@@ -747,6 +867,8 @@ out:
         #   jaraco-functools
     mpl-scatter-density==0.8
         # via glue-core
+    msgpack==1.1.2
+        # via distributed
     multidict==6.7.0
         # via
         #   aiobotocore
@@ -799,13 +921,18 @@ out:
         #   asdf
         #   asdf-astropy
         #   astropy
+        #   astropy-healpix
         #   astroquery
         #   bokeh
         #   bqplot
         #   contourpy
         #   crds
+        #   dask
+        #   drizzle
         #   echo
+        #   extinction
         #   fast-histogram
+        #   galsim
         #   glue-core
         #   glue-vispy-viewers
         #   gwcs
@@ -819,6 +946,7 @@ out:
         #   matplotlib
         #   mpl-scatter-density
         #   numexpr
+        #   opencv-python-headless
         #   pandas
         #   pandeia-engine
         #   photutils
@@ -827,20 +955,29 @@ out:
         #   pysiaf
         #   pythreejs
         #   roman-datamodels
+        #   romancal
+        #   romanisim
         #   scikit-image
         #   scipy
         #   shapely
+        #   sncosmo
         #   solara-ui
         #   spherical-geometry
+        #   stcal
         #   stpsf
+        #   stsci-imagestats
+        #   stsci-stimage
         #   stsynphot
         #   synphot
         #   tifffile
+        #   tweakwcs
         #   vispy
     numpydoc==1.10.0
         # via sphinx-astropy
     oauthlib==3.3.1
         # via jupyterhub
+    opencv-python-headless==4.11.0.86
+        # via stcal
     openpyxl==3.1.5
         # via
         #   glue-core
@@ -855,7 +992,9 @@ out:
         #   black
         #   bokeh
         #   build
+        #   dask
         #   deprecation
+        #   distributed
         #   ipykernel
         #   jupyter-events
         #   jupyter-packaging
@@ -875,6 +1014,7 @@ out:
         #   sphinx
         #   sphinx-astropy
         #   sphinx-automodapi
+        #   tweakwcs
         #   vispy
     pamela==1.2.0 ; sys_platform != 'win32'
         # via jupyterhub
@@ -883,7 +1023,9 @@ out:
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   bokeh
         #   bqplot
+        #   dask
         #   glue-core
+        #   romancal
     pandeia-engine==2025.9
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pandocfilters==1.5.1
@@ -894,6 +1036,8 @@ out:
         # via crds
     parso==0.8.5
         # via jedi
+    partd==1.4.2
+        # via dask
     pathspec==0.12.1
         # via black
     pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
@@ -901,6 +1045,7 @@ out:
     photutils==2.3.0
         # via
         #   pandeia-engine
+        #   romancal
         #   stpsf
     pillow==12.0.0
         # via
@@ -946,6 +1091,7 @@ out:
         #   yarl
     psutil==7.1.3
         # via
+        #   distributed
         #   ipykernel
         #   jupyter-resource-usage
         #   jupyterhub
@@ -961,7 +1107,12 @@ out:
     pure-eval==0.2.3
         # via stack-data
     pyarrow==22.0.0
-        # via roman-datamodels
+        # via
+        #   dask
+        #   roman-datamodels
+        #   romancal
+    pybind11==3.0.1
+        # via galsim
     pycodestyle==2.14.0
         # via flake8
     pycparser==2.23 ; implementation_name != 'PyPy'
@@ -1010,7 +1161,9 @@ out:
         #   build
         #   pip-tools
     pysiaf==0.25.0
-        # via stpsf
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   stpsf
     pytest==9.0.1
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1044,7 +1197,7 @@ out:
         # via astroquery
     pywin32-ctypes==0.2.3 ; sys_platform == 'win32'
         # via keyring
-    pywinpty==3.0.2 ; os_name == 'nt'
+    pywinpty==3.0.2 ; (os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux')
         # via
         #   jupyter-server
         #   jupyter-server-terminals
@@ -1054,11 +1207,15 @@ out:
         #   asdf
         #   astropy
         #   bokeh
+        #   dask
+        #   distributed
         #   jupyter-app-launcher
         #   jupyter-events
         #   jupytext
         #   papermill
         #   pymdown-extensions
+        #   sncosmo
+        #   stpipe
         #   yq
     pyzmq==27.1.0
         # via
@@ -1066,8 +1223,10 @@ out:
         #   jupyter-client
         #   jupyter-resource-usage
         #   jupyter-server
-    rad==0.28.0
-        # via roman-datamodels
+    rad==0.27.0
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   roman-datamodels
     reacton==1.9.1
         # via solara-ui
     readchar==4.2.1
@@ -1091,8 +1250,10 @@ out:
         #   pysiaf
         #   pyvo
         #   requests-mock
+        #   romancal
         #   solara-ui
         #   sphinx
+        #   stcal
     requests-mock==1.12.1
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     rfc3339-validator==0.1.4
@@ -1109,10 +1270,18 @@ out:
         # via rich-click
     rich-click==1.9.4
         # via solara-server
-    roman-datamodels==0.28.1
-        # via astrocut
+    roman-datamodels==0.27.0
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   astrocut
+        #   romancal
+        #   romanisim
     roman-numerals-py==3.1.0
         # via sphinx
+    romancal==0.20.2
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    romanisim==0.10.0
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     rpds-py==0.30.0
         # via
         #   jsonschema
@@ -1126,7 +1295,9 @@ out:
     s3transfer==0.15.0
         # via boto3
     scikit-image==0.25.2
-        # via glue-jupyter
+        # via
+        #   glue-jupyter
+        #   stcal
     scipy==1.16.3
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1138,21 +1309,23 @@ out:
         #   photutils
         #   poppy
         #   pysiaf
+        #   romancal
         #   scikit-image
+        #   sncosmo
+        #   stcal
         #   stpsf
         #   stsynphot
         #   synphot
     secretstorage==3.5.0 ; sys_platform == 'linux'
         # via keyring
     semantic-version==2.10.0
-        # via
-        #   asdf
-        #   roman-datamodels
+        # via asdf
     send2trash==1.8.3
         # via jupyter-server
-    setuptools==80.9.0
+    setuptools==71.1.0
         # via
         #   astropy-sphinx-theme
+        #   galsim
         #   jupyter-packaging
         #   jupyterlab
         #   pandeia-engine
@@ -1173,6 +1346,8 @@ out:
         # via s3path
     smmap==5.0.2
         # via gitdb
+    sncosmo==2.12.1
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     snowballstemmer==3.0.1
         # via sphinx
     solara==1.55.1
@@ -1183,10 +1358,16 @@ out:
         # via
         #   solara
         #   solara-server
+    sortedcontainers==2.4.0
+        # via distributed
     soupsieve==2.8
         # via beautifulsoup4
     spherical-geometry==1.3.3
-        # via astrocut
+        # via
+        #   astrocut
+        #   romancal
+        #   stcal
+        #   tweakwcs
     sphinx==8.2.3
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1236,12 +1417,24 @@ out:
         # via ipython
     starlette==0.50.0
         # via solara-server
+    stcal==1.15.2
+        # via romancal
     stdlib-list==0.12.0
         # via pydeps
+    stpipe==0.10.0
+        # via romancal
     stpsf==2.1.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   romanisim
+    stsci-imagestats==1.8.4
+        # via
+        #   romancal
+        #   tweakwcs
     stsci-rtd-theme==1.0.1
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    stsci-stimage==0.3.0
+        # via tweakwcs
     stsynphot==1.5.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1252,6 +1445,8 @@ out:
         #   pandeia-engine
         #   stpsf
         #   stsynphot
+    tblib==3.2.2
+        # via distributed
     tenacity==9.1.2
         # via papermill
     terminado==0.18.1
@@ -1266,9 +1461,15 @@ out:
         # via
         #   jupyter-packaging
         #   yq
+    toolz==1.1.0
+        # via
+        #   dask
+        #   distributed
+        #   partd
     tornado==6.5.2
         # via
         #   bokeh
+        #   distributed
         #   ipykernel
         #   jupyter-client
         #   jupyter-server
@@ -1308,6 +1509,10 @@ out:
         #   bqplot
         #   ipydatawidgets
         #   ipyvolume
+    tweakwcs==0.8.12
+        # via
+        #   romancal
+        #   stcal
     typing-extensions==4.15.0
         # via
         #   aiosignal
@@ -1337,6 +1542,7 @@ out:
     urllib3==2.6.0
         # via
         #   botocore
+        #   distributed
         #   requests
     uvicorn==0.38.0
         # via solara-server
@@ -1396,6 +1602,8 @@ out:
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     yq==3.4.3
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    zict==3.0.0
+        # via distributed
     zipp==3.23.0
         # via importlib-metadata
   data:
@@ -1439,16 +1647,16 @@ out:
               - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
               - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
         other_variables:
-          CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
-          CRDS_CONTEXT: roman_0027.pmap
+          CRDS_SERVER_URL: https://roman-crds.stsci.edu
+          CRDS_CONTEXT: roman_0041.pmap
           CRDS_PATH: ${HOME}/crds_cache
     spec_exports:
       pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
       STPSF_PATH: ${HOME}/refdata/stpsf-data
       stips_data: ${HOME}/refdata/stips_data
       PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
-      CRDS_CONTEXT: roman_0027.pmap
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
       pandeia_refdata: 
@@ -1457,8 +1665,8 @@ out:
       stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
       PYSYN_CDBS: 
         ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
-      CRDS_SERVER_URL: https://roman-crds-tvac.stsci.edu
-      CRDS_CONTEXT: roman_0027.pmap
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
       CRDS_PATH: ${HOME}/crds_cache
     metadata:
       roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
