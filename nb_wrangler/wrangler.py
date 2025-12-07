@@ -3,7 +3,7 @@
 
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from .constants import NBW_URI, LOG_FILE
 from .config import WranglerConfigurable
@@ -267,6 +267,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_validate, self._data_validate),
             (self.config.data_unpack, self._data_unpack),
             (self.config.data_pack, self._data_pack),
+            (self.config.data_symlink_install_data, self._data_symlink_install_data),
             (self.config.data_print_exports, self._data_print_exports),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
@@ -373,7 +374,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             ),
         )
 
-    def _data_print_exports(self) -> bool:
+    def _data_get_exports(self) -> Optional[str]:
         """Print out the data environment variables on stdout according to the selected data
         storage mode.  Since this can get called before data has ever been collected, let it
         succeed normally even if no env vars are defined in the spec yet.
@@ -381,13 +382,22 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         data = self.spec_manager.get_outputs("data")
         mode = self.config.data_env_vars_mode
         exports = data.get(mode + "_exports")
+        exports_str = ""
         if exports is None:
             self.logger.debug(
                 "Data environment for mode '{mode}' is not defined yet.  No environment variables to list."
             )
         else:
             for var, value in exports.items():
-                print(f'export {var}="{value}"')
+                exports_str += f'export {var}="{value}"\n'
+        return exports_str
+
+    def _data_print_exports(self) -> bool:
+        """Print out the data environment variables on stdout according to the selected data
+        storage mode.  Since this can get called before data has ever been collected, let it
+        succeed normally even if no env vars are defined in the spec yet.
+        """
+        print(self._data_get_exports())
         return True
 
     def _get_data_url_tuples(
@@ -498,6 +508,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self.env_manager.archive(dest_archive, src_path, "") and no_errors
             )
         return no_errors
+
+    def _data_symlink_install_data(self) -> bool:
+        """Create symlinks from install_data locations to the pantry data directory."""
+        self.logger.info("Creating symlinks for install_data locations.")
+        _data, archive_tuples = self._get_data_url_tuples()
+        return self.pantry_shelf.symlink_install_data(archive_tuples)
 
     def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""
@@ -750,4 +766,5 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _inject_spi(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""
-        return self.injector.inject()
+        exports_str = self._data_get_exports()
+        return self.injector.inject(exports_str)

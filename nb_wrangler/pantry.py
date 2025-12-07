@@ -46,7 +46,7 @@ ${NBW_ROOT}/
 import shutil
 from pathlib import Path
 from functools import cache
-
+import os
 
 from . import utils
 
@@ -345,6 +345,45 @@ class NbwShelf(WranglerLoggable):
                     f"No archive directory exists at {delete_path}.  Skipping unpacked delete. "
                 )
         return no_errors
+
+    def symlink_install_data(
+        self, archive_tuples: list[tuple[str, str, str, str, str]]
+    ) -> bool:
+        """Create symlinks from install_data locations to the pantry data directory."""
+        self.logger.info("Creating symlinks for install_data locations.")
+        for archive_tuple in archive_tuples:
+            install_data_path = utils.resolve_vars(archive_tuple[4], dict(os.environ))
+            symlink_path = Path(install_data_path)
+            target_path = self.data_path  # / archive_tuple[3]
+
+            if not target_path.exists():
+                self.logger.warning(
+                    f"Symlink target '{target_path}' does not exist. Skipping."
+                )
+                continue
+
+            if symlink_path.exists():
+                if symlink_path.is_symlink() and os.path.realpath(symlink_path) == str(
+                    target_path
+                ):
+                    self.logger.debug(
+                        f"Symlink '{symlink_path}' already exists and points to the correct target."
+                    )
+                    continue
+                else:
+                    self.logger.warning(
+                        f"Path '{symlink_path}' already exists and is not the expected symlink. Skipping."
+                    )
+                    continue
+
+            self.logger.info(f"Creating symlink: '{symlink_path}' -> '{target_path}'")
+            try:
+                symlink_path.parent.mkdir(parents=True, exist_ok=True)
+                os.symlink(target_path, symlink_path)
+            except Exception as e:
+                self.logger.error(f"Failed to create symlink: {e}")
+                return False
+        return True
 
 
 class NbwCan:

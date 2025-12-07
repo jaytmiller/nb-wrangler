@@ -172,11 +172,9 @@ Description:
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
         return self.spec_manager.save_spec(out_spec)
 
-    def inject(self) -> bool:
+    def inject(self, env_exports: str) -> bool:
         """
         Performs a placeholder injection of the SPI.
-        In a real implementation, this would gather information about
-        the Python environment, installed packages, Jupyter kernels, etc.
         """
         self.logger.info(
             f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {self.kernel_name}..."
@@ -187,10 +185,9 @@ Description:
         self._inject("mamba_spec", self.env_yml)
         self._inject("pip_compiler_output", self.env_pip)
         self._inject(
-            None,
-            self.deployment_path / "MISSION_VERSION",
-            self.spec_manager.moniker,
+            None, self.deployment_path / "MISSION_VERSION", self.spec_manager.moniker
         )
+        self._inject(None, self.environments_path / "nbw-exports.sh", env_exports)
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )
