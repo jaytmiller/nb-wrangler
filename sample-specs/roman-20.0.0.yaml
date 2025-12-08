@@ -42,12 +42,14 @@ extra_mamba_packages:
 extra_pip_packages:
   - boto3
   - lsstdesc.coord
-  - dask[complete]
 system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/spacetelescope/science-platform-images.git
-  spec_sha256: aa88a603ba035fee55dc8bb86ea1490a815205cfea500e7adc1a2419b000d0b0
+  spi_fork_remote:
+    name: jaytmiller
+    url: https://github.com/jaytmiller/science-platform-images.git
+  spec_sha256: b01454f8c0f0196042f4bb4db0768032f348364b3a4cbb5ed80a849fc9fc40c4
 out:
   data:
     spec_inputs:
