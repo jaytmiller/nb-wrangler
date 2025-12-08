@@ -304,11 +304,22 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             and not self.config.inject_spi
             and not self.config.submit_for_build
         ):
-            injector_url = None
+            spi_url = None
         else:
-            injector_url = self.injector.url
-            if not self.repo_manager.setup_repos([injector_url], single_branch=False):
+            spi_url = self.spec_manager.spi_url
+            if not self.repo_manager.setup_repos([spi_url], single_branch=False):
                 return False
+        spi_fork_remote = self.spec_manager.spi_fork_remote
+        if spi_fork_remote:
+            if not spi_url:
+                self.logger.warning(
+                    f"spi_fork_remote is defined but no primary spi_url is defined."
+                )
+            else:
+                self.repo_manager.git_remote_add(
+                    spi_fork_remote["name"], spi_fork_remote["url"]
+                )
+
         if not self.repo_manager.setup_repos(
             notebook_repo_urls, repo_branches=notebook_repo_branches
         ):
@@ -332,7 +343,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             add_sha256=not self.config.spec_ignore_hash,
             notebook_repo_urls=notebook_repo_urls,
             notebook_repo_branches=notebook_repo_branches,
-            injector_url=injector_url,
+            injector_url=spi_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,

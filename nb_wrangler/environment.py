@@ -16,6 +16,7 @@ import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
 from typing import Any
+from collections.abc import Callable
 
 
 from .logger import WranglerLoggable
@@ -173,7 +174,11 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
-        self, result: CompletedProcess[Any] | str | None, fail: str, success: str = ""
+        self,
+        result: CompletedProcess[Any] | str | None,
+        fail: str,
+        success: str = "",
+        error_func: Callable = None,
     ) -> bool:
         """Provide standard handling for the check=False case of the xxx_run methods by
         issuing a success info or fail error and returning True or False respectively
@@ -182,12 +187,13 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         If either the success or fail log messages (stripped) end in ":" then append
         result.stdout or result.stderr respectively.
         """
+        error_func = error_func or self.logger.error
         if not isinstance(result, CompletedProcess):
             raise RuntimeError(f"Expected CompletedProcess, got {type(result)}")
         if result.returncode != 0:
             if fail.strip().endswith(":"):
                 fail += result.stderr.strip() + " ::: " + result.stdout.strip()
-            return self.logger.error(fail)
+            return error_func(fail)
         else:
             if success.strip().endswith(":"):
                 success += result.stdout.strip()

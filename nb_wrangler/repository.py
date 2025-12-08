@@ -187,6 +187,18 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             f"Pushed repo {repo_name} branch {branch_name}.",
         )
 
+    def git_remote_add(self, remote_name: str, remote_url: str) -> bool:
+        repo_path = self._repo_path(remote_url)
+        result = self.run(
+            f"git remote add {remote_name} {remote_url}", check=False, cwd=repo_path
+        )
+        return self.handle_result(
+            result,
+            f"Failed adding remote {remote_name} = {remote_url} to {repo_path}: ",
+            f"Added remote {remote_name} to {repo_path}.",
+            error_func=self.logger.debug,
+        )
+
     def github_create_pr(
         self, repo_name: str, merge_to: str, title: str, body_msg: str
     ) -> bool:

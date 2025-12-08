@@ -73,6 +73,10 @@ class SpecManager(WranglerLoggable):
         return self.system.get("spi_url", None)
 
     @property
+    def spi_fork_remote(self):
+        return self.system.get("spi_fork_remote", None)
+
+    @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
         return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
@@ -340,6 +344,7 @@ class SpecManager(WranglerLoggable):
             "spec_sha256",
             "archive_format",
             "spi_url",
+            "spi_fork_remote",
         ],
     }
 
