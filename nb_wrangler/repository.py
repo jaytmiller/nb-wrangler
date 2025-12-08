@@ -27,19 +27,29 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     def setup_repos(
         self,
         repo_urls: list[str],
-        single_branch=False,
+        floating_mode: bool = True,
         repo_branches: Optional[dict[str, str | None]] = None,
-    ) -> bool:
+        repo_hashes: Optional[dict[str, str | None]] = None,
+    ) -> dict[str, str]:
         """set up all specified repositories."""
         self.logger.debug(f"Setting up repos. urls={repo_urls}.")
+        repo_states = {}
         for repo_url in repo_urls:
             branch = repo_branches.get(repo_url) if repo_branches else None
+            commit_hash = repo_hashes.get(repo_url) if repo_hashes else None
             repo_path = self._setup_remote_repo(
-                repo_url, single_branch=single_branch, branch=branch
+                repo_url,
+                floating_mode=floating_mode,
+                branch=branch,
+                commit_hash=commit_hash,
             )
             if not repo_path:
-                return False
-        return True
+                raise RuntimeError(f"Failed to setup repository {repo_url}")
+            current_hash = self.get_hash(repo_path)
+            if not current_hash:
+                raise RuntimeError(f"Failed to get hash for repository {repo_url}")
+            repo_states[repo_url] = current_hash
+        return repo_states
 
     def _repo_path(self, repo_url: str) -> Path:
         """Get the path for a repository."""
@@ -48,18 +58,44 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         return self.repos_dir / repo_name
 
     def _setup_remote_repo(
-        self, repo_url: str, single_branch: bool = True, branch: Optional[str] = None
+        self,
+        repo_url: str,
+        floating_mode: bool,
+        branch: Optional[str] = None,
+        commit_hash: Optional[str] = None,
     ) -> Optional[Path]:
         """set up a remote repository by cloning or updating."""
         repo_path = self._repo_path(repo_url)
         if repo_path.exists():
             self.logger.info(f"Using existing local clone at {repo_path}")
+            if floating_mode:
+                self.logger.info(f"Floating mode: updating repo {repo_url}")
+                self.run("git fetch", check=True, cwd=repo_path)
+                branch_to_checkout = branch or "origin/main"  # a default
+                self.run(f"git checkout {branch_to_checkout}", check=True, cwd=repo_path)
+                if branch:
+                    self.run(f"git pull", check=True, cwd=repo_path)  # pull updates
+            else:  # locked mode
+                if commit_hash:
+                    self.logger.info(
+                        f"Locked mode: checking out hash {commit_hash} for repo {repo_url}"
+                    )
+                    self.run("git fetch", check=True, cwd=repo_path)
+                    self.run(f"git checkout {commit_hash}", check=True, cwd=repo_path)
+                else:
+                    self.logger.warning(
+                        f"Locked mode enabled, but no commit hash provided for {repo_url}. Using existing state."
+                    )
             return repo_path
         else:
             try:
-                return self._clone_repo(
-                    repo_url, repo_path, single_branch=single_branch, branch=branch
-                )
+                repo_path = self._clone_repo(repo_url, repo_path, branch=branch)
+                if not floating_mode and commit_hash:
+                    self.logger.info(
+                        f"Locked mode: checking out hash {commit_hash} for repo {repo_url}"
+                    )
+                    self.run(f"git checkout {commit_hash}", check=True, cwd=repo_path)
+                return repo_path
             except Exception as e:
                 self.logger.exception(e, f"Failed to setup repository {repo_url}.")
                 return None
@@ -68,13 +104,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         self,
         repo_url: str,
         repo_dir: Path,
-        single_branch=True,
         branch: Optional[str] = None,
     ) -> Path:
         """Clone a new repository."""
-        single_branch_arg = "--single-branch" if single_branch else ""
+        # single_branch_arg is removed to allow checking out arbitrary commits
         branch_arg = f"--branch {branch}" if branch else ""
-        clone_args = " ".join(filter(None, [single_branch_arg, branch_arg]))
+        clone_args = " ".join(filter(None, [branch_arg]))
 
         branch_msg = f" (branch: {branch})" if branch else ""
         self.logger.info(f"Cloning repository {repo_url}{branch_msg} to {repo_dir}.")
@@ -87,6 +122,17 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         )
         self.logger.info(f"Successfully cloned repository to {repo_dir}.")
         return repo_dir
+
+    def get_hash(self, repo_path: str | Path) -> Optional[str]:
+        """Get the current commit hash of a repository."""
+        if not self.is_clean(repo_path):
+            self.logger.warning(f"Repo '{repo_path}' is dirty, hash may not be accurate.")
+        result = self.run("git rev-parse HEAD", check=False, cwd=repo_path)
+        if result.returncode == 0:
+            return result.stdout.strip()
+        self.logger.error(f"Failed to get git hash for repo {repo_path}")
+        return None
+
 
     def delete_repos(self, urls: list[str]) -> bool:
         """Clean up cloned repositories."""

@@ -207,7 +207,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "install-compiled-spec",
             [
-                # self._clone_repos,
+                self._clone_repos_locked,
                 self._validate_spec,
                 self._spec_add,
                 self._initialize_environment,
@@ -292,13 +292,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         return self.logger._close_and_remove_logfile()
 
-    def _clone_repos(self) -> bool:
+    def _clone_repos(self, floating_mode=True) -> bool:
         """Based on the spec unconditionally clone repos, collect specified notebook paths,
         and scrape notebooks for package imports.
         """
         self.logger.info("Setting up repository clones.")
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         notebook_repo_branches = self.spec_manager.get_repository_branches()
+        notebook_repo_hashes = self.spec_manager.get_repository_hashes()
+
         if (
             self.config.packages_omit_spi
             and not self.config.inject_spi
@@ -307,7 +309,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             spi_url = None
         else:
             spi_url = self.spec_manager.spi_url
-            if not self.repo_manager.setup_repos([spi_url], single_branch=False):
+            if not self.repo_manager.setup_repos([spi_url]):
                 return False
         spi_fork_remote = self.spec_manager.spi_fork_remote
         if spi_fork_remote:
@@ -319,11 +321,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self.repo_manager.git_remote_add(
                     spi_fork_remote["name"], spi_fork_remote["url"]
                 )
+        repo_states = self.repo_manager.setup_repos(
+            notebook_repo_urls,
+            floating_mode=floating_mode,
+            repo_branches=notebook_repo_branches,
+            repo_hashes=notebook_repo_hashes,
+        )
 
-        if not self.repo_manager.setup_repos(
-            notebook_repo_urls, repo_branches=notebook_repo_branches
-        ):
-            return False
         notebook_paths = self.spec_manager.collect_notebook_paths(
             self.config.repos_dir, notebook_repo_urls
         )
@@ -338,16 +342,22 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.logger.warning(
                 "No imports found in notebooks. Import tests will be skipped."
             )
+
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             notebook_repo_urls=notebook_repo_urls,
             notebook_repo_branches=notebook_repo_branches,
+            notebook_repo_hashes=repo_states,
             injector_url=spi_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
         )
+
+    def _clone_repos_locked(self) -> bool:
+        return self._clone_repos(floating_mode=False)
+
 
     def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""

@@ -43,11 +43,19 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 6d69de7899f017bda61e5839d3122f8386c361c6082927a4bb7df62e7b80291d
+  spec_sha256: 50314df1000f6289c3c64756a3a09edfcd1d15001714a84bee2bd7f4e3008318
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
     - https://github.com/spacetelescope/tike_content
+  notebook_repo_branches:
+    https://github.com/spacetelescope/tike_content: main
+    https://github.com/spacetelescope/mast_notebooks: main
+  notebook_repo_hashes:
+    https://github.com/spacetelescope/mast_notebooks: 
+      0dda8f963724d5aad469c29b8c7060d878a130f2
+    https://github.com/spacetelescope/tike_content: 
+      e9e6750d2e0f83acf34dcb5e8077c6d2ccde2361
   injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
     - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
@@ -67,40 +75,40 @@ out:
     - numpy
     - s3fs
   nb_to_imports:
-    - ? references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
-      :   - lightkurve
-          - numpy
-    - ? references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
-      :   - lightkurve
-          - matplotlib
-          - numpy
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb:
-        - astropy
+    ? references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
+    :   - lightkurve
+        - numpy
+    ? references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
+    :   - lightkurve
         - matplotlib
         - numpy
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb:
-        - astropy
-        - matplotlib
-        - numpy
-    - references/tike_content/content/notebooks/data-access/data-access.ipynb:
-        - astropy
-        - astroquery
-        - matplotlib
-        - numpy
-    - references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb:
-        - astroquery
-        - lcviz
-        - lightkurve
-    - references/tike_content/content/notebooks/tglc/tglc.ipynb:
-        - astropy
-        - astroquery
-        - matplotlib
-        - numpy
-    - references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb:
-        - astropy
-        - astroquery
-        - matplotlib
-        - s3fs
+    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb:
+      - astropy
+      - matplotlib
+      - numpy
+    references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb:
+      - astropy
+      - matplotlib
+      - numpy
+    references/tike_content/content/notebooks/data-access/data-access.ipynb:
+      - astropy
+      - astroquery
+      - matplotlib
+      - numpy
+    references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb:
+      - astroquery
+      - lcviz
+      - lightkurve
+    references/tike_content/content/notebooks/tglc/tglc.ipynb:
+      - astropy
+      - astroquery
+      - matplotlib
+      - numpy
+    references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb:
+      - astropy
+      - astroquery
+      - matplotlib
+      - s3fs
   spi_files:
     - references/science-platform-images/deployments/common/common-env/common.conda
   spi_packages:
@@ -162,7 +170,7 @@ out:
         #   watchfiles
         #   ypy-websocket
     anywidget==0.9.18
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     appnope==0.1.4 ; sys_platform == 'darwin'
         # via ipykernel
     argcomplete==3.6.3
@@ -210,10 +218,7 @@ out:
         # via jdaviz
     astropy==7.1.1
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
-        #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   asdf-astropy
         #   astroquery
         #   casa-formats-io
@@ -239,10 +244,7 @@ out:
         # via sphinx-astropy
     astroquery==0.4.11
         # via
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
-        #   -r references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-        #   -r references/tike_content/content/notebooks/tglc/requirements.txt
-        #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
         #   lightkurve
     asttokens==3.0.0
@@ -267,7 +269,7 @@ out:
         #   lightkurve
         #   nbconvert
     black==25.9.0
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     bleach==6.3.0
         # via nbconvert
     blinker==1.9.0
@@ -277,9 +279,7 @@ out:
         #   jupyter-bokeh
         #   lightkurve
     boto3==1.40.61
-        # via
-        #   -r /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-extra-pip.txt
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     botocore==1.40.61
         # via
         #   aiobotocore
@@ -287,7 +287,7 @@ out:
         #   s3transfer
     bqplot==0.12.45
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   bqplot-gl
         #   bqplot-image-gl
         #   glue-jupyter
@@ -297,7 +297,7 @@ out:
         # via glue-jupyter
     bqplot-image-gl==1.7.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
     build==1.3.0
         # via pip-tools
@@ -322,7 +322,7 @@ out:
     charset-normalizer==3.4.4
         # via requests
     ci-watson==0.10.0
-        # via -r references/science-platform-images/deployments/common/common-env/testing.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     click==8.3.0
         # via
         #   black
@@ -366,7 +366,7 @@ out:
         #   casa-formats-io
         #   spectral-cube
     ddtrace==3.18.0
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     debugpy==1.8.17
         # via ipykernel
     decorator==5.2.1
@@ -378,7 +378,7 @@ out:
     dill==0.4.0
         # via glue-core
     distlib==0.4.0
-        # via -r references/science-platform-images/deployments/common/common-env/testing.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     docutils==0.21.2
         # via
         #   nbsphinx
@@ -410,9 +410,9 @@ out:
         #   crds
         #   solara-server
     flake8==7.3.0
-        # via -r references/science-platform-images/deployments/common/common-env/testing.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     flask==3.1.2
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     fonttools==4.60.1
         # via matplotlib
     fqdn==1.5.1
@@ -430,7 +430,7 @@ out:
     gitdb==4.0.12
         # via gitpython
     gitpython==3.1.45
-        # via -r references/science-platform-images/deployments/common/common-env/required.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     glfw==2.10.0
         # via glue-vispy-viewers
     glue-astronomy==0.14.0
@@ -443,7 +443,7 @@ out:
         #   jdaviz
     glue-jupyter==0.25.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-vispy-viewers
         #   jdaviz
         #   lcviz
@@ -500,52 +500,50 @@ out:
         # via pytest
     ipydatawidgets==4.3.5
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   pythreejs
     ipyevents==2.0.4
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     ipygoldenlayout==0.4.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
     ipykernel==7.1.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-        #   -r references/science-platform-images/deployments/common/common-env/required.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
         #   jupyterlab
         #   nbclassic
         #   solara-server
     ipympl==0.9.8
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
     ipypopout==2.0.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
     ipysplitpanes==0.2.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
     ipython==9.7.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-core
         #   ipykernel
         #   ipympl
         #   ipywidgets
     ipython-genutils==0.2.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
         #   nbclassic
     ipython-pygments-lexers==1.1.1
         # via ipython
     ipyvolume==0.6.3
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
     ipyvue==1.11.3
         # via
@@ -558,7 +556,7 @@ out:
         #   solara-ui
     ipyvuetify==1.11.3
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
         #   ipypopout
         #   ipyvolume
@@ -566,11 +564,11 @@ out:
         #   solara-ui
     ipywebrtc==0.6.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipyvolume
     ipywidgets==8.1.8
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   anywidget
         #   bqplot
         #   bqplot-image-gl
@@ -634,28 +632,32 @@ out:
         # via jsonschema
     jsonschema==4.25.1
         # via
+        #   jupyter-app-launcher
         #   jupyter-events
         #   jupyter-server-ydoc
         #   jupyterlab-server
         #   nbformat
     jsonschema-specifications==2025.9.1
         # via jsonschema
+    jupyter-app-launcher==0.3.2
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-bokeh==4.0.5
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-client==8.6.3
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipykernel
         #   jupyter-server
         #   nbclient
         #   solara-server
+        #   voila
     jupyter-collaboration==4.1.1
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-collaboration-ui==2.1.1
         # via jupyter-collaboration
     jupyter-core==5.9.1
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipykernel
         #   jupyter-client
         #   jupyter-server
@@ -663,6 +665,7 @@ out:
         #   nbclient
         #   nbconvert
         #   nbformat
+        #   voila
     jupyter-docprovider==2.1.1
         # via jupyter-collaboration
     jupyter-events==0.12.0
@@ -674,14 +677,15 @@ out:
     jupyter-lsp==2.3.0
         # via jupyterlab
     jupyter-packaging==0.12.3
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-resource-usage==1.2.0
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-rfb==0.5.3
         # via glue-vispy-viewers
     jupyter-server==2.17.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jupyter-app-launcher
         #   jupyter-lsp
         #   jupyter-resource-usage
         #   jupyter-server-fileid
@@ -692,10 +696,13 @@ out:
         #   nbgitpuller
         #   notebook
         #   notebook-shim
+        #   voila
     jupyter-server-fileid==0.9.3
         # via jupyter-server-ydoc
     jupyter-server-proxy==4.4.0
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jupyter-app-launcher
     jupyter-server-terminals==0.5.3
         # via jupyter-server
     jupyter-server-ydoc==2.1.1
@@ -703,31 +710,31 @@ out:
     jupyter-ydoc==3.1.0
         # via jupyter-server-ydoc
     jupyterhub==5.4.2
-        # via
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyterlab==4.4.10
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jupyter-collaboration
         #   notebook
     jupyterlab-pygments==0.3.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   nbconvert
     jupyterlab-server==2.28.0
         # via
         #   jupyterlab
         #   notebook
+        #   voila
     jupyterlab-tour==4.0.1
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyterlab-widgets==3.0.16
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipywidgets
         #   jupyter-rfb
+        #   voila-gridstack
     jupytext==1.18.1
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     keyring==25.6.0
         # via astroquery
     kiwisolver==1.4.9
@@ -739,17 +746,12 @@ out:
     lazy-loader==0.4
         # via scikit-image
     lcviz==1.2.1
-        # via
-        #   -r references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-        #   -r references/tike_content/content/notebooks/tglc/requirements.txt
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     legacy-cgi==2.6.4 ; python_full_version >= '3.13'
         # via ddtrace
     lightkurve==2.5.1
         # via
-        #   -r references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-        #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-        #   -r references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-        #   -r references/tike_content/content/notebooks/tglc/requirements.txt
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   lcviz
     locket==1.0.0
         # via partd
@@ -773,13 +775,7 @@ out:
         #   werkzeug
     matplotlib==3.10.7
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-        #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-        #   -r references/science-platform-images/deployments/common/common-env/docs.pip
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
-        #   -r references/tike_content/content/notebooks/tglc/requirements.txt
-        #   -r references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-core
         #   glue-vispy-viewers
         #   ipympl
@@ -822,10 +818,12 @@ out:
         # via
         #   nbconvert
         #   papermill
+        #   voila
     nbconvert==7.16.6
         # via
         #   jupyter-server
         #   nbsphinx
+        #   voila
     nbformat==5.10.4
         # via
         #   jupyter-server
@@ -836,9 +834,9 @@ out:
         #   papermill
         #   solara-server
     nbgitpuller==1.2.2
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     nbsphinx==0.9.7
-        # via -r references/science-platform-images/deployments/common/common-env/docs.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     ndcube==2.3.4
         # via specutils
     nest-asyncio==1.6.0
@@ -849,7 +847,7 @@ out:
         # via scikit-image
     notebook==7.4.7
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
     notebook-shim==0.2.4
         # via
@@ -858,13 +856,7 @@ out:
         #   notebook
     numpy==2.3.4
         # via
-        #   -c references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-        #   -r references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-        #   -r references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-        #   -r references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   -r references/tike_content/content/notebooks/data-access/requirements.txt
-        #   -r references/tike_content/content/notebooks/tglc/requirements.txt
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   asdf
         #   asdf-astropy
         #   astropy
@@ -961,9 +953,7 @@ out:
     pandocfilters==1.5.1
         # via nbconvert
     papermill==2.6.0
-        # via
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
-        #   -r references/science-platform-images/deployments/common/common-env/required.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     parsley==1.3
         # via crds
     parso==0.8.5
@@ -995,15 +985,15 @@ out:
         #   pip-tools
         #   pipdeptree
     pip-tools==7.5.1
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pipdeptree==2.29.0
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     platformdirs==4.5.0
         # via
         #   black
         #   jupyter-core
     playwright==1.55.0
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pluggy==1.6.0
         # via pytest
     prometheus-client==0.23.1
@@ -1026,7 +1016,7 @@ out:
         #   jupyterhub
         #   pytest-openfiles
     psycopg2-binary==2.9.11
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     psygnal==0.15.0
         # via anywidget
     ptyprocess==0.7.0 ; os_name != 'nt' or (sys_platform != 'emscripten' and sys_platform != 'win32')
@@ -1054,9 +1044,9 @@ out:
     pydantic-core==2.41.5
         # via pydantic
     pydeps==3.0.1
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pyds9==1.8.1
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pyee==13.0.0
         # via playwright
     pyerfa==2.0.1.5
@@ -1084,16 +1074,16 @@ out:
         #   pip-tools
     pytest==8.4.2
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/testing.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ci-watson
         #   pytest-doctestplus
         #   pytest-openfiles
     pytest-doctestplus==1.5.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/testing.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   sphinx-astropy
     pytest-openfiles==0.6.0
-        # via -r references/science-platform-images/deployments/common/common-env/testing.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     python-dateutil==2.9.0.post0
         # via
         #   aiobotocore
@@ -1129,6 +1119,7 @@ out:
         #   bokeh
         #   dask
         #   jdaviz
+        #   jupyter-app-launcher
         #   jupyter-events
         #   jupytext
         #   papermill
@@ -1157,7 +1148,7 @@ out:
         #   jdaviz
     requests==2.32.5
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/common.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   astroquery
         #   ci-watson
         #   crds
@@ -1172,7 +1163,7 @@ out:
         #   solara-ui
         #   sphinx
     requests-mock==1.12.1
-        # via -r references/science-platform-images/deployments/common/common-env/testing.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     rfc3339-validator==0.1.4
         # via
         #   jsonschema
@@ -1232,7 +1223,7 @@ out:
         # via glue-core
     sidecar==0.8.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
     simpervisor==1.0.0
         # via jupyter-server-proxy
@@ -1250,7 +1241,7 @@ out:
         # via sphinx
     solara==1.54.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   jdaviz
     solara-server==1.54.0
         # via solara
@@ -1273,7 +1264,7 @@ out:
         #   specreduce
     sphinx==8.1.3
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/docs.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   nbsphinx
         #   numpydoc
         #   sphinx-astropy
@@ -1283,16 +1274,16 @@ out:
         #   sphinxcontrib-jquery
         #   stsci-rtd-theme
     sphinx-astropy==1.10
-        # via -r references/science-platform-images/deployments/common/common-env/docs.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     sphinx-automodapi==0.20.0
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/docs.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   sphinx-astropy
     sphinx-gallery==0.19.0
         # via sphinx-astropy
     sphinx-rtd-theme==3.0.2
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/docs.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   stsci-rtd-theme
     sphinxcontrib-applehelp==2.0.0
         # via sphinx
@@ -1325,7 +1316,7 @@ out:
     stdlib-list==0.12.0
         # via pydeps
     stsci-rtd-theme==1.0.1
-        # via -r references/science-platform-images/deployments/common/common-env/docs.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     tenacity==9.1.2
         # via papermill
     terminado==0.18.1
@@ -1386,6 +1377,7 @@ out:
         #   nbsphinx
         #   pythreejs
         #   traittypes
+        #   voila
     traittypes==0.2.3
         # via
         #   bqplot
@@ -1431,6 +1423,10 @@ out:
         # via
         #   glue-vispy-viewers
         #   jdaviz
+    voila==0.5.11
+        # via voila-gridstack
+    voila-gridstack==0.4.0
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     watchdog==6.0.0
         # via solara-server
     watchfiles==1.1.1
@@ -1447,7 +1443,9 @@ out:
     websocket-client==1.9.0
         # via jupyter-server
     websockets==15.0.1
-        # via solara-server
+        # via
+        #   solara-server
+        #   voila
     werkzeug==3.1.3
         # via flask
     wheel==0.45.1
@@ -1456,7 +1454,7 @@ out:
         #   pip-tools
     widgetsnbextension==4.0.15
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipywidgets
     wrapt==1.17.3
         # via
@@ -1470,152 +1468,13 @@ out:
         # via bokeh
     y-py==0.6.2
         # via
-        #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ypy-websocket
     yarl==1.22.0
         # via aiohttp
     ypy-websocket==0.12.4
-        # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     yq==3.4.3
-        # via -r references/science-platform-images/deployments/common/common-env/common.pip
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     zipp==3.23.0
         # via importlib-metadata
-  pip_requirements_files:
-    - references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt
-    - references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt
-    - references/tike_content/content/notebooks/data-access/requirements.txt
-    - references/tike_content/content/notebooks/tglc/requirements.txt
-    - /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-extra-pip.txt
-    - references/science-platform-images/deployments/common/common-env/required.pip
-    - references/science-platform-images/deployments/common/common-env/testing.pip
-    - references/science-platform-images/deployments/common/common-env/jupyter.pip
-    - references/science-platform-images/deployments/common/common-env/common.pip
-    - references/science-platform-images/deployments/common/common-env/docs.pip
-  pip_map:
-    references/tike_content/content/notebooks/lcviz-tutorial/requirements.txt:
-      - astroquery >= 0.4.10
-      - lightkurve >= 2.5.1
-      - lcviz >= 1.1
-    references/tike_content/content/notebooks/zooniverse_view_lightcurve/requirements.txt:
-      - astropy >= 7.0.0
-      - astroquery >= 0.4.10
-      - matplotlib >= 3.9
-    references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/requirements.txt:
-      - lightkurve >= 2.4.2
-      - numpy >= 1.23.4
-    references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/requirements.txt:
-      - lightkurve >= 2.4.2
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
-    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/requirements.txt:
-      - astropy >= 5.3.3
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
-    references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/requirements.txt:
-      - astropy >= 5.3.3
-      - matplotlib >= 3.6.0
-      - numpy >= 1.23.4
-    references/tike_content/content/notebooks/data-access/requirements.txt:
-      - astropy >= 7.0.0
-      - astroquery >= 0.4.10
-      - numpy >= 1.26
-      - matplotlib >= 3.9
-    references/tike_content/content/notebooks/tglc/requirements.txt:
-      - astroquery >= 0.4.10
-      - lightkurve >= 2.5.1
-      - lcviz >= 1.1
-      - matplotlib >= 3.9
-      - numpy >= 1.26
-    /home/ai/.nbw-live/temps/tike-2025.07-beta-tess-extra-pip.txt:
-      - boto3
-    references/science-platform-images/deployments/common/common-env/required.pip:
-      - '# packages required for the framework to work'
-      - ''
-      - '# needed to install a kernel'
-      - ipykernel
-      - ''
-      - '# needed to run headless notebook tests'
-      - papermill
-      - ''
-      - '# required for git-sync-v4'
-      - GitPython
-    references/science-platform-images/deployments/common/common-env/testing.pip:
-      - ci-watson
-      - pytest
-      - pytest-doctestplus
-      - requests_mock
-      - pytest-openfiles
-      - '#pytest-cov'
-      - '#codecov'
-      - flake8
-      - distlib
-    references/science-platform-images/deployments/common/common-env/jupyter.pip:
-      - jupyterhub
-      - jupyterlab
-      - notebook
-      - bqplot
-      - glue-jupyter
-      - ipysplitpanes
-      - ipygoldenlayout
-      - jupyter-client
-      - ipython-genutils
-      - jupyter-core
-      - jupyterlab-widgets
-      - widgetsnbextension
-      - ipywidgets
-      - ipydatawidgets
-      - jupyterlab-pygments
-      - jupyter-server
-      - bqplot-image-gl
-      - jupyter-collaboration
-      - jupyter-server-proxy
-      - jupyter-packaging
-      - ipyevents
-      - ipympl
-      - ipyvolume
-      - ipyvuetify
-      - ipywebrtc
-      - ipykernel
-      - jupyter-resource-usage
-      - sidecar
-      - y-py
-      - ypy-websocket
-      - jupyter_bokeh
-      - solara
-      - ipypopout==2.0.0
-      - jupyterlab-tour
-      - anywidget
-      - jupytext
-    references/science-platform-images/deployments/common/common-env/common.pip:
-      - papermill
-      - '#nbconvert'
-      - ipykernel
-      - ipython
-      - boto3
-      - pyds9
-      - pipdeptree
-      - pip-tools
-      - pydeps
-      - numpy
-      - black
-      - jupyterhub
-      - nbgitpuller
-      - playwright
-      - flask
-      - psycopg2-binary
-      - requests
-      - ddtrace
-      - yq
-    references/science-platform-images/deployments/common/common-env/docs.pip:
-      - matplotlib
-      - sphinx
-      - sphinx-automodapi
-      - sphinx-rtd-theme
-      - stsci-rtd-theme
-      - sphinx-astropy
-      - '# sphinx-asdf'
-      - nbsphinx

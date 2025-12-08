@@ -331,6 +331,7 @@ class SpecManager(WranglerLoggable):
         "out": [
             "notebook_repo_urls",
             "notebook_repo_branches",
+            "notebook_repo_hashes",
             "test_notebooks",
             "spi_packages",
             "mamba_spec",
@@ -485,6 +486,12 @@ class SpecManager(WranglerLoggable):
             elif nb_repo not in repo_branches:
                 repo_branches[nb_repo] = nb_branch
         return repo_branches
+
+    def get_repository_hashes(self) -> dict[str, str | None]:
+        """Get repository URLs mapped to their hashes from the spec."""
+        self._ensure_validated()
+        return self.get_output_data("notebook_repo_hashes", {})
+
 
     def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
         """Collect paths to all notebooks specified by the spec."""
