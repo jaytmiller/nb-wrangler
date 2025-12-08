@@ -29,13 +29,14 @@ selected_notebooks:
     nb_branch: main
     nb_root_directory: notebooks/
     include_subdirs:
-      - pandeia/.*
-      - rist/.*
-      - roman_cutouts/.*
-      - romanisim/.*
-      - time_domain_simulations/.*
-      - crds_examples/.*
-      - synphot/.*
+      - ./*
+      # ---- - pandeia/.*
+      # ---- - rist/.*
+      # ---- - roman_cutouts/.*
+      # ---- - romanisim/.*
+      # ---- - time_domain_simulations/.*
+      # ---- - crds_examples/.*
+      # ---- - synphot/.*
     exclude_subdirs: []
 extra_mamba_packages:
   - pip
@@ -45,158 +46,186 @@ extra_pip_packages:
 system:
   spec_version: 1.0
   archive_format: .tar
-  spi_url: https://github.com/spacetelescope/science-platform-images.git
+  spi_url: https://github.com/jaytmiller/science-platform-images.git
   spi_fork_remote:
     name: jaytmiller
     url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: b01454f8c0f0196042f4bb4db0768032f348364b3a4cbb5ed80a849fc9fc40c4
+  spec_sha256: 955e6ce6f2df2fe591921f48089913865513e6f05134ca08a4c8fe90a25be409
 out:
-  data:
-    spec_inputs:
-      references/roman_notebooks/refdata_dependencies.yaml:
-        install_files:
-          pandeia:
-            version: '2025.9'
-            environment_variable: pandeia_refdata
-            install_path: ${HOME}/refdata/
-            data_path: pandeia_data-2025.9-roman
-            data_url:
-              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
-          stpsf:
-            version: 2.1.0
-            environment_variable: STPSF_PATH
-            install_path: ${HOME}/refdata/
-            data_path: stpsf-data
-            data_url:
-              - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
-          stips:
-            version: 2.3.0
-            environment_variable: stips_data
-            install_path: ${HOME}/refdata/
-            data_path: stips_data
-            data_url:
-              - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
-          synphot:
-            version: 1.6.0
-            environment_variable: PYSYN_CDBS
-            install_path: ${HOME}/refdata/
-            data_path: grp/redcat/trds/
-            data_url:
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
-        other_variables:
-          CRDS_SERVER_URL: https://roman-crds.stsci.edu
-          CRDS_CONTEXT: roman_0041.pmap
-          CRDS_PATH: ${HOME}/crds_cache
-    spec_exports:
-      pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
-      STPSF_PATH: ${HOME}/refdata/stpsf-data
-      stips_data: ${HOME}/refdata/stips_data
-      PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-      CRDS_SERVER_URL: https://roman-crds.stsci.edu
-      CRDS_CONTEXT: roman_0041.pmap
-      CRDS_PATH: ${HOME}/crds_cache
-    pantry_exports:
-      pandeia_refdata: 
-        ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/pandeia_data-2025.9-roman
-      STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stpsf-data
-      stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
-      PYSYN_CDBS: 
-        ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
-      CRDS_SERVER_URL: https://roman-crds.stsci.edu
-      CRDS_CONTEXT: roman_0041.pmap
-      CRDS_PATH: ${HOME}/crds_cache
-    metadata:
-      roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
-        size: '578788837'
-        sha256: 736766b93e12d5adff9499b3a69a676e78d12d0ddff3a5193430cbab688bb978
-      roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz:
-        size: '92295282'
-        sha256: d30eb72b571b0e9f09a091909bf16f679f23c30d327ce6fc09ace227790be6bf
-      roman_notebooks/stips/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz:
-        size: '153097868'
-        sha256: 15a430e67c7526abb4bd0f56379631ef7cb10a93f72b5d5dbd7919b441422d6a
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar:
-        size: '1285222400'
-        sha256: 3f01b858d88960f864cad56a03d2425955ae3951a979378da612af960c5f6b59
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar:
-        size: '90347520'
-        sha256: 66faaaeeb04e855a09c6cb8bc9b748c8fbedf23b782208dba84e10c4f0fd450b
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar:
-        size: '42772480'
-        sha256: 8f7a220bc9480900c372015847057b06a2c218ae8b2dbf8020e6a1dd2990b42c
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar:
-        size: '81684480'
-        sha256: 95ca73356f38a703064c346e286f571b53f78964d5511d1b538ff086f5ce897e
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar:
-        size: '1868328960'
-        sha256: 1ffb5e136dc4f846cd95b83843eb89f7a5171f58732705b25f07a99c4d8cf50d
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar:
-        size: '8695121920'
-        sha256: 69b3ba91db2a3290bacbe48ef7b7626905567d89e7e03d11b3cefeadf5f26fd7
-      roman_notebooks/synphot/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar:
-        size: '8909717'
-        sha256: 01b2eae81852d56971796a62c82ff7f76256e1fdaabccf2f7f09151b1283640a
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar:
-        size: '34160640'
-        sha256: 3338b1fb400d752c02c06132e0ce804ef8a9751f6ff535b41d022f60b0364d81
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
-        size: '121835520'
-        sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
   notebook_repo_urls:
     - https://github.com/spacetelescope/roman_notebooks
   notebook_repo_branches:
     https://github.com/spacetelescope/roman_notebooks: main
-  injector_url: https://github.com/spacetelescope/science-platform-images.git
+  injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
+    - references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb
+    - references/roman_notebooks/notebooks/background_visualization_tool/RBVT.ipynb
+    - references/roman_notebooks/notebooks/data_discovery_and_access/data_discovery_and_access.ipynb
+    - references/roman_notebooks/notebooks/data_visualization/data_visualization.ipynb
+    - references/roman_notebooks/notebooks/exposure_pipeline/exposure_pipeline.ipynb
+    - references/roman_notebooks/notebooks/footprint_visualization/footprint_visualization.ipynb
+    - references/roman_notebooks/notebooks/grism_spectral_extraction/grism_spectral_extraction.ipynb
+    - references/roman_notebooks/notebooks/ground_test_analysis/wfi_tvac_brightstar.ipynb
+    - references/roman_notebooks/notebooks/measuring_galaxy_shapes/measuring_galaxy_shapes.ipynb
+    - references/roman_notebooks/notebooks/mosaic_pipeline/mosaic_pipeline.ipynb
     - references/roman_notebooks/notebooks/pandeia/pandeia.ipynb
     - references/roman_notebooks/notebooks/rist/rist.ipynb
     - references/roman_notebooks/notebooks/roman_cutouts/roman_cutouts.ipynb
     - references/roman_notebooks/notebooks/romanisim/romanisim.ipynb
+    - references/roman_notebooks/notebooks/stips/stips.ipynb
+    - references/roman_notebooks/notebooks/stpsf/stpsf.ipynb
     - references/roman_notebooks/notebooks/synphot/synphot.ipynb
     - references/roman_notebooks/notebooks/time_domain_simulations/time_domain_simulations.ipynb
+    - references/roman_notebooks/notebooks/working_with_asdf/working_with_asdf.ipynb
   test_imports:
     - argparse
     - asdf
     - astrocut
     - astropy
     - astroquery
+    - bokeh
+    - coord
+    - crds
     - dask
     - dataclasses
+    - footprint_utils
+    - functools
     - galsim
     - glob
+    - healsparse
     - importlib
+    - ipympl
+    - itertools
+    - jdaviz
+    - json
+    - math
     - matplotlib
+    - mpl_toolkits
     - notebook_data_dependencies
     - numpy
+    - pandas
     - pandeia
+    - photutils
     - plot_rist
+    - pprint
     - pysiaf
+    - rbt
+    - rbvt
     - roman_datamodels
     - romancal
     - romanisim
     - s3fs
     - scipy
+    - skyproj
     - sncosmo
+    - stips
     - stpsf
     - stsynphot
     - synphot
+    - textwrap
+    - time
     - typing
     - warnings
+    - yaml
   nb_to_imports:
+    references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb:
+      - asdf
+      - astropy
+      - crds
+      - matplotlib
+      - numpy
+      - photutils
+      - roman_datamodels
+      - s3fs
+      - stpsf
+    references/roman_notebooks/notebooks/background_visualization_tool/RBVT.ipynb:
+      - bokeh
+      - rbvt
+    references/roman_notebooks/notebooks/data_discovery_and_access/data_discovery_and_access.ipynb:
+      - asdf
+      - astropy
+      - astroquery
+      - roman_datamodels
+      - s3fs
+    references/roman_notebooks/notebooks/data_visualization/data_visualization.ipynb:
+      - asdf
+      - astropy
+      - jdaviz
+      - matplotlib
+      - numpy
+      - roman_datamodels
+      - s3fs
+      - time
+    references/roman_notebooks/notebooks/exposure_pipeline/exposure_pipeline.ipynb:
+      - astropy
+      - crds
+      - matplotlib
+      - mpl_toolkits
+      - numpy
+      - roman_datamodels
+      - romancal
+      - s3fs
+    references/roman_notebooks/notebooks/footprint_visualization/footprint_visualization.ipynb:
+      - astropy
+      - dask
+      - footprint_utils
+      - functools
+      - healsparse
+      - ipympl
+      - matplotlib
+      - numpy
+      - pandas
+      - skyproj
+    references/roman_notebooks/notebooks/grism_spectral_extraction/grism_spectral_extraction.ipynb:
+      - asdf
+      - astropy
+      - itertools
+      - matplotlib
+      - numpy
+      - photutils
+      - roman_datamodels
+      - s3fs
+      - scipy
+    references/roman_notebooks/notebooks/ground_test_analysis/wfi_tvac_brightstar.ipynb:
+      - asdf
+      - math
+      - matplotlib
+      - numpy
+      - roman_datamodels
+      - romancal
+      - s3fs
+      - scipy
+    references/roman_notebooks/notebooks/measuring_galaxy_shapes/measuring_galaxy_shapes.ipynb:
+      - asdf
+      - astropy
+      - coord
+      - galsim
+      - matplotlib
+      - numpy
+      - roman_datamodels
+      - s3fs
+      - scipy
+      - stpsf
+      - stsynphot
+      - synphot
+    references/roman_notebooks/notebooks/mosaic_pipeline/mosaic_pipeline.ipynb:
+      - astropy
+      - glob
+      - json
+      - matplotlib
+      - roman_datamodels
+      - romancal
+      - s3fs
     references/roman_notebooks/notebooks/pandeia/pandeia.ipynb:
+      - astropy
       - importlib
+      - json
       - notebook_data_dependencies
       - numpy
       - pandeia
+      - rbt
       - scipy
+      - textwrap
     references/roman_notebooks/notebooks/rist/rist.ipynb:
       - plot_rist
     references/roman_notebooks/notebooks/roman_cutouts/roman_cutouts.ipynb:
@@ -225,6 +254,16 @@ out:
       - romanisim
       - s3fs
       - typing
+    references/roman_notebooks/notebooks/stips/stips.ipynb:
+      - astropy
+      - matplotlib
+      - stips
+      - yaml
+    references/roman_notebooks/notebooks/stpsf/stpsf.ipynb:
+      - astropy
+      - matplotlib
+      - numpy
+      - stpsf
     references/roman_notebooks/notebooks/synphot/synphot.ipynb:
       - astropy
       - importlib
@@ -253,6 +292,14 @@ out:
       - sncosmo
       - typing
       - warnings
+    references/roman_notebooks/notebooks/working_with_asdf/working_with_asdf.ipynb:
+      - asdf
+      - astropy
+      - matplotlib
+      - numpy
+      - pprint
+      - roman_datamodels
+      - s3fs
   spi_files:
     - references/science-platform-images/deployments/common/common-env/common.conda
   spi_packages:
@@ -334,11 +381,14 @@ out:
         #   astrocut
         #   crds
         #   gwcs
+        #   jdaviz
         #   rad
         #   roman-datamodels
         #   romancal
         #   romanisim
+        #   specutils
         #   stcal
+        #   stdatamodels
         #   stpipe
     asdf-astropy==0.9.0
         # via
@@ -347,6 +397,8 @@ out:
         #   rad
         #   roman-datamodels
         #   romancal
+        #   specutils
+        #   stdatamodels
     asdf-coordinates-schemas==0.4.0
         # via
         #   asdf-astropy
@@ -364,8 +416,11 @@ out:
         #   asdf
         #   asdf-astropy
         #   asdf-wcs-schemas
+        #   stdatamodels
     asdf-wcs-schemas==0.5.0
         # via gwcs
+    asteval==1.0.7
+        # via jdaviz
     astrocut==1.1.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     astropy==7.2.0
@@ -375,21 +430,36 @@ out:
         #   astrocut
         #   astropy-healpix
         #   astroquery
+        #   casa-formats-io
         #   crds
         #   galsim
+        #   glue-astronomy
         #   glue-core
         #   gwcs
+        #   healpy
+        #   healsparse
+        #   jdaviz
+        #   montage-wrapper
+        #   ndcube
         #   pandeia-engine
         #   photutils
         #   poppy
         #   pysiaf
         #   pyvo
+        #   radio-beam
+        #   regions
         #   roman-datamodels
         #   romancal
         #   romanisim
+        #   skyproj
         #   sncosmo
+        #   specreduce
+        #   spectral-cube
+        #   specutils
         #   spherical-geometry
         #   stcal
+        #   stdatamodels
+        #   stips
         #   stpipe
         #   stpsf
         #   stsynphot
@@ -404,6 +474,7 @@ out:
     astroquery==0.4.11
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
         #   stpsf
     asttokens==3.0.1
         # via stack-data
@@ -451,6 +522,7 @@ out:
         #   bqplot-image-gl
         #   glue-jupyter
         #   ipyvolume
+        #   jdaviz
     bqplot-gl==0.0.0
         # via glue-jupyter
     bqplot-image-gl==1.8.0
@@ -465,10 +537,13 @@ out:
         # via
         #   astrocut
         #   solara-ui
+    casa-formats-io==0.3.0
+        # via spectral-cube
     certifi==2025.11.12
         # via
         #   httpcore
         #   httpx
+        #   pyproj
         #   requests
     certipy==0.2.2
         # via jupyterhub
@@ -514,8 +589,9 @@ out:
         # via
         #   bokeh
         #   matplotlib
-    crds==13.0.6
+    crds==13.0.3
         # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ci-watson
         #   romancal
         #   romanisim
@@ -531,7 +607,9 @@ out:
     dask==2025.11.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   casa-formats-io
         #   distributed
+        #   spectral-cube
     ddtrace==4.0.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     debugpy==1.8.17
@@ -563,10 +641,13 @@ out:
         # via
         #   glue-core
         #   glue-vispy-viewers
+        #   jdaviz
     entrypoints==0.4
         # via papermill
     envier==0.6.1
         # via ddtrace
+    esutil==0.6.16
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     et-xmlfile==2.0.0
         # via openpyxl
     executing==2.2.1
@@ -614,14 +695,19 @@ out:
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     glfw==2.10.0
         # via glue-vispy-viewers
+    glue-astronomy==0.14.0
+        # via jdaviz
     glue-core==1.24.1
         # via
+        #   glue-astronomy
         #   glue-jupyter
         #   glue-vispy-viewers
+        #   jdaviz
     glue-jupyter==0.25.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-vispy-viewers
+        #   jdaviz
     glue-vispy-viewers==1.3.0
         # via glue-jupyter
     greenlet==3.3.0
@@ -631,9 +717,13 @@ out:
     gwcs==0.26.1
         # via
         #   astrocut
+        #   jdaviz
+        #   ndcube
         #   roman-datamodels
         #   romancal
         #   romanisim
+        #   specreduce
+        #   specutils
         #   stcal
         #   tweakwcs
     h11==0.16.0
@@ -644,6 +734,17 @@ out:
         # via
         #   glue-core
         #   sncosmo
+    healpy==1.19.0
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    healsparse==1.11.1
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   skyproj
+    hpgeom==1.4.0
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   healsparse
+        #   skyproj
     hsluv==5.0.4
         # via vispy
     html5lib==1.1
@@ -658,6 +759,7 @@ out:
         # via
         #   anyio
         #   httpx
+        #   jdaviz
         #   jsonschema
         #   jupyterhub
         #   requests
@@ -681,20 +783,28 @@ out:
     ipyevents==2.0.4
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     ipygoldenlayout==0.4.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
     ipykernel==7.1.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
         #   jupyterlab
+        #   nbclassic
         #   solara-server
     ipympl==0.9.8
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
     ipypopout==2.0.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
     ipysplitpanes==0.2.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
     ipython==9.8.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -706,6 +816,7 @@ out:
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-jupyter
+        #   nbclassic
     ipython-pygments-lexers==1.1.1
         # via ipython
     ipyvolume==0.6.3
@@ -719,6 +830,7 @@ out:
         #   ipysplitpanes
         #   ipyvolume
         #   ipyvuetify
+        #   jdaviz
         #   solara-ui
     ipyvuetify==1.11.3
         # via
@@ -726,6 +838,7 @@ out:
         #   glue-jupyter
         #   ipypopout
         #   ipyvolume
+        #   jdaviz
         #   solara-ui
     ipywebrtc==0.6.0
         # via
@@ -744,6 +857,7 @@ out:
         #   ipypopout
         #   ipyvolume
         #   ipyvue
+        #   jdaviz
         #   jupyter-bokeh
         #   jupyter-rfb
         #   pythreejs
@@ -760,6 +874,8 @@ out:
         # via keyring
     jaraco-functools==4.3.0
         # via keyring
+    jdaviz==4.4.2
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jedi==0.19.2
         # via ipython
     jeepney==0.9.0 ; sys_platform == 'linux'
@@ -786,6 +902,8 @@ out:
         #   asdf
         #   boto3
         #   botocore
+    joblib==1.5.2
+        # via spectral-cube
     json5==0.12.1
         # via jupyterlab-server
     jsonpointer==3.0.0
@@ -947,9 +1065,13 @@ out:
         #   glue-vispy-viewers
         #   ipympl
         #   ipyvolume
+        #   jdaviz
         #   mpl-scatter-density
         #   poppy
         #   pysiaf
+        #   skyproj
+        #   soc-roman-tools
+        #   specreduce
         #   stpsf
     matplotlib-inline==0.2.1
         # via
@@ -963,6 +1085,8 @@ out:
         # via markdown-it-py
     mistune==3.1.4
         # via nbconvert
+    montage-wrapper==0.9.9
+        # via stips
     more-itertools==10.8.0
         # via
         #   jaraco-classes
@@ -980,6 +1104,8 @@ out:
         # via black
     narwhals==2.13.0
         # via bokeh
+    nbclassic==1.3.3
+        # via jdaviz
     nbclient==0.10.2
         # via
         #   nbconvert
@@ -1003,8 +1129,12 @@ out:
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     nbsphinx==0.9.8
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+    ndcube==2.3.5
+        # via specutils
     nest-asyncio==1.6.0
-        # via ipykernel
+        # via
+        #   ipykernel
+        #   nbclassic
     networkx==3.6
         # via scikit-image
     notebook==7.5.0
@@ -1014,6 +1144,7 @@ out:
     notebook-shim==0.2.4
         # via
         #   jupyterlab
+        #   nbclassic
         #   notebook
     numexpr==2.14.1
         # via poppy
@@ -1027,11 +1158,13 @@ out:
         #   astroquery
         #   bokeh
         #   bqplot
+        #   casa-formats-io
         #   contourpy
         #   crds
         #   dask
         #   drizzle
         #   echo
+        #   esutil
         #   extinction
         #   fast-histogram
         #   galsim
@@ -1039,6 +1172,9 @@ out:
         #   glue-vispy-viewers
         #   gwcs
         #   h5py
+        #   healpy
+        #   healsparse
+        #   hpgeom
         #   imageio
         #   ipydatawidgets
         #   ipympl
@@ -1047,6 +1183,7 @@ out:
         #   lsstdesc-coord
         #   matplotlib
         #   mpl-scatter-density
+        #   ndcube
         #   numexpr
         #   opencv-python-headless
         #   pandas
@@ -1056,16 +1193,24 @@ out:
         #   pyerfa
         #   pysiaf
         #   pythreejs
+        #   radio-beam
+        #   regions
         #   roman-datamodels
         #   romancal
         #   romanisim
         #   scikit-image
         #   scipy
         #   shapely
+        #   skyproj
         #   sncosmo
         #   solara-ui
+        #   specreduce
+        #   spectral-cube
+        #   specutils
         #   spherical-geometry
         #   stcal
+        #   stdatamodels
+        #   stips
         #   stpsf
         #   stsci-imagestats
         #   stsci-stimage
@@ -1074,6 +1219,7 @@ out:
         #   tifffile
         #   tweakwcs
         #   vispy
+        #   xarray
     numpydoc==1.10.0
         # via sphinx-astropy
     oauthlib==3.3.1
@@ -1098,6 +1244,7 @@ out:
         #   deprecation
         #   distributed
         #   ipykernel
+        #   jdaviz
         #   jupyter-events
         #   jupyter-packaging
         #   jupyter-server
@@ -1113,11 +1260,13 @@ out:
         #   pytest-doctestplus
         #   pytest-openfiles
         #   scikit-image
+        #   spectral-cube
         #   sphinx
         #   sphinx-astropy
         #   sphinx-automodapi
         #   tweakwcs
         #   vispy
+        #   xarray
     pamela==1.2.0 ; sys_platform != 'win32'
         # via jupyterhub
     pandas==2.3.3
@@ -1128,8 +1277,11 @@ out:
         #   dask
         #   glue-core
         #   romancal
+        #   xarray
     pandeia-engine==2025.9
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   stips
     pandocfilters==1.5.1
         # via nbconvert
     papermill==2.6.0
@@ -1146,8 +1298,11 @@ out:
         # via ipython
     photutils==2.3.0
         # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
         #   pandeia-engine
         #   romancal
+        #   stips
         #   stpsf
     pillow==12.0.0
         # via
@@ -1258,6 +1413,8 @@ out:
         # via glue-vispy-viewers
     pyparsing==3.2.5
         # via matplotlib
+    pyproj==3.7.2
+        # via skyproj
     pyproject-hooks==1.2.0
         # via
         #   build
@@ -1265,6 +1422,7 @@ out:
     pysiaf==0.25.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   soc-roman-tools
         #   stpsf
     pytest==9.0.1
         # via
@@ -1296,7 +1454,9 @@ out:
     pytz==2025.2
         # via pandas
     pyvo==1.8
-        # via astroquery
+        # via
+        #   astroquery
+        #   jdaviz
     pywin32-ctypes==0.2.3 ; sys_platform == 'win32'
         # via keyring
     pywinpty==3.0.2 ; (os_name == 'nt' and platform_machine != 'aarch64' and sys_platform == 'linux') or (os_name == 'nt' and sys_platform != 'darwin' and sys_platform != 'linux')
@@ -1311,12 +1471,14 @@ out:
         #   bokeh
         #   dask
         #   distributed
+        #   jdaviz
         #   jupyter-app-launcher
         #   jupyter-events
         #   jupytext
         #   papermill
         #   pymdown-extensions
         #   sncosmo
+        #   stips
         #   stpipe
         #   yq
     pyzmq==27.1.0
@@ -1329,6 +1491,8 @@ out:
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   roman-datamodels
+    radio-beam==0.3.9
+        # via spectral-cube
     reacton==1.9.1
         # via solara-ui
     readchar==4.2.1
@@ -1338,6 +1502,10 @@ out:
         #   jsonschema
         #   jsonschema-specifications
         #   jupyter-events
+    regions==0.11
+        # via
+        #   glue-astronomy
+        #   jdaviz
     requests==2.32.5
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1346,6 +1514,7 @@ out:
         #   ci-watson
         #   crds
         #   ipyvolume
+        #   jdaviz
         #   jupyterhub
         #   jupyterlab-server
         #   papermill
@@ -1378,6 +1547,7 @@ out:
         #   astrocut
         #   romancal
         #   romanisim
+        #   soc-roman-tools
     roman-numerals-py==3.1.0
         # via sphinx
     romancal==0.20.2
@@ -1392,6 +1562,7 @@ out:
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   astrocut
+        #   jdaviz
     s3path==0.6.4
         # via astrocut
     s3transfer==0.15.0
@@ -1399,22 +1570,30 @@ out:
     scikit-image==0.25.2
         # via
         #   glue-jupyter
+        #   jdaviz
         #   stcal
     scipy==1.16.3
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   astrocut
+        #   esutil
         #   glue-core
         #   glue-vispy-viewers
         #   gwcs
+        #   ndcube
         #   pandeia-engine
         #   photutils
         #   poppy
         #   pysiaf
+        #   radio-beam
         #   romancal
         #   scikit-image
         #   sncosmo
+        #   soc-roman-tools
+        #   specreduce
+        #   specutils
         #   stcal
+        #   stips
         #   stpsf
         #   stsynphot
         #   synphot
@@ -1432,10 +1611,13 @@ out:
         #   jupyterlab
         #   pandeia-engine
         #   pip-tools
+        #   spectral-cube
     shapely==2.1.2
         # via glue-core
     sidecar==0.8.0
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
     simpervisor==1.0.0
         # via jupyter-server-proxy
     six==1.17.0
@@ -1444,6 +1626,8 @@ out:
         #   pyds9
         #   python-dateutil
         #   rfc3339-validator
+    skyproj==2.1.1
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     smart-open==7.5.0
         # via s3path
     smmap==5.0.2
@@ -1452,8 +1636,12 @@ out:
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     snowballstemmer==3.0.1
         # via sphinx
+    soc-roman-tools==0.1.0
+        # via stips
     solara==1.55.1
-        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        # via
+        #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
+        #   jdaviz
     solara-server==1.55.1
         # via solara
     solara-ui==1.55.1
@@ -1464,6 +1652,17 @@ out:
         # via distributed
     soupsieve==2.8
         # via beautifulsoup4
+    specreduce==1.7.0
+        # via
+        #   glue-astronomy
+        #   jdaviz
+    spectral-cube==0.6.7
+        # via glue-astronomy
+    specutils==2.2.0
+        # via
+        #   glue-astronomy
+        #   jdaviz
+        #   specreduce
     spherical-geometry==1.3.3
         # via
         #   astrocut
@@ -1521,14 +1720,19 @@ out:
         # via solara-server
     stcal==1.15.2
         # via romancal
+    stdatamodels==4.1.0
+        # via jdaviz
     stdlib-list==0.12.0
         # via pydeps
+    stips==2.3
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     stpipe==0.10.0
         # via romancal
     stpsf==2.1.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   romanisim
+        #   stips
     stsci-imagestats==1.8.4
         # via
         #   romancal
@@ -1541,10 +1745,12 @@ out:
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   pandeia-engine
+        #   stips
     synphot==1.6.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   pandeia-engine
+        #   stips
         #   stpsf
         #   stsynphot
     tblib==3.2.2
@@ -1582,7 +1788,9 @@ out:
         #   notebook
         #   terminado
     tqdm==4.67.1
-        # via papermill
+        # via
+        #   papermill
+        #   spectral-cube
     traitlets==5.14.3
         # via
         #   bqplot
@@ -1591,6 +1799,7 @@ out:
         #   ipython
         #   ipyvolume
         #   ipywidgets
+        #   jdaviz
         #   jupyter-client
         #   jupyter-core
         #   jupyter-events
@@ -1649,7 +1858,9 @@ out:
     uvicorn==0.38.0
         # via solara-server
     vispy==0.15.2
-        # via glue-vispy-viewers
+        # via
+        #   glue-vispy-viewers
+        #   jdaviz
     voila==0.5.11
         # via voila-gridstack
     voila-gridstack==0.4.0
@@ -1688,6 +1899,8 @@ out:
         #   aiobotocore
         #   ddtrace
         #   smart-open
+    xarray==2025.12.0
+        # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     xlrd==2.0.2
         # via glue-core
     xmltodict==1.0.2
@@ -1708,3 +1921,102 @@ out:
         # via distributed
     zipp==3.23.0
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/roman_notebooks/refdata_dependencies.yaml:
+        install_files:
+          pandeia:
+            version: '2025.9'
+            environment_variable: pandeia_refdata
+            install_path: ${HOME}/refdata/
+            data_path: pandeia_data-2025.9-roman
+            data_url:
+              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+          stpsf:
+            version: 2.1.0
+            environment_variable: STPSF_PATH
+            install_path: ${HOME}/refdata/
+            data_path: stpsf-data
+            data_url:
+              - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+          stips:
+            version: 2.3.0
+            environment_variable: stips_data
+            install_path: ${HOME}/refdata/
+            data_path: stips_data
+            data_url:
+              - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
+          synphot:
+            version: 1.6.0
+            environment_variable: PYSYN_CDBS
+            install_path: ${HOME}/refdata/
+            data_path: grp/redcat/trds/
+            data_url:
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+        other_variables:
+          CRDS_SERVER_URL: https://roman-crds.stsci.edu
+          CRDS_CONTEXT: roman_0041.pmap
+          CRDS_PATH: ${HOME}/crds_cache
+    spec_exports:
+      pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
+      STPSF_PATH: ${HOME}/refdata/stpsf-data
+      stips_data: ${HOME}/refdata/stips_data
+      PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+    pantry_exports:
+      pandeia_refdata: 
+        ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/pandeia_data-2025.9-roman
+      STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stpsf-data
+      stips_data: ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/stips_data
+      PYSYN_CDBS: 
+        ${NBW_PANTRY}/shelves/roman-20.0.0-roman-cal/data/grp/redcat/trds
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+    metadata:
+      roman_notebooks/pandeia/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
+        size: '578788837'
+        sha256: 736766b93e12d5adff9499b3a69a676e78d12d0ddff3a5193430cbab688bb978
+      roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz:
+        size: '92295282'
+        sha256: d30eb72b571b0e9f09a091909bf16f679f23c30d327ce6fc09ace227790be6bf
+      roman_notebooks/stips/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz:
+        size: '153097868'
+        sha256: 15a430e67c7526abb4bd0f56379631ef7cb10a93f72b5d5dbd7919b441422d6a
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar:
+        size: '1285222400'
+        sha256: 3f01b858d88960f864cad56a03d2425955ae3951a979378da612af960c5f6b59
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar:
+        size: '90347520'
+        sha256: 66faaaeeb04e855a09c6cb8bc9b748c8fbedf23b782208dba84e10c4f0fd450b
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar:
+        size: '42772480'
+        sha256: 8f7a220bc9480900c372015847057b06a2c218ae8b2dbf8020e6a1dd2990b42c
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar:
+        size: '81684480'
+        sha256: 95ca73356f38a703064c346e286f571b53f78964d5511d1b538ff086f5ce897e
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar:
+        size: '1868328960'
+        sha256: 1ffb5e136dc4f846cd95b83843eb89f7a5171f58732705b25f07a99c4d8cf50d
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar:
+        size: '8695121920'
+        sha256: 69b3ba91db2a3290bacbe48ef7b7626905567d89e7e03d11b3cefeadf5f26fd7
+      roman_notebooks/synphot/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar:
+        size: '8909717'
+        sha256: 01b2eae81852d56971796a62c82ff7f76256e1fdaabccf2f7f09151b1283640a
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar:
+        size: '34160640'
+        sha256: 3338b1fb400d752c02c06132e0ce804ef8a9751f6ff535b41d022f60b0364d81
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
+        size: '121835520'
+        sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
