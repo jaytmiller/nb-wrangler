@@ -116,6 +116,8 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 )
                 output += papermill_output
                 err = err or papermill_err
+            else:
+                output += f"Skipping default papermill/headess testing for {notebook}\n"
             if "playwright" in tests:
                 playwright_script = tests["playwright"]
                 playwright_err, playwright_output = self._run_playwright_test(
@@ -180,4 +182,3 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _print_divider(self, title: str, char: str = "*", width: int = 100) -> str:
         """Create a divider string with centered title."""
         return f" {title} ".center(width, char) + "\n"
-

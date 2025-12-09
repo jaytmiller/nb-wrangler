@@ -37,7 +37,15 @@ selected_notebooks:
       # ---- - time_domain_simulations/.*
       # ---- - crds_examples/.*
       # ---- - synphot/.*
-    exclude_subdirs: []
+    exclude_subdirs:
+      - data_visualization/data_visualization.ipynb
+  - nb_repo: https://github.com/spacetelescope/roman_notebooks
+    nb_branch: main
+    nb_root_directory: notebooks/
+    include_subdirs:
+      - data_visualization/data_visualization.ipynb
+    tests:
+      papermill: false
 extra_mamba_packages:
   - pip
 extra_pip_packages:
