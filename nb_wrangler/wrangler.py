@@ -336,7 +336,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 "No notebooks found in specified repositories using spec'd patterns."
             )
         test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
-            notebook_paths
+            list(notebook_paths.keys())
         )
         if not test_imports:
             self.logger.warning(
@@ -703,13 +703,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _test_notebooks(self) -> bool:
         """Unconditionally test notebooks matching the configured pattern."""
-        notebook_paths = self.spec_manager.get_outputs("test_notebooks")
-        if filtered_notebooks := self.tester.filter_notebooks(
-            notebook_paths,
+        notebook_configs = self.spec_manager.get_outputs("test_notebooks")
+        if filtered_notebook_configs := self.tester.filter_notebooks(
+            notebook_configs,
             self.config.test_notebooks or "",
             self.config.test_notebooks_exclude,
         ):
-            return self.tester.test_notebooks(self.env_name, filtered_notebooks)
+            return self.tester.test_notebooks(self.env_name, filtered_notebook_configs)
         else:
             return self.logger.warning(
                 "Found no notebooks to test matching inclusion patterns but not exclusion patterns."

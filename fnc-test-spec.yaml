@@ -11,26 +11,45 @@ image_spec_header:
   python_version: 3.11.13
 # these are the useful tike_content notebooks
 selected_notebooks:
-  - nb_repo: https://github.com/spacetelescope/tike_content
-    nb_root_directory: content/notebooks/
+  - &id004
+    nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/lcviz-tutorial/
     include_subdirs:
-      - data-access/
-      - lcviz-tutorial/
-      - tglc/
-      - zooniverse_view_lightcurve/
+      - .
+    tests:
+      papermill: false
+  - &id003
+    nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/data-access/
+    include_subdirs:
+      - .
+    tests:
+      playwright: test_data_access.py
+  - &id005
+    nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/tglc/
+    include_subdirs:
+      - .
+  - &id006
+    nb_repo: https://github.com/spacetelescope/tike_content
+    nb_root_directory: content/notebooks/zooniverse_view_lightcurve/
+    include_subdirs:
+      - .
   # -------------------------------------------------
   # note: the below notebooks are included as a test.
   # they should not be considered a useful subset
   # of mast_notebooks for future releases
   # -------------------------------------------------
   # include TESS notebooks
-  - nb_repo: https://github.com/spacetelescope/mast_notebooks
+  - &id002
+    nb_repo: https://github.com/spacetelescope/mast_notebooks
     nb_root_directory: notebooks/TESS
     include_subdirs:
       - beginner_how_to_use_lc
       - beginner_tour_lc_tp
   # include Kepler notebooks
-  - nb_repo: https://github.com/spacetelescope/mast_notebooks
+  - &id001
+    nb_repo: https://github.com/spacetelescope/mast_notebooks
     nb_root_directory: notebooks/Kepler
     include_subdirs:
       - identifying_transiting_planet_signals
@@ -43,7 +62,7 @@ system:
   spec_version: 1.0
   archive_format: .tar
   spi_url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 50314df1000f6289c3c64756a3a09edfcd1d15001714a84bee2bd7f4e3008318
+  spec_sha256: 82b491bec267425cee2297c02f4add72dbcda059796286545f3ce21902913963
 out:
   notebook_repo_urls:
     - https://github.com/spacetelescope/mast_notebooks
@@ -58,14 +77,16 @@ out:
       e9e6750d2e0f83acf34dcb5e8077c6d2ccde2361
   injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
-    - references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
-    - references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
-    - references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb
-    - references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb
-    - references/tike_content/content/notebooks/data-access/data-access.ipynb
-    - references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb
-    - references/tike_content/content/notebooks/tglc/tglc.ipynb
-    - references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb
+    ? references/mast_notebooks/notebooks/Kepler/identifying_transiting_planet_signals/identifying_transiting_planet_signals.ipynb
+    : *id001
+    ? references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
+    : *id001
+    references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb: *id002
+    references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb: *id002
+    references/tike_content/content/notebooks/data-access/data-access.ipynb: *id003
+    references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb: *id004
+    references/tike_content/content/notebooks/tglc/tglc.ipynb: *id005
+    references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb: *id006
   test_imports:
     - astropy
     - astroquery

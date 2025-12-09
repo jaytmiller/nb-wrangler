@@ -327,6 +327,7 @@ class SpecManager(WranglerLoggable):
             "nb_root_directory",
             "include_subdirs",
             "exclude_subdirs",
+            "tests",
         ],
         "out": [
             "notebook_repo_urls",
@@ -493,9 +494,9 @@ class SpecManager(WranglerLoggable):
         return self.get_output_data("notebook_repo_hashes", {})
 
 
-    def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> list[str]:
+    def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> dict[str, Any]:
         """Collect paths to all notebooks specified by the spec."""
-        notebook_paths = set()
+        notebook_paths = {}
         for i, entry in enumerate(self.selected_notebooks):
             selection_repo = self._get_selection_repo(i, entry)
             clone_dir = self._get_repo_dir(repos_dir, selection_repo)
@@ -503,13 +504,13 @@ class SpecManager(WranglerLoggable):
                 self.logger.error(f"Repository not set up: {clone_dir}")
                 continue
             entry_root = entry.get("nb_root_directory", "")
-            notebook_paths |= self._process_directory_entry(
-                entry, clone_dir, entry_root
+            notebook_paths.update(
+                self._process_directory_entry(entry, clone_dir, entry_root)
             )
         self.logger.info(
             f"Found {len(notebook_paths)} notebooks in all notebook repositories."
         )
-        return sorted(list(notebook_paths))
+        return dict(sorted(notebook_paths.items()))
 
     def _get_repo_dir(self, repos_dir: Path, nb_repo: str) -> Path:
         """Get the path to the repository directory."""
@@ -518,7 +519,7 @@ class SpecManager(WranglerLoggable):
 
     def _process_directory_entry(
         self, entry: dict, repo_dir: Path, nb_root_directory: str
-    ) -> set[str]:
+    ) -> dict[str, Any]:
         """Process a directory entry from the spec file."""
         base_path = repo_dir
         if nb_root_directory:
@@ -540,9 +541,11 @@ class SpecManager(WranglerLoggable):
         self.logger.info(
             f"Selected {len(remaining_notebooks)} notebooks under {base_path} repository:"
         )
+        output = {}
         for notebook in remaining_notebooks:
             self.logger.info(f"Found {Path(notebook).name} under {base_path}.")
-        return remaining_notebooks
+            output[notebook] = entry
+        return output
 
     def _matching_files(
         self, verb: str, possible_notebooks: list[str], regexes: list[str]

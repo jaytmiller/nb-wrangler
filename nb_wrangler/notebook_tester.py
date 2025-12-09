@@ -22,10 +22,10 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def filter_notebooks(
         self,
-        notebook_paths: list[str],
+        notebook_configs: dict[str, dict],
         include_patterns: str,
         exclude_patterns: str,
-    ) -> list[str]:
+    ) -> dict[str, dict]:
         """Filter notebooks based on test patterns."""
         import re
 
@@ -35,7 +35,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         exclude_list = [p for p in exclude_patterns.split(",") if p]
 
         unique_notebooks = set()
-        for nb_path in sorted(notebook_paths):
+        for nb_path in sorted(notebook_configs.keys()):
             for include_regex in include_list:
                 if re.search(include_regex, nb_path):
                     self.logger.debug(
@@ -50,27 +50,34 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     else:
                         unique_notebooks.add(nb_path)
 
-        filtered = sorted(unique_notebooks)
-        self.logger.info(f"Filtered notebook list to {len(filtered)} entries:")
-        for notebook in filtered:
+        filtered_paths = sorted(unique_notebooks)
+        filtered_configs = {
+            path: notebook_configs[path] for path in filtered_paths
+        }
+        self.logger.info(f"Filtered notebook list to {len(filtered_configs)} entries:")
+        for notebook in filtered_configs:
             self.logger.info(notebook)
-        return filtered
+        return filtered_configs
 
-    def test_notebooks(self, environment: str, notebook_paths: list[str]) -> bool:
+    def test_notebooks(
+        self, environment: str, notebook_configs: dict[str, dict]
+    ) -> bool:
         """Test multiple notebooks in parallel."""
 
-        max_jobs = max(1, min(self.config.jobs, len(notebook_paths)))
+        max_jobs = max(1, min(self.config.jobs, len(notebook_configs)))
         self.logger.info(
-            f"Testing {len(notebook_paths)} notebooks with {max_jobs} jobs"
+            f"Testing {len(notebook_configs)} notebooks with {max_jobs} jobs"
         )
 
         failing_notebooks = []
 
         with ProcessPoolExecutor(max_workers=max_jobs) as executor:
+            notebook_items = list(notebook_configs.items())
             results = executor.map(
                 self._test_single_notebook,
-                notebook_paths,
-                [environment] * len(notebook_paths),
+                [item[0] for item in notebook_items],
+                [item[1] for item in notebook_items],
+                [environment] * len(notebook_items),
             )
 
             for failed, notebook, output in results:
@@ -88,7 +95,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.logger.info("All notebooks passed tests")
 
     def _test_single_notebook(
-        self, notebook: str, environment: str
+        self, notebook: str, config: dict, environment: str
     ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
         if notebook.startswith("#"):
@@ -100,11 +107,22 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             f"Testing '{base_nb}' on environment '{environment}'"
         )
         here = os.getcwd()
+        err = False
         try:
-            err, combined_output = self._test_single_notebook_core(
-                notebook, environment, self.config.timeout
-            )
-            output += combined_output
+            tests = config.get("tests", {"papermill": True})
+            if tests.get("papermill", True):
+                papermill_err, papermill_output = self._run_papermill_test(
+                    notebook, environment, self.config.timeout
+                )
+                output += papermill_output
+                err = err or papermill_err
+            if "playwright" in tests:
+                playwright_script = tests["playwright"]
+                playwright_err, playwright_output = self._run_playwright_test(
+                    notebook, environment, playwright_script, self.config.timeout
+                )
+                output += playwright_output
+                err = err or playwright_err
         except Exception as e:
             output += f"Exception during testing: {str(e)}\n"
             err = True
@@ -117,10 +135,10 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         return err, notebook, output
 
-    def _test_single_notebook_core(
+    def _run_papermill_test(
         self, notebook: str, environment: str, timeout: int
     ) -> tuple[bool, str]:
-        """Test a single notebook in isolation."""
+        """Test a single notebook in isolation using papermill."""
 
         with tempfile.TemporaryDirectory() as temp_dir:
             source_path = os.path.dirname(os.path.abspath(notebook))
@@ -150,6 +168,16 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             err = result.returncode != 0
             return err, result.stdout
 
+    def _run_playwright_test(
+        self, notebook: str, environment: str, script: str, timeout: int
+    ) -> tuple[bool, str]:
+        """Test a single notebook in isolation using playwright."""
+        self.logger.info(
+            f"Playwright testing for '{notebook}' with script '{script}' is not yet implemented."
+        )
+        return False, "Playwright test skipped (not implemented)"
+
     def _print_divider(self, title: str, char: str = "*", width: int = 100) -> str:
         """Create a divider string with centered title."""
         return f" {title} ".center(width, char) + "\n"
+
