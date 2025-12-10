@@ -19,7 +19,7 @@ extra_mamba_packages:
 extra_pip_packages:
   - boto3
 system:
-  spec_version: 1.0
+  spec_version: 2.0
   archive_format: .tar
   spi_url: https://github.com/spacetelescope/science-platform-images.git
   spec_sha256: 18ab9eee825a81e2cc39f853b7bb1d10a502a2108813821daec20bd48d3d255e
