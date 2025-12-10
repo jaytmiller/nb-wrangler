@@ -4,6 +4,7 @@
 import os
 from pathlib import Path
 from typing import Any, Optional
+from collections.abc import Callable
 
 from .constants import NBW_URI, LOG_FILE
 from .config import WranglerConfigurable
@@ -243,7 +244,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         self.logger.info("Running any explicitly selected steps.")
-        flags_and_steps = [
+        flags_and_steps: list[tuple[bool, Callable]] = [
             (self.config.clone_repos, self._clone_repos),
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),

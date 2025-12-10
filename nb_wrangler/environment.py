@@ -15,7 +15,7 @@ import shlex
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 from collections.abc import Callable
 
 
@@ -178,7 +178,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         result: CompletedProcess[Any] | str | None,
         fail: str,
         success: str = "",
-        error_func: Callable = None,
+        error_func: Optional[Callable] = None,
     ) -> bool:
         """Provide standard handling for the check=False case of the xxx_run methods by
         issuing a success info or fail error and returning True or False respectively

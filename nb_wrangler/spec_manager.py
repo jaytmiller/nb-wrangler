@@ -506,7 +506,7 @@ class SpecManager(WranglerLoggable):
     def collect_notebook_paths(self, repos_dir: Path) -> dict[str, str]:
         """Collect paths to all notebooks specified by the spec."""
         self._ensure_validated()
-        notebook_paths = {}
+        notebook_paths: dict[str, str] = {}
         for name, selection in self.notebook_selections.items():
             repo_name = selection["repo"]
             if repo_name not in self.repositories:
