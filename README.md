@@ -189,7 +189,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 
 - `--curate`: Run the full curation workflow to define notebooks and Python environment.
 - `--reinstall`: Reinstall an environment from a spec.
-- `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates. Sometimes needed to iterate --curate, particularly after revising notebook repos.
+- `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates.
 - `--data-curate`: Curate data dependencies.
 - `--data-reinstall`: Reinstall data dependencies.
 - `--submit-for-build`: Submit a spec for an automated image build.
@@ -214,12 +214,12 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--packages-diagnostics`: Show which requirements files are included and their required packages.
 
 ### Testing
-- `-t`, `--test-all`: Run all tests.
+- `-t`, `--test-all`: Run all tests (`--test-imports` and `--test-notebooks`).
 - `--test-imports`: Test package imports.
-- `--test-notebooks`: Test notebook execution.
-- `--test-notebooks-exclude`: Exclude notebooks from testing.
-- `--jobs`: Number of parallel jobs for notebook testing.
-- `--timeout`: Timeout for notebook tests.
+- `--test-notebooks [REGEX]`: Test notebook execution. Can optionally take a comma-separated list of regex patterns to select specific notebooks.
+- `--test-notebooks-exclude [REGEX]`: Exclude notebooks from testing using a comma-separated list of regex patterns.
+- `--jobs INT`: Number of parallel jobs for notebook testing.
+- `--timeout INT`: Timeout in seconds for notebook tests.
 
 ### Data Management
 - `--data-collect`: Collect data archive and installation info and add to spec.
@@ -230,28 +230,29 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--data-unpack`: Unpack data archives.
 - `--data-pack`: Pack live data directories into archive files.
 - `--data-reset-spec`: Clear the 'data' sub-section of the 'out' section of the spec.
-- `--data-delete`: Delete data archives and/or unpacked files.
-- `--data-env-vars-mode`: Define where to locate unpacked data (pantry or spec locations).
+- `--data-delete [archived|unpacked|both]`: Delete data archives and/or unpacked files.
+- `--data-env-vars-mode [pantry|spec]`: Define where to locate unpacked data.
 - `--data-print-exports`: Print shell exports for data environment variables.
 - `--data-env-vars-no-auto-add`: Do not automatically add data environment variables to the runtime environment.
-- `--data-select`: Regex to select specific data archives.
+- `--data-select [REGEX]`: Regex to select specific data archives.
 - `--data-no-validation`: Skip data validation.
 - `--data-no-unpack-existing`: Skip unpack if the target directory exists.
+- `--data-symlink-install-data`: Create symlinks from install locations to the pantry data directory.
 
-### Repository Management
+### Notebook Clones
 - `--clone-repos`: Clone notebook repositories.
 - `--repos-dir`: Directory for cloned repositories.
 - `--delete-repos`: Delete cloned repositories.
 
 ### Spec Management
-- `--spec-reset`: Reset the spec file to its original state.
+- `--spec-reset`: Reset the spec file to its original state (preserves `out.data`).
 - `--spec-add`: Add the spec to the pantry (a local collection of specs).
 - `--spec-list`: List available specs in the pantry.
-- `--spec-select`: Select a spec from the pantry.
+- `--spec-select [REGEX]`: Select a spec from the pantry by regex.
 - `--spec-validate`: Validate the spec file.
-- `--spec-update-hash`: Update spec hash even if validation fails.
+- `--spec-update-hash`: Update spec SHA256 hash.
 - `--spec-ignore-hash`: Do not add or verify the spec hash.
-- `--spec-add-pip-hashes`: Record PyPI hashes for packages.
+- `--spec-add-pip-hashes`: Record PyPI hashes for packages during compilation.
 
 ### Miscellaneous
 - `--verbose`: Enable DEBUG log output.
@@ -268,12 +269,12 @@ For a full list of options, run `./nb-wrangler --help`.
 
 `nb-wrangler` uses several input formats to define the environment:
 
-- **Notebook (`.ipynb`):** Jupyter notebooks.  The wrangler helps develop and distribute environments to run a related set of notebooks anywhere.
-- **Wrangler Spec (`spec.yaml`):** The main wrangler YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md).
+- **Notebook (`.ipynb`):** Jupyter notebooks.
+- **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md) for details on the new format, which uses a `repositories` dictionary and named `selected_notebooks` blocks.
 - **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks) 
 - **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
-- **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in it's notebook directory.
-- **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory to factor out lengthy custom code from the notebook.
+- **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in its directory.
+- **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory.
 
 The goal of nb-wrangler is to combine these inputs, resolve any conflicts, and create a unified environment capable of running all specified notebooks.
