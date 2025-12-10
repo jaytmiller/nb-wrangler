@@ -72,9 +72,11 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 self.logger.info(f"Floating mode: updating repo {repo_url}")
                 self.run("git fetch", check=True, cwd=repo_path)
                 branch_to_checkout = branch or "origin/main"  # a default
-                self.run(f"git checkout {branch_to_checkout}", check=True, cwd=repo_path)
+                self.run(
+                    f"git checkout {branch_to_checkout}", check=True, cwd=repo_path
+                )
                 if branch:
-                    self.run(f"git pull", check=True, cwd=repo_path)  # pull updates
+                    self.run("git pull", check=True, cwd=repo_path)  # pull updates
             else:  # locked mode
                 if commit_hash:
                     self.logger.info(
@@ -126,13 +128,14 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     def get_hash(self, repo_path: str | Path) -> Optional[str]:
         """Get the current commit hash of a repository."""
         if not self.is_clean(repo_path):
-            self.logger.warning(f"Repo '{repo_path}' is dirty, hash may not be accurate.")
+            self.logger.warning(
+                f"Repo '{repo_path}' is dirty, hash may not be accurate."
+            )
         result = self.run("git rev-parse HEAD", check=False, cwd=repo_path)
         if result.returncode == 0:
             return result.stdout.strip()
         self.logger.error(f"Failed to get git hash for repo {repo_path}")
         return None
-
 
     def delete_repos(self, urls: list[str]) -> bool:
         """Clean up cloned repositories."""

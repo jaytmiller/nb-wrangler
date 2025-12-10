@@ -315,7 +315,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if spi_fork_remote:
             if not spi_url:
                 self.logger.warning(
-                    f"spi_fork_remote is defined but no primary spi_url is defined."
+                    "spi_fork_remote is defined but no primary spi_url is defined."
                 )
             else:
                 self.repo_manager.git_remote_add(
@@ -328,9 +328,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             repo_hashes=notebook_repo_hashes,
         )
 
-        notebook_paths = self.spec_manager.collect_notebook_paths(
-            self.config.repos_dir
-        )
+        notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
         if not notebook_paths:
             self.logger.warning(
                 "No notebooks found in specified repositories using spec'd patterns."
@@ -361,7 +359,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _clone_repos_locked(self) -> bool:
         return self._clone_repos(floating_mode=False)
 
-
     def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""
         self.pantry_shelf.set_wrangler_spec(self.config.spec_file)
@@ -388,7 +385,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         self.pantry_shelf.save_exports_file("nbw-pantry-exports.sh", pantry_exports)
 
-        self._register_environment()
+        if not self._register_environment():
+            self.logger.warning(
+                "Failed registering environment.  Env vars in JupyterLab may note be set."
+            )
 
         return self.spec_manager.revise_and_save(
             Path(self.config.spec_file).parent,
@@ -520,7 +520,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         ):
             return self.logger.error("Failed exporting nbw-spec-exports.sh")
         if not self._register_environment():
-            return self.logger.error("Failed registering environment.")
+            self.logger.warning(
+                "Failed registering environment.  Env vars in JupyterLab may note be set."
+            )
         return True
 
     def _data_pack(self) -> bool:
@@ -594,7 +596,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not self._generate_target_mamba_spec():
             return self.logger.error("Failed generating mamba spec.")
         notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks")
-        requirements_files = self.compiler.find_requirements_files(list(notebook_paths_dict.keys()))
+        requirements_files = self.compiler.find_requirements_files(
+            list(notebook_paths_dict.keys())
+        )
         if not self.compiler.write_pip_requirements_file(
             self.extra_pip_output_file, self.spec_manager.extra_pip_packages
         ):

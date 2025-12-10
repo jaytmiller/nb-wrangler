@@ -483,13 +483,13 @@ class SpecManager(WranglerLoggable):
     def get_repository_urls(self) -> list[str]:
         """Get all unique repository URLs from the spec."""
         self._ensure_validated()
-        return [repo['url'] for repo in self.repositories.values()]
+        return [repo["url"] for repo in self.repositories.values()]
 
     def get_repository_branches(self) -> dict[str, str | None]:
         """Get repository URLs mapped to their branches from the spec."""
         self._ensure_validated()
         return {
-            repo['url']: repo.get('branch', 'main')
+            repo["url"]: repo.get("branch", "main")
             for repo in self.repositories.values()
         }
 
@@ -499,7 +499,8 @@ class SpecManager(WranglerLoggable):
         output_repos = self.get_output_data("repositories", {})
         return {
             repo_info.get("url"): repo_info.get("hash")
-            for repo_info in output_repos.values() if repo_info
+            for repo_info in output_repos.values()
+            if repo_info
         }
 
     def collect_notebook_paths(self, repos_dir: Path) -> dict[str, str]:
@@ -509,18 +510,26 @@ class SpecManager(WranglerLoggable):
         for name, selection in self.notebook_selections.items():
             repo_name = selection["repo"]
             if repo_name not in self.repositories:
-                raise RuntimeError(f"Unknown repository '{repo_name}' in selection block '{name}'")
+                raise RuntimeError(
+                    f"Unknown repository '{repo_name}' in selection block '{name}'"
+                )
             repo_url = self.repositories[repo_name]["url"]
             clone_dir = self._get_repo_dir(repos_dir, repo_url)
             if not clone_dir.exists():
-                self.logger.error(f"Repository '{repo_name}' not set up at: {clone_dir}")
+                self.logger.error(
+                    f"Repository '{repo_name}' not set up at: {clone_dir}"
+                )
                 continue
             root_dir = selection.get("root_directory", "")
-            found_notebooks = self._process_directory_entry(selection, clone_dir, root_dir)
+            found_notebooks = self._process_directory_entry(
+                selection, clone_dir, root_dir
+            )
 
             for notebook_path in found_notebooks:
                 if notebook_path in notebook_paths:
-                    self.logger.warning(f"Notebook {notebook_path} included in multiple selections. Using first one found: '{notebook_paths[notebook_path]}'.")
+                    self.logger.warning(
+                        f"Notebook {notebook_path} included in multiple selections. Using first one found: '{notebook_paths[notebook_path]}'."
+                    )
                 else:
                     notebook_paths[notebook_path] = name
 
@@ -559,7 +568,7 @@ class SpecManager(WranglerLoggable):
         self.logger.info(
             f"Selected {len(remaining_notebooks)} notebooks under {base_path} for selection block."
         )
-        
+
         return remaining_notebooks
 
     def _matching_files(
