@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
