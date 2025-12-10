@@ -60,7 +60,7 @@ system:
   spi_fork_remote:
     name: jaytmiller
     url: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 9f3084954b7cf04dabe59e4e1d4234d11db44c69d3f8b0a47f4a08b7961e9c39
+  spec_sha256: a8e33399d8973ba881e413c9dfd62645867525149aa512e1ee64315dd118e35d
 out:
   data:
     spec_inputs:
@@ -167,7 +167,7 @@ out:
     https://github.com/spacetelescope/roman_notebooks: main
   notebook_repo_hashes:
     https://github.com/spacetelescope/roman_notebooks: 
-      f0e84bd40902668a84856050278c00a4ea1abfc8
+      0e75eed13e723e4ecf084586bdd5006e6e568cb3
   injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
     references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb: *id001
