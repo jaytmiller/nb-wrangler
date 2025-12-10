@@ -144,7 +144,7 @@ data-clean:
 	rm -rf references && \
 	git checkout -- data-test-spec.yaml
 
-data-functional: data-clean wrangler-spec-curate data-test-workflows 
+data-functional: data-clean wrangler-spec-curate data-test-workflows
 
 wrangler-spec-curate:
 	source ./nb-wrangler environment  &&  \
@@ -217,9 +217,9 @@ lint/mypy:
 lint: lint/flake8  lint/mypy  lint/black  lint/bandit ## check style, type annotations, whitespace
 
 
-test-all: setup lint local-test
+test-all: setup lint unit-test
 
-test: local-test
+test: functional data-functional unit-test
 
 test-bootstrap: test-bootstrap-only test-bootstrap-spec
 
@@ -233,11 +233,13 @@ test-bootstrap-spec:
 	make clean
 	./nb-wrangler bootstrap ./fnc-test-spec.yaml
 
-local-test:  clean-test   ## run tests quickly with the default Python
-	./local-test pytest
+unit-test:  clean-test   ## run tests quickly with the default Python
+	pytest --pdb --doctest-continue-on-failure -vv --profile tests
 
 coverage: clean-test ## check code coverage quickly with the default Python
-	./local-test coverage
+	coverage run --source nb_wrangler -m pytests tests
+	coverage report -m
+	coverate html
 	$(BROWSER) htmlcov/index.html
 
 dist: clean ## builds source and wheel package

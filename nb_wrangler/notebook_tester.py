@@ -12,20 +12,22 @@ from concurrent.futures import ProcessPoolExecutor
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
+from .spec_manager import SpecManager
 
 
 class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     """Tests notebooks by executing them in isolated environments."""
 
-    def __init__(self):
+    def __init__(self, spec_manager: SpecManager):
         super().__init__()
+        self.spec_manager = spec_manager
 
     def filter_notebooks(
         self,
-        notebook_configs: dict[str, dict],
+        notebook_configs: dict[str, str],
         include_patterns: str,
         exclude_patterns: str,
-    ) -> dict[str, dict]:
+    ) -> dict[str, str]:
         """Filter notebooks based on test patterns."""
         import re
 
@@ -60,7 +62,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return filtered_configs
 
     def test_notebooks(
-        self, environment: str, notebook_configs: dict[str, dict]
+        self, environment: str, notebook_configs: dict[str, str]
     ) -> bool:
         """Test multiple notebooks in parallel."""
 
@@ -95,11 +97,13 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.logger.info("All notebooks passed tests")
 
     def _test_single_notebook(
-        self, notebook: str, config: dict, environment: str
+        self, notebook: str, selection_name: str, environment: str
     ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
         if notebook.startswith("#"):
             return False, notebook, self._print_divider(f"Skipping {notebook}")
+
+        selection_block = self.spec_manager.notebook_selections.get(selection_name, {})
 
         base_nb = os.path.basename(notebook)
         start = datetime.datetime.now()
@@ -109,7 +113,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         here = os.getcwd()
         err = False
         try:
-            tests = config.get("tests", {"papermill": True})
+            tests = selection_block.get("tests", {"papermill": True})
             if tests.get("papermill", True):
                 papermill_err, papermill_output = self._run_papermill_test(
                     notebook, environment, self.config.timeout

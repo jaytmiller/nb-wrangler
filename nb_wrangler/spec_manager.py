@@ -53,8 +53,12 @@ class SpecManager(WranglerLoggable):
         return self.header["python_version"]
 
     @property
-    def selected_notebooks(self) -> list[dict[str, Any]]:
-        return self._spec["selected_notebooks"]
+    def repositories(self) -> dict[str, Any]:
+        return self._spec.get("repositories", {})
+
+    @property
+    def notebook_selections(self) -> dict[str, Any]:
+        return self._spec.get("selected_notebooks", {})
 
     @property
     def system(self) -> dict[str, str]:
@@ -62,11 +66,11 @@ class SpecManager(WranglerLoggable):
 
     @property
     def extra_mamba_packages(self) -> list[str]:
-        return self._spec["extra_mamba_packages"]
+        return self._spec.get("extra_mamba_packages", [])
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        return self._spec["extra_pip_packages"]
+        return self._spec.get("extra_pip_packages", [])
 
     @property
     def spi_url(self):
@@ -313,26 +317,22 @@ class SpecManager(WranglerLoggable):
             "valid_on",
             "expires_on",
             "python_version",
-            "nb_repo",
-            "nb_root_directory",
             "deployment_name",
             "kernel_name",
             "display_name",
         ],
+        "repositories": ["url", "branch", "hash"],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
         "selected_notebooks": [
-            "nb_repo",
-            "nb_branch",
-            "nb_root_directory",
+            "repo",
+            "root_directory",
             "include_subdirs",
             "exclude_subdirs",
             "tests",
         ],
         "out": [
-            "notebook_repo_urls",
-            "notebook_repo_branches",
-            "notebook_repo_hashes",
+            "repositories",
             "test_notebooks",
             "spi_packages",
             "mamba_spec",
@@ -359,12 +359,9 @@ class SpecManager(WranglerLoggable):
             "valid_on",
             "expires_on",
         ],
-        "selected_notebooks": [
-            "nb_repo",
-        ],
+        "repositories": [],
         "system": [
             "spec_version",
-            "archive_format",
         ],
     }
 
@@ -376,7 +373,8 @@ class SpecManager(WranglerLoggable):
         validated = (
             self._validate_top_level_structure()
             and self._validate_header_section()
-            and self._validate_selected_notebooks_section()
+            and self._validate_repositories_section()
+            and self._validate_notebook_selections_section()
             and self._validate_system()
         )
         if not validated:
@@ -390,7 +388,7 @@ class SpecManager(WranglerLoggable):
         if not self._is_validated:
             raise RuntimeError("Spec must be validated before accessing data")
 
-    # Validation methods (moved from SpecValidator)
+    # Validation methods
     def _validate_top_level_structure(self) -> bool:
         """Validate top-level structure."""
         no_errors = True
@@ -408,7 +406,7 @@ class SpecManager(WranglerLoggable):
         """Validate image_spec_header section."""
         no_errors = True
         for key in self.header:
-            if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:  # type: ignore
+            if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:
                 no_errors = self.logger.error(
                     f"Unknown keyword in image_spec_header: {key}"
                 )
@@ -419,23 +417,38 @@ class SpecManager(WranglerLoggable):
                 )
         return no_errors
 
-    def _validate_selected_notebooks_section(self) -> bool:
+    def _validate_repositories_section(self) -> bool:
+        """Validate repositories section."""
+        no_errors = True
+        for name, repo in self.repositories.items():
+            for key in repo:
+                if key not in self.ALLOWED_KEYWORDS["repositories"]:
+                    no_errors = self.logger.error(
+                        f"Unknown keyword '{key}' in repository '{name}'."
+                    )
+            if "url" not in repo:
+                no_errors = self.logger.error(
+                    f"Missing required 'url' field in repository '{name}'."
+                )
+        return no_errors
+
+    def _validate_notebook_selections_section(self) -> bool:
         """Validate selected_notebooks section."""
         no_errors = True
-        for key in self.REQUIRED_KEYWORDS["selected_notebooks"]:
-            for i, entry in enumerate(self.selected_notebooks):
-                if key in entry:
-                    break
-            else:
-                no_errors = self.logger.error(
-                    f"Missing required '{key}' field in selected_notebooks[{i}]."
-                )
-        for i, entry in enumerate(self.selected_notebooks):
-            for key in entry:
-                if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:  # type: ignore
+        for name, selection in self.notebook_selections.items():
+            for key in selection:
+                if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:
                     no_errors = self.logger.error(
-                        f"Unknown keyword '{key}' in selected_notebooks[{i}]."
+                        f"Unknown keyword '{key}' in notebook selection '{name}'."
                     )
+            if "repo" not in selection:
+                no_errors = self.logger.error(
+                    f"Missing required 'repo' field in notebook selection '{name}'."
+                )
+            elif selection["repo"] not in self.repositories:
+                no_errors = self.logger.error(
+                    f"Unknown repo '{selection['repo']}' in notebook selection '{name}'."
+                )
         return no_errors
 
     def _validate_system(self) -> bool:
@@ -444,12 +457,22 @@ class SpecManager(WranglerLoggable):
             no_errors = self.logger.error(
                 "Required field 'spec_version' of section 'system' is missing."
             )
+        else:
+            try:
+                version = float(self.system["spec_version"])
+                if version < 2.0:
+                    self.logger.warning(
+                        f"Spec version {version} is deprecated. Consider updating to 2.0."
+                    )
+            except (ValueError, TypeError):
+                no_errors = self.logger.error("spec_version must be a float or number.")
+
         if self.archive_format not in VALID_ARCHIVE_FORMATS:
             self.logger.warning(
                 f"Invalid .system.archive_format '{self.archive_format}'. Possibly unsupported if not one of: {VALID_ARCHIVE_FORMATS}"
             )
         for key in self.system:
-            if key not in self.ALLOWED_KEYWORDS["system"]:  # type: ignore
+            if key not in self.ALLOWED_KEYWORDS["system"]:
                 no_errors = self.logger.error(
                     f"Undefined keyword '{key}' in section 'system'."
                 )
@@ -457,73 +480,68 @@ class SpecManager(WranglerLoggable):
 
     # -------------------------------- notebook and repository collection --------------------------------------
 
-    def _get_selection_repo(self, i: int, entry: dict) -> str:
-        nb_repo = entry.get("nb_repo")
-        if not nb_repo:
-            raise RuntimeError(f"No 'nb_repo' defined for selected_notebooks[{i}]")
-        return nb_repo
-
     def get_repository_urls(self) -> list[str]:
         """Get all unique repository URLs from the spec."""
         self._ensure_validated()
-        urls = []
-        for i, entry in enumerate(self.selected_notebooks):
-            nb_repo = self._get_selection_repo(i, entry)
-            if nb_repo not in urls:
-                urls.append(nb_repo)
-        return sorted(list(set(urls)))
+        return [repo['url'] for repo in self.repositories.values()]
 
     def get_repository_branches(self) -> dict[str, str | None]:
         """Get repository URLs mapped to their branches from the spec."""
         self._ensure_validated()
-        repo_branches: dict[str, str | None] = {}
-        for i, entry in enumerate(self.selected_notebooks):
-            nb_repo = self._get_selection_repo(i, entry)
-            nb_branch = entry.get("nb_branch", "main")
-            if nb_repo in repo_branches and repo_branches[nb_repo] != nb_branch:
-                self.logger.warning(
-                    f"Conflicting branches for {nb_repo}: {repo_branches[nb_repo]} vs {nb_branch}. Using first occurrence."
-                )
-            elif nb_repo not in repo_branches:
-                repo_branches[nb_repo] = nb_branch
-        return repo_branches
+        return {
+            repo['url']: repo.get('branch', 'main')
+            for repo in self.repositories.values()
+        }
 
     def get_repository_hashes(self) -> dict[str, str | None]:
         """Get repository URLs mapped to their hashes from the spec."""
         self._ensure_validated()
-        return self.get_output_data("notebook_repo_hashes", {})
+        output_repos = self.get_output_data("repositories", {})
+        return {
+            repo_info.get("url"): repo_info.get("hash")
+            for repo_info in output_repos.values() if repo_info
+        }
 
-
-    def collect_notebook_paths(self, repos_dir: Path, nb_repos: list[str]) -> dict[str, Any]:
+    def collect_notebook_paths(self, repos_dir: Path) -> dict[str, str]:
         """Collect paths to all notebooks specified by the spec."""
+        self._ensure_validated()
         notebook_paths = {}
-        for i, entry in enumerate(self.selected_notebooks):
-            selection_repo = self._get_selection_repo(i, entry)
-            clone_dir = self._get_repo_dir(repos_dir, selection_repo)
+        for name, selection in self.notebook_selections.items():
+            repo_name = selection["repo"]
+            if repo_name not in self.repositories:
+                raise RuntimeError(f"Unknown repository '{repo_name}' in selection block '{name}'")
+            repo_url = self.repositories[repo_name]["url"]
+            clone_dir = self._get_repo_dir(repos_dir, repo_url)
             if not clone_dir.exists():
-                self.logger.error(f"Repository not set up: {clone_dir}")
+                self.logger.error(f"Repository '{repo_name}' not set up at: {clone_dir}")
                 continue
-            entry_root = entry.get("nb_root_directory", "")
-            notebook_paths.update(
-                self._process_directory_entry(entry, clone_dir, entry_root)
-            )
+            root_dir = selection.get("root_directory", "")
+            found_notebooks = self._process_directory_entry(selection, clone_dir, root_dir)
+
+            for notebook_path in found_notebooks:
+                if notebook_path in notebook_paths:
+                    self.logger.warning(f"Notebook {notebook_path} included in multiple selections. Using first one found: '{notebook_paths[notebook_path]}'.")
+                else:
+                    notebook_paths[notebook_path] = name
+
         self.logger.info(
             f"Found {len(notebook_paths)} notebooks in all notebook repositories."
         )
         return dict(sorted(notebook_paths.items()))
 
-    def _get_repo_dir(self, repos_dir: Path, nb_repo: str) -> Path:
+    def _get_repo_dir(self, repos_dir: Path, repo_url: str) -> Path:
         """Get the path to the repository directory."""
-        basename = os.path.basename(nb_repo).replace(".git", "")
+        basename = os.path.basename(repo_url).replace(".git", "")
         return repos_dir / basename
 
     def _process_directory_entry(
-        self, entry: dict, repo_dir: Path, nb_root_directory: str
-    ) -> dict[str, Any]:
+        self, entry: dict, repo_dir: Path, root_directory: str
+    ) -> set[str]:
         """Process a directory entry from the spec file."""
         base_path = repo_dir
-        if nb_root_directory:
-            base_path = base_path / nb_root_directory
+        if root_directory:
+            base_path = base_path / root_directory
+
         possible_notebooks = [str(path) for path in base_path.glob("**/*.ipynb")]
 
         include_subdirs = list(entry.get("include_subdirs", [r"."]))
@@ -539,13 +557,10 @@ class SpecManager(WranglerLoggable):
 
         remaining_notebooks = included_notebooks - excluded_notebooks
         self.logger.info(
-            f"Selected {len(remaining_notebooks)} notebooks under {base_path} repository:"
+            f"Selected {len(remaining_notebooks)} notebooks under {base_path} for selection block."
         )
-        output = {}
-        for notebook in remaining_notebooks:
-            self.logger.info(f"Found {Path(notebook).name} under {base_path}.")
-            output[notebook] = entry
-        return output
+        
+        return remaining_notebooks
 
     def _matching_files(
         self, verb: str, possible_notebooks: list[str], regexes: list[str]

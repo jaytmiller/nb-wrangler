@@ -37,7 +37,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.repos_dir = Path(self.config.repos_dir)
         self.repo_manager = RepositoryManager(self.config.repos_dir)
         self.notebook_import_processor = NotebookImportProcessor()
-        self.tester = NotebookTester()
+        self.tester = NotebookTester(self.spec_manager)
         self.compiler = RequirementsCompiler(
             python_version=self.spec_manager.python_version
         )
@@ -329,7 +329,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
         notebook_paths = self.spec_manager.collect_notebook_paths(
-            self.config.repos_dir, notebook_repo_urls
+            self.config.repos_dir
         )
         if not notebook_paths:
             self.logger.warning(
@@ -343,12 +343,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 "No imports found in notebooks. Import tests will be skipped."
             )
 
+        output_repos = self.spec_manager.repositories
+        for name, repo in output_repos.items():
+            if repo["url"] in repo_states:
+                repo["hash"] = repo_states[repo["url"]]
+
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
-            notebook_repo_urls=notebook_repo_urls,
-            notebook_repo_branches=notebook_repo_branches,
-            notebook_repo_hashes=repo_states,
+            repositories=output_repos,
             injector_url=spi_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
@@ -372,7 +375,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _data_collect(self) -> bool:
         """Collect data from notebook repos."""
         self.logger.info("Collecing data information from notebook repo data specs.")
-        repo_urls = self.spec_manager.get_output_data("notebook_repo_urls")
+        output_repos = self.spec_manager.get_output_data("repositories")
+        repo_urls = [repo["url"] for repo in output_repos.values()]
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
@@ -538,7 +542,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""
-        urls = self.spec_manager.get_outputs("notebook_repo_urls")
+        output_repos = self.spec_manager.get_output_data("repositories", {})
+        urls = [repo["url"] for repo in output_repos.values()]
         if spi_url := self.spec_manager.get_outputs("injector_url"):
             urls.append(spi_url)
         return self.repo_manager.delete_repos(urls)
@@ -588,8 +593,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """
         if not self._generate_target_mamba_spec():
             return self.logger.error("Failed generating mamba spec.")
-        notebook_paths = self.spec_manager.get_outputs("test_notebooks")
-        requirements_files = self.compiler.find_requirements_files(notebook_paths)
+        notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks")
+        requirements_files = self.compiler.find_requirements_files(list(notebook_paths_dict.keys()))
         if not self.compiler.write_pip_requirements_file(
             self.extra_pip_output_file, self.spec_manager.extra_pip_packages
         ):
