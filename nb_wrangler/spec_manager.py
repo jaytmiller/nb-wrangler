@@ -449,6 +449,10 @@ class SpecManager(WranglerLoggable):
                 no_errors = self.logger.error(
                     f"Unknown repo '{selection['repo']}' in notebook selection '{name}'."
                 )
+            if "include_subdirs" not in selection:
+                no_errors = self.logger.error(
+                    f"Missing required 'include_subdirs' field in notebook selection '{name}'."
+                )
         return no_errors
 
     def _validate_system(self) -> bool:
