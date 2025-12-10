@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 from typing import Any, Optional
 from collections.abc import Callable
+import copy
 
 from .constants import NBW_URI, LOG_FILE
 from .config import WranglerConfigurable
@@ -187,7 +188,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "inject-spi",
             [
                 self._validate_spec,
-                self._delete_spi_repo,
+                # self._delete_spi_repo,
                 self._clone_repos,
                 self._inject_spi,
             ],
@@ -350,7 +351,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
-            repositories=output_repos,
+            repositories=copy.deepcopy(output_repos),
             injector_url=spi_url,
             test_notebooks=notebook_paths,
             test_imports=test_imports,

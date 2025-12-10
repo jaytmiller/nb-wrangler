@@ -10,7 +10,7 @@ image_spec_header:
   expires_on: 2026-06-01
   python_version: 3.12
 
-repositories: &id001
+repositories:
   roman_notebooks:
     url: https://github.com/spacetelescope/roman_notebooks
     branch: main
@@ -47,7 +47,6 @@ system:
     url: https://github.com/jaytmiller/science-platform-images.git
   spec_sha256: 98339c7fa7bd6d77a05014f8840a00eb48640bea8296ebb76b12dc47abbb926c
 out:
-  repositories: *id001
   injector_url: https://github.com/jaytmiller/science-platform-images.git
   test_notebooks:
     references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb: 
