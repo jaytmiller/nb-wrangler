@@ -41,7 +41,8 @@ VALID_ARCHIVE_FORMATS = [
     ".tar.lz",
 ]
 
-DEFAULT_DATA_ENV_VARS_MODE = "pantry"
+# nbw-exports.sh and kernel values will be from refdata_dependencies.yaml vs. relative to pantry shelf
+DEFAULT_DATA_ENV_VARS_MODE = "spec"
 
 # Notebook testing constants
 NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 30 * 60))  # 30 min
