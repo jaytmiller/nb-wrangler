@@ -21,10 +21,10 @@ image_spec_header:
 repositories:
   tike_content:
     url: https://github.com/spacetelescope/tike_content
-    branch: main
+    ref: main
   mast_notebooks:
     url: https://github.com/spacetelescope/mast_notebooks
-    branch: main
+    ref: main
 
 # Named blocks for selecting notebooks
 selected_notebooks:
@@ -75,7 +75,7 @@ This section defines a dictionary of the git repositories that contain notebooks
 
 Each entry in `repositories` has the following fields:
 - **url**: The URL of the git repository.
-- **branch**: The git branch to use (defaults to `main`).
+- **ref**: The git branch, tag, or commit hash to use (defaults to `main`).
 
 ### **selected_notebooks**
 

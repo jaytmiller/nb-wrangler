@@ -79,7 +79,7 @@ class SpecManager(WranglerLoggable):
     @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
-        return self.image_name.replace(" ", "-").lower() + "-" + self.kernel_name
+        return self.image_name.replace(" ", "-").lower() # + "-" + self.kernel_name
 
     @property
     def spec_file(self) -> Path:
@@ -319,7 +319,7 @@ class SpecManager(WranglerLoggable):
             "kernel_name",
             "display_name",
         ],
-        "repositories": ["url", "branch", "hash"],
+        "repositories": ["url", "ref"],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
         "selected_notebooks": [
@@ -509,20 +509,19 @@ class SpecManager(WranglerLoggable):
         self._ensure_validated()
         return [repo["url"] for repo in self.repositories.values()]
 
-    def get_repository_branches(self) -> dict[str, str | None]:
-        """Get repository URLs mapped to their branches from the spec."""
+    def get_repository_refs(self) -> dict[str, str | None]:
+        """Get repository URLs mapped to their refs from the spec."""
         self._ensure_validated()
         return {
-            repo["url"]: repo.get("branch", "main")
-            for repo in self.repositories.values()
+            repo["url"]: repo.get("ref", "main") for repo in self.repositories.values()
         }
 
-    def get_repository_hashes(self) -> dict[str, str | None]:
-        """Get repository URLs mapped to their hashes from the spec."""
+    def get_output_repository_refs(self) -> dict[str, str | None]:
+        """Get repository URLs mapped to their refs from the spec output section."""
         self._ensure_validated()
         output_repos = self.get_output_data("repositories", {})
         return {
-            repo_info.get("url"): repo_info.get("hash")
+            repo_info.get("url"): repo_info.get("ref")
             for repo_info in output_repos.values()
             if repo_info
         }

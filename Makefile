@@ -42,6 +42,34 @@ setup:
 
 # ==========================================================================================================
 
+YAML_FILES := $(shell find fnc-test-spec.yaml sample-specs -name "*.yaml")
+
+.PHONY: specs-update specs-curate specs-data-curate specs-validate
+
+specs-update: $(YAML_FILES)
+	@for f in $^; do \
+		./nb-wrangler --spec-update "$$f"; \
+	done
+
+specs-validate: $(YAML_FILES)
+	@for f in $^; do \
+		./nb-wrangler --spec-validate "$$f"; \
+	done
+
+specs-curate: $(YAML_FILES)
+	@for f in $^; do \
+		./nb-wrangler --reset-curation "$$f"; \
+		./nb-wrangler --curate "$$f"; \
+	done
+
+specs-data-curate: $(YAML_FILES)
+	@for f in $^; do \
+		./nb-wrangler --data-reset "$$f"; \
+		./nb-wrangler --data-curate "$$f"; \
+	done
+
+# ==========================================================================================================
+
 test-functional: setup functional data-functional data-clean
 
 

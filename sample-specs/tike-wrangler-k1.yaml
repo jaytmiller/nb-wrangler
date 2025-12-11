@@ -33,10 +33,10 @@ image_spec_header:
 repositories:
   tike_content:
     url: https://github.com/spacetelescope/tike_content
-    branch: main
+    ref: main
   mast_notebooks:
     url: https://github.com/spacetelescope/mast_notebooks
-    branch: main
+    ref: main
 
 selected_notebooks:
   tike_notebook_selection:
@@ -66,3 +66,4 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
+  spec_sha256: 72a6d7e896c8ce79a483e5e8b8c4454f91d71a3e61cd3f7986be7673b0ac5575

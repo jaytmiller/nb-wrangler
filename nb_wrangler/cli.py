@@ -330,6 +330,20 @@ def parse_args():
         help="Delete --repo-dir and clones after processing.",
     )
 
+    repo_update_group = notebook_group.add_mutually_exclusive_group()
+    repo_update_group.add_argument(
+        "--overwrite-local-changes",
+        action="store_true",
+        dest="overwrite_local_changes",
+        help="In any cloned repo, overwrite any local, uncommitted changes to match the requested ref.",
+    )
+    repo_update_group.add_argument(
+        "--stash-local-changes",
+        action="store_true",
+        dest="stash_local_changes",
+        help="In any cloned repo, stash any local, uncommitted changes before matching the requested ref.",
+    )
+
     spec_group = parser.add_argument_group(
         "Spec (nb-wrangler)", "Setup and management of wrangler spec itself."
     )

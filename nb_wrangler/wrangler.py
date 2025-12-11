@@ -146,7 +146,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "spec development / curation",
             [
-                self._clone_repos,
+                self._prepare_all_repositories,
                 self._compile_requirements,
                 self._initialize_environment,
                 self._install_packages,
@@ -159,7 +159,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "data collection / downloads / metadata capture / unpacking",
             [
-                self._clone_repos,
+                self._prepare_all_repositories,
                 self._spec_add,
                 self._data_collect,
                 self._data_download,
@@ -176,8 +176,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "submit-for-build",
             [
                 self._validate_spec,
-                self._delete_spi_repo,
-                self._clone_repos,
+                self._prepare_all_repositories,
                 self._submit_for_build,
             ],
         )
@@ -188,8 +187,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "inject-spi",
             [
                 self._validate_spec,
-                # self._delete_spi_repo,
-                self._clone_repos,
+                self._prepare_all_repositories,
                 self._inject_spi,
             ],
         )
@@ -209,7 +207,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "install-compiled-spec",
             [
-                self._clone_repos_locked,
+                self._prepare_all_repositories_locked,
                 self._validate_spec,
                 self._spec_add,
                 self._initialize_environment,
@@ -246,7 +244,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Execute steps for spec/notebook development workflow."""
         self.logger.info("Running any explicitly selected steps.")
         flags_and_steps: list[tuple[bool, Callable]] = [
-            (self.config.clone_repos, self._clone_repos),
+            (self.config.clone_repos, self._prepare_all_repositories),
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),
             (self.config.packages_install, self._install_packages),
@@ -294,15 +292,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         return self.logger._close_and_remove_logfile()
 
-    def _clone_repos(self, floating_mode=True) -> bool:
-        """Based on the spec unconditionally clone repos, collect specified notebook paths,
-        and scrape notebooks for package imports.
+    def _prepare_all_repositories(self, floating_mode=True) -> bool:
         """
-        self.logger.info("Setting up repository clones.")
-        notebook_repo_urls = self.spec_manager.get_repository_urls()
-        notebook_repo_branches = self.spec_manager.get_repository_branches()
-        notebook_repo_hashes = self.spec_manager.get_repository_hashes()
+        Prepares all repositories (SPI and notebook repos) by cloning,
+        updating, and cleaning them according to the spec and CLI flags.
+        """
+        self.logger.info("Preparing all repositories.")
+        all_repos_to_prepare = {}
 
+        # 1. Add SPI repo to the list if applicable
         if not (
             self.config.packages_omit_spi
             and not self.config.inject_spi
@@ -312,24 +310,48 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             spi_url = spi_info.get("repo")
             spi_ref = spi_info.get("ref")
             if spi_url:
-                repo_branches = {spi_url: spi_ref} if spi_ref else None
-                if not self.repo_manager.setup_repos(
-                    [spi_url], repo_branches=repo_branches
-                ):
-                    return False
+                all_repos_to_prepare[spi_url] = spi_ref or "main"
 
-        repo_states = self.repo_manager.setup_repos(
-            notebook_repo_urls,
-            floating_mode=floating_mode,
-            repo_branches=notebook_repo_branches,
-            repo_hashes=notebook_repo_hashes,
-        )
+        # 2. Add notebook repos to the list
+        notebook_repo_urls = self.spec_manager.get_repository_urls()
+        if floating_mode:
+            notebook_repo_refs = self.spec_manager.get_repository_refs()
+        else:  # Locked mode
+            notebook_repo_refs = self.spec_manager.get_output_repository_refs()
+            if not notebook_repo_refs:
+                self.logger.warning(
+                    "Locked mode is on, but no refs found in spec output for notebook repos. Falling back to input spec refs."
+                )
+                notebook_repo_refs = self.spec_manager.get_repository_refs()
 
+        for url in notebook_repo_urls:
+            all_repos_to_prepare[url] = notebook_repo_refs.get(url, "main")
+
+        # Prepare each repository
+        resolved_repo_states = {} # Store actual SHAs of prepared repos
+        for repo_url, desired_ref in all_repos_to_prepare.items():
+            if not self.repo_manager.prepare_repository(repo_url, desired_ref):
+                return False
+            # Get the actual hash after preparation
+            repo_path = self.repo_manager._repo_path(repo_url)
+            current_sha = self.repo_manager.get_hash(repo_path)
+            if current_sha:
+                resolved_repo_states[repo_url] = current_sha
+            else:
+                self.logger.error(f"Could not get current SHA for {repo_url} after preparation.")
+                return False
+
+        # --- After all repos are prepared ---
+        self.logger.info("All repositories prepared successfully.")
+
+        # Collect notebook paths (this depends on all repos being ready)
         notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
         if not notebook_paths:
             self.logger.warning(
                 "No notebooks found in specified repositories using spec'd patterns."
             )
+
+        # Extract imports (this depends on notebook paths being ready)
         test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
             list(notebook_paths.keys())
         )
@@ -338,23 +360,27 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 "No imports found in notebooks. Import tests will be skipped."
             )
 
-        output_repos = self.spec_manager.repositories
-        for name, repo in output_repos.items():
-            if repo["url"] in repo_states:
-                repo["hash"] = repo_states[repo["url"]]
+        # Prepare repository info for the output section of the spec
+        output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
+        for name, repo_data in output_repos_for_spec.items():
+            if repo_data["url"] in resolved_repo_states:
+                repo_data["ref"] = resolved_repo_states[repo_data["url"]]
+            repo_data.pop("branch", None)
+            repo_data.pop("hash", None)
 
+        # Save to the output section of the spec
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
-            repositories=copy.deepcopy(output_repos),
-            spi=self.spec_manager.spi,
+            repositories=copy.deepcopy(output_repos_for_spec),
+            spi=copy.deepcopy(self.spec_manager.spi),
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
         )
 
-    def _clone_repos_locked(self) -> bool:
-        return self._clone_repos(floating_mode=False)
+    def _prepare_all_repositories_locked(self) -> bool:
+        return self._prepare_all_repositories(floating_mode=False)
 
     def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""
@@ -548,16 +574,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 urls.append(spi_url)
         return self.repo_manager.delete_repos(urls)
 
-    def _delete_spi_repo(self) -> bool:
-        """Remove the 'SPI injector repo' used to make PR's for image builds
-        ensuring the next copy will be clean.
-        """
-        spi_info = self.spec_manager.get_output_data("spi")
-        if not spi_info or not (url := spi_info.get("repo")):
-            self.logger.info("No injector repo to delete.")
-            return True
-        return self.repo_manager.delete_repos([str(url)])
-
     def _generate_target_mamba_spec(self) -> str | bool:
         """Unconditionally generate mamba environment .yml spec."""
         self.logger.info(
@@ -742,8 +758,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
-        self.env_manager.unregister_environment(self.env_name)
-        return self.env_manager.delete_environment(self.env_name)
+        if not self.env_manager.unregister_environment(self.env_name):
+            self.logger.warning(f"Failed to unregister environment {self.env_name}.  This can be normal.")
+        if not self.env_manager.delete_environment(self.env_name):
+            self.logger.warning(f"Failed to delete environment {self.env_name}. This can be normal.")
+        return True
 
     def _env_compact(self) -> bool:
         return self.env_manager.compact()
