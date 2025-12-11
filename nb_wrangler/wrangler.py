@@ -328,7 +328,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             all_repos_to_prepare[url] = notebook_repo_refs.get(url, "main")
 
         # Prepare each repository
-        resolved_repo_states = {} # Store actual SHAs of prepared repos
+        resolved_repo_states = {}  # Store actual SHAs of prepared repos
         for repo_url, desired_ref in all_repos_to_prepare.items():
             if not self.repo_manager.prepare_repository(repo_url, desired_ref):
                 return False
@@ -338,7 +338,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if current_sha:
                 resolved_repo_states[repo_url] = current_sha
             else:
-                self.logger.error(f"Could not get current SHA for {repo_url} after preparation.")
+                self.logger.error(
+                    f"Could not get current SHA for {repo_url} after preparation."
+                )
                 return False
 
         # --- After all repos are prepared ---
@@ -760,9 +762,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
         if not self.env_manager.unregister_environment(self.env_name):
-            self.logger.warning(f"Failed to unregister environment {self.env_name}.  This can be normal.")
+            self.logger.warning(
+                f"Failed to unregister environment {self.env_name}.  This can be normal."
+            )
         if not self.env_manager.delete_environment(self.env_name):
-            self.logger.warning(f"Failed to delete environment {self.env_name}. This can be normal.")
+            self.logger.warning(
+                f"Failed to delete environment {self.env_name}. This can be normal."
+            )
         return True
 
     def _env_compact(self) -> bool:

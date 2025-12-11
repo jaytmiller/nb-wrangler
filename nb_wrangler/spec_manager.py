@@ -61,7 +61,7 @@ class SpecManager(WranglerLoggable):
         return self._spec.get("selected_notebooks", {})
 
     @property
-    def system(self) -> dict[str, str]:
+    def system(self) -> dict[str, Any]:
         return self._spec["system"]
 
     @property
@@ -79,7 +79,7 @@ class SpecManager(WranglerLoggable):
     @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
-        return self.image_name.replace(" ", "-").lower() # + "-" + self.kernel_name
+        return self.image_name.replace(" ", "-").lower()  # + "-" + self.kernel_name
 
     @property
     def spec_file(self) -> Path:
@@ -308,7 +308,7 @@ class SpecManager(WranglerLoggable):
 
     # ---------------------------- validation ----------------------------------
 
-    ALLOWED_KEYWORDS = {
+    ALLOWED_KEYWORDS: dict[str, Any] = {
         "image_spec_header": [
             "image_name",
             "description",
@@ -350,7 +350,7 @@ class SpecManager(WranglerLoggable):
         },
     }
 
-    REQUIRED_KEYWORDS = {
+    REQUIRED_KEYWORDS: dict[str, Any] = {
         "image_spec_header": [
             "image_name",
             "deployment_name",
@@ -361,8 +361,8 @@ class SpecManager(WranglerLoggable):
         ],
         "repositories": [],
         "system": {
-            "spec_version" : None,
-            "spi" : ["repo"],
+            "spec_version": None,
+            "spi": ["repo"],
         },
     }
 
@@ -493,14 +493,15 @@ class SpecManager(WranglerLoggable):
         spi = self._spec["system"]["spi"]
         for key in spi:
             if key not in self.ALLOWED_KEYWORDS["system"]["spi"]:
-                no_errors = self.logger.error(f"Unknown keyword '{key}' in spi section.")
+                no_errors = self.logger.error(
+                    f"Unknown keyword '{key}' in spi section."
+                )
         for field in self.REQUIRED_KEYWORDS["system"]["spi"]:
             if field not in spi:
                 no_errors = self.logger.error(
                     f"Missing required field in spi section: {field}"
                 )
         return no_errors
-
 
     # -------------------------------- notebook and repository collection --------------------------------------
 

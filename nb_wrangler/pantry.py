@@ -416,7 +416,9 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         destination_dirpath: Path,
         extract: Optional[str] = None,
     ) -> bool:
-        self.logger.debug(f"Unarchiving {archive_filepath} {destination_dirpath} {extract}.")
+        self.logger.debug(
+            f"Unarchiving {archive_filepath} {destination_dirpath} {extract}."
+        )
         destination_dirpath = destination_dirpath.resolve()
         destination_dirpath.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else ""

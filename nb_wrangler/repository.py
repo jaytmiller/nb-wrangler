@@ -310,39 +310,48 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return bool(self._clone_repo(repo_url, repo_path, ref=desired_ref))
 
         if not self.is_clean(repo_path):
-            self.logger.warning(f"Repository '{repo_name}' has uncommitted local changes.")
+            self.logger.warning(
+                f"Repository '{repo_name}' has uncommitted local changes."
+            )
             if self.config.overwrite_local_changes:
-                self.logger.info(f"Overwriting local changes in {repo_name} due to --overwrite-local-changes flag.")
+                self.logger.info(
+                    f"Overwriting local changes in {repo_name} due to --overwrite-local-changes flag."
+                )
                 if not self.git_reset_hard(repo_name):
                     return False
             elif self.config.stash_local_changes:
-                self.logger.info(f"Stashing local changes in {repo_name} due to --stash-local-changes flag.")
+                self.logger.info(
+                    f"Stashing local changes in {repo_name} due to --stash-local-changes flag."
+                )
                 if not self.git_stash(repo_name):
                     return False
             else:
                 while True:
                     prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, or [A]bort? (S/D/A): "
                     choice = input(prompt).upper()
-                    if choice == 'A':
+                    if choice == "A":
                         self.logger.error("Operation aborted by user.")
                         return False
-                    elif choice == 'S':
+                    elif choice == "S":
                         if not self.git_stash(repo_name):
                             return False
                         break
-                    elif choice == 'D':
+                    elif choice == "D":
                         if not self.git_reset_hard(repo_name):
                             return False
                         break
-        
+
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)
         target_sha = self.resolve_ref_to_sha(repo_name, desired_ref)
 
         if current_sha == target_sha:
-            self.logger.info(f"Repository {repo_name} is already at the desired ref {desired_ref} ({target_sha[:7]}).")
+            sha_info = f" ({target_sha[:7]})" if target_sha else ""
+            self.logger.info(
+                f"Repository {repo_name} is already at the desired ref {desired_ref}{sha_info}."
+            )
             return True
-        
+
         self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}...")
         return self.git_checkout(repo_name, desired_ref)
 
@@ -360,45 +369,9 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     def git_reset_hard(self, repo_name: str) -> bool:
         """Reset the repository, discarding all local changes."""
         repo_root = self.repos_dir / repo_name
-        self.logger.warning(f"Discarding local changes in {repo_root} with 'git reset --hard HEAD'")
-        result = self.run("git reset --hard HEAD", check=False, cwd=repo_root)
-        return self.handle_result(
-            result,
-            f"Failed to reset repository {repo_name}: ",
-            f"Successfully reset {repo_name}, discarding local changes.",
+        self.logger.warning(
+            f"Discarding local changes in {repo_root} with 'git reset --hard HEAD'"
         )
-
-    def resolve_ref_to_sha(self, repo_name: str, ref: str) -> Optional[str]:
-        """Resolve a git ref (branch, tag) to its specific commit SHA."""
-        repo_root = self.repos_dir / repo_name
-        self.logger.debug(f"Resolving ref '{ref}' to SHA in {repo_root}")
-        # Fetch first to ensure the ref is available locally
-        fetch_result = self.run("git fetch", check=False, cwd=repo_root)
-        if fetch_result.returncode != 0:
-            self.logger.error(f"Failed to fetch {repo_root} before resolving ref.")
-            return None
-        # Use rev-parse to get the commit SHA
-        result = self.run(f"git rev-parse {ref}", check=False, cwd=repo_root)
-        if result.returncode == 0:
-            return result.stdout.strip()
-        self.logger.error(f"Failed to resolve ref '{ref}' in repo {repo_name}")
-        return None
-
-    def git_stash(self, repo_name: str) -> bool:
-        """Stash local changes in the given repository."""
-        repo_root = self.repos_dir / repo_name
-        self.logger.info(f"Stashing local changes in {repo_root}")
-        result = self.run("git stash", check=False, cwd=repo_root)
-        return self.handle_result(
-            result,
-            f"Failed to stash changes in {repo_name}: ",
-            f"Stashed local changes in {repo_name}.",
-        )
-
-    def git_reset_hard(self, repo_name: str) -> bool:
-        """Reset the repository, discarding all local changes."""
-        repo_root = self.repos_dir / repo_name
-        self.logger.warning(f"Discarding local changes in {repo_root} with 'git reset --hard HEAD'")
         result = self.run("git reset --hard HEAD", check=False, cwd=repo_root)
         return self.handle_result(
             result,
