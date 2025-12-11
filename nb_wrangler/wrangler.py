@@ -303,26 +303,21 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         notebook_repo_branches = self.spec_manager.get_repository_branches()
         notebook_repo_hashes = self.spec_manager.get_repository_hashes()
 
-        if (
+        if not (
             self.config.packages_omit_spi
             and not self.config.inject_spi
             and not self.config.submit_for_build
         ):
-            spi_url = None
-        else:
-            spi_url = self.spec_manager.spi_url
-            if not self.repo_manager.setup_repos([spi_url]):
-                return False
-        spi_fork_remote = self.spec_manager.spi_fork_remote
-        if spi_fork_remote:
-            if not spi_url:
-                self.logger.warning(
-                    "spi_fork_remote is defined but no primary spi_url is defined."
-                )
-            else:
-                self.repo_manager.git_remote_add(
-                    spi_fork_remote["name"], spi_fork_remote["url"]
-                )
+            spi_info = self.spec_manager.spi
+            spi_url = spi_info.get("repo")
+            spi_ref = spi_info.get("ref")
+            if spi_url:
+                repo_branches = {spi_url: spi_ref} if spi_ref else None
+                if not self.repo_manager.setup_repos(
+                    [spi_url], repo_branches=repo_branches
+                ):
+                    return False
+
         repo_states = self.repo_manager.setup_repos(
             notebook_repo_urls,
             floating_mode=floating_mode,
@@ -352,7 +347,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             repositories=copy.deepcopy(output_repos),
-            injector_url=spi_url,
+            spi=self.spec_manager.spi,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
@@ -548,16 +543,17 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Delete notebook and SPI repo clones."""
         output_repos = self.spec_manager.get_output_data("repositories", {})
         urls = [repo["url"] for repo in output_repos.values()]
-        if spi_url := self.spec_manager.get_outputs("injector_url"):
-            urls.append(spi_url)
+        if spi_info := self.spec_manager.get_output_data("spi"):
+            if spi_url := spi_info.get("repo"):
+                urls.append(spi_url)
         return self.repo_manager.delete_repos(urls)
 
     def _delete_spi_repo(self) -> bool:
         """Remove the 'SPI injector repo' used to make PR's for image builds
         ensuring the next copy will be clean.
         """
-        url = self.spec_manager.get_outputs("injector_url")
-        if not url:
+        spi_info = self.spec_manager.get_output_data("spi")
+        if not spi_info or not (url := spi_info.get("repo")):
             self.logger.info("No injector repo to delete.")
             return True
         return self.repo_manager.delete_repos([str(url)])

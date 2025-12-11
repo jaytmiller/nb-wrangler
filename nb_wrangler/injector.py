@@ -66,7 +66,7 @@ class SpiInjector(WranglerLoggable):
 
     @property
     def url(self):
-        return self.spec_manager.spi_url or self._url
+        return self.spec_manager.spi.get("repo") or self._url
 
     @property
     def repo_name(self):

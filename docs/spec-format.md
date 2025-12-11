@@ -53,7 +53,9 @@ extra_pip_packages:
 system:
   spec_version: 1.0
   archive_format: .tar
-  spi_url: https://github.com/jaytmiller/science-platform-images.git
+  spi:
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: main
 ```
 
 ## Sections of the Wrangler Spec
@@ -104,7 +106,9 @@ This section contains specifications for the system environment. It is updated b
 
    - **spec_version**: The version of the specification being used (e.g., `1.0`).
    - **archive_format**: The format used for archiving environments (e.g., `.tar`).
-   - **spi_url**: The URL of the GitHub repository for Science Platform Images.
+   - **spi**: A dictionary specifying the Science Platform Images (SPI) repository to use.
+     - **repo**: The URL of the git repository.
+     - **ref**: (Optional) The branch, tag, or commit hash to use. Defaults to the repository's default branch.
    - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking. It is added by `nb-wrangler`.
 
    

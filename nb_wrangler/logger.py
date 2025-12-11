@@ -199,8 +199,6 @@ class WranglerLogger:
         msg = self._lformat(*args)
         self.errors.append(msg)
         logger.error(msg)
-        if self.debug_mode:
-            pdb.set_trace()
         return False
 
     def info(self, *args) -> bool:

@@ -35,7 +35,8 @@ extra_pip_packages:
 system:
   spec_version: 2.0
   archive_format: .tar
-  spi_url: https://github.com/jaytmiller/science-platform-images.git
+    spi:
+    repo: https://github.com/jaytmiller/science-platform-images.git
   spec_sha256: f4d343e5b8e5b42dc4d1b0c1baec7dc1091f3e31687024ee897020e804a32956
 out:
   repositories: *id001

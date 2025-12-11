@@ -73,12 +73,8 @@ class SpecManager(WranglerLoggable):
         return self._spec.get("extra_pip_packages", [])
 
     @property
-    def spi_url(self):
-        return self.system.get("spi_url", None)
-
-    @property
-    def spi_fork_remote(self):
-        return self.system.get("spi_fork_remote", None)
+    def spi(self) -> dict[str, str]:
+        return self.system.get("spi", {})
 
     @property
     def moniker(self) -> str:
@@ -254,6 +250,8 @@ class SpecManager(WranglerLoggable):
         """Delete the output field of the spec and make sure the source file reflects it."""
         self.logger.debug("Resetting spec file.")
         out = self._spec.pop("out", None)
+        if not out:
+            return True
         data = out.pop("data", None)
         if data:
             self._spec["out"] = dict(data=data)
@@ -341,13 +339,15 @@ class SpecManager(WranglerLoggable):
             "package_versions",
             "data",
         ],
-        "system": [
-            "spec_version",
-            "spec_sha256",
-            "archive_format",
-            "spi_url",
-            "spi_fork_remote",
-        ],
+        "system": {
+            "spec_version": None,
+            "spec_sha256": None,
+            "archive_format": None,
+            "spi": {
+                "repo": None,
+                "ref": None,
+            },
+        },
     }
 
     REQUIRED_KEYWORDS = {
@@ -360,9 +360,10 @@ class SpecManager(WranglerLoggable):
             "expires_on",
         ],
         "repositories": [],
-        "system": [
-            "spec_version",
-        ],
+        "system": {
+            "spec_version" : None,
+            "spi" : ["repo"],
+        },
     }
 
     def validate(self) -> bool:
@@ -376,6 +377,7 @@ class SpecManager(WranglerLoggable):
             and self._validate_repositories_section()
             and self._validate_notebook_selections_section()
             and self._validate_system()
+            and self._validate_spi_section()
         )
         if not validated:
             return self.logger.error("Spec validation failed.")
@@ -481,6 +483,24 @@ class SpecManager(WranglerLoggable):
                     f"Undefined keyword '{key}' in section 'system'."
                 )
         return no_errors
+
+    def _validate_spi_section(self) -> bool:
+        """Validate spi section."""
+        no_errors = True
+        if "spi" not in self._spec["system"]:
+            return self.logger.error("Missing required section: spi")
+
+        spi = self._spec["system"]["spi"]
+        for key in spi:
+            if key not in self.ALLOWED_KEYWORDS["system"]["spi"]:
+                no_errors = self.logger.error(f"Unknown keyword '{key}' in spi section.")
+        for field in self.REQUIRED_KEYWORDS["system"]["spi"]:
+            if field not in spi:
+                no_errors = self.logger.error(
+                    f"Missing required field in spi section: {field}"
+                )
+        return no_errors
+
 
     # -------------------------------- notebook and repository collection --------------------------------------
 
