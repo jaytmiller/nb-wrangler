@@ -44,7 +44,7 @@ system:
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
     ref: roman-20.0.0
-  spec_sha256: 6745fae1c6c70e038a3ca3db4443345632d63e61889460d378d49b0c1d627af7
+  spec_sha256: 4c4a091cc646acf0b4f9dcb3081b1fb205a8c594aeea249409c62fd328b5e4e8
 out:
   data:
     spec_inputs:
@@ -572,7 +572,7 @@ out:
         #   tweakwcs
     astropy-healpix==1.1.2
         # via romanisim
-    astropy-iers-data==0.2025.12.1.0.45.12
+    astropy-iers-data==0.2025.12.8.0.38.44
         # via astropy
     astropy-sphinx-theme==2.0
         # via sphinx-astropy
@@ -600,7 +600,7 @@ out:
         #   astroquery
         #   nbconvert
         #   stsynphot
-    black==25.11.0
+    black==25.12.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     bleach==6.3.0
         # via nbconvert
@@ -717,7 +717,7 @@ out:
         #   spectral-cube
     ddtrace==4.0.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
-    debugpy==1.8.17
+    debugpy==1.8.18
         # via ipykernel
     decorator==5.2.1
         # via ipython
@@ -1028,7 +1028,7 @@ out:
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     jupyter-bokeh==4.0.5
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
-    jupyter-client==8.6.3
+    jupyter-client==8.7.0
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ipykernel
@@ -1036,9 +1036,9 @@ out:
         #   nbclient
         #   solara-server
         #   voila
-    jupyter-collaboration==4.1.2
+    jupyter-collaboration==4.2.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
-    jupyter-collaboration-ui==2.1.2
+    jupyter-collaboration-ui==2.2.0
         # via jupyter-collaboration
     jupyter-core==5.9.1
         # via
@@ -1051,7 +1051,7 @@ out:
         #   nbconvert
         #   nbformat
         #   voila
-    jupyter-docprovider==2.1.2
+    jupyter-docprovider==2.2.0
         # via jupyter-collaboration
     jupyter-events==0.12.0
         # via
@@ -1090,9 +1090,9 @@ out:
         #   jupyter-app-launcher
     jupyter-server-terminals==0.5.3
         # via jupyter-server
-    jupyter-server-ydoc==2.1.2
+    jupyter-server-ydoc==2.2.0
         # via jupyter-collaboration
-    jupyter-ydoc==3.3.2
+    jupyter-ydoc==3.3.3
         # via jupyter-server-ydoc
     jupyterhub==5.4.2
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
@@ -1163,7 +1163,7 @@ out:
         #   mako
         #   nbconvert
         #   werkzeug
-    matplotlib==3.10.7
+    matplotlib==3.10.8
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   glue-core
@@ -1240,7 +1240,7 @@ out:
         # via
         #   ipykernel
         #   nbclassic
-    networkx==3.6
+    networkx==3.6.1
         # via scikit-image
     notebook==7.5.0
         # via
@@ -1335,7 +1335,7 @@ out:
         # via
         #   glue-core
         #   pysiaf
-    opentelemetry-api==1.39.0
+    opentelemetry-api==1.39.1
         # via ddtrace
     packaging==25.0
         # via
@@ -1434,7 +1434,7 @@ out:
         # via
         #   black
         #   jupyter-core
-    playwright==1.56.0
+    playwright==1.57.0
         # via -r /home/ai/.nbw-live/temps/tmp-requirements.txt
     pluggy==1.6.0
         # via pytest
@@ -1485,7 +1485,7 @@ out:
         #   jupyter-ydoc
         #   pycrdt-store
         #   pycrdt-websocket
-    pycrdt-store==0.1.2
+    pycrdt-store==0.1.3
         # via pycrdt-websocket
     pycrdt-websocket==0.16.0
         # via jupyter-server-ydoc
@@ -1512,7 +1512,7 @@ out:
         #   rich
         #   solara-ui
         #   sphinx
-    pymdown-extensions==10.17.2
+    pymdown-extensions==10.19
         # via solara-ui
     pyopengl==3.1.10
         # via glue-vispy-viewers
@@ -1529,7 +1529,7 @@ out:
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   soc-roman-tools
         #   stpsf
-    pytest==9.0.1
+    pytest==9.0.2
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   ci-watson
@@ -1813,7 +1813,7 @@ out:
         # via sphinx
     sphinxcontrib-serializinghtml==2.0.0
         # via sphinx
-    sqlalchemy==2.0.44
+    sqlalchemy==2.0.45
         # via
         #   alembic
         #   jupyterhub
@@ -1851,7 +1851,7 @@ out:
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   pandeia-engine
         #   stips
-    synphot==1.6.0
+    synphot==1.6.1
         # via
         #   -r /home/ai/.nbw-live/temps/tmp-requirements.txt
         #   pandeia-engine
@@ -1879,7 +1879,7 @@ out:
         #   dask
         #   distributed
         #   partd
-    tornado==6.5.2
+    tornado==6.5.3
         # via
         #   bokeh
         #   distributed
@@ -1955,7 +1955,7 @@ out:
         #   pandas
     uri-template==1.3.0
         # via jsonschema
-    urllib3==2.6.0
+    urllib3==2.6.2
         # via
         #   botocore
         #   distributed
