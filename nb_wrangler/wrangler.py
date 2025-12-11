@@ -518,6 +518,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Unpacking downloaded data archives to live locations.")
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
+            self.logger.debug(f"Unpacking data: {archive_tuple}")
             src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
             if self.config.data_env_vars_mode == "pantry":
                 dest_path = self.pantry_shelf.data_path
