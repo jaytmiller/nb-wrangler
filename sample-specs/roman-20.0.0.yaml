@@ -43,7 +43,7 @@ system:
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
     ref: roman-20.0.0
-  spec_sha256: 4c4a091cc646acf0b4f9dcb3081b1fb205a8c594aeea249409c62fd328b5e4e8
+  spec_sha256: 8b5db643ca095f647729a8f6e0fcef84fb084e82c3468df9150debd257a9d145
 out:
   data:
     spec_inputs:
