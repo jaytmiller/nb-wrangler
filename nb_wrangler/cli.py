@@ -39,7 +39,7 @@ def parse_args():
     )
 
     workflows_group = parser.add_argument_group(
-        "Workflows", "Multi-step high level work flows for nb-wrangler tasks,"
+        "Workflows", "Multi-step high level work flows for nb-wrangler tasks."
     )
     workflow_flags = [
         (

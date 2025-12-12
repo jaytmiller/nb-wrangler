@@ -15,7 +15,6 @@ repositories:
     url: https://github.com/spacetelescope/roman_notebooks
     ref: main
 
-    # hash: b66a186b0b6587b870ccd1ec18e2a2eb27cf9c1c
 selected_notebooks:
   roman_all:
     repo: roman_notebooks
@@ -149,8 +148,6 @@ out:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks
       ref: b2a2716066397c4886622a32eb3ff81a5617ede8
-
-    # hash: b66a186b0b6587b870ccd1ec18e2a2eb27cf9c1c
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
     ref: roman-20.0.0
