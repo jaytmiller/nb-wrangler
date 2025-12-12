@@ -114,7 +114,8 @@ class WranglerConfig:
     data_select: str = ".*"
     data_no_validation: bool = False
     data_no_unpack_existing: bool = False
-    data_symlink_install_data: bool = False
+    data_no_symlinks: bool = False
+    data_symlinks: bool = False
 
     spec_select: str | None = None
     spec_list: bool = False
@@ -177,7 +178,8 @@ class WranglerConfig:
             data_select=args.data_select,
             data_no_validation=args.data_no_validation,
             data_no_unpack_existing=args.data_no_unpack_existing,
-            data_symlink_install_data=args.data_symlink_install_data,
+            data_no_symlinks=args.data_no_symlinks,
+            data_symlinks=args.data_symlinks,
             spec_select=args.spec_select,
             spec_list=args.spec_list,
             spec_add=args.spec_add,

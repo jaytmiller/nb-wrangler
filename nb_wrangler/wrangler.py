@@ -267,8 +267,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_validate, self._data_validate),
             (self.config.data_unpack, self._data_unpack),
             (self.config.data_pack, self._data_pack),
-            (self.config.data_symlink_install_data, self._data_symlink_install_data),
             (self.config.data_print_exports, self._data_print_exports),
+            (self.config.data_symlinks, self._data_symlink_install_data),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
             (self.config.env_delete, self._delete_environment),
@@ -518,6 +518,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _data_unpack(self) -> bool:
         self.logger.info("Unpacking downloaded data archives to live locations.")
+        if not self.config.data_no_symlinks:
+            self._data_symlink_install_data()
         data, archive_tuples = self._get_data_url_tuples()
         for archive_tuple in archive_tuples:
             self.logger.debug(f"Unpacking data: {archive_tuple}")
@@ -551,6 +553,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
         return True
 
+    def _data_symlink_install_data(self) -> bool:
+        """Create symlinks from install_data locations to the pantry data directory."""
+        _data, archive_tuples = self._get_data_url_tuples()
+        self.pantry_shelf.symlink_install_data(archive_tuples)
+        return True
+
     def _data_pack(self) -> bool:
         self.logger.info("Packing downloaded data archives from live locations.")
         no_errors = True
@@ -561,12 +569,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self.pantry_shelf.archive(dest_archive, src_path, "") and no_errors
             )
         return no_errors
-
-    def _data_symlink_install_data(self) -> bool:
-        """Create symlinks from install_data locations to the pantry data directory."""
-        self.logger.info("Creating symlinks for install_data locations.")
-        _data, archive_tuples = self._get_data_url_tuples()
-        return self.pantry_shelf.symlink_install_data(archive_tuples)
 
     def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""

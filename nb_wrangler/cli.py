@@ -304,11 +304,15 @@ def parse_args():
         help="""Skip data archive unpack if the target directory already exists indicating already unpacked.""",
     )
     data_group.add_argument(
-        "--data-symlink-install-data",
+        "--data-no-symlinks",
         action="store_true",
-        help="""Create symlinks from install_data locations to the pantry data directory for the current spec.""",
+        help="""Do not create symlinks from install_data locations to the pantry data directory for the current spec during --data-unpack.""",
     )
-
+    data_group.add_argument(
+        "--data-symlinks",
+        action="store_true",
+        help="""Create symlinks from install_data locations to the pantry data directory for the current spec (standalone action, data not required).""",
+    )
     notebook_group = parser.add_argument_group(
         "Notebook Clones",
         "Setup and management of local clones of spec'ed notebook repos.",
