@@ -36,12 +36,12 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 969fdfdcf0f36f9a52578061c68877be21cbe0e6e10357c98b503dc0b7bdb5e7
+  spec_sha256: 732d1163dbb143ed6e824584997092933d6a2fddc30ef807c97689396f07a67b
 out:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks
-      ref: b2a2716066397c4886622a32eb3ff81a5617ede8 # Default branch if not specified.
+      ref: 8d64992c573f8f51b5e4d5d940fc39d6a36a7a4c # Default branch if not specified.
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
@@ -106,6 +106,7 @@ out:
     - pandeia
     - photutils
     - pprint
+    - rbt
     - rbvt
     - roman_datamodels
     - romancal
@@ -116,6 +117,7 @@ out:
     - stpsf
     - stsynphot
     - synphot
+    - textwrap
     - time
     - warnings
     - yaml
@@ -209,11 +211,15 @@ out:
       - romancal
       - s3fs
     references/roman_notebooks/content/notebooks/pandeia/pandeia.ipynb:
+      - astropy
       - importlib
+      - json
       - notebook_data_dependencies
       - numpy
       - pandeia
+      - rbt
       - scipy
+      - textwrap
     references/roman_notebooks/content/notebooks/roman_cutouts/roman_cutouts.ipynb:
       - asdf
       - astrocut
