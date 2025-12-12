@@ -1,6 +1,6 @@
 # Image header information
 image_spec_header:
-  image_name: roman-20
+  image_name: roman-20-data-functional
   deployment_name: roman
   kernel_name: roman-cal
   display_name: Roman Research Nexus
@@ -36,7 +36,7 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: b6d2dc17720d93592507baa5042a4c164c5c9b4d077af65f3cceeae9c01c2944
+  spec_sha256: 969fdfdcf0f36f9a52578061c68877be21cbe0e6e10357c98b503dc0b7bdb5e7
 out:
   repositories:
     roman_notebooks:
@@ -1891,10 +1891,11 @@ out:
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
       pandeia_refdata: 
-        ${NBW_PANTRY}/shelves/roman-20/data/pandeia_data-2025.9-roman
-      STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20/data/stpsf-data
-      stips_data: ${NBW_PANTRY}/shelves/roman-20/data/stips_data
-      PYSYN_CDBS: ${NBW_PANTRY}/shelves/roman-20/data/grp/redcat/trds
+        ${NBW_PANTRY}/shelves/roman-20-data-functional/data/pandeia_data-2025.9-roman
+      STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20-data-functional/data/stpsf-data
+      stips_data: ${NBW_PANTRY}/shelves/roman-20-data-functional/data/stips_data
+      PYSYN_CDBS: 
+        ${NBW_PANTRY}/shelves/roman-20-data-functional/data/grp/redcat/trds
       CRDS_SERVER_URL: https://roman-crds.stsci.edu
       CRDS_CONTEXT: roman_0041.pmap
       CRDS_PATH: ${HOME}/crds_cache

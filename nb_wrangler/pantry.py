@@ -368,17 +368,16 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
                 )
                 continue
 
+            realpath = os.path.realpath(symlink_path)
             if symlink_path.exists():
-                if symlink_path.is_symlink() and os.path.realpath(symlink_path) == str(
-                    target_path
-                ):
+                if symlink_path.is_symlink() and str(realpath) == str(target_path):
                     self.logger.debug(
-                        f"Symlink '{symlink_path}' already exists and points to the correct target."
+                        f"Symlink '{symlink_path}' already exists and points to the correct target {target_path}. Skipping."
                     )
                     continue
                 else:
                     self.logger.warning(
-                        f"Path '{symlink_path}' already exists and is not the expected symlink. Skipping."
+                        f"Path '{symlink_path}' already exists as {realpath} not the expected {target_path}. Skipping."
                     )
                     continue
 
