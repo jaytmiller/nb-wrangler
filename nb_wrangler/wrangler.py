@@ -695,13 +695,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             add_sha256=not self.config.spec_ignore_hash,
         )
         if self.pantry_shelf.spec_path.exists():
-            no_errors = (
-                self.spec_manager.save_spec_as(
-                    self.pantry_shelf.spec_path,
-                    add_sha256=not self.config.spec_ignore_hash,
-                )
-                and no_errors
-            )
+            if not self.spec_manager.save_spec_as(
+                self.pantry_shelf.spec_path, add_sha256=not self.config.spec_ignore_hash
+            ):
+                self.logger.warning("Failed to save spec to pantry shelf.")
         return no_errors
 
     def _update_spec_sha256(self) -> bool:
