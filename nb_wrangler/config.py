@@ -65,6 +65,8 @@ class WranglerConfig:
     repos_dir: Path = Path(REPOS_DIR)
     clone_repos: bool = False
     delete_repos: bool = False
+    overwrite_local_changes: bool = False
+    stash_local_changes: bool = False
 
     env_init: bool = False
     env_pack: bool = False
@@ -137,6 +139,8 @@ class WranglerConfig:
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,
+            overwrite_local_changes=args.overwrite_local_changes,
+            stash_local_changes=args.stash_local_changes,
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,

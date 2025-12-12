@@ -85,7 +85,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return repo_path
         else:
             try:
-                repo_path = self._clone_repo(repo_url, repo_path, ref=ref)
+                branch_to_clone = ref
+                if not floating_mode:
+                    # In locked mode, ref can be a hash, so we can't use it to clone a branch.
+                    # Clone default branch and then checkout the ref.
+                    branch_to_clone = None
+                repo_path = self._clone_repo(repo_url, repo_path, ref=branch_to_clone)
                 if not floating_mode and ref:
                     self.logger.info(
                         f"Locked mode: checking out ref {ref} for repo {repo_url}"
