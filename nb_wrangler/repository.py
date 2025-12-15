@@ -70,11 +70,22 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     self.run("git fetch", check=True, cwd=repo_path)
 
                     # Determine default branch from origin
-                    result = self.run("git symbolic-ref refs/remotes/origin/HEAD", check=True, capture_output=True, cwd=repo_path)
-                    default_branch = result.stdout.strip().replace('refs/remotes/origin/', '').replace('\n', '')
+                    result = self.run(
+                        "git symbolic-ref refs/remotes/origin/HEAD",
+                        check=True,
+                        capture_output=True,
+                        cwd=repo_path,
+                    )
+                    default_branch = (
+                        result.stdout.strip()
+                        .replace("refs/remotes/origin/", "")
+                        .replace("\n", "")
+                    )
                     ref_to_checkout = ref or f"origin/{default_branch}"
 
-                    self.run(f"git checkout {ref_to_checkout}", check=True, cwd=repo_path)
+                    self.run(
+                        f"git checkout {ref_to_checkout}", check=True, cwd=repo_path
+                    )
                     if ref:
                         self.run("git pull", check=True, cwd=repo_path)  # Pull updates
                 else:  # locked mode
@@ -88,7 +99,9 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                             f"Locked mode enabled, but no ref provided for {repo_url}. Using existing state."
                         )
             except Exception as e:
-                return self.logger.exception(e, f"Failed to update repository {repo_url}.")
+                return self.logger.exception(
+                    e, f"Failed to update repository {repo_url}."
+                )
         else:
             try:
                 branch_to_clone = ref if floating_mode else None
@@ -101,10 +114,11 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     )
                     self.run(f"git checkout {ref}", check=True, cwd=repo_path)
             except Exception as e:
-                return self.logger.exception(e, f"Failed to setup repository {repo_url}.")
+                return self.logger.exception(
+                    e, f"Failed to setup repository {repo_url}."
+                )
 
         return repo_path
-
 
     def git_clone(
         self,
@@ -363,16 +377,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, or [A]bort? (S/D/A): "
                     choice = input(prompt).upper()
                     if choice == "A":
-                        self.logger.error("Operation aborted by user.")
-                        return False
+                        return self.logger.error("Operation aborted by user.")
                     elif choice == "S":
-                        if not self.git_stash(repo_name):
-                            return False
-                        break
+                        return self.git_stash(repo_name)
                     elif choice == "D":
-                        if not self.git_reset_hard(repo_name):
-                            return False
-                        break
+                        return self.git_reset_hard(repo_name)
+            return True
 
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)

@@ -36,12 +36,12 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 3bcaadc33be1c3e6d8505270bd2ce394b22acafa1b29513e134769349d28e8ff
+  spec_sha256: db10fcf824a087ab3b0f4cf94ac0956084ecdfefb2ede5a2fdc7d92fa5d6711d
 out:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks
-      ref: 65d6c452f8f8b9fba51116dc43c806eebb081c9f # Default branch if not specified.
+      ref: 53f43f66e390dddffde95fb10f63b549c5e7bd10 # Default branch if not specified.
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
