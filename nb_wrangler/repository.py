@@ -60,60 +60,62 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         floating_mode: bool,
         ref: Optional[str] = None,
     ) -> Optional[Path]:
-        """set up a remote repository by cloning or updating."""
+        """Set up a remote repository by cloning or updating."""
         repo_path = self._repo_path(repo_url)
         if repo_path.exists():
             self.logger.info(f"Using existing local clone at {repo_path}")
-            if floating_mode:
-                self.logger.info(f"Floating mode: updating repo {repo_url}")
-                self.run("git fetch", check=True, cwd=repo_path)
-                ref_to_checkout = ref or "origin/main"  # a default
-                self.run(f"git checkout {ref_to_checkout}", check=True, cwd=repo_path)
-                if ref:
-                    self.run("git pull", check=True, cwd=repo_path)  # pull updates
-            else:  # locked mode
-                if ref:
-                    self.logger.info(
-                        f"Locked mode: checking out ref {ref} for repo {repo_url}"
-                    )
+            try:
+                if floating_mode:
+                    self.logger.info(f"Floating mode: updating repo {repo_url}")
                     self.run("git fetch", check=True, cwd=repo_path)
-                    self.run(f"git checkout {ref}", check=True, cwd=repo_path)
-                else:
-                    self.logger.warning(
-                        f"Locked mode enabled, but no ref provided for {repo_url}. Using existing state."
-                    )
-            return repo_path
+
+                    # Determine default branch from origin
+                    result = self.run("git symbolic-ref refs/remotes/origin/HEAD", check=True, capture_output=True, cwd=repo_path)
+                    default_branch = result.stdout.strip().replace('refs/remotes/origin/', '').replace('\n', '')
+                    ref_to_checkout = ref or f"origin/{default_branch}"
+
+                    self.run(f"git checkout {ref_to_checkout}", check=True, cwd=repo_path)
+                    if ref:
+                        self.run("git pull", check=True, cwd=repo_path)  # Pull updates
+                else:  # locked mode
+                    if ref:
+                        self.logger.info(
+                            f"Locked mode: checking out ref {ref} for repo {repo_url}"
+                        )
+                        self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+                    else:
+                        self.logger.warning(
+                            f"Locked mode enabled, but no ref provided for {repo_url}. Using existing state."
+                        )
+            except Exception as e:
+                return self.logger.exception(e, f"Failed to update repository {repo_url}.")
         else:
             try:
-                branch_to_clone = ref
-                if not floating_mode:
-                    # In locked mode, ref can be a hash, so we can't use it to clone a branch.
-                    # Clone default branch and then checkout the ref.
-                    branch_to_clone = None
-                repo_path = self._clone_repo(repo_url, repo_path, ref=branch_to_clone)
+                branch_to_clone = ref if floating_mode else None
+                self.git_clone(repo_url, repo_path, ref=branch_to_clone)
+
+                # Ensure the checkout happens only after successful clone
                 if not floating_mode and ref:
                     self.logger.info(
                         f"Locked mode: checking out ref {ref} for repo {repo_url}"
                     )
                     self.run(f"git checkout {ref}", check=True, cwd=repo_path)
-                return repo_path
             except Exception as e:
-                self.logger.exception(e, f"Failed to setup repository {repo_url}.")
-                return None
+                return self.logger.exception(e, f"Failed to setup repository {repo_url}.")
 
-    def _clone_repo(
+        return repo_path
+
+
+    def git_clone(
         self,
         repo_url: str,
         repo_dir: Path,
         ref: Optional[str] = None,
-    ) -> Path:
+    ) -> bool:
         """Clone a new repository."""
-        # single_branch_arg is removed to allow checking out arbitrary commits
-        branch_arg = f"--branch {ref}" if ref else ""
-        clone_args = " ".join(filter(None, [branch_arg]))
-
-        branch_msg = f" (ref: {ref})" if ref else ""
-        self.logger.info(f"Cloning repository {repo_url}{branch_msg} to {repo_dir}.")
+        # Clone the main branch first
+        clone_args = ""
+        self.logger.info(f"Cloning repository {repo_url} to {repo_dir}.")
         if self.env_manager is None:
             raise RuntimeError("Environment manager not available")
         self.run(
@@ -121,8 +123,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             check=True,
             timeout=REPO_CLONE_TIMEOUT,
         )
-        self.logger.info(f"Successfully cloned repository to {repo_dir}.")
-        return repo_dir
+        # Check out the specific ref if provided
+        if ref:
+            self.logger.info(f"Checking out reference {ref}.")
+            repo_name = Path(repo_url).name.replace(".git", "")
+            return self.git_checkout(repo_name, ref)
+        return True
 
     def get_hash(self, repo_path: str | Path) -> Optional[str]:
         """Get the current commit hash of a repository."""
@@ -322,7 +328,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 )
                 clone_ref = None  # Clone default branch
 
-            if not self._clone_repo(repo_url, repo_path, ref=clone_ref):
+            if not self.git_clone(repo_url, repo_path, ref=clone_ref):
                 return False
 
             # After cloning, if desired_ref was a hash, checkout the hash
