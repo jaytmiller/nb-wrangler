@@ -242,7 +242,19 @@ lint/bandit: ## check security with bandit
 lint/mypy:
 	mypy --install-types  --non-interactive  ${PROJECT}
 
-lint: lint/flake8  lint/mypy  lint/black  lint/bandit ## check style, type annotations, whitespace
+lint/radon-cc:
+	radon cc -nb --total nb_wrangler
+
+lint/radon-mi:
+	radon mi -s nb_wrangler
+
+lint/radon-hal:
+	radon hal nb_wrangler
+
+lint/radon: lint/radon-cc lint/radon-mi
+
+
+lint: lint/flake8  lint/mypy  lint/black  lint/bandit lint/radon ## check style, type annotations, whitespace
 
 
 test-all: setup lint unit-test
