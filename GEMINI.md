@@ -79,3 +79,11 @@ For development, you can install the project and its dependencies using the `Mak
 *   **Testing:** `pytest` is used for unit and functional testing. The `Makefile` provides several targets for running tests, including `test`, `test-functional`, and `local-test`.
 *   **Dependency Management:** Project dependencies are managed in `pyproject.toml`. The tool itself manages notebook dependencies through the `spec.yaml` file.
 *   **Packaging:** The project is packaged using `hatchling`.
+
+## Logging and returning errors
+
+In general,  WranglerLogger methods like info or error return a boolean value with the sense of "no errors". Consequently,
+a returning the value from "info(...)" will return *True*, as does "warning(...)".   while returning the value from
+"error(...)" or "exception(...)" will return *False*.  This is unfortunately the *opposite* of how shells tend to return
+error status where 0 denotes no errors and a non-zero uint code denotes a specific error.  The convention permits succinct
+code such that "if call():" has the meaning "if call() succeeded" and "if not call()" has the meaning "call() failed."
