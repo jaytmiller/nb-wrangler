@@ -428,37 +428,33 @@ As seen in the `refdata_dependencies.yaml` example, each archive section (e.g., 
 
 
 
+
+
 ### Data Install Locations
 
+`nb-wrangler` supports two primary modes for defining data environment variables: pantry and spec. 
 
-`nb-wrangler` supports two primary modes for defining data environment variables:  pantry and spec.  
+By default, `nb-wrangler` unpacks each archive with the pantry data storage area for the current spec. Additionally, unless suppressed with `--data-no-symlinks`, it creates a symbolic link at the location of each `install_data` field in the spec which points to the actual data area in the pantry where data was truly unpacked.
 
-By default,  nb-wrangler unpacks each archive with the pantry data storage area for the current spec.  But
-also by default,  unless suppressed with `--data-no-symlinks`,  it creates a symbolic link at the location of each `install_data`
-field in the spec which points to the actual data area in the pantry where data was truly unpacked.  In this way,  it is 
-possible to support BOTH the environment variable definitions themselves and the `install_data` paths which appear in the
-spec and which notebooks might inadvertently expect in addition to correct env vars.
+This allows supporting both environment variable definitions and `install_data` paths that notebooks might expect:
 
-Thus,  for personal data,  we can have:
+For personal data:
+```bash
+export NBW_PANTRY=$HOME/.nbw-pantry
+$HOME/refdata -> $HOME/.nbw-pantry/shelves/roman-20.0.0/data
+```
 
-    export NBW_PANTRY=$HOME/.nbw-pantry
-    $HOME/refdata -->  $HOME/.nbw-pantry/shelves/roman-20.0.0/data
+For system-level shared data:
+```bash
+export NBW_PANTRY=/teams/admin/nbw-pantry
+$HOME/refdata -> /teams/admin/nbw-pantry/shelves/roman-20.0.0/data
+```
 
-but for system level shared data we can have:
+Note that this scheme has limitations: the `refdata` symlink is a global resource, making it non-reentrant and preventing concurrent use with multiple kernel instances.
 
-    export NBW_PANTRY=/teams/admin/nbw-pantry
-    $HOME/refdata -->  /teams/admin/nbw-pantry/shelves/roman-20.0.0/data
-
-and in both cases both `$HOME/refdata` and the env vars themselves should
-meet any notebook expectations.
-
-Note that this is not an ideal scheme because the refdata symlinks only exist in one place,  hence it is not possible to access
-the data of two kernels simultaneously if the symlink is required.  In other words, the refdata symlink is a global resource
-which renders the system "non-reentrant" and two different instannces cannot run concurrently.
-
-If the symlink is not required,  it is possible to omit it using `--data-no-symlinks`.
-To write the environment variables directly in terms of the pantry instead of in terms of `install_data`, the `--data-env-vars-mode pantry`
-switch can be used which will affect both env variable exports and kernelspec JSON env variable definitions.
+To work around these issues:
+- Use `--data-no-symlinks` to omit symlinks.
+- Enable `--data-env-vars-mode pantry` to directly reference pantry paths in environment variables and kernelspec definitions.
 
 
 #### *Pantry Mode*
