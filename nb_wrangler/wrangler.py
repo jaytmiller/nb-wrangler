@@ -108,30 +108,30 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.error(
                 "Failed to set up internal Python environment from spec."
             )
-        # Convention is that success returns True,  failure returns False
-        no_errors = True
+        
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
-        for workflow in self.config.workflows:
-            match workflow:
-                case "curation":
-                    status = self._run_development_workflow()
-                case "submit_for_build":
-                    status = self._run_submit_build_workflow()
-                case "inject_spi":
-                    status = self._inject_spi_workflow()
-                case "reinstall":
-                    status = self._run_reinstall_spec_workflow()
-                case "data_curation":
-                    status = self._run_data_curation_workflow()
-                case "data_reinstall":
-                    status = self._run_data_reinstall_workflow()
-                case "reset_curation":
-                    status = self._run_reset_curation()
-                case _:
-                    self.logger.error(f"Undefined workflow {workflow}.")
-            no_errors = status and no_errors
-        return self._run_explicit_steps() and no_errors
+        
+        # Define workflow mappings
+        workflow_map = {
+            "curation": self._run_development_workflow,
+            "submit_for_build": self._run_submit_build_workflow,
+            "inject_spi": self._inject_spi_workflow,
+            "reinstall": self._run_reinstall_spec_workflow,
+            "data_curation": self._run_data_curation_workflow,
+            "data_reinstall": self._run_data_reinstall_workflow,
+            "reset_curation": self._run_reset_curation,
+        }
+        
+        # Execute workflows and collect results
+        workflow_results = [
+            workflow_map[workflow]() if workflow in workflow_map 
+            else (self.logger.error(f"Undefined workflow {workflow}."), False)[1]
+            for workflow in self.config.workflows
+        ]
+        
+        # Return True only if all workflows succeeded AND explicit steps succeeded
+        return all(workflow_results) and self._run_explicit_steps()
 
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
