@@ -17,6 +17,10 @@ if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
 if "PIP_CACHE_DIR" not in os.environ:
     os.environ["PIP_CACHE_DIR"] = str(NBW_CACHE / "pip")
+if "npm_config_cache" not in os.environ:
+    os.environ["npm_config_cache"] = str(NBW_CACHE / "npm")
+if "YARN_CACHE_FOLDER" not in os.environ:
+    os.environ["YARN_CACHE_FOLDER"] = str(NBW_CACHE / "yarn")
 
 REPOS_DIR = "references"
 DATA_DIR = "data"
