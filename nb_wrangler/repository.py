@@ -3,7 +3,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, List, Tuple
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -395,7 +395,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             )
             return True
 
-        self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}...")
+        self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}.")
         return self.git_checkout(repo_name, desired_ref)
 
     def git_stash(self, repo_name: str) -> bool:
@@ -437,3 +437,32 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return result.stdout.strip()
         self.logger.error(f"Failed to resolve ref '{ref}' in repo {repo_name}")
         return None
+
+    def prepare_repositories(
+        self, 
+        repos_to_prepare: Dict[str, str], 
+        floating_mode: bool = True
+    ) -> Dict[str, str]:
+        """
+        Prepare multiple repositories and return their resolved states.
+        
+        Args:
+            repos_to_prepare: Dictionary mapping repo URLs to desired refs
+            floating_mode: Whether to use floating mode (update to latest)
+            
+        Returns:
+            Dictionary mapping repo URLs to their resolved commit hashes
+        """
+        resolved_repo_states = {}
+        for repo_url, desired_ref in repos_to_prepare.items():
+            if not self.prepare_repository(repo_url, desired_ref):
+                raise RuntimeError(f"Failed to prepare repository {repo_url}")
+            
+            # Get the actual hash after preparation
+            repo_path = self._repo_path(repo_url)
+            current_sha = self.get_hash(repo_path)
+            if not current_sha:
+                raise RuntimeError(f"Could not get current SHA for {repo_url} after preparation.")
+            resolved_repo_states[repo_url] = current_sha
+            
+        return resolved_repo_states

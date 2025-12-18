@@ -1,4 +1,3 @@
-# nb_wrangler/wrangler.py
 """Main NotebookWrangler class orchestrating the curation process."""
 
 import os
@@ -298,21 +297,52 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         updating, and cleaning them according to the spec and CLI flags.
         """
         self.logger.info("Preparing all repositories.")
-        all_repos_to_prepare = {}
+        
+        # Collect repositories to prepare
+        all_repos_to_prepare = self._collect_repositories_to_prepare(floating_mode)
+        
+        # Prepare each repository and get resolved states
+        try:
+            resolved_repo_states = self.repo_manager.prepare_repositories(
+                all_repos_to_prepare, floating_mode
+            )
+        except RuntimeError as e:
+            return self.logger.error(f"Failed to prepare repositories: {e}")
+        
+        # Collect notebook paths and imports
+        notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
+        test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
+            list(notebook_paths.keys())
+        )
+        
+        # Update spec with resolved repository states
+        output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
+        self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
+        
+        # Save updated spec
+        return self.spec_manager.revise_and_save(
+            self.config.output_dir,
+            add_sha256=not self.config.spec_ignore_hash,
+            repositories=copy.deepcopy(output_repos_for_spec),
+            spi=copy.deepcopy(self.spec_manager.spi),
+            test_notebooks=notebook_paths,
+            test_imports=test_imports,
+            nb_to_imports=nb_to_imports,
+        )
 
-        # 1. Add SPI repo to the list if applicable
-        if not (
-            self.config.packages_omit_spi
-            and not self.config.inject_spi
-            and not self.config.submit_for_build
-        ):
+    def _collect_repositories_to_prepare(self, floating_mode=True):
+        """Collect all repositories that need to be prepared."""
+        all_repos_to_prepare = {}
+        
+        # Add SPI repo if applicable
+        if not (self.config.packages_omit_spi and not self.config.inject_spi and not self.config.submit_for_build):
             spi_info = self.spec_manager.spi
             spi_url = spi_info.get("repo")
             spi_ref = spi_info.get("ref")
             if spi_url:
                 all_repos_to_prepare[spi_url] = spi_ref or "main"
-
-        # 2. Add notebook repos to the list
+        
+        # Add notebook repos
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         if floating_mode:
             notebook_repo_refs = self.spec_manager.get_repository_refs()
@@ -326,60 +356,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         for url in notebook_repo_urls:
             all_repos_to_prepare[url] = notebook_repo_refs.get(url, "main")
+        
+        return all_repos_to_prepare
 
-        # Prepare each repository
-        resolved_repo_states = {}  # Store actual SHAs of prepared repos
-        for repo_url, desired_ref in all_repos_to_prepare.items():
-            if not self.repo_manager.prepare_repository(repo_url, desired_ref):
-                return False
-            # Get the actual hash after preparation
-            repo_path = self.repo_manager._repo_path(repo_url)
-            current_sha = self.repo_manager.get_hash(repo_path)
-            if current_sha:
-                resolved_repo_states[repo_url] = current_sha
-            else:
-                self.logger.error(
-                    f"Could not get current SHA for {repo_url} after preparation."
-                )
-                return False
-
-        # --- After all repos are prepared ---
-        self.logger.info("All repositories prepared successfully.")
-
-        # Collect notebook paths (this depends on all repos being ready)
-        notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
-        if not notebook_paths:
-            self.logger.warning(
-                "No notebooks found in specified repositories using spec'd patterns."
-            )
-
-        # Extract imports (this depends on notebook paths being ready)
-        test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
-            list(notebook_paths.keys())
-        )
-        if not test_imports:
-            self.logger.warning(
-                "No imports found in notebooks. Import tests will be skipped."
-            )
-
-        # Prepare repository info for the output section of the spec
-        output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
+    def _update_spec_with_repo_states(self, output_repos_for_spec, resolved_repo_states):
+        """Update the spec with resolved repository states."""
         for name, repo_data in output_repos_for_spec.items():
             if repo_data["url"] in resolved_repo_states:
                 repo_data["ref"] = resolved_repo_states[repo_data["url"]]
             repo_data.pop("branch", None)
             repo_data.pop("hash", None)
-
-        # Save to the output section of the spec
-        return self.spec_manager.revise_and_save(
-            self.config.output_dir,
-            add_sha256=not self.config.spec_ignore_hash,
-            repositories=copy.deepcopy(output_repos_for_spec),
-            spi=copy.deepcopy(self.spec_manager.spi),
-            test_notebooks=notebook_paths,
-            test_imports=test_imports,
-            nb_to_imports=nb_to_imports,
-        )
 
     def _prepare_all_repositories_locked(self) -> bool:
         return self._prepare_all_repositories(floating_mode=False)
