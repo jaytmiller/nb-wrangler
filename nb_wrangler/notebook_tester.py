@@ -8,6 +8,7 @@ import stat
 import sys
 import tempfile
 from concurrent.futures import ProcessPoolExecutor
+import re
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -22,6 +23,34 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         super().__init__()
         self.spec_manager = spec_manager
 
+    def _is_notebook_eligible_for_inclusion(
+        self,
+        nb_path: str,
+        include_regexes: list[re.Pattern],
+        exclude_regexes: list[re.Pattern],
+    ) -> bool:
+        """
+        Determines if a notebook is eligible for inclusion based on include/exclude patterns
+        and logs the reason for inclusion or exclusion.
+        """
+        is_included = any(r.search(nb_path) for r in include_regexes)
+        is_excluded = any(r.search(nb_path) for r in exclude_regexes)
+
+        if is_included and not is_excluded:
+            self.logger.debug(
+                f"Included '{nb_path}': matches include patterns and no exclude patterns."
+            )
+            return True
+
+        if not is_included:
+            self.logger.debug(
+                f"Excluding '{nb_path}': does not match any include patterns."
+            )
+        elif is_excluded:
+            self.logger.debug(f"Excluding '{nb_path}': matches an exclude pattern.")
+
+        return False
+
     def filter_notebooks(
         self,
         notebook_configs: dict[str, str],
@@ -29,34 +58,37 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         exclude_patterns: str,
     ) -> dict[str, str]:
         """Filter notebooks based on test patterns."""
-        import re
 
-        include_patterns = include_patterns or ".*"
-        exclude_patterns = exclude_patterns or r"^$"
-        include_list = [p for p in include_patterns.split(",") if p]
-        exclude_list = [p for p in exclude_patterns.split(",") if p]
+        # Set default patterns if none are provided. An empty exclude_patterns means nothing is excluded.
 
-        unique_notebooks = set()
+        include_list = [p for p in (include_patterns or ".*").split(",") if p]
+
+        exclude_list = [p for p in (exclude_patterns or "").split(",") if p]
+
+        # Pre-compile regexes for efficiency.
+
+        include_regexes = [re.compile(p) for p in include_list]
+
+        exclude_regexes = [re.compile(p) for p in exclude_list]
+
+        filtered_paths = []
+
         for nb_path in sorted(notebook_configs.keys()):
-            for include_regex in include_list:
-                if re.search(include_regex, nb_path):
-                    self.logger.debug(
-                        f"Including '{nb_path}' due to inclusion pattern '{include_regex}'."
-                    )
-                    for exclude_regex in exclude_list:
-                        if re.search(exclude_regex, nb_path):
-                            self.logger.debug(
-                                f"Excluding '{nb_path}' due to exclusion pattern '{exclude_regex}'."
-                            )
-                            break
-                    else:
-                        unique_notebooks.add(nb_path)
 
-        filtered_paths = sorted(unique_notebooks)
+            if self._is_notebook_eligible_for_inclusion(
+                nb_path, include_regexes, exclude_regexes
+            ):
+
+                filtered_paths.append(nb_path)
+
         filtered_configs = {path: notebook_configs[path] for path in filtered_paths}
+
         self.logger.info(f"Filtered notebook list to {len(filtered_configs)} entries:")
+
         for notebook in filtered_configs:
+
             self.logger.info(notebook)
+
         return filtered_configs
 
     def test_notebooks(

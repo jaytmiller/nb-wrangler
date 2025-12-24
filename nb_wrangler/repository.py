@@ -324,6 +324,67 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 f"Merged PR {title} to {repo_name}.",
             )
 
+    def _clone_and_checkout(
+        self, repo_url: str, repo_path: Path, desired_ref: str
+    ) -> bool:
+        """Clone the repository and check out the desired reference."""
+        self.logger.info(f"Repository {repo_path.name} not found locally. Cloning...")
+        repo_name = repo_path.name
+
+        # Determine if the ref is a commit hash
+        is_commit_hash = len(desired_ref) == 40 and all(
+            c in "0123456789abcdefABCDEF" for c in desired_ref
+        )
+
+        clone_ref = None
+        if not is_commit_hash:
+            clone_ref = desired_ref
+        else:
+            self.logger.info(
+                f"Desired ref {desired_ref} appears to be a commit hash. "
+                "Cloning default branch before checkout."
+            )
+
+        # git_clone will clone and then checkout if clone_ref is not None
+        if not self.git_clone(repo_url, repo_path, ref=clone_ref):
+            return False
+
+        # If it was a hash, we cloned the default branch, now checkout the hash
+        if is_commit_hash:
+            self.logger.info(f"Checking out specific commit {desired_ref}.")
+            return self.git_checkout(repo_name, desired_ref)
+
+        return True
+
+    def _handle_dirty_repository(self, repo_name: str) -> bool:
+        """
+        Handles a dirty repository by stashing, resetting, or prompting the user.
+        Returns True if the repository becomes clean, False otherwise.
+        """
+        self.logger.warning(f"Repository '{repo_name}' has uncommitted local changes.")
+        if self.config.overwrite_local_changes:
+            self.logger.info(
+                f"Overwriting local changes in {repo_name} due to --overwrite-local-changes flag."
+            )
+            return self.git_reset_hard(repo_name)
+
+        if self.config.stash_local_changes:
+            self.logger.info(
+                f"Stashing local changes in {repo_name} due to --stash-local-changes flag."
+            )
+            return self.git_stash(repo_name)
+
+        while True:
+            prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, or [A]bort? (S/D/A): "
+            choice = input(prompt).upper()
+            if choice == "A":
+                self.logger.error("Operation aborted by user.")
+                return False
+            elif choice == "S":
+                return self.git_stash(repo_name)
+            elif choice == "D":
+                return self.git_reset_hard(repo_name)
+
     def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
         """Ensure a repository is cloned and at the correct, clean ref."""
         self.logger.info(f"Preparing repository {repo_url} at ref {desired_ref}")
@@ -331,58 +392,11 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_path = self._repo_path(repo_url)
 
         if not repo_path.exists():
-            self.logger.info(f"Repository {repo_name} not found locally. Cloning...")
-            clone_ref: Optional[str] = desired_ref
-            # Check if desired_ref is likely a commit hash
-            if len(desired_ref) == 40 and all(
-                c in "0123456789abcdefABCDEF" for c in desired_ref
-            ):
-                self.logger.info(
-                    f"Desired ref {desired_ref} appears to be a commit hash. Cloning without specifying a branch."
-                )
-                clone_ref = None  # Clone default branch
+            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
-            if not self.git_clone(repo_url, repo_path, ref=clone_ref):
-                return False
-
-            # After cloning, if desired_ref was a hash, checkout the hash
-            if (
-                clone_ref is None and desired_ref is not None
-            ):  # Means desired_ref was a hash
-                self.logger.info(
-                    f"Checking out desired ref {desired_ref} after cloning."
-                )
-                return self.git_checkout(
-                    repo_name, desired_ref
-                )  # Using git_checkout for hash
-            return True  # Successfully cloned a branch or no specific ref was needed
         if not self.is_clean(repo_path):
-            self.logger.warning(
-                f"Repository '{repo_name}' has uncommitted local changes."
-            )
-            if self.config.overwrite_local_changes:
-                self.logger.info(
-                    f"Overwriting local changes in {repo_name} due to --overwrite-local-changes flag."
-                )
-                if not self.git_reset_hard(repo_name):
-                    return False
-            elif self.config.stash_local_changes:
-                self.logger.info(
-                    f"Stashing local changes in {repo_name} due to --stash-local-changes flag."
-                )
-                if not self.git_stash(repo_name):
-                    return False
-            else:
-                while True:
-                    prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, or [A]bort? (S/D/A): "
-                    choice = input(prompt).upper()
-                    if choice == "A":
-                        return self.logger.error("Operation aborted by user.")
-                    elif choice == "S":
-                        return self.git_stash(repo_name)
-                    elif choice == "D":
-                        return self.git_reset_hard(repo_name)
-            return True
+            if not self._handle_dirty_repository(repo_name):
+                return False  # Operation failed or was aborted
 
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)
