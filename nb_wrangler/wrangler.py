@@ -107,10 +107,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.error(
                 "Failed to set up internal Python environment from spec."
             )
-        
+
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
-        
+
         # Define workflow mappings
         workflow_map = {
             "curation": self._run_development_workflow,
@@ -121,14 +121,17 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "data_reinstall": self._run_data_reinstall_workflow,
             "reset_curation": self._run_reset_curation,
         }
-        
+
         # Execute workflows and collect results
         workflow_results = [
-            workflow_map[workflow]() if workflow in workflow_map 
-            else (self.logger.error(f"Undefined workflow {workflow}."), False)[1]
+            (
+                workflow_map[workflow]()
+                if workflow in workflow_map
+                else (self.logger.error(f"Undefined workflow {workflow}."), False)[1]
+            )
             for workflow in self.config.workflows
         ]
-        
+
         # Return True only if all workflows succeeded AND explicit steps succeeded
         return all(workflow_results) and self._run_explicit_steps()
 
@@ -297,10 +300,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         updating, and cleaning them according to the spec and CLI flags.
         """
         self.logger.info("Preparing all repositories.")
-        
+
         # Collect repositories to prepare
         all_repos_to_prepare = self._collect_repositories_to_prepare(floating_mode)
-        
+
         # Prepare each repository and get resolved states
         try:
             resolved_repo_states = self.repo_manager.prepare_repositories(
@@ -308,17 +311,17 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
         except RuntimeError as e:
             return self.logger.error(f"Failed to prepare repositories: {e}")
-        
+
         # Collect notebook paths and imports
         notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
         test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
             list(notebook_paths.keys())
         )
-        
+
         # Update spec with resolved repository states
         output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
         self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
-        
+
         # Save updated spec
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
@@ -333,15 +336,19 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _collect_repositories_to_prepare(self, floating_mode=True):
         """Collect all repositories that need to be prepared."""
         all_repos_to_prepare = {}
-        
+
         # Add SPI repo if applicable
-        if not (self.config.packages_omit_spi and not self.config.inject_spi and not self.config.submit_for_build):
+        if not (
+            self.config.packages_omit_spi
+            and not self.config.inject_spi
+            and not self.config.submit_for_build
+        ):
             spi_info = self.spec_manager.spi
             spi_url = spi_info.get("repo")
             spi_ref = spi_info.get("ref")
             if spi_url:
                 all_repos_to_prepare[spi_url] = spi_ref or "main"
-        
+
         # Add notebook repos
         notebook_repo_urls = self.spec_manager.get_repository_urls()
         if floating_mode:
@@ -356,10 +363,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         for url in notebook_repo_urls:
             all_repos_to_prepare[url] = notebook_repo_refs.get(url, "main")
-        
+
         return all_repos_to_prepare
 
-    def _update_spec_with_repo_states(self, output_repos_for_spec, resolved_repo_states):
+    def _update_spec_with_repo_states(
+        self, output_repos_for_spec, resolved_repo_states
+    ):
         """Update the spec with resolved repository states."""
         for name, repo_data in output_repos_for_spec.items():
             if repo_data["url"] in resolved_repo_states:

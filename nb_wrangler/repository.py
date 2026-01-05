@@ -3,7 +3,7 @@
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -400,7 +400,11 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)
+        if current_sha is None:
+            return False
         target_sha = self.resolve_ref_to_sha(repo_name, desired_ref)
+        if target_sha is None:
+            return False
 
         if current_sha == target_sha:
             sha_info = f" ({target_sha[:7]})" if target_sha else ""
@@ -453,17 +457,15 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         return None
 
     def prepare_repositories(
-        self, 
-        repos_to_prepare: Dict[str, str], 
-        floating_mode: bool = True
+        self, repos_to_prepare: Dict[str, str], floating_mode: bool = True
     ) -> Dict[str, str]:
         """
         Prepare multiple repositories and return their resolved states.
-        
+
         Args:
             repos_to_prepare: Dictionary mapping repo URLs to desired refs
             floating_mode: Whether to use floating mode (update to latest)
-            
+
         Returns:
             Dictionary mapping repo URLs to their resolved commit hashes
         """
@@ -471,12 +473,14 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         for repo_url, desired_ref in repos_to_prepare.items():
             if not self.prepare_repository(repo_url, desired_ref):
                 raise RuntimeError(f"Failed to prepare repository {repo_url}")
-            
+
             # Get the actual hash after preparation
             repo_path = self._repo_path(repo_url)
             current_sha = self.get_hash(repo_path)
             if not current_sha:
-                raise RuntimeError(f"Could not get current SHA for {repo_url} after preparation.")
+                raise RuntimeError(
+                    f"Could not get current SHA for {repo_url} after preparation."
+                )
             resolved_repo_states[repo_url] = current_sha
-            
+
         return resolved_repo_states
