@@ -78,9 +78,61 @@
 
 ---
 
-## Appendix: Plan A Maintenance
+## 6. Appendix: Plan A Maintenance
 
 *While our primary focus is the "Plan B" strategy, we may need to continue maintaining the existing "Plan A" (curator-built images) workflow.*
 
 - **Secure and Finalize Builds:** Fix remaining issues with curator-driven image builds and GitHub hosting. Work with ITSD/CCOE on security scanning and release processes.
 - **Enhance Build Automation:** Explore automatic PR creation for SPI-injected builds to speed up iteration for developers who opt-in.
+
+---
+
+## 7. A Straw-man Framework for Execution
+
+*The following is a proposal to kickstart discussion on how we can execute this roadmap as a team. The ideas, task assignments, and estimates are suggestions, and every team member should feel empowered to challenge them and contribute to the final plan.*
+
+### Onboarding New Team Members
+
+To effectively involve more of our scrum team, we should identify starter tasks that are self-contained, high-value, and provide a good learning opportunity.
+
+- **Phase 1: Learning the Codebase.** The single best initial task for a new contributor is **implementing unit tests**. By writing tests for an existing module (e.g., `compiler.py`, `data_manager.py`), a developer can learn a specific part of the system in-depth without the risk of breaking production features. This work can be easily parallelized across multiple team members.
+
+- **Phase 2: Contributing to Features.** Once a developer is comfortable with a module, they can take on a small, well-defined feature. Good candidates from this roadmap include **Flexible Environment Management (`NBW_PATH`)** or tasks within **Improved CLI and Terminal Integration**.
+
+### AI-Accelerated Development
+
+We can significantly accelerate development by pairing human developers with AI. The following task types are prime candidates for this "pilot/co-pilot" approach:
+
+- **Unit Testing:** AI can generate the complete boilerplate for test files, including mocks and varied test cases, leaving the developer to focus on the core logic.
+- **Scaffolding New Components:** For major features like the **JupyterLab Extension** or the **Web Dashboard**, AI can generate the entire initial project structure, build scripts, and basic UI components in minutes.
+- **Interactive Wizards and CLIs:** The logic for interactive command-line tools (e.g., `nb-wrangler init`) is pattern-based and ideal for AI generation.
+
+### Preliminary Effort Estimates
+
+The following estimates are intended to gauge the relative size of each task and facilitate planning conversations. They use a Fibonacci-like scale where **1** is a few days, **3** is a few weeks, and **5** is one or more months of work.
+
+#### **Priority 0: Foundational Work**
+- Implement Comprehensive Unit Tests: **(3/5)**
+- Engage Curators and Admins (tutorials, feedback loop): **(2/5)**
+- Productionize a Key Use-Case (Octarine/Roman OPS): **(3/5)**
+
+#### **Priority 1: Core Experience and Usability**
+- Polish Kernel Management (formal mamba, idempotency): **(2/5)**
+- Flexible Environment Management (`NBW_PATH`): **(1/5)**
+- Improved CLI and Terminal Integration: **(1/5)**
+- On-Platform Integration Tests: **(2/5)**
+
+#### **Priority 2: Game-Changer Features**
+- JupyterLab Extension: **(5/5)**
+- Decouple and Simplify Specs: **(3/5)**
+- Interactive Spec Curation (`nb-wrangler init`): **(2/5)**
+
+#### **Priority 3: Future Architecture and Ecosystem**
+- Lightweight Generic Base Image: **(1/5)**
+- Generalized Pantry Structure: **(3/5)**
+- Robust Secrets Management: **(2/5)**
+- Web Dashboard: **(5/5)**
+
+#### **Appendix: Plan A Maintenance**
+- Secure and Finalize Builds: **(2/5)**
+- Enhance Build Automation: **(1/5)**
