@@ -1,0 +1,103 @@
+# Plan B Areas of Work
+
+The following are all thoughts / proposals for possible future areas of
+wrangler work.
+
+## Scoreboard
+
+Wrangler proved itself to the primary implementer that it is capable of
+substantially accelerating last minute iteration and re-test of a mission
+environment for the roman-20 pre-release.  Regardless of the resolution of
+Plan A vs. Plan B (giant images buildable by curators vs. pre-installed
+and unpacked kernels installable by curators) it can accelerate the process
+of determining and resolving multi-notebook requirements, rebuilding compute
+environments and installing them as JupyterLab kernels to support rapid
+iteration and re-test even with sub-ideal numbers of personnel involved.
+
+It needs to be said however that wrangler familiarty and adoption are still at
+the introductory phase and being met with healthy skepticism.  Consequently,
+rollout of any wrangler changes/features/investments needs to be weighed
+against actual curator support and adoption... with careful consideration given
+to nurturing the latter two areas.  (Saying that, it's probably still an
+internal win to organize our own work with wrangler since it eliminates
+everyone's typical involvement with defining a combined environment and
+enables easy installation and retest.)
+
+## Preliminary
+
+- Polish kernel packing and unpacking (formal mamba process vs. micromamba
+intuition).
+
+- Define command line kernel/spec selection syntax relative to pantry and
+list of spec repos.  Work out the issue of redefinition of conda kernels.
+
+- Add support for multiple pantries via NBW_PATH mechanism or similar:  built-in,
+team, user, but more generally arbitrary sequences of arbitrary numbers of
+pantries, analogous to PATH and with similar first-found priorty resolution.
+
+- Work out scheme so that per-kernel environment variables are defined for
+terminal sessions as they are for notebooks.  Currently this only works for
+the image-based built-in Plan-A mission kernel but us already most of the
+task.  The remainder is defining a protocol
+
+- Wrangler Unit Tests
+
+- Engage curators
+
+### Wrangler curator tutorial
+
+Present hands-on curator training to Rossy, Tyler, and Thomas going through
+the curator side of the wrangler and preparing a spec.  Walk through the
+process with them with ample time for Q&A.  This may include some discussion
+of the "installation-only" features but does not have to,  it's really
+a separate work flow.  Solicit feedback / feature requests.
+
+### Wrangler admin/installer tutorial
+
+Present hands-on training to interested parties (curators, octarine) on how
+to use the wrangler to install an environment (anywhere). Solicit feedback /
+feature requests to improve process.
+
+## Broader Team Involvement
+
+- Fully resolve issue of Octarine environment installation user and
+general process of setting up shared system and team environments.
+
+- Set up unpackable roman-20 version code in Roman OPS.  Data is already
+there.
+
+- Write on-platform tests to verify that different configurations (system,
+team, user, generalized) of pantried environments and data work correctly
+in the context of switching between them arbitrarily.
+
+- Create light weight lab-wrangler-only generic image independent of mission
+environment under the assumption that the mission environments will be stashed
+in pre-installed on-platform persistent libraries/pantries.  Should be
+shareable between missions with a minimum of curator modifications required.
+
+- Implement labextension to dynamically unpack selected wrangler/packed
+environments (data?) so they are selectable as notebook environments or
+as terminal environments.
+
+- Adapt the pantry organization to represent envs, data, and notebooks without
+the assumption that a wrangler spec exists so that it can be interoperable with
+other simplified single function tools and still leverage key features like
+"lab menus for packing/unpacking environments".
+
+## Plan A Continuation
+
+- Fix / finish Plan-A Curator-driven builds and GitHub hosting.  Work out
+security enhancements needed to avoid using a PAT and support best practices.
+Get agreement with ITSD/CCOE on scanning methods and requirements,  as well
+as ultimate release process to OPS.
+
+- Enhance Plan-A SPI-Injected builds to support automatic PR's if desired.
+Requires per-dev extra setup but speeds iteration?
+
+- Generalization of wrangler specs to edge cases which define environments or
+data distributions with less reliance on notebook repo discovery and more
+direct independent specification.  (Decouple environments and data from
+notebook repo assumptions and policies while retaining as much compatibility
+as possible.)  Alternately this could be "define simplified specs" which
+handle smaller parts of the overall problem: e.g.  env only, data only, or
+notebooks only.
