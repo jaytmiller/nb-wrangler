@@ -1,0 +1,46 @@
+# Image header information
+image_spec_header:
+  image_name: roman-20.0.0
+  deployment_name: roman
+  kernel_name: roman-cal
+  display_name: Roman Research Nexus
+  description: |
+    This spec is for the production version of roman-20.
+  valid_on: 2025-12-12
+  expires_on: 2026-06-01
+  python_version: 3.12
+
+repositories:
+  roman_notebooks:
+    url: https://github.com/spacetelescope/roman_notebooks
+    ref: main
+
+selected_notebooks:
+  roman_all:
+    repo: roman_notebooks
+    root_directory: notebooks/
+    include_subdirs:
+      - '.*'
+    exclude_subdirs:
+      - data_visualization/data_visualization.ipynb
+  roman_data_viz:
+    repo: roman_notebooks
+    root_directory: notebooks/
+    include_subdirs:
+      - data_visualization/data_visualization.ipynb
+    tests:
+      papermill: false
+
+extra_mamba_packages:
+  - pip
+extra_pip_packages:
+  - boto3
+  - lsstdesc.coord
+
+system:
+  spec_version: 2.0
+  archive_format: .tar
+  spi:
+    repo: https://github.com/jaytmiller/science-platform-images.git
+    ref: roman-20.0.0
+out: {}
