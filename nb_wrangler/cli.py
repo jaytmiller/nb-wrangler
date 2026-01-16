@@ -11,6 +11,7 @@ from . import wrangler
 from . import utils
 from . import logger
 from . import config as config_mod
+from . import constants
 from .constants import (
     VALID_LOG_TIME_MODES,
     DEFAULT_LOG_TIMES_MODE,
@@ -431,6 +432,11 @@ def parse_args():
         default=DEFAULT_COLOR_MODE,
         help="Colorize the log.",
     )
+    misc_group.add_argument(
+        "--version",
+        action="store_true",
+        help="Print the version of nb-wrangler to stdout and stop.",
+    )
 
     parsed = parser.parse_args()
 
@@ -445,6 +451,9 @@ def parse_args():
 def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
+    if args.version:
+        print(constants.__version__)
+        return 0
     if args.spec_uri is None:
         log = logger.WranglerLogger()
         if os.environ.get("NBW_SPEC") is None:

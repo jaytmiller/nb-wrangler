@@ -1,0 +1,8 @@
+name: shared-env-for-test
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pandas=1.5.3
+  - pip:
+    - rich==13.7.0

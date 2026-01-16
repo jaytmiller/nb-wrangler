@@ -26,11 +26,26 @@ class SpecManager(WranglerLoggable):
 
     @property
     def deployment_name(self) -> str:
-        return self.header["deployment_name"]
+        """If omitted in image_header, deployment_name defaults to 'wrangler'
+        which is the universal deployment for modern wrangler builds where the
+        wrangler spec defines more-or-less everything.
+        """
+        return self.header.get("deployment_name", "wrangler")
 
     @property
-    def kernel_name(self) -> str:  # also environment_name / env_name
-        return self.header["kernel_name"]
+    def kernel_name(self) -> str | None:  # also environment_name / env_name
+        if "kernel_name" in self.header:
+            return self.header.get("kernel_name")
+        elif self.inline_mamba_spec:
+            return self.inline_mamba_spec.get("name")
+        elif self.environment_spec:
+            # Check if already compiled and stored in output
+            if output_kernel_name := self.get_output_data("kernel_name"):
+                return output_kernel_name
+            raise AttributeError(
+                "`kernel_name` cannot be determined from an external spec until it has been fetched and parsed by the compiler."
+            )
+        return None
 
     @property
     def display_name(self) -> str:  # readable name in lab menu
@@ -49,8 +64,11 @@ class SpecManager(WranglerLoggable):
         return self.header["description"]
 
     @property
-    def python_version(self) -> str:
-        return self.header["python_version"]
+    def python_version(self) -> str | None:
+        # This property is only valid in "simple" mode.
+        if self.inline_mamba_spec or self.environment_spec:
+            return None
+        return self.header.get("python_version")
 
     @property
     def repositories(self) -> dict[str, Any]:
@@ -66,11 +84,15 @@ class SpecManager(WranglerLoggable):
 
     @property
     def extra_mamba_packages(self) -> list[str]:
-        return self._spec.get("extra_mamba_packages", [])
+        return list(self._spec.get("extra_mamba_packages", []))
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        return self._spec.get("extra_pip_packages", [])
+        return list(self._spec.get("extra_pip_packages", []))
+
+    @property
+    def environment_spec(self) -> dict[str, Any] | None:
+        return self._spec.get("environment_spec")
 
     @property
     def spi(self) -> dict[str, str]:
@@ -149,8 +171,11 @@ class SpecManager(WranglerLoggable):
         """Return the raw spec dictionary."""
         return copy.deepcopy(self._spec)
 
-    def to_string(self):
-        return utils.yaml_dumps(self._spec)
+    def to_string(self) -> str:
+        output_str = utils.yaml_dumps(self._spec)
+        if hasattr(self, "inline_mamba_spec") and self.inline_mamba_spec is not None:
+            output_str += "\n---\n" + utils.yaml_dumps(self.inline_mamba_spec)
+        return output_str
 
     # ----------------------------- load, save, outputs  ---------------------------
 
@@ -173,11 +198,17 @@ class SpecManager(WranglerLoggable):
             return None
 
     def load_spec(self, spec_file: str | Path) -> bool:
-        """Load YAML specification file."""
+        """Load YAML specification file. Handles multi-document YAML for inline mamba specs."""
         try:
             self._source_file = Path(spec_file)
             with self._source_file.open("r") as f:
-                self._spec = utils.get_yaml().load(f)
+                docs = list(utils.get_yaml().load_all(f))
+            self._spec = docs[0]
+            if len(docs) > 1:
+                self.inline_mamba_spec = docs[1]
+                self.logger.debug("Found inline mamba spec (second YAML document).")
+            else:
+                self.inline_mamba_spec = None
             self.logger.debug(f"Loaded spec from {str(spec_file)}.")
             return True
         except Exception as e:
@@ -320,6 +351,7 @@ class SpecManager(WranglerLoggable):
             "display_name",
         ],
         "repositories": ["url", "ref"],
+        "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
         "selected_notebooks": [
@@ -353,7 +385,6 @@ class SpecManager(WranglerLoggable):
     REQUIRED_KEYWORDS: dict[str, Any] = {
         "image_spec_header": [
             "image_name",
-            "deployment_name",
             "kernel_name",
             "python_version",
             "valid_on",
@@ -373,7 +404,7 @@ class SpecManager(WranglerLoggable):
             return self.logger.error("Spec did not loaded / defined, cannot validate.")
         validated = (
             self._validate_top_level_structure()
-            and self._validate_header_section()
+            and self._validate_environment_spec()  # New comprehensive validation
             and self._validate_repositories_section()
             and self._validate_notebook_selections_section()
             and self._validate_system()
@@ -400,22 +431,181 @@ class SpecManager(WranglerLoggable):
 
         for key in self._spec:
             if key not in self.ALLOWED_KEYWORDS:
-                no_errors = self.logger.error(f"Unknown top-level keyword: {key}")
+                # The concatenated mamba spec can add top-level keys like 'name', 'channels', etc.
+                # We allow these only if an inline spec is detected.
+                if self.inline_mamba_spec is None:
+                    no_errors = self.logger.error(f"Unknown top-level keyword: {key}")
 
         return no_errors
 
-    def _validate_header_section(self) -> bool:
-        """Validate image_spec_header section."""
+    def _validate_environment_spec(self) -> bool:
+        """
+        Validates the environment definition, enforcing one of four mutually exclusive methods.
+        """
         no_errors = True
+
+        # Check which environment definition method is used
+        has_python_version = "python_version" in self.header
+        has_inline_mamba_spec = self.inline_mamba_spec is not None
+        has_environment_spec = self.environment_spec is not None
+
+        # Count defined methods
+        methods_defined = sum(
+            [has_python_version, has_inline_mamba_spec, has_environment_spec]
+        )
+
+        # Validate exactly one method is used
+        if methods_defined == 0:
+            return self.logger.error(
+                "No environment definition found. Specify `python_version`, an inline mamba spec, or an external `environment_spec`."
+            )
+        if methods_defined > 1:
+            return self.logger.error(
+                "Multiple environment definitions found. `python_version`, inline mamba spec, and `environment_spec` are mutually exclusive."
+            )
+
+        # Validate the specific method used
+        if has_python_version:
+            no_errors = self._validate_simple_definition() and no_errors
+        elif has_inline_mamba_spec:
+            no_errors = self._validate_inline_spec() and no_errors
+        elif has_environment_spec:
+            no_errors = self._validate_external_spec() and no_errors
+
+        # Validate header fields
+        no_errors = (
+            self._validate_header_fields(
+                has_python_version, has_inline_mamba_spec, has_environment_spec
+            )
+            and no_errors
+        )
+
+        return no_errors
+
+    def _validate_simple_definition(self) -> bool:
+        """Validate simple definition (python_version in header)."""
+        no_errors = True
+        if "kernel_name" not in self.header:
+            no_errors = (
+                self.logger.error(
+                    "Missing `kernel_name` in `image_spec_header` for simple definition mode."
+                )
+                and no_errors
+            )
+        if "display_name" not in self.header:
+            self.logger.warning(
+                "Missing `display_name` in `image_spec_header`. It will default to `kernel_name`."
+            )
+        return no_errors
+
+    def _validate_inline_spec(self) -> bool:
+        """Validate inline mamba spec."""
+        no_errors = True
+        if "python_version" in self.header:
+            no_errors = (
+                self.logger.error(
+                    "`python_version` must not be in the header when using an inline spec."
+                )
+                and no_errors
+            )
+        if "kernel_name" in self.header:
+            no_errors = (
+                self.logger.error(
+                    "`kernel_name` must not be in the header when using an inline spec."
+                )
+                and no_errors
+            )
+        if (
+            not isinstance(self.inline_mamba_spec, dict)
+            or "name" not in self.inline_mamba_spec
+        ):
+            no_errors = (
+                self.logger.error(
+                    "The inline mamba spec (second YAML document) must be a dictionary and have a `name` field."
+                )
+                and no_errors
+            )
+        return no_errors
+
+    def _validate_external_spec(self) -> bool:
+        """Validate external environment spec."""
+        no_errors = True
+        if "python_version" in self.header:
+            no_errors = (
+                self.logger.error(
+                    "`python_version` must not be in the header when using an external spec."
+                )
+                and no_errors
+            )
+        if "kernel_name" in self.header:
+            no_errors = (
+                self.logger.error(
+                    "`kernel_name` must not be in the header when using an external spec."
+                )
+                and no_errors
+            )
+        if not isinstance(self.environment_spec, dict):
+            no_errors = (
+                self.logger.error("`environment_spec` must be a dictionary.")
+                and no_errors
+            )
+        else:
+            has_uri = "uri" in self.environment_spec
+            has_repo = "repo" in self.environment_spec
+            has_path = "path" in self.environment_spec
+
+            if not (has_uri or (has_repo and has_path)):
+                no_errors = (
+                    self.logger.error(
+                        "`environment_spec` must contain either a `uri` key or both `repo` and `path` keys."
+                    )
+                    and no_errors
+                )
+            if has_uri and (has_repo or has_path):
+                no_errors = (
+                    self.logger.error(
+                        "In `environment_spec`, `uri` cannot be mixed with `repo` or `path`."
+                    )
+                    and no_errors
+                )
+            if has_repo and self.environment_spec["repo"] not in self.repositories:
+                no_errors = (
+                    self.logger.error(
+                        f"Unknown repository '{self.environment_spec['repo']}' referenced in `environment_spec`."
+                    )
+                    and no_errors
+                )
+        return no_errors
+
+    def _validate_header_fields(
+        self, has_python_version, has_inline_mamba_spec, has_environment_spec
+    ) -> bool:
+        """Validate header fields based on which environment method is used."""
+        no_errors = True
+        for field in self.REQUIRED_KEYWORDS["image_spec_header"]:
+            # Skip validation for fields that are optional when using other methods
+            if field == "kernel_name" and (
+                has_inline_mamba_spec or has_environment_spec
+            ):
+                continue
+            if field == "python_version" and (
+                has_inline_mamba_spec or has_environment_spec
+            ):
+                continue
+
+            if field not in self.header:
+                no_errors = (
+                    self.logger.error(
+                        f"Missing required field in image_spec_header: {field}"
+                    )
+                    and no_errors
+                )
+
         for key in self.header:
             if key not in self.ALLOWED_KEYWORDS["image_spec_header"]:
-                no_errors = self.logger.error(
-                    f"Unknown keyword in image_spec_header: {key}"
-                )
-        for field in self.REQUIRED_KEYWORDS["image_spec_header"]:
-            if field not in self.header:
-                no_errors = self.logger.error(
-                    f"Missing required field in image_spec_header: {field}"
+                no_errors = (
+                    self.logger.error(f"Unknown keyword in image_spec_header: {key}")
+                    and no_errors
                 )
         return no_errors
 

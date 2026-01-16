@@ -2,12 +2,18 @@
 
 import sys
 from pathlib import Path
+import httpx
+from typing import Any
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
 from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
-from .utils import get_yaml, yaml_dumps
+from .repository import RepositoryManager
+from .spec_manager import SpecManager
+from .injector import SpiInjector
+from .utils import get_yaml
+from . import utils
 
 
 class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
@@ -15,12 +21,14 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
     def __init__(
         self,
+        spec_manager: SpecManager,
+        repo_manager: RepositoryManager,
         python_path: str = sys.executable,
-        python_version: str = "3.11",
     ):
         super().__init__()
+        self.spec_manager = spec_manager
+        self.repo_manager = repo_manager
         self.python_path = python_path
-        self.python_version = python_version
 
     def find_requirements_files(self, notebook_paths: list[str]) -> list[Path]:
         """Find requirements.txt files in notebook directories."""
@@ -38,42 +46,29 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
     def compile_requirements(
         self,
-        requirements_files: list[Path],
+        package_files: list[str],
+        use_hashes: bool,
         output_path: Path,
-        use_hashes: bool = False,
     ) -> bool:
         """Compile requirements files into pinned versions,  outputs
         the result to a file at `output_path` and then loads the
         output and returns a list of package versions for insertion
         into other commands and specs.
         """
-        if not requirements_files:
-            return self.logger.warning("No requirements files to compile.")
-
-        all_requirements = set()
-        for req_file in requirements_files:
-            all_requirements.update(self.read_package_lines(req_file))
-        sorted_requirements = sorted(list(all_requirements))
-        self.logger.debug(
-            f"Combined requirements into a single list of packages: {sorted_requirements}"
-        )
-
-        temp_req_path = self.config.output_dir / "tmp-requirements.txt"
-        with temp_req_path.open(mode="w+") as temp_req_handle:
-            temp_req_handle.write("\n".join(sorted_requirements))
+        if not package_files:
+            return self.logger.warning("No package list to resolve versions for.")
 
         self.logger.info(
             "Compiling combined pip requirements to determine package versions "
             + ("adding hashes." if use_hashes else "w/o hashes.")
         )
 
-        if not self._run_uv_compile(output_path, [temp_req_path], use_hashes):
-            self.logger.error(
+        if not self._run_uv_compile(output_path, package_files, use_hashes):
+            return self.logger.error(
                 "========== Failed compiling combined pip requirements =========="
             )
-            return self.logger.error(self.annotated_requirements(requirements_files))
 
-        package_versions = self.read_package_lines(output_path)
+        package_versions = self.read_package_versions([output_path])
         return self.logger.info(
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
         )
@@ -81,22 +76,29 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
     def _run_uv_compile(
         self,
         output_file: Path,
-        requirements_files: list[Path],
+        requirements_files: list[str],
         use_hashes: bool = False,
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
         hash_sw = "--generate-hashes" if use_hashes else ""
+        python_ver = (
+            f"--python-version {self.spec_manager.python_version}"
+            if self.spec_manager.python_version
+            else ""
+        )
         cmd = (
-            f"uv pip compile --quiet --output-file {str(output_file)} --python {self.python_path}"
-            + f" --python-version {self.python_version} --universal {hash_sw} "
-            + "--no-header --annotate"
+            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
+            + f" --universal {hash_sw} {python_ver}"
+            + " --no-header --annotate"
         )
         for f in requirements_files:
-            cmd += " " + str(f)
+            cmd += " " + f
         result = self.env_manager.wrangler_run(
             cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
-        return self.env_manager.handle_result(result, "uv pip compile failed:")
+        return self.env_manager.handle_result(
+            result, f"{self.config.pip_command} compile failed: "
+        )
 
     def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
         """Read package versions from a list of requirements files omitting blank
@@ -104,11 +106,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         """
         package_versions = []
         for req_file in sorted(requirements_files):
-            lines = self.read_package_lines(req_file)
+            lines = self._read_package_lines(req_file)
             package_versions.extend(lines)
         return sorted(package_versions)
 
-    def read_package_lines(self, requirements_file: Path) -> list[str]:
+    def _read_package_lines(self, requirements_file: Path) -> list[str]:
         """Read package lines from requirements file omitting blank and comment lines.
         Should work with most forms of requirements.txt file,
         input or compiled,  and reduce it to a pure list of package versions.
@@ -121,56 +123,130 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     lines.append(line)
         return sorted(lines)
 
-    def annotated_requirements(self, requirements_files: list[Path]) -> str:
-        """Create an annotated input requirements listing to correlate version
-        constraints with the notebooks which impose them,  primarily as an aid
-        for direct conflict resolution.   Strictly speaking this is a WIP since
-        without compiling individual notebook requirements first dependencies
-        are not included which can be where the real conflicts occur without
-        necessarily a common root import.
+    def consolidate_environment(
+        self, notebook_paths: list[str], injector: SpiInjector, output_dir: Path
+    ) -> tuple[
+        Any,
+        dict[Any, Any],
+        dict[str, Any],
+        list[str],
+    ]:
         """
-        result: list[tuple[str, str]] = []
-        for req_file in sorted(requirements_files):
-            lines = self.read_package_lines(req_file)
-            result.extend((pkg, str(req_file)) for pkg in lines)  # note difference
-        result = sorted(result)
-        return "\n".join(f"{pkg:<20}  : {path:<55}" for pkg, path in result)
+        Orchestrates the compilation of the entire environment, including fetching external specs
+        and consolidating with other wrangler spec and notebook requirements.
 
-    def generate_target_mamba_spec(
-        self, kernel_name: str, dependencies: list[str], use_hashes: bool = False
-    ) -> str | bool:
-        """Generate mamba environment specification and return dict for YAML."""
-        try:
-            self.logger.debug(
-                "Generating spec for empty mamba environment " "using hashes."
-                if use_hashes
-                else "without hashes."
-            )
-            return self._generate_mamba_spec_core(kernel_name, dependencies, use_hashes)
-        except Exception as e:
-            return self.logger.exception(
-                e, f"Failed generating spec for empty mamba environment: {e}:"
-            )
+        Returns:
+            A tuple containing:
+            - Resolved kernel_name
+            - final_mamba_spec
+            - dict[mamba pkg kind, packages]
+            - list[non-mamba-package-files]
+        """
+        base_mamba_spec = self._get_base_mamba_spec()
+        kernel_name = base_mamba_spec.get("name")
+        if not kernel_name:
+            raise ValueError("Could not determine kernel name from Mamba spec.")
 
-    def _generate_mamba_spec_core(
-        self, kernel_name: str, dependencies_in: list[str], use_hashes: bool = False
-    ) -> str:
-        """Uncaught core processing of generate_mamba_spec."""
-        dependencies = [
-            f"python={self.python_version}" if self.python_version else "python",
-        ]
-        dependencies += TARGET_PACKAGES
-        dependencies += dependencies_in
-        dependencies = sorted(list(set(dependencies)))
-        mamba_spec = {
-            "name": kernel_name,
-            "channels": ["conda-forge"],
-            "dependencies": dependencies,
-        }
-        self.logger.debug(
-            "Generated mamba_spec:", "\n" + self.logger.pformat(mamba_spec)
+        # Get SPI requirements now that we have a definitive kernel_name
+        spi_mamba_files = injector.find_spi_mamba_files()
+
+        all_mamba_pkg_map = dict(
+            base_mamba_deps=base_mamba_spec.get("dependencies", []),
+            extra_mamba_packages=list(self.spec_manager.extra_mamba_packages),
+            spi_mamba_packages=self.read_package_versions(spi_mamba_files),
+            wrangler_target_packages=TARGET_PACKAGES,
         )
-        return yaml_dumps(mamba_spec)
+
+        mamba_dep_list = [
+            pkg for sublist in sorted(all_mamba_pkg_map.values()) for pkg in sublist
+        ]
+
+        final_mamba_spec = dict(base_mamba_spec)
+        final_mamba_spec["dependencies"] = mamba_dep_list
+        if "channels" not in final_mamba_spec:
+            final_mamba_spec["channels"] = ["conda-forge"]
+        final_mamba_spec["name"] = kernel_name
+
+        # Pip
+        notebook_req_files = self.find_requirements_files(notebook_paths)
+        spi_pip_files = injector.find_spi_pip_files()
+        extra_pip_packages_file = utils.writelines(
+            self.spec_manager.extra_pip_packages, "extra_pip_packages.txt"
+        )
+        # These paths should make self-identify where they came from, hence
+        # no dictionary needed here.
+        non_mamba_pip_req_files = list(notebook_req_files)
+        non_mamba_pip_req_files.extend(spi_pip_files)
+        non_mamba_pip_req_files.append(Path(extra_pip_packages_file))
+
+        return (
+            kernel_name,
+            final_mamba_spec,
+            all_mamba_pkg_map,
+            [str(path) for path in non_mamba_pip_req_files],
+        )
+
+    def _get_base_mamba_spec(self) -> dict:
+        """Determines which of the four methods is used and returns the base mamba spec as a dict."""
+        # Method 2: Inline Spec (Concatenated File)
+        if self.spec_manager.inline_mamba_spec:
+            self.logger.info("Using inline (concatenated) mamba spec.")
+            return self.spec_manager.inline_mamba_spec
+
+        # Method 3 & 4: External Spec
+        if self.spec_manager.environment_spec:
+            spec_def = self.spec_manager.environment_spec
+            if "uri" in spec_def:
+                uri = spec_def["uri"]
+                self.logger.info(f"Using external mamba spec from URI: {uri}")
+                return self._load_spec_from_uri(uri)
+            if "repo" in spec_def and "path" in spec_def:
+                repo = spec_def["repo"]
+                path = spec_def["path"]
+                self.logger.info(
+                    f"Using external mamba spec from repo '{repo}' at path '{path}'."
+                )
+                # This assumes the repo_manager in the main wrangler class has the repo cloned
+                repo_path = self.repo_manager.get_repo_path(repo)
+                if not repo_path:
+                    raise FileNotFoundError(f"Could not find path for repo '{repo}'.")
+                spec_path = repo_path / path
+                if not spec_path.exists():
+                    raise FileNotFoundError(
+                        f"Mamba spec file not found at '{spec_path}'."
+                    )
+                with spec_path.open("r") as f:
+                    return get_yaml().load(f)
+
+        # Method 1: Simple Definition
+        if self.spec_manager.python_version:
+            self.logger.info(
+                f"Using simple definition with python_version={self.spec_manager.python_version}."
+            )
+            return {
+                "name": self.spec_manager.kernel_name,
+                "channels": ["conda-forge"],
+                "dependencies": [f"python={self.spec_manager.python_version}"],
+            }
+
+        raise ValueError("Could not determine base mamba spec. Spec is invalid.")
+
+    def _load_spec_from_uri(self, uri: str) -> dict:
+        """Loads a spec from a URI (http, https, or local file path)."""
+        if uri.startswith(("http://", "https://")):
+            try:
+                response = httpx.get(uri, timeout=10)
+                response.raise_for_status()
+                return get_yaml().load(response.text)
+            except Exception as e:
+                raise IOError(f"Failed to fetch mamba spec from URL '{uri}': {e}")
+        else:
+            # Treat as a local file path relative to the main spec file
+            spec_path = self.spec_manager.spec_file.parent / uri
+            if not spec_path.exists():
+                raise FileNotFoundError(f"Mamba spec file not found at '{spec_path}'.")
+            with spec_path.open("r") as f:
+                return get_yaml().load(f)
 
     def write_mamba_spec_file(self, filepath: Path, mamba_spec: dict) -> bool:
         """Write mamba spec dictionary to YAML file."""

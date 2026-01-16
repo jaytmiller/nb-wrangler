@@ -20,7 +20,6 @@ from .constants import (
     LOG_FILE,
 )
 
-
 # Logger constants
 ANSI_COLORS = {
     "black-foreground": "\033[30m",

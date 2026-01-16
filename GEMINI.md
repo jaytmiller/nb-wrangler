@@ -62,7 +62,7 @@ The project is designed to be bootstrapped and then run from a controlled enviro
 ./nb-wrangler spec.yaml --test-all
 ```
 
-### Development
+## Development
 
 For development, you can install the project and its dependencies using the `Makefile`:
 
@@ -72,7 +72,7 @@ For development, you can install the project and its dependencies using the `Mak
 *   **`make coverage`**: Generates a test coverage report.
 *   **`make clean`**: Removes build and test artifacts.
 
-## Development Conventions
+### Development Conventions
 
 *   **Code Style:** The project uses `black` for code formatting and `flake8` for linting.
 *   **Type Checking:** `mypy` is used for static type checking.
@@ -80,10 +80,24 @@ For development, you can install the project and its dependencies using the `Mak
 *   **Dependency Management:** Project dependencies are managed in `pyproject.toml`. The tool itself manages notebook dependencies through the `spec.yaml` file.
 *   **Packaging:** The project is packaged using `hatchling`.
 
-## Logging and returning errors
+### Logging and returning errors
 
 In general,  WranglerLogger methods like info or error return a boolean value with the sense of "no errors". Consequently,
 a returning the value from "info(...)" will return *True*, as does "warning(...)".   while returning the value from
 "error(...)" or "exception(...)" will return *False*.  This is unfortunately the *opposite* of how shells tend to return
 error status where 0 denotes no errors and a non-zero uint code denotes a specific error.  The convention permits succinct
 code such that "if call():" has the meaning "if call() succeeded" and "if not call()" has the meaning "call() failed."
+
+### Installing micromamba
+
+The "nb-wrangler bootstrap" script invocation installs micromamba and nb-wrangler relative to NBW_ROOT and other env vars.
+DO NOT abandon use of the standard micromamba install.sh script because of errors initializing the wrangler environment related to shell init.
+This script works fine using <<EOF notation to input parameters and is critical to keeping bootstrapping resilient to changes
+in micromamba and mamba.
+
+### Avoid Code Duplication
+
+Whenever a change or set of changes produces a reasonably complex line or block of code and effectively repeats it or close variations
+in multiple locations, consider using a property or function to factor out the common code and improve readability and standardization.
+Avoid the temptation of taking the easy route:  do not inline the same complex processing in multiple locations,  instead you should
+generalize and factor out the commonality into a single property or function which may be called in different ways as needed.

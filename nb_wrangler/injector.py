@@ -42,27 +42,12 @@ class SpiInjector(WranglerLoggable):
         self.spec_manager = spec_manager
         self.spi_path = Path(repo_manager.repos_dir) / self.repo_name
         self.deployment_name = self.spec_manager.deployment_name
-        self.kernel_name = self.spec_manager.kernel_name
         self.base_ingest_branch = "origin/main"
         self.ingest_dir = Path("nbw-spec-archive")
         self.archive_dir = Path("nbw-spec-archive")
         self.deployments_path = self.spi_path / "deployments"
         self.deployment_path = self.deployments_path / self.deployment_name
         self.environments_path = self.deployment_path / "environments"
-        self.kernel_path = self.environments_path / self.kernel_name
-        self.test_path = self.kernel_path / "tests"
-        self.env_pip = self.kernel_path / f"{self.kernel_name}.pip"
-        self.env_yml = self.kernel_path / f"{self.kernel_name}.yml"
-        self.pip_patterns = [
-            self.deployments_path / "common/common-env/*.pip",
-            self.kernel_path / "*.pip",
-        ]
-        self.mamba_patterns = [
-            self.deployments_path / "common/common-env/*.conda",
-            self.kernel_path / "*.conda",
-            self.deployments_path / "common/common-env/*.mamba",
-            self.kernel_path / "*.mamba",
-        ]
 
     @property
     def url(self):
@@ -172,18 +157,22 @@ Description:
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
         return self.spec_manager.save_spec(out_spec)
 
-    def inject(self, env_exports: str) -> bool:
+    def inject(self, kernel_name: str, env_exports: str) -> bool:
         """
         Performs a placeholder injection of the SPI.
         """
         self.logger.info(
-            f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {self.kernel_name}..."
+            f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {kernel_name}..."
         )
-        # self._inject("notebook_repo_urls", self.environments_path / "notebook-repos")
-        self._inject("test_imports", self.test_path / "imports")
-        # self._inject("test_notebooks", self.test_path / "notebooks")
-        self._inject("mamba_spec", self.env_yml)
-        self._inject("pip_compiler_output", self.env_pip)
+        if self.deployment_name != "wrangler":
+            kernel_path = self.environments_path / kernel_name
+            test_path = kernel_path / "tests"
+            env_yml = kernel_path / f"{kernel_name}.yml"
+            env_pip = kernel_path / f"{kernel_name}.pip"
+            self._inject("test_imports", test_path / "imports")
+            # self._inject("test_notebooks", self.test_path / "notebooks")
+            self._inject("mamba_spec", env_yml)
+            self._inject("pip_compiler_output", env_pip)
         self._inject(
             None, self.deployment_path / "MISSION_VERSION", self.spec_manager.moniker
         )
@@ -191,13 +180,18 @@ Description:
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )
+
         return self.logger.info("SPI injection complete.")
 
     def _inject(
         self, field: Optional[str], where: str | Path, literal: Optional[str] = None
     ) -> None:
         self.logger.info(f"Injecting field {field} to {where}")
-        with open(str(where), "w") as f:
+        where = Path(where)
+        if not where.parent.exists():
+            self.logger.warning(f"Directory for '{where.parent}' does not exist, skipping injection.")
+            return
+        with where.open("w+") as f:
             if field:
                 obj = self.spec_manager.get_output_data(field)
             elif literal is not None:
@@ -215,16 +209,12 @@ Description:
             else:
                 raise ValueError(f"Unsupported type {type(obj)} for field {field}")
 
-    def get_spi_requirements(
-        self, glob_patterns: list[Path], kind: str, extraneous: Path
-    ) -> list[Path]:
+    def get_spi_requirements(self, kind, glob_patterns: list[Path]) -> list[Path]:
         """Find extra mamba or pip requirements files required by SPI environments such as those
         included in the common/common-env directory. mamba packages are typically non-Python packages
         such as C libraries and compiles and install tools.  For Python packages,  using
         pip to install them is preferred.
         """
-        temp = extraneous.open().read()
-        extraneous.unlink(missing_ok=True)
         spi_extra_requirements = []
         for pattern in glob_patterns:
             extras = Path(".").glob(str(pattern))
@@ -236,11 +226,21 @@ Description:
         self.logger.info(
             f"Found SPI extra {len(spi_extra_requirements)} {kind} requirements files."
         )
-        extraneous.open("w+").write(temp)
         return spi_extra_requirements
 
     def find_spi_pip_files(self) -> list[Path]:
-        return self.get_spi_requirements(self.pip_patterns, "pip", self.env_pip)
+        return self.get_spi_requirements(
+            "pip",
+            [
+                self.deployments_path / "common/common-env/*.pip",
+            ],
+        )
 
     def find_spi_mamba_files(self) -> list[Path]:
-        return self.get_spi_requirements(self.mamba_patterns, "mamba", self.env_yml)
+        return self.get_spi_requirements(
+            "mamba",
+            [
+                self.deployments_path / "common/common-env/*.conda",
+                self.deployments_path / "common/common-env/*.mamba",
+            ],
+        )

@@ -235,6 +235,151 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:45
 ```
 
+## Advanced Environments
+
+There are multiple methods of defining the Python environment which collectively use a combination of
+inputs from the spec and network resources.
+
+### Overall Approach
+
+nb-wrangler mimics the approach taken by STSCI's notebook repositories in general, and to that end it
+tends to minimize the mamba environment and emphasize usage of pip packages wherever possible. No approach
+is perfect but this one tends to provide the timeliest access to new packages and the most flexibility
+in how notebooks can be run.  Indeed, individual notebooks commonly run after specifying solely their
+required pip requirements.txt file making them suitable for both mamba and Python virtual environments. 
+One of the fundamental tasks of the wrangler however is to resolve common environments capable of running
+entire sets of notebooks, and in particular, capable or running those notebooks on STSCI's JupyterHub
+science platforms.
+
+Our original bias for which packages to install with mamba can be summed up as:  (1) Python itself 
+(2) Python build tools (3) non-Python libraries and tools (4) uv/pip and the wrangler and dependencies.
+In a perfect world,  everything else should be installed using a variation of pip.
+
+### Base Environment Paradigms
+
+`nb-wrangler` provides multiple methods for defining the base software environment. These are broadly divided into a **Simple Definition** for `pip`-centric projects and **Advanced Definitions** for projects requiring precise control over the Mamba environment.
+
+#### Method 1: Simple Definition (Implied Spec)
+
+This is the standard and most straightforward method. You specify a `python_version` and a `kernel_name` in the spec's header. `nb-wrangler` uses this to create a minimal Mamba environment containing Python and other core packages like `uv` and `pip`.
+
+**Example:**
+```yaml
+image_spec_header:
+  kernel_name: my-simple-env
+  display_name: "My Simple Environment"
+  python_version: "3.11"
+# ... rest of spec
+# MUST NOT specify top-level `environment_spec` or have a second YAML document.
+```
+
+#### Advanced Definitions
+
+For more complex environments, you can provide a complete Mamba environment specification using one of the following mutually exclusive methods. In all advanced methods, `python_version` and `kernel_name` must be omitted from the wrangler spec header.
+
+##### Method 2: Inline Spec (via Concatenated File)
+
+Your spec file can contain two separate YAML documents, separated by `---`. This is useful for quickly embedding an existing `environment.yml` file directly into your wrangler spec without needing to fix indentation.
+
+**Rules:**
+1.  The `nb-wrangler` spec (the first document) **must not** contain `python_version` or `kernel_name`. It may optionally provide a `display_name`.
+2.  The Mamba spec (the second document) **must** contain a `name` field. This will be used as the environment's kernel name.
+
+**Example `my-spec.yaml`:**
+```yaml
+image_spec_header:
+  image_name: "My Inlined Env"
+  description: "An environment defined by an inline Mamba spec."
+  display_name: "My Inline Environment"  # Optional, defaults to the mamba name
+# ... other wrangler spec fields ...
+---
+name: my-inline-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - pip:
+    - rich
+```
+
+##### Method 3 & 4: External Spec (via `environment_spec` field)
+
+This approach uses the `environment_spec` field to point to an externally defined Mamba environment file. This is the most powerful method for reusing shared, version-controlled environments.
+
+**Rules:**
+1.  The `nb-wrangler` spec **must not** contain `python_version` or `kernel_name`. It may optionally provide a `display_name`.
+2.  The Mamba spec referenced externally **must** contain a `name` field.
+
+**A) By URI (URL or Local File)**
+
+You can point to a network URI or a local file path.
+
+**Example:**
+```yaml
+image_spec_header:
+  display_name: "My External Environment"
+# ...
+environment_spec:
+  uri: https://raw.githubusercontent.com/my-org/my-repo/main/environment.yml
+```
+You can also use a local file path, which is resolved relative to the location of the wrangler spec file.
+
+> **Warning:** Using a local file path (`uri: ../my-env.yml`) is convenient for development but makes your spec non-portable. For any spec that will be shared or version-controlled, using a **URL** or **Repository Path** is the recommended best practice.
+
+**B) By Repository Path**
+
+You can point to a file within a git repository that is already listed in the top-level `repositories` block of your spec.
+
+**Example:**
+```yaml
+repositories:
+  my-notebook-repo:
+    url: https://github.com/my-org/my-notebooks.git
+    ref: main
+# ...
+image_spec_header:
+  display_name: "My Repo Environment"
+# ...
+environment_spec:
+  repo: my-notebook-repo
+  path: environment.yml
+```
+
+### Notebook Repo Requirements.txt
+
+Each notebook directory is permitted to define it's own  `requirements.txt`
+file to define pip dependencies which will nominally be resolved and downloaded in aggregate (all notebook
+requirements combined) by `uv pip install`. As-of this writing `uv pip install` results in much improved 
+version resolution and download times, as well as high quality version resolution feedback which is critical
+for resolving any difficult package conflicts which result from combining requirements sources.
+
+### Inlined extra_mamba_packages
+
+It is possible to add a list of extra mamba packages directly to the wrangler spec as `extra_mamba_packages`
+and these will be added to the environment by mamba in addition to those specified in the base mamba spec.
+
+### Inlined extra_pip_packages
+
+Likewise it is possible to inline extra pip packages by adding `extra_pip_packages` to the wrangler spec and
+these will nominally be added by `uv pip` in addition to those specified by the base mamba spec and/or
+requirements.txt files.
+
+### Notebook Repo Helper Modules
+
+Lastly,  it's possible for each notebook directory to define local `.py` helper modules directly although
+this is not particularly recommended.  By convention,  a top level `shared` directory can also be used to 
+store globally available helper modules,  but with the expectation that any notebook importing them will
+symlink from the notebook directory (where it is expected to run) to the globally shared file.
+
+### SPI (science-platform-images) Packages
+
+As a final note,  the science platforms impose common requirements in the form of mamba and pip packages which
+are collected from selected directories on https://github.com/spacetelescope/science-platform-images.
+These help support the standard lab environment and platform extensions,  and while it is possible to opt out
+using --packages-omit-spi (both mamba and pip are ommitted), this will most likely result in divergence from
+standard science platform behavior and/or
+
 ## Notebook and Environment Reinstallation
 
 At some later time and/or different location you can re-install a wrangler spec which was developed

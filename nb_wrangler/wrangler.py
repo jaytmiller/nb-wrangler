@@ -40,12 +40,30 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.notebook_import_processor = NotebookImportProcessor()
         self.tester = NotebookTester(self.spec_manager)
         self.compiler = RequirementsCompiler(
-            python_version=self.spec_manager.python_version
+            spec_manager=self.spec_manager, repo_manager=self.repo_manager
         )
         self.injector = get_injector(self.repo_manager, self.spec_manager)
+        # Store compiled artifacts
+        self.compiled_kernel_name: str | None = None
         # Create output directories
         self.config.output_dir.mkdir(parents=True, exist_ok=True)
         self.config.repos_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def resolved_kname(self) -> str | None:
+        """
+        Gets the definitive kernel name from the most reliable source available.
+
+        The kernel name can come from three places, in order of priority:
+        1. self.compiled_kernel_name: Set after the compile step. The most accurate.
+        2. spec output: For pre-compiled specs (`--reinstall` workflow).
+        3. self.env_name: From the initial spec load (for simple mode or early steps).
+        """
+        return (
+            self.compiled_kernel_name
+            or self.spec_manager.get_output_data("kernel_name")
+            or self.env_name
+        )
 
     @property
     def deployment_name(self):
@@ -63,6 +81,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def kernel_display_name(self) -> str:
         """More readable version of kernel name visible in JupyterLab menu."""
         return self.spec_manager.display_name if self.spec_manager else self.env_name
+
+    @property
+    def pip_packages(self) -> list[str]:
+        """Use compiled packages if available, otherwise from spec output."""
+        return (
+            self.spec_manager.get_output_data("pip_compiler_output").splitlines() or []
+        )
 
     @property
     def mamba_spec_file(self):
@@ -235,7 +260,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "reset curation",
             [
                 self._delete_environment,
-                self._env_compact,
+                # self._env_compact,
                 self._reset_spec,
                 self._save_final_spec,
                 self._reset_log,
@@ -424,7 +449,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         storage mode.  Since this can get called before data has ever been collected, let it
         succeed normally even if no env vars are defined in the spec yet.
         """
-        data = self.spec_manager.get_outputs("data")
+        data = self.spec_manager.get_output_data("data")
+        if data is None:
+            self.logger.warning("No 'data' section in spec for defining environment variables.")
+            return ""
         mode = self.config.data_env_vars_mode
         exports = data.get(mode + "_exports")
         exports_str = ""
@@ -574,82 +602,80 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 urls.append(spi_url)
         return self.repo_manager.delete_repos(urls)
 
-    def _generate_target_mamba_spec(self) -> str | bool:
-        """Unconditionally generate mamba environment .yml spec."""
-        self.logger.info(
-            f"Generating mamba spec for target environment {self.mamba_spec_file}."
-        )
-        mamba_packages = list(self.spec_manager.extra_mamba_packages)
-        spec_out: dict[str, Any] = dict(injector_url=self.injector.url)
-        if not self.config.packages_omit_spi:
-            spi_file_paths = self.injector.find_spi_mamba_files()
-            spec_out["spi_files"] = [str(p) for p in spi_file_paths]
-            spec_out["spi_packages"] = spi_packages = (
-                self.compiler.read_package_versions(spi_file_paths)
-            )
-            mamba_packages += spi_packages
-        mamba_spec = self.compiler.generate_target_mamba_spec(
-            self.spec_manager.kernel_name, mamba_packages
-        )
-        if not mamba_spec:
-            return self.logger.error(
-                "Failed to generate mamba spec for target environment."
-            )
-        else:
-            spec_out["mamba_spec"] = utils.yaml_block(mamba_spec)
-            return self.spec_manager.revise_and_save(
-                self.config.output_dir,
-                add_sha256=not self.config.spec_ignore_hash,
-                **spec_out,
-            )
-
     def _compile_requirements(self) -> bool:
-        """Unconditionally identify notebooks, compile requirements, and update spec outputs
-        for both mamba and pip.
         """
-        if not self._generate_target_mamba_spec():
-            return self.logger.error("Failed generating mamba spec.")
-        notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks")
-        requirements_files = self.compiler.find_requirements_files(
-            list(notebook_paths_dict.keys())
+        Compiles the full environment, stores artifacts, and saves them to the spec.
+        """
+        self.logger.info("Compiling full environment definition.")
+        notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks") or {}
+
+        # The compiler now handles all logic for the 4 methods
+        (
+            self.compiled_kernel_name,
+            final_mamba_spec_dict,
+            mamba_package_map,
+            non_mamba_pip_pkg_files,
+        ) = self.compiler.consolidate_environment(
+            list(notebook_paths_dict.keys()), self.injector, self.config.output_dir
         )
-        if not self.compiler.write_pip_requirements_file(
-            self.extra_pip_output_file, self.spec_manager.extra_pip_packages
+
+        compiled_mamba_spec_str = utils.yaml_block(
+            utils.yaml_dumps(final_mamba_spec_dict)
+        )
+
+        # Save artifacts to the spec's output section
+        if not self.spec_manager.revise_and_save(
+            self.config.output_dir,
+            add_sha256=not self.config.spec_ignore_hash,
+            kernel_name=self.resolved_kname,
+            mamba_spec=compiled_mamba_spec_str,
+            mamba_package_map=mamba_package_map,
+            non_mamba_pip_package_files=non_mamba_pip_pkg_files,
         ):
             return False
-        requirements_files.append(self.extra_pip_output_file)
-        if not self.config.packages_omit_spi:
-            spi_requirements_files = self.injector.find_spi_pip_files()
-            requirements_files.extend(spi_requirements_files)
-        self.compiler.compile_requirements(
-            requirements_files, self.pip_output_file, self.config.spec_add_pip_hashes
-        )
-        with self.pip_output_file.open("r") as f:
-            yaml_str = utils.yaml_block(f.read())
-        d = dict(
-            add_sha256=not self.config.spec_ignore_hash,
-            pip_compiler_output=yaml_str,
-        )
-        if self.config.packages_diagnostics:
-            requirements_files_str = list(str(f) for f in requirements_files)
-            pip_map = utils.files_to_map(requirements_files_str)
-            d["pip_requirements_files"] = requirements_files_str
-            d["pip_map"] = pip_map
+
+        if not self.compiler.compile_requirements(
+            non_mamba_pip_pkg_files,
+            self.config.spec_add_pip_hashes,
+            self.pip_output_file,
+        ):
+            return self.logger.error("Failed to compile pip package versions.")
+        
+        Path("extra_pip_packages.txt").unlink()
+
+        compiled_pip_packages_str = utils.yaml_block(self.pip_output_file.open().read())
+
+        # Save artifacts to the spec's output section
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
-            **d,
+            add_sha256=not self.config.spec_ignore_hash,
+            pip_compiler_output=compiled_pip_packages_str,
         )
 
     def _initialize_environment(self) -> bool:
         """Unconditionally initialize the target environment."""
-        if self.env_manager.environment_exists(self.env_name):
-            return self.logger.info(
-                f"Environment {self.env_name} already exists, skipping re-install.  Use --env-delete to remove."
+        compiled_mamba_spec_str = self.spec_manager.get_output_data("mamba_spec", {})
+
+        if not self.resolved_kname or not compiled_mamba_spec_str:
+            return self.logger.error(
+                "No compiled kernel name or mamba spec found. Run --packages-compile first."
             )
-        mamba_spec = str(self.spec_manager.get_outputs("mamba_spec"))
-        with open(self.mamba_spec_file, "w+") as spec_file:
-            spec_file.write(mamba_spec)
-        if not self.env_manager.create_environment(self.env_name, self.mamba_spec_file):
+
+        if self.env_manager.environment_exists(self.resolved_kname):
+            return self.logger.info(
+                f"Environment {self.resolved_kname} already exists, skipping re-install. Use --env-delete to remove."
+            )
+
+        # Write the compiled mamba spec to a temporary file
+        temp_mamba_spec_file = (
+            self.config.output_dir / f"{self.resolved_kname}-mamba.yml"
+        )
+        with open(temp_mamba_spec_file, "w") as f:
+            f.write(compiled_mamba_spec_str)
+
+        if not self.env_manager.create_environment(
+            self.resolved_kname, temp_mamba_spec_file
+        ):
             return False
         if not self._register_environment():
             return False
@@ -657,12 +683,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
-        pip_compiler_output = self.spec_manager.get_outputs("pip_compiler_output")
-        if pip_compiler_output:
-            with open(self.pip_output_file, "w+") as pkgs:
-                pkgs.write(str(pip_compiler_output))
+        if not self.resolved_kname:
+            return self.logger.error(
+                "No compiled kernel name found. Run --packages-compile first."
+            )
+
+        if self.pip_packages:
             if not self.env_manager.install_packages(
-                self.env_name, [self.pip_output_file]
+                self.resolved_kname,
+                self.pip_packages,
             ):
                 return False
         else:
@@ -671,14 +700,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _uninstall_packages(self) -> bool:
         """Unconditionally uninstall pip packages from target environment."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to uninstall from.")
         return self.env_manager.uninstall_packages(
-            self.env_name, [self.pip_output_file]
+            self.resolved_kname, self.pip_packages
         )
 
     def _copy_spec_to_env(self) -> bool:
         self.logger.debug("Copying spec to target environment.")
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to copy spec to.")
         return self.spec_manager.save_spec(
-            self.env_manager.env_live_path(self.env_name),
+            self.env_manager.env_live_path(self.resolved_kname),
             add_sha256=not self.config.spec_ignore_hash,
         )
 
@@ -716,20 +749,26 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to test imports on.")
         if nb_to_imports := self.spec_manager.get_outputs("nb_to_imports"):
-            return self.env_manager.test_nb_imports(self.env_name, nb_to_imports)
+            return self.env_manager.test_nb_imports(self.resolved_kname, nb_to_imports)
         else:
             return self.logger.warning("Found no imports to check in spec'd notebooks.")
 
     def _test_notebooks(self) -> bool:
         """Unconditionally test notebooks matching the configured pattern."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to test notebooks on.")
         notebook_configs = self.spec_manager.get_outputs("test_notebooks")
         if filtered_notebook_configs := self.tester.filter_notebooks(
             notebook_configs,
             self.config.test_notebooks or "",
             self.config.test_notebooks_exclude,
         ):
-            return self.tester.test_notebooks(self.env_name, filtered_notebook_configs)
+            return self.tester.test_notebooks(
+                self.resolved_kname, filtered_notebook_configs
+            )
         else:
             return self.logger.warning(
                 "Found no notebooks to test matching inclusion patterns but not exclusion patterns."
@@ -742,26 +781,35 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.spec_manager.data_reset_spec()
 
     def _unpack_environment(self) -> bool:
+        """Unpack a pre-built environment from the pantry."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name defined in spec to unpack.")
+
         if self.pantry_shelf.unpack_environment(
-            self.env_name, self.spec_manager.moniker, self.archive_format
+            self.resolved_kname, self.spec_manager.moniker, self.archive_format
         ):
             return self._register_environment()
         return False
 
     def _pack_environment(self) -> bool:
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to pack.")
         return self.pantry_shelf.pack_environment(
-            self.env_name, self.spec_manager.moniker, self.archive_format
+            self.resolved_kname, self.spec_manager.moniker, self.archive_format
         )
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
-        if not self.env_manager.unregister_environment(self.env_name):
+        if not self.resolved_kname:
+            return self.logger.warning("No kernel name found to delete. Skipping.")
+
+        if not self.env_manager.unregister_environment(self.resolved_kname):
             self.logger.warning(
-                f"Failed to unregister environment {self.env_name}.  This can be normal."
+                f"Failed to unregister environment {self.resolved_kname}. This can be normal if it was never registered."
             )
-        if not self.env_manager.delete_environment(self.env_name):
+        if not self.env_manager.delete_environment(self.resolved_kname):
             self.logger.warning(
-                f"Failed to delete environment {self.env_name}. This can be normal."
+                f"Failed to delete environment {self.resolved_kname}. This can be normal if it never existed."
             )
         return True
 
@@ -769,16 +817,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.env_manager.compact()
 
     def _env_print_name(self) -> bool:
-        print(self.env_name)
-        return True
+        if self.resolved_kname:
+            print(self.resolved_kname)
+            return True
+        return self.logger.error("Could not determine kernel name.")
 
     def _get_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
             env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
             return env_vars
-            # resolved_vars = utils.resolve_env(env_vars)
-            # return resolved_vars
         else:
             return {}
 
@@ -794,19 +842,24 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to register.")
         env_vars = self._get_environment()
+        display_name = self.spec_manager.display_name or self.resolved_kname
         self.logger.debug(
-            f"The resolved env vars for environment '{self.env_name}' are '{env_vars}'."
+            f"The resolved env vars for environment '{self.resolved_kname}' are '{env_vars}'."
         )
         if not self.env_manager.register_environment(
-            self.env_name, self.kernel_display_name, env_vars
+            self.resolved_kname, display_name, env_vars
         ):
             return False
         return True
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""
-        return self.env_manager.unregister_environment(self.env_name)
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found to unregister.")
+        return self.env_manager.unregister_environment(self.resolved_kname)
 
     def _submit_for_build(self) -> bool:
         """PR the spec and trigger a wrangler image build."""
@@ -814,5 +867,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _inject_spi(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""
+        if not self.resolved_kname:
+            return self.logger.error("No kernel name found for SPI injection.")
         exports_str = self._data_get_exports()
-        return self.injector.inject(exports_str)
+        return self.injector.inject(self.resolved_kname, exports_str)

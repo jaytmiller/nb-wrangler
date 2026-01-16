@@ -3,6 +3,8 @@
 
 SHELL := /bin/bash
 
+export NBW_ROOT=$(CURDIR)/build/nbw-root
+
 define PROJECT
 nb_wrangler
 endef
@@ -70,7 +72,11 @@ specs-data-curate: $(YAML_FILES)
 
 # ==========================================================================================================
 
-test-functional: setup functional data-functional data-clean
+test-functional: setup functional data-functional data-clean test-advanced-mamba
+
+test-advanced-mamba:
+	./tests/test-advanced-mamba.sh
+
 
 
 functional: fnc-preclean fnc-bootstrap functional-develop functional-tests functional-reinstall functional-misc

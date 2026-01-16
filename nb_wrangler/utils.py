@@ -291,6 +291,21 @@ def files_to_map(files: list[str]) -> dict[str, list[str]]:
     return mapping
 
 
+def writelines(lines: list[str], filepath: str | Path, mode="w+") -> str:
+    """
+    Write the list of line strings `lines` out to file `filepath` opening
+    using `mode`.
+
+    Returns str(filepath)
+    """
+    filepath = Path(filepath)
+    filepath.parent.mkdir(exist_ok=True)
+    with filepath.open(mode) as f:
+        for line in lines:
+            f.write(line.rstrip() + "\n")
+    return str(filepath)
+
+
 # ------------------------------- sha256 helpers -------------------------
 
 

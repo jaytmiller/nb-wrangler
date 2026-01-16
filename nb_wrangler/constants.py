@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
@@ -26,10 +26,8 @@ REPOS_DIR = "references"
 DATA_DIR = "data"
 NBW_URI = "nbw://"
 
-DEFAULT_MAMBA_COMMAND = Path(
-    os.environ.get("NBW_MAMBA_CMD", NBW_MM / "bin" / "micromamba")
-)
-DEFAULT_PIP_COMMAND = Path(os.environ.get("NBW_PIP_CMD", "uv pip"))
+NBW_MAMBA_CMD = Path(os.environ.get("NBW_MAMBA_CMD", NBW_MM / "bin" / "micromamba"))
+NBW_PIP_CMD = Path(os.environ.get("NBW_PIP_CMD", "uv pip"))
 
 BUILTIN_PACKAGES = ["__future__", "builtins", "sys", "os", "copy"]
 

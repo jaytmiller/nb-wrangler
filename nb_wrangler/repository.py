@@ -54,6 +54,8 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_name = repo_name.split("@")[0]
         return self.repos_dir / repo_name
 
+    get_repo_path = _repo_path
+
     def _setup_remote_repo(
         self,
         repo_url: str,

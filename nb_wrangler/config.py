@@ -12,8 +12,8 @@ import argparse
 
 from .constants import (
     NBW_ROOT,
-    DEFAULT_MAMBA_COMMAND,
-    DEFAULT_PIP_COMMAND,
+    NBW_MAMBA_CMD,
+    NBW_PIP_CMD,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     NOTEBOOK_TEST_EXCLUDE,
@@ -22,7 +22,6 @@ from .constants import (
     REPOS_DIR,
     DEFAULT_DATA_ENV_VARS_MODE,
 )
-
 
 args_config = None  # Singleton instance of WranglerConfig
 
@@ -52,8 +51,8 @@ class WranglerConfig:
 
     spec_file: str = ""
 
-    mamba_command: Path = DEFAULT_MAMBA_COMMAND
-    pip_command: Path = DEFAULT_PIP_COMMAND
+    mamba_command: Path = NBW_MAMBA_CMD
+    pip_command: Path = NBW_PIP_CMD
 
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False

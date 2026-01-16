@@ -25,7 +25,6 @@ from .logger import WranglerLoggable, get_configured_logger
 from . import config
 from . import constants
 
-
 """
 The initial implementation of a data spec for a single notebook repo was:
 

@@ -103,11 +103,13 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         If it is a list,  make sure every element is a string.
         """
         if isinstance(cmd, (list, tuple)):
-            return [str(word) for word in cmd]
+            rval = [str(word) for word in cmd]
         elif isinstance(cmd, str):
-            return shlex.split(cmd)
+            rval = shlex.split(cmd)
         else:
             raise TypeError("cmd must be a list or str")
+        # self.logger.debug("Conditioning:", repr(cmd), "-->", rval)
+        return rval
 
     def wrangler_run(
         self,
@@ -229,16 +231,30 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"Skipping --delete-environment for {env_name} wrangler does not believe exists."
             )
 
-    def install_packages(self, env_name: str, requirements_paths: list[Path]) -> bool:
-        """Install the compiled package lists."""
-        self.logger.info(
-            f"Installing packages from: {[str(p) for p in requirements_paths]}"
+    def _get_package_file(
+        self, env_name: str, pip_packages: list[str]
+    ) -> tuple[int, str]:
+        """Strip down package list to omit comment lines so we can count packages.
+        Write out the stripped down list to a
+        """
+        stripped_packages = [
+            pkg for pkg in pip_packages if not pkg.strip().startswith("#")
+        ]
+        req_path = utils.writelines(
+            stripped_packages, self.nbw_temp_dir / f"package_reqs_{env_name}.txt"
         )
+        return len(stripped_packages), req_path
 
-        cmd = self.pip_command + " install"
-        for path in requirements_paths:
-            cmd += " -r " + str(path)
+    def install_packages(self, env_name: str, pip_packages: list[str]) -> bool:
+        """Install the compiled pip package list."""
+        if not pip_packages:
+            self.logger.info("No pip packages to install.")
+            return True
 
+        n_packages, req_path = self._get_package_file(env_name, pip_packages)
+        self.logger.info(f"Installing {n_packages} packages to environment {env_name}.")
+
+        cmd = f"{self.pip_command} install --requirements {req_path}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
@@ -251,18 +267,20 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
     def uninstall_packages(
         self,
         env_name: str,
-        requirements_paths: list[Path],
+        pip_packages: list[str],
     ) -> bool:
         """Uninstall the compiled package lists."""
+        if not pip_packages:
+            self.logger.info("No pip packages to uninstall.")
+            return True
+
+        n_packages, req_path = self._get_package_file(env_name, pip_packages)
         self.logger.info(
-            f"Uninstalling packages from: {[str(p) for p in requirements_paths]}"
+            f"Uninstalling {n_packages} packages from environment {env_name}."
         )
 
-        cmd = "uv pip uninstall"
-        for path in requirements_paths:
-            cmd += " -r " + str(path)
-
-        # Install packages using uv
+        # Uninstall packages using uv
+        cmd = f"{self.pip_command} uninstall -r {req_path}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
@@ -317,7 +335,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         envs = self.get_existing_envs()
         for env in envs:
             self.logger.debug(f"Checking existence of {env_name} against {env}.")
-            if env.endswith(env_name):
+            if env.startswith(str(NBW_MM)) and env.endswith(env_name):
                 self.logger.debug(f"Environment {env_name} exists.")
                 return True
         self.logger.debug(f"Environment {env_name} does not exist.")
