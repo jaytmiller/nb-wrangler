@@ -254,7 +254,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         n_packages, req_path = self._get_package_file(env_name, pip_packages)
         self.logger.info(f"Installing {n_packages} packages to environment {env_name}.")
 
-        cmd = f"{self.pip_command} install --requirements {req_path}"
+        cmd = f"{self.pip_command} install -r {req_path}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
