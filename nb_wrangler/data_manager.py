@@ -259,9 +259,9 @@ class RefdataSpec(WranglerLoggable):
     def from_dict(cls, refdata_path: str, spec_dict: dict) -> "RefdataSpec":
         self = cls()
         if not self.validate_install_files(
-            refdata_path, spec_dict["install_files"]
+            refdata_path, spec_dict.get("install_files", {})
         ) or not self.validate_other_variables(
-            refdata_path, spec_dict["other_variables"]
+            refdata_path, spec_dict.get("other_variables", {})
         ):
             raise ValueError("Failed to validate spec dictionary.")
         return self
@@ -269,6 +269,8 @@ class RefdataSpec(WranglerLoggable):
     @classmethod
     def from_yaml(cls, refdata_path: str, yaml_str: str) -> "RefdataSpec":
         spec_dict = utils.get_yaml().load(yaml_str)
+        if not spec_dict:
+            return RefdataSpec()
         return cls.from_dict(refdata_path, spec_dict)
 
     @classmethod
@@ -278,7 +280,7 @@ class RefdataSpec(WranglerLoggable):
             with rp.open("r") as stream:
                 return cls.from_yaml(refdata_path, stream.read())
         else:
-            raise FileNotFoundError(f"Refdata file {refdata_path} not found.")
+            return RefdataSpec()
 
     def get_data_urls(self) -> list[tuple[str, str]]:
         urls = []

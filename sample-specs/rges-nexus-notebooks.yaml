@@ -20,12 +20,11 @@ system:
   spi:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
     ref: "main"
-
-  spec_sha256: c4f4a838c5b1bb77039c92ea009deb488e371a0ee3acf040a97bffb6957ee92e
+  spec_sha256: 235a2cdeda9d9a7a53b71b9ba3d4a8625e2ba4e03016a517d24ea7bf29218f5a
 repositories:
   nexus-notebooks:
-    url: https://github.com/rges-pit/nexus-notebooks.git
-    ref: main
+    url: https://github.com/jaytmiller/nexus-notebooks.git
+    ref: rrn-update
 
 selected_notebooks:
   nexus-notebooks-all:
@@ -36,13 +35,12 @@ selected_notebooks:
 out:
   repositories:
     nexus-notebooks:
-      url: https://github.com/rges-pit/nexus-notebooks.git
-      ref: a8d142b80c278a0d2cf92825f1d5809174a5d21c
+      url: https://github.com/jaytmiller/nexus-notebooks.git
+      ref: 0ee6847e74e443f26e2a86dee12cd3b91f92ead0
 
   spi:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
     ref: "main"
-
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 
       nexus-notebooks-all
@@ -117,7 +115,6 @@ out:
       - pandas
       - pathlib
       - pathos
-      - s3fs
       - scipy
       - shutil
       - time
@@ -1380,3 +1377,11 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/nexus-notebooks/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+    spec_exports: {}
+    pantry_exports: {}
+    metadata: {}

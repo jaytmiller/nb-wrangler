@@ -189,7 +189,9 @@ Description:
         self.logger.info(f"Injecting field {field} to {where}")
         where = Path(where)
         if not where.parent.exists():
-            self.logger.warning(f"Directory for '{where.parent}' does not exist, skipping injection.")
+            self.logger.warning(
+                f"Directory for '{where.parent}' does not exist, skipping injection."
+            )
             return
         with where.open("w+") as f:
             if field:

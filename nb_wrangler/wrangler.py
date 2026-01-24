@@ -451,7 +451,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """
         data = self.spec_manager.get_output_data("data")
         if data is None:
-            self.logger.warning("No 'data' section in spec for defining environment variables.")
+            self.logger.warning(
+                "No 'data' section in spec for defining environment variables."
+            )
             return ""
         mode = self.config.data_env_vars_mode
         exports = data.get(mode + "_exports")
@@ -529,7 +531,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Validating all downloaded data archives.")
         data, urls = self._get_data_url_tuples()
         metadata = data.get("metadata")
-        if metadata:
+        if metadata is not None:
             if not self.pantry_shelf.validate_all_data(urls, metadata):
                 return self.logger.error("Some data archives did not validate.")
             else:
@@ -640,8 +642,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.pip_output_file,
         ):
             return self.logger.error("Failed to compile pip package versions.")
-        
-        Path("extra_pip_packages.txt").unlink()
+        try:
+            Path("extra_pip_packages.txt").unlink()
+        except FileNotFoundError:
+            pass
 
         compiled_pip_packages_str = utils.yaml_block(self.pip_output_file.open().read())
 
