@@ -18,9 +18,9 @@ extra_pip_packages:
 system:
   spec_version: 2.1
   spi:
-    repo: "https://github.com/spacetelescope/science-platform-images.git"
+    repo: "https://github.com/jaytmiller/science-platform-images.git"
     ref: "main"
-  spec_sha256: 235a2cdeda9d9a7a53b71b9ba3d4a8625e2ba4e03016a517d24ea7bf29218f5a
+  spec_sha256: a93a97d4bf1abe1607f9aaf4ff529f705e32599d56fdcb0daf660b05a2f93fcf
 repositories:
   nexus-notebooks:
     url: https://github.com/jaytmiller/nexus-notebooks.git
@@ -39,7 +39,7 @@ out:
       ref: 0ee6847e74e443f26e2a86dee12cd3b91f92ead0
 
   spi:
-    repo: "https://github.com/spacetelescope/science-platform-images.git"
+    repo: "https://github.com/jaytmiller/science-platform-images.git"
     ref: "main"
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 

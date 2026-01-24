@@ -240,7 +240,7 @@ class SpecManager(WranglerLoggable):
         self, output_filepath: Path | str, add_sha256: bool = False
     ) -> bool:
         """Save the current YAML spec to a file."""
-        self.logger.info(f"Saving spec file to {output_filepath}.")
+        self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
             if add_sha256:

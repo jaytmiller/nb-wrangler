@@ -163,15 +163,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
         for step in steps:
-            self.logger.info(f"Running step {step.__name__}.")
+            self.logger.info(f"Step {step.__name__} of Workflow {name}.")
             if not step():
-                return self.logger.error(f"FAILED running step {step.__name__}.")
+                return self.logger.error(f"FAILED Workflow {name} Step {step.__name__}.")
         return self.logger.info("Workflow", name, "completed.")
 
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         return self.run_workflow(
-            "spec development / curation",
+            "--curate",
             [
                 self._prepare_all_repositories,
                 self._compile_requirements,
@@ -184,7 +184,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_data_curation_workflow(self) -> bool:
         """Execute steps for data curation workflow, defining spec for data."""
         return self.run_workflow(
-            "data collection / downloads / metadata capture / unpacking",
+            "--data-curate",
             [
                 self._prepare_all_repositories,
                 self._spec_add,
@@ -200,7 +200,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_submit_build_workflow(self) -> bool:
         """Execute steps for the build submission workflow."""
         return self.run_workflow(
-            "submit-for-build",
+            "--submit-for-build",
             [
                 self._validate_spec,
                 self._prepare_all_repositories,
@@ -211,7 +211,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _inject_spi_workflow(self) -> bool:
         """Execute steps for the build submission workflow."""
         return self.run_workflow(
-            "inject-spi",
+            "--inject-spi",
             [
                 self._validate_spec,
                 self._prepare_all_repositories,
@@ -232,7 +232,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 required_outputs,
             )
         return self.run_workflow(
-            "install-compiled-spec",
+            "--reinstall",
             [
                 self._prepare_all_repositories_locked,
                 self._validate_spec,
@@ -245,7 +245,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_data_reinstall_workflow(self) -> bool:
         """Execute steps for data curation workflow, defining spec for data."""
         return self.run_workflow(
-            "data download / validation / unpacking",
+            "--data-reinstall",
             [
                 self._validate_spec,
                 self._spec_add,
@@ -257,7 +257,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _run_reset_curation(self) -> bool:
         return self.run_workflow(
-            "reset curation",
+            "--data-reset-curation",
             [
                 self._delete_environment,
                 # self._env_compact,
@@ -269,7 +269,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
-        self.logger.info("Running any explicitly selected steps.")
         flags_and_steps: list[tuple[bool, Callable]] = [
             (self.config.clone_repos, self._prepare_all_repositories),
             (self.config.packages_compile, self._compile_requirements),
@@ -304,11 +303,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_reset_spec, self._data_reset_spec),
             (self.config.reset_log, self._reset_log),
         ]
+        if any(item[0] for item in flags_and_steps):
+            self.logger.info("Running any explicitly selected steps.")
         for flag, step in flags_and_steps:
             if flag:
-                self.logger.info("Running step", step.__name__)
+                self.logger.info("Explicit Step", step.__name__)
                 if not step():
-                    self.logger.error("FAILED step", step.__name__, "... stopping...")
+                    self.logger.error("FAILED Step", step.__name__, "... stopping...")
                     return False
         return True
 
