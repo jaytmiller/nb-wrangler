@@ -165,7 +165,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         for step in steps:
             self.logger.info(f"Step {step.__name__} of Workflow {name}.")
             if not step():
-                return self.logger.error(f"FAILED Workflow {name} Step {step.__name__}.")
+                return self.logger.error(
+                    f"FAILED Workflow {name} Step {step.__name__}."
+                )
         return self.logger.info("Workflow", name, "completed.")
 
     def _run_development_workflow(self) -> bool:
