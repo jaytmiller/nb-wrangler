@@ -147,7 +147,14 @@ def parse_args():
         action="store_true",
         help="Print the environment name associated with this spec to stdout.",
     )
-
+    env_group.add_argument(
+        "--env-user-registry",
+        action="store_true",
+        default=False,
+        help=(
+            "Register the environment in the user's Jupyter kernel registry instead of the system-wide registry."
+        ),
+    )
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
     )
