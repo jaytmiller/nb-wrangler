@@ -164,16 +164,11 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         See EnvironmentManager.run for **keys optional settings.
         """
         command = self._condition_cmd(command)
-        if not self.is_base_env_alias(environment):
-            self.logger.debug(
-                f"Running command {command} in environment: {environment}"
-            )
-            mm_prefix = [self.mamba_command, "run", "-n", environment]
-        else:
-            self.logger.debug(
-                f"Running command {command} in base environment for kernel {environment}"
-            )
-            mm_prefix = []
+        env_path = self.env_live_path(environment)
+        mm_prefix = [self.mamba_command, "run", "-p", str(env_path)]
+        self.logger.debug(
+            f"Running command {command} in environment: {environment} at '{env_path}'"
+        )
         return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
