@@ -12,6 +12,7 @@ environmentsinstall non-pip Python packages
 import os
 import json
 import shlex
+import re
 import subprocess
 from subprocess import CompletedProcess
 from pathlib import Path
@@ -401,8 +402,16 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         )
         no_errors = True
         for notebook, imports in nb_to_imports.items():
+            here = os.getcwd()
             try:
-                here = os.getcwd()
+                notebook_include_regex = (
+                    self.config.test_imports or self.config.test_all or ""
+                )
+                if not re.search(notebook_include_regex, notebook):
+                    self.logger.debug(
+                        f"Skipping import tests for {notebook} not matching include regex {notebook_include_regex}."
+                    )
+                    continue
                 os.chdir(Path(notebook).parent)
                 self.logger.info(f"Testing imports for {notebook}.")
                 no_errors = self.test_imports(env_name, imports) and no_errors

@@ -276,8 +276,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),
             (self.config.packages_install, self._install_packages),
-            (self.config.test_imports, self._test_imports),
-            (self.config.test_notebooks, self._test_notebooks),
+            (self.config.test_all or self.config.test_imports, self._test_imports),
+            (self.config.test_all or self.config.test_notebooks, self._test_notebooks),
             (self.config.spec_update_hash, self._update_spec_sha256),
             (self.config.spec_validate, self._validate_spec),
             (self.config.env_pack, self._pack_environment),
@@ -758,6 +758,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unconditionally run import checks if test_imports are defined."""
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to test imports on.")
+
         if nb_to_imports := self.spec_manager.get_outputs("nb_to_imports"):
             return self.env_manager.test_nb_imports(self.resolved_kname, nb_to_imports)
         else:
@@ -770,7 +771,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         notebook_configs = self.spec_manager.get_outputs("test_notebooks")
         if filtered_notebook_configs := self.tester.filter_notebooks(
             notebook_configs,
-            self.config.test_notebooks or "",
+            self.config.test_notebooks or self.config.test_all or "",
             self.config.test_notebooks_exclude,
         ):
             return self.tester.test_notebooks(

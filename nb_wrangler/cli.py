@@ -192,12 +192,18 @@ def parse_args():
     testing_group.add_argument(
         "-t",
         "--test-all",
-        action="store_true",
+        default=None,
+        const=".*",
+        nargs="?",
+        type=str,
         help="Run both --test-imports and --test-notebooks.",
     )
     testing_group.add_argument(
         "--test-imports",
-        action="store_true",
+        default=None,
+        const=".*",
+        nargs="?",
+        type=str,
         help="Attempt to import every package explicitly imported by one of the spec'd notebooks.",
     )
     testing_group.add_argument(

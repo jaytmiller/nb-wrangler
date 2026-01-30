@@ -86,8 +86,8 @@ class WranglerConfig:
 
     test_notebooks: str | None = None
     test_notebooks_exclude: str = NOTEBOOK_TEST_EXCLUDE
-    test_imports: bool = False
-    test_all: bool = False
+    test_imports: str | None = None
+    test_all: str | None = None
 
     jobs: int = NOTEBOOK_TEST_JOBS
     timeout: int = NOTEBOOK_TEST_MAX_SECS
@@ -122,12 +122,6 @@ class WranglerConfig:
     spec_select: str | None = None
     spec_list: bool = False
     spec_add: bool = False
-
-    def __post_init__(self):
-        """Post-initialization processing."""
-        if self.test_all:
-            self.test_imports = True
-            self.test_notebooks = ".*"
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
