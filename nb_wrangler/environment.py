@@ -166,7 +166,8 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         """
         command = self._condition_cmd(command)
         env_path = self.env_live_path(environment)
-        mm_prefix = [self.mamba_command, "run", "-p", str(env_path)]
+        # mm_prefix = [self.mamba_command, "run", "-p", str(env_path)]
+        mm_prefix = [self.mamba_command, "run", "-n", environment]
         self.logger.debug(
             f"Running command {command} in environment: {environment} at '{env_path}'"
         )
