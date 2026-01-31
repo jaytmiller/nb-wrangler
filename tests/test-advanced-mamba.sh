@@ -2,7 +2,7 @@
 
 # Functional test for advanced Mamba environment definitions
 set -e # Exit immediately if a command exits with a non-zero status.
-set -x # Print commands and their arguments as they are executed.
+# set -x # Print commands and their arguments as they are executed.
 
 # 0. Setup
 TEST_DIR=$(pwd)

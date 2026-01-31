@@ -31,12 +31,12 @@ system:
 
 
 
-  spec_sha256: 0c8bdc55dd21840134a68d82a3fb382e377839b30892012c644862aa710b0ab6
+  spec_sha256: c0e10161bd75f817f02cb56a7c7e918695f3f5efa52007d0db54ed4a5febeb65
 out:
   repositories:
     nb-wrangler:
       url: "https://github.com/spacetelescope/nb-wrangler.git"
-      ref: "51c4360a7ccf990a0c4c4998ecde40716a0ceebf"
+      ref: "de44c6d0343cc1d3730d86c980b9bf3a93e34425"
 
 # NO environment_spec here.
 
@@ -278,7 +278,7 @@ out:
         # via ypy-websocket
     alabaster==1.0.0
         # via sphinx
-    alembic==1.18.1
+    alembic==1.18.3
         # via jupyterhub
     annotated-types==0.7.0
         # via pydantic
@@ -319,7 +319,7 @@ out:
         # via
         #   crds
         #   glue-core
-    astropy-iers-data==0.2026.1.19.0.42.31
+    astropy-iers-data==0.2026.1.26.0.43.56
         # via astropy
     astropy-sphinx-theme==2.0
         # via sphinx-astropy
@@ -347,9 +347,9 @@ out:
         # via flask
     bokeh==3.8.2
         # via jupyter-bokeh
-    boto3==1.42.32
+    boto3==1.42.39
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    botocore==1.42.32
+    botocore==1.42.39
         # via
         #   boto3
         #   s3transfer
@@ -370,7 +370,7 @@ out:
         # via pip-tools
     bytecode==0.17.0
         # via ddtrace
-    cachetools==6.2.4
+    cachetools==6.2.6
         # via solara-ui
     certifi==2026.1.4
         # via
@@ -417,13 +417,13 @@ out:
         #   matplotlib
     crds==13.1.1
         # via ci-watson
-    cryptography==46.0.3
+    cryptography==46.0.4
         # via certipy
     cycler==0.12.1
         # via matplotlib
-    ddtrace==4.2.2
+    ddtrace==4.3.1
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    debugpy==1.8.19
+    debugpy==1.8.20
         # via ipykernel
     decorator==5.2.1
         # via ipython
@@ -492,7 +492,7 @@ out:
         #   glue-vispy-viewers
     glue-vispy-viewers==1.3.0
         # via glue-jupyter
-    greenlet==3.3.0
+    greenlet==3.3.1
         # via
         #   playwright
         #   sqlalchemy
@@ -718,7 +718,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyterlab==4.5.2
+    jupyterlab==4.5.3
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter-collaboration
@@ -739,7 +739,7 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   ipywidgets
         #   voila-gridstack
-    jupytext==1.19.0
+    jupytext==1.19.1
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     kiwisolver==1.4.9
         # via
@@ -789,7 +789,7 @@ out:
         # via nbconvert
     mpl-scatter-density==0.8
         # via glue-core
-    multidict==6.7.0
+    multidict==6.7.1
         # via
         #   aiohttp
         #   yarl
@@ -802,7 +802,7 @@ out:
         #   nbconvert
         #   papermill
         #   voila
-    nbconvert==7.16.6
+    nbconvert==7.17.0
         # via
         #   jupyter-server
         #   nbsphinx
@@ -824,7 +824,7 @@ out:
         # via ipykernel
     networkx==3.6.1
         # via scikit-image
-    notebook==7.5.2
+    notebook==7.5.3
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   glue-jupyter
@@ -918,7 +918,7 @@ out:
         # via crds
     parso==0.8.5
         # via jedi
-    pathspec==1.0.3
+    pathspec==1.0.4
         # via black
     pexpect==4.9.0 ; sys_platform != 'emscripten' and sys_platform != 'win32'
         # via ipython
@@ -934,7 +934,7 @@ out:
         #   solara-ui
         #   sphinx-astropy
         #   sphinx-gallery
-    pip==25.3
+    pip==26.0
         # via
         #   pip-tools
         #   pipdeptree
@@ -946,7 +946,7 @@ out:
         # via
         #   black
         #   jupyter-core
-    playwright==1.57.0
+    playwright==1.58.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     pluggy==1.6.0
         # via pytest
@@ -961,7 +961,7 @@ out:
         # via
         #   aiohttp
         #   yarl
-    psutil==7.2.1
+    psutil==7.2.2
         # via
         #   ipykernel
         #   jupyter-resource-usage
@@ -981,7 +981,7 @@ out:
         # via flake8
     pycparser==3.0 ; implementation_name != 'PyPy'
         # via cffi
-    pycrdt==0.12.44
+    pycrdt==0.12.45
         # via
         #   jupyter-server-ydoc
         #   jupyter-ydoc
@@ -1014,7 +1014,7 @@ out:
         #   rich
         #   solara-ui
         #   sphinx
-    pymdown-extensions==10.20
+    pymdown-extensions==10.20.1
         # via solara-ui
     pyopengl==3.1.10
         # via glue-vispy-viewers
@@ -1030,7 +1030,7 @@ out:
         #   ci-watson
         #   pytest-doctestplus
         #   pytest-openfiles
-    pytest-doctestplus==1.7.0
+    pytest-doctestplus==1.7.1
         # via
         #   -r references/science-platform-images/deployments/common/common-env/testing.pip
         #   sphinx-astropy
@@ -1048,7 +1048,7 @@ out:
         # via jupyter-events
     pythreejs==2.4.2
         # via ipyvolume
-    pytokens==0.4.0
+    pytokens==0.4.1
         # via black
     pytz==2025.2
         # via pandas
@@ -1107,9 +1107,9 @@ out:
         #   jupyter-events
     rfc3987-syntax==1.1.0
         # via jsonschema
-    rich==14.2.0
+    rich==14.3.1
         # via rich-click
-    rich-click==1.9.6
+    rich-click==1.9.7
         # via solara-server
     roman-numerals==4.1.0
         # via sphinx
@@ -1130,7 +1130,7 @@ out:
         # via asdf
     send2trash==2.1.0
         # via jupyter-server
-    setuptools==80.10.1
+    setuptools==80.10.2
         # via
         #   astropy-sphinx-theme
         #   jupyter-packaging
@@ -1231,7 +1231,7 @@ out:
         # via
         #   jupyter-server
         #   jupyter-server-terminals
-    tifffile==2026.1.14
+    tifffile==2026.1.28
         # via scikit-image
     tinycss2==1.4.0
         # via bleach
@@ -1253,7 +1253,7 @@ out:
         #   nbgitpuller
         #   notebook
         #   terminado
-    tqdm==4.67.1
+    tqdm==4.67.2
         # via papermill
     traitlets==5.14.3
         # via
@@ -1325,7 +1325,7 @@ out:
         # via solara-server
     watchfiles==1.1.1
         # via solara-server
-    wcwidth==0.3.0
+    wcwidth==0.5.3
         # via prompt-toolkit
     webcolors==25.10.0
         # via jsonschema
@@ -1369,6 +1369,8 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
+
+
 
 
 

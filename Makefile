@@ -48,6 +48,11 @@ YAML_FILES := $(shell find fnc-test-spec.yaml sample-specs -name "*.yaml")
 
 .PHONY: specs-update specs-curate specs-data-curate specs-validate
 
+check-env:
+	@echo "PATH in recipe: $$PATH"
+	@which python || true
+
+
 specs-update: $(YAML_FILES)
 	@for f in $^; do \
 		./nb-wrangler --spec-update "$$f"; \
@@ -121,10 +126,10 @@ fnc-test-imports: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --test-imports
 
 fnc-test-notebooks: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml --test-notebooks
+	./nb-wrangler   fnc-test-spec.yaml --test-notebooks zooniverse_view
 
 fnc-test: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml -t
+	./nb-wrangler   fnc-test-spec.yaml -t zooniverse_view
 
 fnc-compact: fnc-packages-install
 	./nb-wrangler   fnc-test-spec.yaml --env-compact

@@ -76,7 +76,7 @@ class WranglerConfig:
     env_compact: bool = False
     env_archive_format: str = ""
     env_print_name: bool = False
-    env_user_registry: bool = False
+    env_system_registry: bool = False
 
     packages_compile: bool = False
     packages_install: bool = False
@@ -144,7 +144,7 @@ class WranglerConfig:
             env_archive_format=args.env_archive_format,
             env_compact=args.env_compact,
             env_print_name=args.env_print_name,
-            env_user_registry=args.env_user_registry,
+            env_system_registry=args.env_system_registry,
             packages_compile=args.packages_compile,
             packages_install=args.packages_install,
             packages_uninstall=args.packages_uninstall,

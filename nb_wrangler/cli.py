@@ -148,11 +148,12 @@ def parse_args():
         help="Print the environment name associated with this spec to stdout.",
     )
     env_group.add_argument(
-        "--env-user-registry",
+        "--env-system-registry",
         action="store_true",
         default=False,
         help=(
-            "Register the environment in the user's Jupyter kernel registry instead of the system-wide registry."
+            "Register the environment in the environment's own sys.prefix path instead of the user's home directory. "
+            "Use for container builds or JupyterHub."
         ),
     )
     packages_group = parser.add_argument_group(
