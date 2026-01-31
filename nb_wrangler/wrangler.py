@@ -301,6 +301,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
             (self.config.env_delete, self._delete_environment),
+            (self.config.env_kernel_cleanup, self._cleanup_kernels),
             (self.config.env_compact, self._env_compact),
             (self.config.spec_reset, self._reset_spec),
             (self.config.data_reset_spec, self._data_reset_spec),
@@ -315,6 +316,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     self.logger.error("FAILED Step", step.__name__, "... stopping...")
                     return False
         return True
+
+    def _cleanup_kernels(self) -> bool:
+        """Clean up dead kernels from the user's Jupyter registry."""
+        return self.env_manager.cleanup_dead_kernels()
 
     def _reset_log(self):
         """Reset the log file."""

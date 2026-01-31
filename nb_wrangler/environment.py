@@ -11,6 +11,7 @@ environmentsinstall non-pip Python packages
 
 import os
 import json
+import shutil
 import shlex
 import re
 import subprocess
@@ -455,6 +456,46 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             )
         else:
             return self.logger.info("All imports succeeded.")
+
+    def cleanup_dead_kernels(self) -> bool:
+        """Scan for and remove 'dead' jupyter kernels from the user's registry."""
+        self.logger.info("Scanning for and removing dead kernels...")
+        kernels_dir = Path.home() / ".local" / "share" / "jupyter" / "kernels"
+        if not kernels_dir.is_dir():
+            self.logger.debug(f"Kernel directory not found at '{kernels_dir}'. Nothing to clean up.")
+            return True
+
+        no_errors = True
+        for kernel_dir in kernels_dir.iterdir():
+            if not kernel_dir.is_dir():
+                continue
+            
+            kernel_json_path = kernel_dir / "kernel.json"
+            if not kernel_json_path.exists():
+                self.logger.debug(f"No kernel.json in '{kernel_dir}', skipping.")
+                continue
+
+            try:
+                with open(kernel_json_path, "r") as f:
+                    data = json.load(f)
+                
+                argv = data.get("argv", [])
+                if not argv:
+                    self.logger.warning(f"Malformed kernel.json in '{kernel_dir}' (no argv), skipping.")
+                    continue
+
+                python_executable = Path(argv[0])
+                if not python_executable.exists():
+                    self.logger.info(f"Found dead kernel '{kernel_dir.name}' pointing to non-existent python '{python_executable}'. Removing.")
+                    shutil.rmtree(kernel_dir)
+
+            except json.JSONDecodeError:
+                self.logger.warning(f"Could not parse kernel.json in '{kernel_dir}', skipping.")
+            except Exception as e:
+                self.logger.error(f"An unexpected error occurred while processing '{kernel_dir.name}': {e}")
+                no_errors = False
+        
+        return no_errors
 
 
 class WranglerEnvable:

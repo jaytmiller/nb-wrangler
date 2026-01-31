@@ -129,6 +129,11 @@ def parse_args():
         help="Unregister the target environment from Jupyter.",
     )
     env_group.add_argument(
+        "--env-kernel-cleanup",
+        action="store_true",
+        help="Scans the user's kernel registry for 'dead' kernels (kernels pointing to non-existent environments) and removes them.",
+    )
+    env_group.add_argument(
         "--env-compact",
         action="store_true",
         dest="env_compact",
