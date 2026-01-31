@@ -298,7 +298,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         env_switches = ""
         for key, value in env_vars.items():
             env_switches += f"--env '{key}' '{value}' "
-        registry = "--sys-prefix" if self.config.env_system_registry else "--user"
+        registry = "" if self.config.env_system_registry else "--user"
         cmd = self._condition_cmd(
             f"python -m ipykernel install {registry} --name '{env_name}' --display-name '{display_name}' {env_switches}"
         )

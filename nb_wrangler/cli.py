@@ -153,7 +153,7 @@ def parse_args():
         default=False,
         help=(
             "Register the environment in the environment's own sys.prefix path instead of the user's home directory. "
-            "Use for container builds or JupyterHub."
+            "Use for container builds."
         ),
     )
     packages_group = parser.add_argument_group(
