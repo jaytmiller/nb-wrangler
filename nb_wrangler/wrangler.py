@@ -1,7 +1,6 @@
 """Main NotebookWrangler class orchestrating the curation process."""
 
 import os
-import shutil
 from pathlib import Path
 from typing import Any, Optional
 from collections.abc import Callable
@@ -872,19 +871,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.resolved_kname, display_name, env_vars
         ):
             return False
-
-        # If a generic 'python3' kernel was also created, remove it to avoid conflicts.
-        env_path = self.env_manager.env_live_path(self.resolved_kname)
-        generic_kernel_path = env_path / "share" / "jupyter" / "kernels" / "python3"
-        if generic_kernel_path.exists():
-            self.logger.info(
-                f"Found and removing conflicting generic kernel at '{generic_kernel_path}'."
-            )
-            try:
-                shutil.rmtree(generic_kernel_path)
-            except OSError as e:
-                return self.logger.error(f"Failed to remove conflicting kernel: {e}")
-
         return True
 
     def _unregister_environment(self) -> bool:

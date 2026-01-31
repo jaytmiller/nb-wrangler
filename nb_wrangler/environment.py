@@ -165,12 +165,16 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         See EnvironmentManager.run for **keys optional settings.
         """
         command = self._condition_cmd(command)
-        env_path = self.env_live_path(environment)
-        # mm_prefix = [self.mamba_command, "run", "-p", str(env_path)]
-        mm_prefix = [self.mamba_command, "run", "-n", environment]
-        self.logger.debug(
-            f"Running command {command} in environment: {environment} at '{env_path}'"
-        )
+        if not self.is_base_env_alias(environment):
+            self.logger.debug(
+                f"Running command {command} in environment: {environment}"
+            )
+            mm_prefix = [self.mamba_command, "run", "-n", environment]
+        else:
+            self.logger.debug(
+                f"Running command {command} in base environment for kernel {environment}"
+            )
+            mm_prefix = []
         return self.wrangler_run(mm_prefix + command, **keys)
 
     def handle_result(
@@ -418,19 +422,6 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 os.chdir(here)
         return no_errors
 
-    def is_package_installed(self, package_name: str, env_name: str | None = None) -> bool:
-        """Check if a Python package is installed in a given environment."""
-        cmd = f"python -c 'import {package_name}'"
-
-        if env_name is None:
-            # Run in the current (curator) environment
-            result = self.wrangler_run(cmd, check=False)
-        else:
-            # Run in the specified target environment
-            result = self.env_run(env_name, cmd, check=False)
-
-        return result.returncode == 0
-
     def test_imports(self, env_name: str, imports: list[str]) -> bool:
         """Test package imports."""
         self.logger.info(f"Testing {len(imports)} imports")
@@ -462,14 +453,16 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         self.logger.info("Scanning for and removing dead kernels...")
         kernels_dir = Path.home() / ".local" / "share" / "jupyter" / "kernels"
         if not kernels_dir.is_dir():
-            self.logger.debug(f"Kernel directory not found at '{kernels_dir}'. Nothing to clean up.")
+            self.logger.debug(
+                f"Kernel directory not found at '{kernels_dir}'. Nothing to clean up."
+            )
             return True
 
         no_errors = True
         for kernel_dir in kernels_dir.iterdir():
             if not kernel_dir.is_dir():
                 continue
-            
+
             kernel_json_path = kernel_dir / "kernel.json"
             if not kernel_json_path.exists():
                 self.logger.debug(f"No kernel.json in '{kernel_dir}', skipping.")
@@ -478,23 +471,31 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             try:
                 with open(kernel_json_path, "r") as f:
                     data = json.load(f)
-                
+
                 argv = data.get("argv", [])
                 if not argv:
-                    self.logger.warning(f"Malformed kernel.json in '{kernel_dir}' (no argv), skipping.")
+                    self.logger.warning(
+                        f"Malformed kernel.json in '{kernel_dir}' (no argv), skipping."
+                    )
                     continue
 
                 python_executable = Path(argv[0])
                 if not python_executable.exists():
-                    self.logger.info(f"Found dead kernel '{kernel_dir.name}' pointing to non-existent python '{python_executable}'. Removing.")
+                    self.logger.info(
+                        f"Found dead kernel '{kernel_dir.name}' pointing to non-existent python '{python_executable}'. Removing."
+                    )
                     shutil.rmtree(kernel_dir)
 
             except json.JSONDecodeError:
-                self.logger.warning(f"Could not parse kernel.json in '{kernel_dir}', skipping.")
+                self.logger.warning(
+                    f"Could not parse kernel.json in '{kernel_dir}', skipping."
+                )
             except Exception as e:
-                self.logger.error(f"An unexpected error occurred while processing '{kernel_dir.name}': {e}")
+                self.logger.error(
+                    f"An unexpected error occurred while processing '{kernel_dir.name}': {e}"
+                )
                 no_errors = False
-        
+
         return no_errors
 
 
