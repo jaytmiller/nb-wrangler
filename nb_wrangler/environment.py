@@ -417,6 +417,19 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 os.chdir(here)
         return no_errors
 
+    def is_package_installed(self, package_name: str, env_name: str | None = None) -> bool:
+        """Check if a Python package is installed in a given environment."""
+        cmd = f"python -c 'import {package_name}'"
+
+        if env_name is None:
+            # Run in the current (curator) environment
+            result = self.wrangler_run(cmd, check=False)
+        else:
+            # Run in the specified target environment
+            result = self.env_run(env_name, cmd, check=False)
+
+        return result.returncode == 0
+
     def test_imports(self, env_name: str, imports: list[str]) -> bool:
         """Test package imports."""
         self.logger.info(f"Testing {len(imports)} imports")

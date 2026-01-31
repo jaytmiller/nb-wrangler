@@ -1,6 +1,7 @@
 """Main NotebookWrangler class orchestrating the curation process."""
 
 import os
+import shutil
 from pathlib import Path
 from typing import Any, Optional
 from collections.abc import Callable
@@ -850,6 +851,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
+        if self.env_manager.is_package_installed("nb_conda_kernels"):
+            self.logger.info(
+                "`nb_conda_kernels` detected, skipping manual kernel registration."
+            )
+            return True
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to register.")
         env_vars = self._get_environment()
@@ -861,6 +867,19 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.resolved_kname, display_name, env_vars
         ):
             return False
+
+        # If a generic 'python3' kernel was also created, remove it to avoid conflicts.
+        env_path = self.env_manager.env_live_path(self.resolved_kname)
+        generic_kernel_path = env_path / "share" / "jupyter" / "kernels" / "python3"
+        if generic_kernel_path.exists():
+            self.logger.info(
+                f"Found and removing conflicting generic kernel at '{generic_kernel_path}'."
+            )
+            try:
+                shutil.rmtree(generic_kernel_path)
+            except OSError as e:
+                return self.logger.error(f"Failed to remove conflicting kernel: {e}")
+
         return True
 
     def _unregister_environment(self) -> bool:
