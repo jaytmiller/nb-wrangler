@@ -152,15 +152,6 @@ def parse_args():
         action="store_true",
         help="Print the environment name associated with this spec to stdout.",
     )
-    env_group.add_argument(
-        "--env-system-registry",
-        action="store_true",
-        default=False,
-        help=(
-            "Register the environment in the environment's own sys.prefix path instead of the user's home directory. "
-            "Use for container builds."
-        ),
-    )
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
     )
