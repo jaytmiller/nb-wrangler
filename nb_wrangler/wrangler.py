@@ -855,11 +855,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        if self.env_manager.is_package_installed("nb_conda_kernels"):
-            self.logger.info(
-                "`nb_conda_kernels` detected, skipping manual kernel registration."
-            )
-            return True
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to register.")
         env_vars = self._get_environment()
