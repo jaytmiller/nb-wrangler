@@ -146,19 +146,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "data_reinstall": self._run_data_reinstall_workflow,
             "reset_curation": self._run_reset_curation,
         }
+        for workflow in self.config.workflows:
+            if workflow not in workflow_map:
+                return self.logger.error(f"Undefined workflow {workflow}.")
+            elif not workflow_map[workflow]():
+                return self.logger.error(f"Workflow {workflow} failed.  Exiting...")
 
-        # Execute workflows and collect results
-        workflow_results = [
-            (
-                workflow_map[workflow]()
-                if workflow in workflow_map
-                else (self.logger.error(f"Undefined workflow {workflow}."), False)[1]
-            )
-            for workflow in self.config.workflows
-        ]
-
-        # Return True only if all workflows succeeded AND explicit steps succeeded
-        return all(workflow_results) and self._run_explicit_steps()
+        # Return True only if all workflows AND explicit steps succeeded
+        return self._run_explicit_steps()
 
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
