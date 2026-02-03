@@ -93,8 +93,8 @@ functional-reinstall: fnc-reinstall
 functional-tests:  fnc-test fnc-test-imports fnc-test-notebooks
 
 functional-misc: fnc-compact fnc-env-pack fnc-packages-uninstall fnc-env-unpack \
-	fnc-env-unregister	fnc-env-register fnc-env-delete fnc-spec-reset fnc-packages-compile
-
+	fnc-env-unregister	fnc-env-register fnc-env-delete fnc-spec-reset fnc-packages-compile \
+        fnc-env-kernel-cleanup
 
 fnc-preclean:
 	rm -rf ${NBW_ROOT} ./references
@@ -151,6 +151,9 @@ fnc-env-register: fnc-env-init
 
 fnc-env-unregister: fnc-env-init
 	./nb-wrangler   fnc-test-spec.yaml --env-unregister
+
+fnc-env-kernel-cleanup: fnc-env-init
+	./nb-wrangler   fnc-test-spec.yaml --env-kernel-cleanup
 
 fnc-spec-reset: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --spec-reset
