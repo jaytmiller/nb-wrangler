@@ -1,3 +1,14 @@
+# 0.8.0 02-03-2026 Enhanced Testing and Environment Management
+
+- Added regex support to `--test-notebooks` (and by extension `-t`, `--test-all`, `--test-imports`) allowing users to specify a subset of notebooks for testing.
+- Added `--env-kernel-cleanup` command to scan and remove "dead" Jupyter kernels from the user's registry.
+
+# 0.7.0  01-28-2026  RGES-Nexus wrangler image
+
+
+# 0.6.0  12-18-2025  Roman-20 classic image build with data support
+
+
 # 0.5.0  10-24-2025  Data and Shared Data Handing
 
 - Added workflows and steps for collecting and curating data from notebook repos

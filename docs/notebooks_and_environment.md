@@ -235,6 +235,22 @@ INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:45
 ```
 
+### Running specific notebooks
+
+The `--test-notebooks` flag (and consequently `-t`, `--test-all`, and `--test-imports`) now supports an optional regular expression argument to select a subset of notebooks for testing. This is useful for focusing on specific notebooks during development or debugging.
+
+For example, to run all notebooks with "tess" in their name:
+
+```sh
+./nb-wrangler fnc-test-spec.yaml --test-notebooks ".*tess.*"
+```
+
+To test imports only for notebooks with "roman" in their path:
+
+```sh
+./nb-wrangler my-spec.yaml --test-imports ".*roman.*"
+```
+
 ## Advanced Environments
 
 There are multiple methods of defining the Python environment which collectively use a combination of
@@ -469,4 +485,12 @@ This results in resetting the spec, deleting the environment, clearing package
 caches, and any other required cleanup needed before resuming curation of
 modified inputs.  Removing the repos is optional but the simplest way to
 get a robust update of upstream changes.
+
+### Environment Cleanup
+
+The `--env-kernel-cleanup` flag scans the user's Jupyter kernel registry for "dead" kernels—those pointing to non-existent environments—and removes them. This helps maintain a clean and functional Jupyter environment.
+
+```sh
+./nb-wrangler my-spec.yaml --env-kernel-cleanup
+```
 
