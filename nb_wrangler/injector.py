@@ -211,6 +211,61 @@ Description:
             else:
                 raise ValueError(f"Unsupported type {type(obj)} for field {field}")
 
+    def branch(self, branch_name: str) -> bool:
+        self.logger.info(f"Creating new branch {branch_name} in {self.repo_name}.")
+        return self.repo_manager.git_create_branch(self.repo_name, branch_name)
+
+    def add_injected_files(self) -> bool:
+        self.logger.info(f"Adding injected files to git in {self.repo_name}.")
+        return self.repo_manager.git_add(self.repo_name, "deployments")
+
+    def prune(self) -> bool:
+        self.logger.info(f"Pruning Docker SPI images for {self.deployment_name}.")
+        result = self.repo_manager.run(
+            f"scripts/wrangler-prune {self.deployment_name}",
+            check=False,
+            cwd=self.spi_path,
+        )
+        return self.handle_result(
+            result,
+            f"Failed to prune Docker for old {self.deployment_name} images: ",
+            f"Pruned Docker to force rebuild of {self.deployment_name} images.",
+        )
+
+    def build(self) -> bool:
+        self.logger.info(
+            f"Building Docker image for {self.deployment_name} in {self.spi_path} with wrangler-build script."
+        )
+        result = self.repo_manager.run(
+            f"scripts/wrangler-build {self.deployment_name}",
+            check=False,
+            cwd=self.spi_path,
+        )
+        return self.handle_result(
+            result,
+            f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}: ",
+            f"Built Docker image for {self.deployment_name} under {self.spi_path}.",
+        )
+
+    def commit(self, message: str) -> bool:
+        self.logger.info(f"Committing changes in {self.repo_name}.")
+        if not self.repo_manager.git_add(self.repo_name, "."):
+            return False
+        return self.repo_manager.git_commit(self.repo_name, message)
+
+    def push(self, branch_name: str) -> bool:
+        self.logger.info(f"Pushing branch {branch_name} to remote in {self.repo_name}.")
+        return self.repo_manager.git_push(self.repo_name, branch_name)
+
+    def create_pr(self, branch_name: str, message: str) -> bool:
+        self.logger.info(
+            f"Creating pull request for branch {branch_name} in {self.repo_name}."
+        )
+        title = f"nb-wrangler: Automated SPI injection for {self.spec_manager.spec_file.name}"
+        return self.repo_manager.github_create_pr(
+            self.repo_name, self.base_ingest_branch, title, message
+        )
+
     def get_spi_requirements(self, kind, glob_patterns: list[Path]) -> list[Path]:
         """Find extra mamba or pip requirements files required by SPI environments such as those
         included in the common/common-env directory. mamba packages are typically non-Python packages

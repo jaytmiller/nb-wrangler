@@ -250,6 +250,10 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
     def git_push(self, repo_name: str, branch_name: str) -> bool:
         repo_root = self.repos_dir / repo_name
+        if branch_name == "main":
+            return self.logger.error(
+                f"As a safety measure, refusing to push to main branch of {repo_name}."
+            )
         result = self.run(f"git push origin {branch_name}", check=False, cwd=repo_root)
         return self.handle_result(
             result,

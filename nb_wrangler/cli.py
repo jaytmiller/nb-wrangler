@@ -88,6 +88,38 @@ def parse_args():
         )
     # See below for setup of args.workflows after parsing
 
+    spi_group = parser.add_argument_group(
+        "SPI Automation",
+        "Flags to automate Docker builds and git operations for --inject-spi.",
+    )
+    spi_group.add_argument(
+        "--spi-branch",
+        type=str,
+        default="",
+        help="Create a new branch in the SPI repo with this name.",
+    )
+    spi_group.add_argument(
+        "--spi-commit-message",
+        type=str,
+        default="",
+        help="Commit message for the new branch. If not provided, a default message will be used.",
+    )
+    spi_group.add_argument(
+        "--spi-build",
+        action="store_true",
+        help="Trigger a Docker build in the SPI repo.",
+    )
+    spi_group.add_argument(
+        "--spi-push",
+        action="store_true",
+        help="Push the new branch to the remote SPI repo.",
+    )
+    spi_group.add_argument(
+        "--spi-pr",
+        action="store_true",
+        help="Create a pull request for the new branch in the SPI repo.",
+    )
+
     env_group = parser.add_argument_group(
         "Environment",
         "Setup and management of spec'ed base environment managed by mamba.",

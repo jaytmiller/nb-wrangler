@@ -123,6 +123,12 @@ class WranglerConfig:
     spec_list: bool = False
     spec_add: bool = False
 
+    spi_branch: str = ""
+    spi_commit_message: str = ""
+    spi_build: bool = False
+    spi_push: bool = False
+    spi_pr: bool = False
+
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
         """Create WranglerConfig from argparse Namespace and spec file."""
@@ -182,6 +188,11 @@ class WranglerConfig:
             spec_select=args.spec_select,
             spec_list=args.spec_list,
             spec_add=args.spec_add,
+            spi_branch=args.spi_branch,
+            spi_commit_message=args.spi_commit_message,
+            spi_build=args.spi_build,
+            spi_push=args.spi_push,
+            spi_pr=args.spi_pr,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

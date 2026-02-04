@@ -207,14 +207,62 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _inject_spi_workflow(self) -> bool:
         """Execute steps for the build submission workflow."""
-        return self.run_workflow(
+        if not self.run_workflow(
             "--inject-spi",
             [
                 self._validate_spec,
                 self._prepare_all_repositories,
                 self._inject_spi,
             ],
+        ):
+            return False
+        requires_branch_name = (
+            self.config.spi_build
+            or self.config.spi_commit_message
+            or self.config.spi_push
+            or self.config.spi_pr
         )
+        if requires_branch_name:
+            if not self._spi_cm_and_optional_build():
+                return False
+            return self._spi_commit_push_pr()
+        else:  # No followon steps, limited worflow successful.
+            return True
+
+    def _spi_cm_and_optional_build(self) -> bool:
+        if not self.config.spi_branch:
+            self.config.spi_branch = f"spi-injection-{self.spec_manager.moniker}"
+        if not self.injector.branch(self.config.spi_branch):
+            return False
+        if not self.injector.add_injected_files():
+            return False
+        if self.config.spi_build:
+            if not self.injector.build():
+                return False
+        if not self._spi_commit_push_pr():
+            return False
+        return True
+
+    def _spi_commit_push_pr(self) -> bool:
+        """Optionally commit, push, and PR the injected SPI changes."""
+        if not self.config.spi_push and not self.config.spi_pr:
+            return True
+        commit_message = self.config.spi_commit_message
+        if not commit_message:
+            commit_message = f"nb-wrangler: Automated SPI injection for spec {self.spec_manager.spec_file.name}"
+        if not self.injector.commit(commit_message):
+            return False
+        if self.config.spi_push:
+            if not self.injector.push(self.config.spi_branch):
+                return False
+        else:
+            return self.logger.info(
+                "Skipping SPI push and PR as per configuration.  Branch changes are local only."
+            )
+        if self.config.spi_pr:
+            if not self.injector.create_pr(self.config.spi_branch, commit_message):
+                return False
+        return True
 
     def _run_reinstall_spec_workflow(self) -> bool:
         """Execute steps for environment recreation from spec workflow."""
