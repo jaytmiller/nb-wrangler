@@ -217,7 +217,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         ):
             return False
         requires_branch_name = (
-            self.config.spi_build
+            self.config.spi_prune
+            or self.config.spi_build
             or self.config.spi_commit_message
             or self.config.spi_push
             or self.config.spi_pr
