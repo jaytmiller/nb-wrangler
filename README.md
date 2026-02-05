@@ -44,18 +44,9 @@ Two other points are worthy of note:
    off-platform laptop users to set up the same environment locally in an easy
    manner.
 
-## Science Platform Pre-install
-
-Before installing/bootstrapping on the Science Platform, set the environment variable `NBW_ROOT` to temporary container storage:
-
-```sh
-export NBW_ROOT=/tmp/nbw-live
-```
-
-This is required for adequate cloud performance when creating Python environments and should be done at the start of each session. This step 
-can be skipped for local installations.   Again,  for each session, `NB_ROOT` must be redefined.
-
 ## Installation
+
+### Locally / On your laptop
 
 To get started, bootstrap `nb-wrangler` to create the necessary environments and directories (by default in `$HOME/.nbw-live`):
 
@@ -72,22 +63,22 @@ source ./nb-wrangler environment
 ```
 
 This command sets up the shell environment and activates the `nbwrangler` Python environment so
-that it replaces any other Python you had activated previously and is ready to start executing
-wrangler commands.
+that it (temporarily) replaces any other Python you had activated previously and is ready to
+start executing wrangler commands.
 
-To activate the environment for a specific notebook or set of notebooks, use:
+**NOTE:** Throughout this documentation you'll see `./nb-wrangler` used to run the nb-wrangler
+program.  This assumes that (a) nb-wrangler is in your current working directory and (b) nb-wrangler
+is executable.  Other alternatives to this approach exist: nb-wrangler may already be installed
+in a platform environment and automatically on your PATH.  Or you can put the nb-wrangler script
+in a "bin" directory somewhere that is on your PATH.  In those alternate cases,  you can just
+`source nb-wrangler ...` and drop the leading `./`.
 
-```bash
-source ./nb-wrangler activate <ENVIRONMENT_NAME>
-```
+### On the STScI Science Platform
 
-where `ENVIRONMENT_NAME` is the name of a Python environment which has been installed by nb-wrangler.
+This is viable but the exact environment settings and required workflows are still being formalized.
 
-To deactivate the current environment, run:
-
-```bash
-source ./nb-wrangler deactivate
-```
+If you're curious contact octarine@stsci.edu and we will work out platform and image appropriate
+instructions for doing in-situ development of platform environments using nb-wrangler.
 
 ## How It Works
 
@@ -123,6 +114,12 @@ Example:
 
 # Run each notebook headless using papermill
 ./nb-wrangler spec.yaml --test-notebooks
+
+# Activate your new "target" environment!  Here kernel-name == mamba environment you are curating
+source ./nb-wrangler activate <your-kernel-name>
+
+# Deactivate your current environment
+source ./nb-wrangler deactivate
 ```
 
 The curation process involves:
@@ -152,6 +149,12 @@ Example:
 
 # Run both import and notebook tests
 ./nb-wrangler spec.yaml --test-all
+
+# Activate your new "target" environment!  Here kernel-name == mamba environment you are curating
+source ./nb-wrangler activate <your-kernel-name>
+
+# Deactivate your current environment
+source ./nb-wrangler deactivate
 ```
 
 For both curation and reinstallation there is the assumption that tests may fail and it may be necessary
