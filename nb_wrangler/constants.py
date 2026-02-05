@@ -60,6 +60,7 @@ INSTALL_PACKAGES_TIMEOUT = 1800
 PIP_COMPILE_TIMEOUT = 600
 IMPORT_TEST_TIMEOUT = 60
 ARCHIVE_TIMEOUT = 1200
+DOCKER_BUILD_TIMEOUT = 90 * 60  # 1.5 hours
 
 # Package lists
 TARGET_PACKAGES = ["uv", "pip", "ipykernel", "jupyter", "cython", "setuptools", "wheel"]

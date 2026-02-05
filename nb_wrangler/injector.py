@@ -8,6 +8,7 @@ from .repository import RepositoryManager
 from .spec_manager import SpecManager
 from .environment import WranglerEnvable
 from . import utils
+from .constants import DOCKER_BUILD_TIMEOUT
 
 
 def get_injector(
@@ -241,6 +242,7 @@ Description:
             f"scripts/wrangler-build {self.deployment_name}",
             check=False,
             cwd=self.spi_path,
+            timeout=DOCKER_BUILD_TIMEOUT,
         )
         return self.env_manager.handle_result(
             result,
