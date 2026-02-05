@@ -18,7 +18,7 @@ Science Platform environment.
 Once the curator's inputs are specified,  *run nb-wrangler* like this:
 
 ```bash
-./nb-wrangler my-spec.yaml --curate
+./nb-wrangler sample-specs/roman-20.0.0.yaml --curate
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml
 INFO: 00:00:00.017 Running workflows ['curation'].
 INFO: 00:00:00.000 Running spec development / curation workflow
@@ -80,7 +80,7 @@ without the risk of recomputing something different.
 As a quick check on the built environment you can try out the notebook imports with `--test-imports`:
 
 ```sh
-./nb-wrangler my-spec.yaml --test-imports
+./nb-wrangler sample-specs/roman-20.0.0.yaml --test-imports
 
 INFO: 00:00:00.000 Loading and validating spec sample-specs/roman-20.0.0.yaml
 INFO: 00:00:00.037 Running any explicitly selected steps.
@@ -172,7 +172,7 @@ INFO: 00:00:00.000 Elapsed: 00:00:26
 ```
 
 **NOTE:** the above import test shows a failure where checking imports discovers
-in 26 seconds that the environment does not support `dask` so there is still more 
+in 26 seconds that the environment does not support `dask` so there is still more
 work to do with  notebook and/or spec curation.
 
 Note that sometimes notebooks require data to run successfully so you may also 
@@ -248,7 +248,7 @@ For example, to run all notebooks with "tess" in their name:
 To test imports only for notebooks with "roman" in their path:
 
 ```sh
-./nb-wrangler my-spec.yaml --test-imports ".*roman.*"
+./nb-wrangler sample-specs/roman-20.0.0.yaml --test-imports ".*roman.*"
 ```
 
 ## Advanced Environments
