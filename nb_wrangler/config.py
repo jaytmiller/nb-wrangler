@@ -126,6 +126,7 @@ class WranglerConfig:
     spi_branch: str = ""
     spi_commit_message: str = ""
     spi_build: bool = False
+    spi_prune: bool = False
     spi_push: bool = False
     spi_pr: bool = False
 
@@ -191,6 +192,7 @@ class WranglerConfig:
             spi_branch=args.spi_branch,
             spi_commit_message=args.spi_commit_message,
             spi_build=args.spi_build,
+            spi_prune=args.spi_prune,
             spi_push=args.spi_push,
             spi_pr=args.spi_pr,
             verbose=args.verbose,

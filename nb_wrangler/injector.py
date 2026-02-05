@@ -6,6 +6,7 @@ from typing import Optional
 from .logger import WranglerLoggable
 from .repository import RepositoryManager
 from .spec_manager import SpecManager
+from .environment import WranglerEnvable
 from . import utils
 
 
@@ -22,7 +23,7 @@ def get_injector(
     return SpiInjector(repo_manager, spec_manager)
 
 
-class SpiInjector(WranglerLoggable):
+class SpiInjector(WranglerLoggable, WranglerEnvable):
     """
     A class for interacting with a Science Platform Images (SPI) respository,
     which includes finding extra package requirements for the curated environment
@@ -226,7 +227,7 @@ Description:
             check=False,
             cwd=self.spi_path,
         )
-        return self.handle_result(
+        return self.env_manager.handle_result(
             result,
             f"Failed to prune Docker for old {self.deployment_name} images: ",
             f"Pruned Docker to force rebuild of {self.deployment_name} images.",
@@ -241,7 +242,7 @@ Description:
             check=False,
             cwd=self.spi_path,
         )
-        return self.handle_result(
+        return self.env_manager.handle_result(
             result,
             f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}: ",
             f"Built Docker image for {self.deployment_name} under {self.spi_path}.",

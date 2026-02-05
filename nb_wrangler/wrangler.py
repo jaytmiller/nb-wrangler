@@ -236,6 +236,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return False
         if not self.injector.add_injected_files():
             return False
+        if self.config.spi_prune:
+            if not self.injector.prune():
+                return False
         if self.config.spi_build:
             if not self.injector.build():
                 return False

@@ -110,6 +110,11 @@ def parse_args():
         help="Trigger a Docker build in the SPI repo.",
     )
     spi_group.add_argument(
+        "--spi-prune",
+        action="store_true",
+        help="Prune old Docker images before a build.",
+    )
+    spi_group.add_argument(
         "--spi-push",
         action="store_true",
         help="Push the new branch to the remote SPI repo.",
