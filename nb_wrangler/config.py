@@ -81,7 +81,7 @@ class WranglerConfig:
     packages_compile: bool = False
     packages_install: bool = False
     packages_uninstall: bool = False
-    packages_diagnostics: bool = False
+
     packages_omit_spi: bool = False
 
     test_notebooks: str | None = None
@@ -155,7 +155,6 @@ class WranglerConfig:
             packages_compile=args.packages_compile,
             packages_install=args.packages_install,
             packages_uninstall=args.packages_uninstall,
-            packages_diagnostics=args.packages_diagnostics,
             packages_omit_spi=args.packages_omit_spi,
             test_notebooks=args.test_notebooks,
             test_notebooks_exclude=args.test_notebooks_exclude,

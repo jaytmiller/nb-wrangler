@@ -216,11 +216,6 @@ def parse_args():
         dest="packages_uninstall",
         help="Remove the compiled packages from the target environment after processing.",
     )
-    packages_group.add_argument(
-        "--packages-diagnostics",
-        action="store_true",
-        help="Include extra outputs showing which requirements files are included and the packages they require.",
-    )
 
     testing_group = parser.add_argument_group("Testing", "Wrangler test commands.")
     testing_group.add_argument(
