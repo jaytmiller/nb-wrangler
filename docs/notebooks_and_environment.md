@@ -459,7 +459,27 @@ Note that the entire distinction between ROOT and PANTRY has to do with the unde
 performance and persistence of the associated storage.  The above setup is intended so
 that NBW_ROOT is fast but not persistent, while NBW_PANTRY is persistent and unfortunately
 slow as a consequence.  (Persistence refers to "not forgotten between notebook sessions
-on the science platform.  Nevertheless, maye require unpacking to restore )
+on the science platform."  Nevertheless, maye require unpacking to restore )
+
+### Wrangling with custom tools
+
+If you prefer not to use **micromamba** for setting up the base environment and **uv pip** for `pip` installs,
+you can override these tools and fall back to the standard `mamba` and `pip`, which are sufficiently compatible
+for the limited wrangler use‑cases.
+
+To configure **nb‑wrangler** to use `mamba` and `pip` instead of `micromamba` and `uv pip`, set the following environment variables:
+
+```sh docs/notebooks_and_environment.md
+export NBW_MAMBA_CMD="mamba"
+export NBW_PIP_CMD="pip"
+```
+
+*While untested, swapping either tool independently should also work.*
+
+The configuration above has been used in production at STScI to install **nb-wrangler** into an existing `mamba` environment and to rely solely on `pip` as the package manager—avoiding a mixed setup of `pip` + `uv pip` (which is anecdotally discouraged) and a mix of `micromamba` + `mamba`.  Stick to one toolchain or the other,  and this really applies to default development IF you choose to start installing packages manually vs. using nb-wrangler.
+
+That said, **micromamba** and **uv pip** are the default choices for wrangler development. They provide major benefits in terms of speed for dependency‑constraint resolution and package installation, making local development a much more pleasant experience.
+
 
 ### Bootstrapping
 
