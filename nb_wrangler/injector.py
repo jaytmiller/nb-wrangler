@@ -80,15 +80,21 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
 
     @property
     def ingest_branch(self):
-        """Name of branch that will be PR'ed for this submission."""
+        """Name of branch that will be PR'ed for this --submit-for-build submission, based on core name."""
         return self.core_name
 
     @property
     def ingest_name(self) -> str:
-        """Name of spec when added to wrangler nbw-spec-archive directory, traceable to both
-        ingest branch, image tag, and PR.
+        """Name of spec when added to wrangler nbw-spec-archive directory during --submit-for-build,
+        traceable to ingest branch, image tag, and PR.
         """
         return self.core_name + ".yaml"
+
+    @property
+    def spi_injection_branch_name(self):
+        """Name of branch for SPI injection of the spec, based on core name, when no branch
+        is explicitly provided provided using --spi-branch."""
+        return "spi-" + self.core_name.replace("nbw-", "")
 
     def submit_for_build(self):
         title = f"Wrangler spec for build {self.ingest_name}."
@@ -221,6 +227,23 @@ Description:
         self.logger.info(f"Adding injected files to git in {self.repo_name}.")
         return self.repo_manager.git_add(self.repo_name, "deployments")
 
+    def commit(self, message: str) -> bool:
+        self.logger.info(f"Committing changes in {self.repo_name}.")
+        return self.repo_manager.git_commit(self.repo_name, message)
+
+    def push(self, branch_name: str) -> bool:
+        self.logger.info(f"Pushing branch {branch_name} to remote in {self.repo_name}.")
+        return self.repo_manager.git_push(self.repo_name, branch_name)
+
+    def create_pr(self, branch_name: str, message: str) -> bool:
+        self.logger.info(
+            f"Creating pull request for branch {branch_name} in {self.repo_name}."
+        )
+        title = f"nb-wrangler: Automated SPI injection for {self.spec_manager.spec_file.name}"
+        return self.repo_manager.github_create_pr(
+            self.repo_name, self.base_ingest_branch, title, message
+        )
+
     def prune(self) -> bool:
         self.logger.info(f"Pruning Docker SPI images for {self.deployment_name}.")
         result = self.repo_manager.run(
@@ -248,25 +271,6 @@ Description:
             result,
             f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}: ",
             f"Built Docker image for {self.deployment_name} under {self.spi_path}.",
-        )
-
-    def commit(self, message: str) -> bool:
-        self.logger.info(f"Committing changes in {self.repo_name}.")
-        if not self.repo_manager.git_add(self.repo_name, "."):
-            return False
-        return self.repo_manager.git_commit(self.repo_name, message)
-
-    def push(self, branch_name: str) -> bool:
-        self.logger.info(f"Pushing branch {branch_name} to remote in {self.repo_name}.")
-        return self.repo_manager.git_push(self.repo_name, branch_name)
-
-    def create_pr(self, branch_name: str, message: str) -> bool:
-        self.logger.info(
-            f"Creating pull request for branch {branch_name} in {self.repo_name}."
-        )
-        title = f"nb-wrangler: Automated SPI injection for {self.spec_manager.spec_file.name}"
-        return self.repo_manager.github_create_pr(
-            self.repo_name, self.base_ingest_branch, title, message
         )
 
     def get_spi_requirements(self, kind, glob_patterns: list[Path]) -> list[Path]:

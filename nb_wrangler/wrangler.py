@@ -232,7 +232,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _spi_cm_and_optional_build(self) -> bool:
         if not self.config.spi_branch:
-            self.config.spi_branch = f"spi-injection-{self.spec_manager.moniker}"
+            self.config.spi_branch = self.injector.spi_injection_branch_name
         if not self.injector.branch(self.config.spi_branch):
             return False
         if not self.injector.add_injected_files():
@@ -243,8 +243,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if self.config.spi_build:
             if not self.injector.build():
                 return False
-        if not self._spi_commit_push_pr():
-            return False
         return True
 
     def _spi_commit_push_pr(self) -> bool:
