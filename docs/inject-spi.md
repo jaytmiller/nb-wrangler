@@ -22,7 +22,7 @@ Additionally, for practical application, you will need:
 
 ## Example SPI Injection Workflow
 
-The injection command is straightforward:
+The base injection command is straightforward:
 
 ```bash
 $ nb-wrangler --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml
@@ -53,6 +53,31 @@ INFO: 00:00:00.000 Errors: 0
 INFO: 00:00:00.000 Warnings: 0
 INFO: 00:00:00.000 Elapsed: 00:00:07
 ```
+
+**Automated SPI Injection Workflow**
+
+To fully automate the SPI injection process, including pushing changes and creating a Pull Request on GitHub, you can use the `--spi-push` and `--spi-pr` flags:
+
+```bash
+$ nb-wrangler --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml --spi-push --spi-pr
+```
+
+This command will:
+1.  Perform the standard SPI injection (as described above).
+2.  Create a new Git branch in your local `science-platform-images` repository clone (with an automatically generated name based on the spec moniker).
+3.  Commit the injected changes to this new branch (with a default commit message).
+4.  Push this new branch to your remote `science-platform-images` repository.
+5.  Create a Pull Request on GitHub from this new branch to `origin/main`.
+
+**GitHub Authentication (`gh auth login`)**
+
+To enable `nb-wrangler` to push branches and create Pull Requests on GitHub, you must first authenticate the GitHub CLI (`gh`). You can do this by running:
+
+```bash
+gh auth login
+```
+
+Follow the prompts to authenticate using your GitHub account. A standard GitHub CLI token will work.
 
 **NOTE:** Because `nb-wrangler` aggressively deletes repository clones, we set `--repos-dir` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nb-wrangler` from attempting to delete it.
 
@@ -96,6 +121,15 @@ $ image-build
 ```
 
 Like all classic builds, while obtaining a fully built image and environment is the primary task, the specific details of the `post-start-hook` and/or deployment `test` function may require adjustments to accommodate the current set of notebooks, etc. In principle, the wrangler can automate both of these aspects even for classic builds, but this would require incorporating too many common changes from `nb-wrangler`, which would add unnecessary development effort and risk.
+
+## Experimental Features
+
+The following flags are available for advanced users or for testing experimental functionalities. They are not part of the primary SPI injection workflow and their behavior may change in future releases.
+
+*   `--spi-branch <branch-name>`: Allows you to specify the name of the Git branch to create in the `science-platform-images` repository. By default, a branch name is automatically generated.
+*   `--spi-commit-message <message>`: Provides a custom commit message for the changes. If not provided, a default message is used.
+*   `--spi-build`: Triggers a Docker build in the `science-platform-images` repository after injection and before committing changes. This can be useful for local validation of the generated environment.
+*   `--spi-prune`: Prunes old Docker images before a build. This ensures a clean rebuild and can free up disk space.
 
 ## Key Differences from True Wrangler Builds
 
