@@ -93,6 +93,8 @@ class WranglerConfig:
     timeout: int = NOTEBOOK_TEST_MAX_SECS
 
     inject_spi: bool = False
+    dev: bool = False
+    _dev_explicitly_set: bool = False
     submit_for_build: bool = False
 
     spec_reset: bool = False
@@ -100,6 +102,7 @@ class WranglerConfig:
     spec_ignore_hash: bool = False
     spec_add_pip_hashes: bool = False
     spec_update_hash: bool = False
+    finalize_dev_overrides: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_print_exports: bool = False

@@ -27,7 +27,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def __init__(self):
         super().__init__()
         self.logger.info("Loading and validating spec", self.config.spec_file)
-        self.spec_manager = SpecManager.load_and_validate(self.config.spec_file)
+        self.spec_manager = SpecManager.load_and_validate(
+            self.config.spec_file, self.config
+        )
         if self.spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
         self.pantry = NbwPantry()
@@ -133,6 +135,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 "Failed to set up internal Python environment from spec."
             )
 
+        self._apply_dev_mode_defaults()  # New call here
+
         if self.config.workflows:
             self.logger.info(f"Running workflows {self.config.workflows}.")
 
@@ -154,6 +158,57 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Return True only if all workflows AND explicit steps succeeded
         return self._run_explicit_steps()
+
+    def _apply_dev_mode_defaults(self):
+        """
+        Applies implicit --dev settings based on the active workflow.
+        Explicit --dev/--no-dev flags will always override these defaults.
+        """
+        # Determine if dev_overrides exist in the spec
+        dev_overrides_exist = self.spec_manager.dev_overrides_exist()
+
+        # Get the explicit --dev setting from CLI
+        explicit_dev_cli = (
+            self.config.dev
+        )  # 'dev' is True if --dev was provided, False otherwise
+
+        if (
+            "curation" in self.config.workflows
+            or "data_curation" in self.config.workflows
+        ):
+            if not explicit_dev_cli:  # If --dev was not explicitly set to True
+                if dev_overrides_exist:
+                    self.config.dev = True
+                    self.logger.info(
+                        "Implicitly activating --dev for curation workflow as dev_overrides exist."
+                    )
+                else:
+                    self.config.dev = False  # Default behavior if no overrides exist
+                    self.logger.warning(
+                        "No dev_overrides found. Curation will proceed without development overrides."
+                    )
+
+        elif (
+            "reinstall" in self.config.workflows
+            or "data_reinstall" in self.config.workflows
+        ):
+            if not explicit_dev_cli:  # If --dev was not explicitly set to True
+                self.config.dev = (
+                    False  # Implicitly deactivate --dev for reinstall workflows
+                )
+            else:  # --dev was explicitly set by CLI
+                if not dev_overrides_exist:
+                    self.logger.error(
+                        "Explicit --dev used for reinstall workflow but no dev_overrides found in spec. This may lead to unexpected behavior."
+                    )
+        else:
+            # For other workflows or isolated steps, default --dev to False unless explicitly set.
+            if not explicit_dev_cli:
+                self.config.dev = False
+
+    def _finalize_dev_overrides(self) -> bool:
+        """Remove the 'dev_overrides' section from the spec file."""
+        return self.spec_manager.remove_dev_overrides()
 
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
@@ -332,6 +387,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_print_name, self._env_print_name),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
+            (self.config.finalize_dev_overrides, self._finalize_dev_overrides),
             (self.config.data_collect, self._data_collect),
             (self.config.data_list, self._data_list),
             (self.config.data_download, self._data_download),

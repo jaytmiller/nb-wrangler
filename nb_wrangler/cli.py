@@ -125,6 +125,16 @@ def parse_args():
         help="Create a pull request for the new branch in the SPI repo.",
     )
 
+    dev_group = parser.add_argument_group(
+        "Development Overrides",
+        "Flags for managing development-specific overrides in the spec.",
+    )
+    dev_group.add_argument(
+        "--dev",
+        action="store_true",
+        help="Enable development overrides defined in the spec. (Implicit for some workflows).",
+    )
+
     env_group = parser.add_argument_group(
         "Environment",
         "Setup and management of spec'ed base environment managed by mamba.",
@@ -440,6 +450,11 @@ def parse_args():
         action="store_true",
         dest="spec_add_pip_hashes",
         help="Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.",
+    )
+    spec_group.add_argument(
+        "--finalize-dev-overrides",
+        action="store_true",
+        help="Remove the 'dev_overrides' section from the spec file.",
     )
 
     misc_group = parser.add_argument_group("Miscellaneous", "Global wrangler settings.")

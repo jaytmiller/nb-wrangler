@@ -6,10 +6,13 @@ import copy
 
 from . import utils
 from .logger import WranglerLoggable
+from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
 
 
-class SpecManager(WranglerLoggable):
+class SpecManager(
+    WranglerLoggable, WranglerConfigurable
+):  # Inherit from WranglerConfigurable
     """Manages specification loading, validation, access, and persistence."""
 
     def __init__(self):
@@ -72,7 +75,25 @@ class SpecManager(WranglerLoggable):
 
     @property
     def repositories(self) -> dict[str, Any]:
-        return self._spec.get("repositories", {})
+        """Return repositories, applying dev_overrides if enabled."""
+        base_repos = self._spec.get("repositories", {})
+        if self.config.dev and "dev_overrides" in self._spec:
+            dev_repos = self._spec["dev_overrides"].get("repositories", {})
+            # Merge dev_repos into base_repos, overwriting if keys conflict
+            merged_repos = copy.deepcopy(base_repos)
+            for repo_name, dev_repo_config in dev_repos.items():
+                if repo_name in merged_repos:
+                    # Merge individual fields, dev_repo_config takes precedence
+                    merged_repos[repo_name].update(dev_repo_config)
+                else:
+                    # Add new dev_override repositories
+                    merged_repos[repo_name] = dev_repo_config
+            return merged_repos
+        return base_repos
+
+    def dev_overrides_exist(self) -> bool:
+        """Check if the 'dev_overrides' section exists in the spec."""
+        return "dev_overrides" in self._spec
 
     @property
     def notebook_selections(self) -> dict[str, Any]:
@@ -304,6 +325,15 @@ class SpecManager(WranglerLoggable):
             return self.logger.error("Spec save to", self._source_file, "failed...")
         return True
 
+    def remove_dev_overrides(self) -> bool:
+        """Remove the 'dev_overrides' section from the spec file."""
+        if "dev_overrides" in self._spec:
+            self.logger.info("Removing 'dev_overrides' section from spec.")
+            self._spec.pop("dev_overrides")
+            return self.save_spec_as(self._source_file)
+        self.logger.info("No 'dev_overrides' section found to remove.")
+        return True
+
     # ---------------------------- hashes, crypto ----------------------------------
 
     @property
@@ -340,6 +370,7 @@ class SpecManager(WranglerLoggable):
     # ---------------------------- validation ----------------------------------
 
     ALLOWED_KEYWORDS: dict[str, Any] = {
+        "dev_overrides": {},
         "image_spec_header": [
             "image_name",
             "description",
