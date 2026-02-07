@@ -97,7 +97,4 @@ in micromamba and mamba.
 
 ### Avoid Code Duplication
 
-Whenever a change or set of changes produces a reasonably complex line or block of code and effectively repeats it or close variations
-in multiple locations, consider using a property or function to factor out the common code and improve readability and standardization.
-Avoid the temptation of taking the easy route:  do not inline the same complex processing in multiple locations,  instead you should
-generalize and factor out the commonality into a single property or function which may be called in different ways as needed.
+Whenever you spot the same intricate code in multiple spots, *factor it out* into a single, well‑named property or function, parameterize it as needed, and replace all inline copies with calls to that abstraction. This keeps the codebase cleaner, more readable, and easier to maintain.

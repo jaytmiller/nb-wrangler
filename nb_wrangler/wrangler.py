@@ -400,12 +400,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
         self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
 
+        # Update SPI ref with resolved hash
+        spi_output = copy.deepcopy(self.spec_manager.spi)
+        spi_url = spi_output.get("repo")
+        if spi_url and spi_url in resolved_repo_states:
+            spi_output["ref"] = resolved_repo_states[spi_url]
+
         # Save updated spec
         return self.spec_manager.revise_and_save(
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             repositories=copy.deepcopy(output_repos_for_spec),
-            spi=copy.deepcopy(self.spec_manager.spi),
+            spi=spi_output,
             test_notebooks=notebook_paths,
             test_imports=test_imports,
             nb_to_imports=nb_to_imports,
@@ -421,7 +427,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             and not self.config.inject_spi
             and not self.config.submit_for_build
         ):
-            spi_info = self.spec_manager.spi
+            if floating_mode:
+                spi_info = self.spec_manager.spi
+            else:  # locked mode
+                spi_info = self.spec_manager.get_output_data(
+                    "spi", self.spec_manager.spi
+                )
             spi_url = spi_info.get("repo")
             spi_ref = spi_info.get("ref")
             if spi_url:
