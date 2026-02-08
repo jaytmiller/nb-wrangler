@@ -68,7 +68,7 @@ This section provides metadata about the image and Python environment.
    - **display_name**: The name as it will appear in the JupyterLab kernel selection list (e.g., `TESS`).
    - **description**: A brief description of the image and its purpose.
    - **valid_on** and **expires_on**: Dates specifying when the image becomes valid and when it expires, respectively.
-   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`).
+   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments and is mutually exclusive with `environment_spec` or an inline mamba spec.
 
 ### **repositories**
 This section defines a dictionary of the git repositories that contain notebooks. Each repository is given a short, memorable name that will be used to refer to it in the `selected_notebooks` section.
@@ -76,6 +76,27 @@ This section defines a dictionary of the git repositories that contain notebooks
 Each entry in `repositories` has the following fields:
 - **url**: The URL of the git repository.
 - **ref**: The git branch, tag, or commit hash to use (defaults to `main`).
+
+### **dev_overrides**
+This optional top-level section allows developers to temporarily override any top-level sections of the spec for development purposes without modifying the core production-ready configuration.
+
+When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nb-wrangler` will apply these overrides. When `--finalize-dev-overrides` is used, this section is removed.
+
+The structure of `dev_overrides` mirrors the top-level sections it intends to override. For example, to override `repositories` (including `url` for forked development) and `system.spi`:
+
+```yaml
+dev_overrides:
+  repositories:
+    your_repo_name:
+      url: https://github.com/your-fork/your_repo_name # Override URL for forked development
+      ref: your-dev-branch
+    another_repo:
+      ref: another-dev-ref
+  system:
+    spi:
+      ref: your-spi-dev-branch
+```
+
 
 ### **selected_notebooks**
 

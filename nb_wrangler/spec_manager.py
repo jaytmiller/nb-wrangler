@@ -117,7 +117,15 @@ class SpecManager(
 
     @property
     def spi(self) -> dict[str, str]:
-        return self.system.get("spi", {})
+        base_spi = self.system.get("spi", {})
+        if self.config.dev and "dev_overrides" in self._spec:
+            if "system" in self._spec["dev_overrides"]:
+                dev_spi = self._spec["dev_overrides"]["system"].get("spi", {})
+                if dev_spi:
+                    merged_spi = copy.deepcopy(base_spi)
+                    merged_spi.update(dev_spi)
+                    return merged_spi
+        return base_spi
 
     @property
     def moniker(self) -> str:
@@ -370,7 +378,15 @@ class SpecManager(
     # ---------------------------- validation ----------------------------------
 
     ALLOWED_KEYWORDS: dict[str, Any] = {
-        "dev_overrides": {},
+        "dev_overrides": {
+            "repositories": ["url", "ref"],
+            "system": {
+                "spi": {
+                    "repo": None,
+                    "ref": None,
+                },
+            },
+        },
         "image_spec_header": [
             "image_name",
             "description",

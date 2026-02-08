@@ -27,9 +27,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def __init__(self):
         super().__init__()
         self.logger.info("Loading and validating spec", self.config.spec_file)
-        self.spec_manager = SpecManager.load_and_validate(
-            self.config.spec_file, self.config
-        )
+        self.spec_manager = SpecManager.load_and_validate(self.config.spec_file)
         if self.spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
         self.pantry = NbwPantry()

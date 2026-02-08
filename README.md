@@ -36,7 +36,7 @@ spec.
 
 Two other points are worthy of note:
 
-1. nb-wrangler can support easy installation of custom environments directly 
+1. nb-wrangler can support easy installation of custom environments directly
    on the science platform that were not first pre-installed in the platform
    Docker image.  This can be exploited to set up shared global or team installations
    areas as well as personalized environments.
@@ -98,7 +98,7 @@ The main curation workflows are:
   installs pip dependencies.
 - **`--data-curate`:** Gathers data requirements from notebook repositories and
   adds them to the spec.
-- **`--test, --test-imports, --test-notebooks`:** Tests the notebook imports and 
+- **`--test, --test-imports, --test-notebooks`:** Tests the notebook imports and
   notebooks themselves in the context of the environment and data installation.
 
 Example:
@@ -175,6 +175,16 @@ gh auth login
 ```
 The `--submit-for-build` command requires a valid `GitHub Personal Access Token (PAT)` with the necessary permissions and collaborator status with the targeted SPI repo.
 For more information, see the [Build Submission documentation](docs/submit.md).
+
+### Development Overrides
+
+To streamline development with custom branches without altering your core `spec.yaml`, `nb-wrangler` supports `dev_overrides`.
+
+- The `dev_overrides` section in `spec.yaml` allows you to temporarily specify development branches for repositories.
+- Use the `--dev` flag (or rely on implicit activation for curation workflows) to apply these overrides.
+- Use `--finalize-dev-overrides` to remove the `dev_overrides` section when preparing for production.
+
+For more details, see the [Spec Format documentation](docs/spec-format.md).
 
 ### SPI Injection
 
@@ -274,10 +284,19 @@ For a full list of options, run `./nb-wrangler --help`.
 
 - **Notebook (`.ipynb`):** Jupyter notebooks.
 - **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md) for details on the new format, which uses a `repositories` dictionary and named `selected_notebooks` blocks.
-- **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks) 
+- **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks)
 - **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
 - **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in its directory.
 - **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory.
 
 The goal of nb-wrangler is to combine these inputs, resolve any conflicts, and create a unified environment capable of running all specified notebooks.
+
+Secondary goals,  include but are not limited to:
+
+- Collecting, freezing, distributing, and re-installing **data** associated with notebook repos.
+- Initializing notebook and terminal environment variables as spec'ed, partcularly regarding spec'ed/installed data which may be installed in a shared location.
+- Building Docker images for curators or science platform admins or pipelines.
+- Testiing environments (importing all requested package) and notebooks.
+- Automating any/all of these tasks for notebook repos / curators and the science platforms.
+

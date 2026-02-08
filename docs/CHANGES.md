@@ -1,3 +1,15 @@
+# 0.9.0  02-04-2026  Development Overrides and Enhanced SPI Automation
+
+- **Development Overrides (`dev_overrides` and `--dev`, `--finalize-dev-overrides`):**
+  - Introduced an optional `dev_overrides` section in `spec.yaml` to allow temporary overrides of repository references for development purposes.
+  - `--dev` flag (implicitly activated for curation workflows) enables the application of `dev_overrides`.
+  - `--finalize-dev-overrides` flag removes the `dev_overrides` section, preparing the spec for production.
+
+- **Enhanced SPI Automation (`--spi-branch`, `--spi-commit-message`, `--spi-build`, `--spi-prune`, `--spi-push`, `--spi-pr`):**
+  - Expanded the `--inject-spi` workflow with flags to automate Git operations (branching, committing, pushing, PR creation) and Docker image management (pruning and building).
+  - `--spi-prune` allows removal of old Docker images to force a complete rebuild.
+  - Improved workflow for injecting spec requirements into the `science-platform-images` repository.
+
 # 0.8.0 02-03-2026 Enhanced Testing and Environment Management
 
 - Added regex support to `--test-notebooks` (and by extension `-t`, `--test-all`, `--test-imports`) allowing users to specify a subset of notebooks for testing.
