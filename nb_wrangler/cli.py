@@ -105,17 +105,22 @@ def parse_args():
         # help=argparse.SUPPRESS,  # "Commit message for the new branch. If not provided, a default message will be used."
     )
     spi_group.add_argument(
-        "--spi-prune",
+        "--spi-prune-docker",
         action="store_true",
-        # help=argparse.SUPPRESS,  # "Prune old Docker images before a build."
+        help="Prune old Docker images before a build.",
     )
     spi_group.add_argument(
-        "--spi-build",
+        "--spi-inject-reqs",
         action="store_true",
-        # help=argparse.SUPPRESS,  # "Trigger a Docker build in the SPI repo."
+        help="Copy the apppropriate requirements fields from the wrangler spec into locations in the SPI repo clone.",
     )
     spi_group.add_argument(
-        "--spi-push",
+        "--spi-build-image",
+        action="store_true",
+        help="Trigger a Docker build in the SPI repo.",
+    )
+    spi_group.add_argument(
+        "--spi-push-branch",
         action="store_true",
         help="Push the new branch to the remote SPI repo.",
     )
@@ -123,6 +128,11 @@ def parse_args():
         "--spi-pr",
         action="store_true",
         help="Create a pull request for the new branch in the SPI repo.",
+    )
+    spi_group.add_argument(
+        "--spi-image-name",
+        action="store_true",
+        help="Print the image name corresponding to the current spec to stdout and exit.",
     )
 
     dev_group = parser.add_argument_group(
@@ -386,6 +396,14 @@ def parse_args():
         action="store_true",
         help="Delete --repo-dir and clones after processing.",
     )
+    notebook_group.add_argument(
+        "--repos-clean",
+        type=str,
+        nargs="?",
+        default=None,
+        const="__pycache__",
+        help="Clean up specified patterns in cloned repos. Defaults to __pycache__.",
+    )
 
     repo_update_group = notebook_group.add_mutually_exclusive_group()
     repo_update_group.add_argument(
@@ -409,6 +427,22 @@ def parse_args():
         action="store_true",
         dest="spec_reset",
         help="Reset spec to its original state by deleting output fields.  out.data section is preserved.",
+    )
+    spec_group.add_argument(
+        "--spec-name",
+        action="store_true",
+        dest="spec_name",
+        help="Generate a name suitable for referring to this image/spec/build and print to stdout.",
+    )
+    spec_group.add_argument(
+        "--print-wrangler-repo",
+        action="store_true",
+        help="Print the nb-wrangler repository URL associated with this spec.",
+    )
+    spec_group.add_argument(
+        "--print-wrangler-ref",
+        action="store_true",
+        help="Print the nb-wrangler repository ref associated with this spec.",
     )
     spec_group.add_argument(
         "--spec-add",

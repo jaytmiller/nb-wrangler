@@ -5,6 +5,7 @@ image_spec_header:
   valid_on: "2026-01-16"
   expires_on: "2028-01-16"
 
+# This is them mamba mission environment spec for this image relative to the repo root
 environment_spec:
   path: environment.yml
   repo: nexus-notebooks
@@ -22,6 +23,7 @@ system:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
     ref: "main"
   spec_sha256: 741b7c581983e5d7a42b85b418fcafe8eea670fc6835b057867f4f5a518e562f
+
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git

@@ -5,7 +5,7 @@
 from dataclasses import dataclass
 from pathlib import Path
 
-# from typing import Optional
+from typing import Optional
 import argparse
 
 # from . import utils
@@ -64,6 +64,7 @@ class WranglerConfig:
     repos_dir: Path = Path(REPOS_DIR)
     clone_repos: bool = False
     delete_repos: bool = False
+    repos_clean: Optional[list[str]] = None
     overwrite_local_changes: bool = False
     stash_local_changes: bool = False
 
@@ -123,15 +124,20 @@ class WranglerConfig:
     data_symlinks: bool = False
 
     spec_select: str | None = None
+    spec_name: bool = False
+    print_wrangler_repo: bool = False
+    print_wrangler_ref: bool = False
     spec_list: bool = False
     spec_add: bool = False
 
     spi_branch: str = ""
     spi_commit_message: str = ""
-    spi_build: bool = False
-    spi_prune: bool = False
-    spi_push: bool = False
+    spi_inject_reqs: bool = False
+    spi_build_image: bool = False
+    spi_prune_docker: bool = False
+    spi_push_branch: bool = False
     spi_pr: bool = False
+    spi_image_name: bool = False
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
@@ -143,6 +149,7 @@ class WranglerConfig:
             repos_dir=args.repos_dir,
             clone_repos=args.clone_repos,
             delete_repos=args.delete_repos,
+            repos_clean=args.repos_clean,
             overwrite_local_changes=args.overwrite_local_changes,
             stash_local_changes=args.stash_local_changes,
             env_init=args.env_init,
@@ -166,6 +173,8 @@ class WranglerConfig:
             jobs=args.jobs,
             timeout=args.timeout,
             inject_spi=args.inject_spi,
+            dev=args.dev,
+            _dev_explicitly_set=args.dev,
             spec_reset=args.spec_reset,
             spec_validate=args.spec_validate,
             spec_ignore_hash=args.spec_ignore_hash,
@@ -189,14 +198,19 @@ class WranglerConfig:
             data_no_symlinks=args.data_no_symlinks,
             data_symlinks=args.data_symlinks,
             spec_select=args.spec_select,
+            spec_name=args.spec_name,
+            print_wrangler_repo=args.print_wrangler_repo,
+            print_wrangler_ref=args.print_wrangler_ref,
             spec_list=args.spec_list,
             spec_add=args.spec_add,
             spi_branch=args.spi_branch,
             spi_commit_message=" ".join(args.spi_commit_message),
-            spi_build=args.spi_build,
-            spi_prune=args.spi_prune,
-            spi_push=args.spi_push,
+            spi_inject_reqs=args.spi_inject_reqs,
+            spi_build_image=args.spi_build_image,
+            spi_prune_docker=args.spi_prune_docker,
+            spi_push_branch=args.spi_push_branch,
             spi_pr=args.spi_pr,
+            spi_image_name=args.spi_image_name,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

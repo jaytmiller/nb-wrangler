@@ -82,8 +82,6 @@ test-functional: setup functional data-functional data-clean test-advanced-mamba
 test-advanced-mamba:
 	./tests/test-advanced-mamba.sh
 
-
-
 functional: fnc-preclean fnc-bootstrap functional-develop functional-tests functional-reinstall functional-misc
 
 functional-develop: fnc-curate
@@ -160,7 +158,7 @@ fnc-spi-basic-workflow: fnc-inject-spi
 	# Ensure clean state for git operations and remove previous test branches
 	cd inject-spi-references/science-platform-images && git checkout main && git branch -D test-spi-branch || true
 	# Run inject-spi with branch, commit, prune, build
-	./nb-wrangler fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references \
+	./nb-wrangler fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
 		--spi-commit-message "Test SPI commit" \
 		--spi-prune --spi-build --spi-branch test-spi-branch
 	echo "--- Verifying basic SPI workflow test results ---"
@@ -177,9 +175,9 @@ fnc-spec-validate: fnc-packages-compile
 	./nb-wrangler   fnc-test-spec.yaml --spec-validate
 	git checkout -- fnc-test-spec.yaml
 
-fnc-inject-spi: fnc-packages-compile
+fnc-inject-spi:
 	rm -rf inject-spi-references
-	./nb-wrangler   fnc-test-spec.yaml --inject-spi  --repos-dir  inject-spi-references
+	./nb-wrangler   fnc-test-spec.yaml --curate --inject-spi  --repos-dir  inject-spi-references
 
 
 
@@ -256,6 +254,7 @@ clean-other:
 	rm -fr htmlcov/
 	rm -rf .mypy_cache
 	rm -f nb-wrangler.log
+	rm -rf inject-spi-references
 
 lint/flake8: ## check style with flake8
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \

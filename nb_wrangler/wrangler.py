@@ -265,15 +265,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             [
                 self._validate_spec,
                 self._prepare_all_repositories,
-                self._inject_spi,
+                self._spi_inject_reqs,
             ],
         ):
             return False
         requires_branch_name = (
-            self.config.spi_prune
-            or self.config.spi_build
+            self.config.spi_prune_docker
+            or self.config.spi_build_image
             or self.config.spi_commit_message
-            or self.config.spi_push
+            or self.config.spi_push_branch
             or self.config.spi_pr
         )
         if requires_branch_name:
@@ -290,9 +290,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return False
         if not self.injector.add_injected_files():
             return False
-        if self.config.spi_prune and not self.injector.prune():
+        if self.config.spi_prune_docker and not self.injector.prune():
             return False
-        if self.config.spi_build and not self.injector.build():
+        if self.config.spi_build_image and not self.injector.build():
             return False
         return True
 
@@ -303,7 +303,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             commit_message = f"nb-wrangler: Automated SPI injection for spec {self.spec_manager.spec_file.name}"
         if not self.injector.commit(commit_message):
             return False
-        if self.config.spi_push:
+        if self.config.spi_push_branch:
             if not self.injector.push(self.config.spi_branch):
                 return False
         else:
@@ -356,6 +356,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "--data-reset-curation",
             [
+                self._delete_repos,
                 self._delete_environment,
                 # self._env_compact,
                 self._reset_spec,
@@ -375,6 +376,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.test_all or self.config.test_notebooks, self._test_notebooks),
             (self.config.spec_update_hash, self._update_spec_sha256),
             (self.config.spec_validate, self._validate_spec),
+            (self.config.spec_name, self._spec_name),
+            (self.config.print_wrangler_repo, self._print_wrangler_repo),
+            (self.config.print_wrangler_ref, self._print_wrangler_ref),
             (self.config.env_pack, self._pack_environment),
             (self.config.env_unpack, self._unpack_environment),
             (self.config.env_register, self._register_environment),
@@ -393,6 +397,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_pack, self._data_pack),
             (self.config.data_print_exports, self._data_print_exports),
             (self.config.data_symlinks, self._data_symlink_install_data),
+            (self.config.repos_clean is not None, self._clean_repos),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
             (self.config.env_delete, self._delete_environment),
@@ -401,6 +406,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spec_reset, self._reset_spec),
             (self.config.data_reset_spec, self._data_reset_spec),
             (self.config.reset_log, self._reset_log),
+            (self.config.spi_image_name, self._spi_image_name),
+            (self.config.spi_inject_reqs, self._spi_inject_reqs),
+            (self.config.spi_build_image, self.injector.build),
+            (self.config.spi_prune_docker, self.injector.prune),
         ]
         if any(item[0] for item in flags_and_steps):
             self.logger.info("Running any explicitly selected steps.")
@@ -522,6 +531,21 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""
         self.pantry_shelf.set_wrangler_spec(self.config.spec_file)
+        return True
+
+    def _spec_name(self) -> bool:
+        """Based on the spec content, generate a name suitable for referring to this image/build and print to stdout."""
+        print(self.spec_manager.spec_name)
+        return True
+
+    def _print_wrangler_repo(self) -> bool:
+        """Print the nb-wrangler repository URL associated with this spec."""
+        print(self.spec_manager.nb_wrangler.get("repo", ""))
+        return True
+
+    def _print_wrangler_ref(self) -> bool:
+        """Print the nb-wrangler repository ref associated with this spec."""
+        print(self.spec_manager.nb_wrangler.get("ref", ""))
         return True
 
     def _spec_list(self) -> bool:
@@ -709,6 +733,20 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self.pantry_shelf.archive(dest_archive, src_path, "") and no_errors
             )
         return no_errors
+
+    def _clean_repos(self) -> bool:
+        """Clean up specified patterns in cloned repositories."""
+        if self.config.repos_clean is None:
+            return True
+        output_repos = self.spec_manager.get_output_data("repositories", {})
+        urls = [repo["url"] for repo in output_repos.values()]
+        if spi_info := self.spec_manager.get_output_data("spi"):
+            if spi_url := spi_info.get("repo"):
+                urls.append(spi_url)
+        patterns = self.config.repos_clean
+        if isinstance(patterns, str):
+            patterns = [patterns]
+        return self.repo_manager.clean_repos(urls, patterns)
 
     def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""
@@ -985,9 +1023,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """PR the spec and trigger a wrangler image build."""
         return self.injector.submit_for_build()
 
-    def _inject_spi(self) -> bool:
+    def _spi_inject_reqs(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""
         if not self.resolved_kname:
             return self.logger.error("No kernel name found for SPI injection.")
         exports_str = self._data_get_exports()
         return self.injector.inject(self.resolved_kname, exports_str)
+
+    def _spi_image_name(self) -> bool:
+        """Print the image name corresponding to the current spec to stdout."""
+        print(self.spec_manager.spi_image_name)
+        return True

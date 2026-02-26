@@ -1,5 +1,7 @@
 # Science Platform Images (SPI) Injection
 
+> **Note:** SPI Injection is a manual fallback or debugging mechanism. The standard workflow is the fully [Automated Image Pipeline](automated_image_pipeline.md), which handles injection as part of its execution.
+
 ## Overview
 
 Science Platform Images (SPI) Injection is a semi-automated workflow that enables extracting portions of a wrangler spec and applying them to the appropriate locations within the science platform images repository to define a corresponding image build.

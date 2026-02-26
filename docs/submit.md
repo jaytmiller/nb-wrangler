@@ -1,5 +1,7 @@
 # Submitting a Wrangler spec to build an image
 
+> **Note:** The workflow described below is the legacy method for triggering builds. The recommended approach is now the [Automated Image Pipeline](automated_image_pipeline.md), which triggers builds automatically on pushes to the notebook repository.
+
 ## Setup for submission
 
 Before you can submit a wrangler spec to trigger an image build you must have

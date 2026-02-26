@@ -1,0 +1,13 @@
+name: Build Mission Image
+on:
+  push:
+    branches: [main]
+  repository_dispatch:
+    types: [notebook_repo_update]
+
+jobs:
+  run-wrangler:
+    uses: jaytmiller/nb-wrangler/.github/workflows/curate-reusable.yml@main
+    with:
+      spec_file: 'nbw-wrangler-spec.yaml'
+    secrets: inherit

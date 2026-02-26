@@ -1,5 +1,6 @@
 import os.path
 import re
+import datetime
 from typing import Any, Optional
 from pathlib import Path
 import copy
@@ -8,6 +9,7 @@ from . import utils
 from .logger import WranglerLoggable
 from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
+from .constants import WRANGLER_SPEC_VERSION
 
 
 class SpecManager(
@@ -128,9 +130,61 @@ class SpecManager(
         return base_spi
 
     @property
+    def nb_wrangler(self) -> dict[str, str]:
+        base_nbw = self.system.get("nb-wrangler", {})
+        if self.config.dev and "dev_overrides" in self._spec:
+            if "system" in self._spec["dev_overrides"]:
+                dev_nbw = self._spec["dev_overrides"]["system"].get("nb-wrangler", {})
+                if dev_nbw:
+                    merged_nbw = copy.deepcopy(base_nbw)
+                    merged_nbw.update(dev_nbw)
+                    return merged_nbw
+        return base_nbw
+
+    @property
+    def primary_repo(self) -> str | None:
+        """Get the primary repository for this spec, if defined."""
+        return self.nb_wrangler.get("primary_repo")
+
+    @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
         return self.image_name.replace(" ", "-").lower()  # + "-" + self.kernel_name
+
+    @property
+    def spec_iteration(self) -> str:
+        """Determine the spec iteration (dev or prod) based on the presence of dev_overrides and the config."""
+        iteration = self._spec.get("dev_overrides", {}).get("repositories", {})
+        return "dev" if iteration else "prod"
+
+    @property
+    def valid_range(self) -> str:
+        """Get a human-readable valid date range string based on the spec header."""
+        if valid_on := self.header.get("valid_on"):
+            valid_on = valid_on.isoformat()
+        else:
+            valid_on = "undef"
+        if expires_on := self.header.get("expires_on"):
+            expires_on = expires_on.isoformat()
+        else:
+            expires_on = "undef"
+        return valid_on.replace("-", "") + "-" + expires_on.replace("-", "")
+
+    @property
+    def artifact_name(self) -> str:
+        """Generate a name suitable for referring to an archived spec or image given additional descorators."""
+        name_parts = [self.moniker, self.spec_iteration, self.valid_range]
+        return "_".join(name_parts)
+
+    @property
+    def spec_name(self) -> str:
+        """Generate a name (Notebook Spec) for the spec archive Docker export file."""
+        return "nbs_" + self.artifact_name
+
+    @property
+    def spi_image_name(self) -> str:
+        """Generate a name for the SPI Docker image built from this spec."""
+        return "nbw_" + self.artifact_name
 
     @property
     def spec_file(self) -> Path:
@@ -325,7 +379,10 @@ class SpecManager(
     def data_reset_spec(self) -> bool:
         """Delete only the 'data' output field of the spec and make sure the source file reflects it."""
         self.logger.debug("Resetting data section spec file.")
-        self._spec["out"].pop("data", None)
+        out = self._spec.get("out", None)
+        if not out:
+            return True
+        out.pop("data", None)
         self.system.pop("spec_sha256", None)
         if not self.validate():
             return self.logger.error("Spec did not validate follwing data reset.")
@@ -354,6 +411,10 @@ class SpecManager(
             self.logger.warning(f"System spec_sha256 hash '{hash}' is malformed.")
         return hash
 
+    def refresh_date_updated(self) -> None:
+        """Update the date_updated field with the current time (adds it if missing)."""
+        self.system["date_updated"] = datetime.datetime.now().isoformat()
+
     def add_sha256(self) -> str:
         self.system["spec_sha256"] = ""
         self.system["spec_sha256"] = utils.sha256_str(self.to_string())
@@ -363,17 +424,26 @@ class SpecManager(
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
         expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
+            self._rehash_to_capture_date()
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
+        self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
+        actual_hash = self.add_sha256()
+        if expected_hash == actual_hash:
+            self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
+            self._rehash_to_capture_date
+            return True
         else:
-            self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
-            actual_hash = self.add_sha256()
-            if expected_hash == actual_hash:
-                self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
-                return True
-            else:
-                return self.logger.error(
-                    f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
-                )
+            self.logger.error(
+                f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
+            )
+            self._rehash_to_capture_date()
+            return False
+
+    def _rehash_to_capture_date(self):
+        self.logger.debug("Updating date_updated.")
+        self.refresh_date_updated()
+        final_hash = self.add_sha256()
+        self.logger.debug(f"Spec-sha256 re-hashing to capture date: {final_hash}")
 
     # ---------------------------- validation ----------------------------------
 
@@ -385,6 +455,12 @@ class SpecManager(
                     "repo": None,
                     "ref": None,
                 },
+                "nb-wrangler": {
+                    "repo": None,
+                    "ref": None,
+                    "primary_repo": None,
+                },
+                "date_updated": None,
             },
         },
         "image_spec_header": [
@@ -426,6 +502,12 @@ class SpecManager(
                 "repo": None,
                 "ref": None,
             },
+            "nb-wrangler": {
+                "repo": None,
+                "ref": None,
+                "primary_repo": None,
+            },
+            "date_updated": None,
         },
     }
 
@@ -441,6 +523,8 @@ class SpecManager(
         "system": {
             "spec_version": None,
             "spi": ["repo"],
+            "nb-wrangler": ["repo"],
+            "date_updated": None,
         },
     }
 
@@ -456,6 +540,7 @@ class SpecManager(
             and self._validate_notebook_selections_section()
             and self._validate_system()
             and self._validate_spi_section()
+            and self._validate_nb_wrangler_section()
         )
         if not validated:
             return self.logger.error("Spec validation failed.")
@@ -703,12 +788,17 @@ class SpecManager(
         else:
             try:
                 version = float(self.system["spec_version"])
-                if version < 2.0:
+                if version < int(WRANGLER_SPEC_VERSION):
                     self.logger.warning(
-                        f"Spec version {version} is deprecated. Consider updating to 2.0."
+                        f"Spec version {version} is deprecated. Consider updating to {WRANGLER_SPEC_VERSION}."
                     )
             except (ValueError, TypeError):
                 no_errors = self.logger.error("spec_version must be a float or number.")
+
+        if "date_updated" not in self.system:
+            self.logger.debug(
+                "Field 'date_updated' is missing from section 'system'. It will be added automatically on the next spec update."
+            )
 
         if self.archive_format not in VALID_ARCHIVE_FORMATS:
             self.logger.warning(
@@ -737,6 +827,25 @@ class SpecManager(
             if field not in spi:
                 no_errors = self.logger.error(
                     f"Missing required field in spi section: {field}"
+                )
+        return no_errors
+
+    def _validate_nb_wrangler_section(self) -> bool:
+        """Validate nb-wrangler section."""
+        no_errors = True
+        if "nb-wrangler" not in self._spec["system"]:
+            return True
+
+        nbw = self._spec["system"]["nb-wrangler"]
+        for key in nbw:
+            if key not in self.ALLOWED_KEYWORDS["system"]["nb-wrangler"]:
+                no_errors = self.logger.error(
+                    f"Unknown keyword '{key}' in nb-wrangler section."
+                )
+        for field in self.REQUIRED_KEYWORDS["system"]["nb-wrangler"]:
+            if field not in nbw:
+                no_errors = self.logger.error(
+                    f"Missing required field in nb-wrangler section: {field}"
                 )
         return no_errors
 

@@ -490,3 +490,25 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             resolved_repo_states[repo_url] = current_sha
 
         return resolved_repo_states
+
+    def clean_repos(self, urls: list[str], patterns: list[str]) -> bool:
+        """Clean up specified patterns in cloned repositories."""
+        self.logger.info(f"Cleaning patterns {patterns} in cloned repositories.")
+        try:
+            for url in urls:
+                repo_path = self._repo_path(url)
+                if not repo_path.exists():
+                    self.logger.debug(f"Skipping clean for nonexistent: {repo_path}")
+                    continue
+
+                for pattern in patterns:
+                    for path in repo_path.rglob(pattern):
+                        if path.is_dir():
+                            self.logger.debug(f"Deleting directory: {path}")
+                            shutil.rmtree(path)
+                        else:
+                            self.logger.debug(f"Deleting file: {path}")
+                            path.unlink()
+            return True
+        except Exception as e:
+            return self.logger.exception(e, "Error during repository cleaning:")

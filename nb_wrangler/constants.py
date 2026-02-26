@@ -6,6 +6,8 @@ from pathlib import Path
 # Version
 __version__ = "0.7.0"
 
+WRANGLER_SPEC_VERSION = 2.1
+
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
 NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
