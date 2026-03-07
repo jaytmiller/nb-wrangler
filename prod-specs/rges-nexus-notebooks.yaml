@@ -35,7 +35,7 @@ dev_overrides:
       primary_repo: jaytmiller/nexus-notebooks
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: main
+      ref: dev
   repositories:
     nexus-notebooks:
       url: https://github.com/jaytmiller/nexus-notebooks.git
