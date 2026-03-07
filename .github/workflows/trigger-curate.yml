@@ -1,7 +1,8 @@
 name: Build Mission Image
 on:
+  workspace_dispatch:
   push:
-    branches: [main]
+    branches: [dev]
   repository_dispatch:
     types: [notebook_repo_update]
 
