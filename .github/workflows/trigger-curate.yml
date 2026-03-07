@@ -7,7 +7,7 @@ on:
 
 jobs:
   run-wrangler:
-    uses: jaytmiller/nb-wrangler/.github/workflows/curate-reusable.yml@main
+    uses: ${{ github.repository_owner }}/nb-wrangler/.github/workflows/curate-reusable.yml@main
     with:
       spec_file: 'nbw-wrangler-spec.yaml'
     secrets: inherit
