@@ -8,7 +8,7 @@ on:
 
 jobs:
   run-wrangler:
-    uses: ${{ github.repository_owner }}/nb-wrangler/.github/workflows/curate-reusable.yml@main
+    uses: spacetelescope/nb-wrangler/.github/workflows/curate-reusable.yml@main
     with:
       spec_file: nbw-wrangler-spec.yaml
     secrets: inherit
