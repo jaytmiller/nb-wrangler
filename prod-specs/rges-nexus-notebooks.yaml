@@ -21,7 +21,7 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  spec_sha256: 8b3902a7781525dafe4d3797655bf54519129818a3024bbc45f40fa908792d49
+  spec_sha256: b6754df9e80d015e45e621956d528222d6c830ea88cb4a682643a9a386b24ba4
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
@@ -1413,3 +1413,11 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/nexus-notebooks/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+    spec_exports: {}
+    pantry_exports: {}
+    metadata: {}
