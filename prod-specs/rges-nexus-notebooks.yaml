@@ -19,9 +19,9 @@ extra_pip_packages:
 system:
   spec_version: 2.1
   spi:
-    repo: "https://github.com/spacetelescope/science-platform-images.git"
-    ref: "main"
-  spec_sha256: f4a17591a2708ad44033a2d8cf315e5395eb696fbad99cdc4d46fee70c142367
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: main
+  spec_sha256: 8b3902a7781525dafe4d3797655bf54519129818a3024bbc45f40fa908792d49
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
@@ -31,7 +31,7 @@ dev_overrides:
   system:
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
-      ref: main
+      ref: dev
       primary_repo: jaytmiller/nexus-notebooks
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
@@ -51,11 +51,11 @@ out:
   repositories:
     nexus-notebooks:
       url: https://github.com/rges-pit/nexus-notebooks.git
-      ref: 8df1310873b6bff102a90bc9440b7c097e906e3c
+      ref: main
 
   spi:
-    repo: "https://github.com/spacetelescope/science-platform-images.git"
-    ref: "8ff82fe1c140b567560dd2a43ea9e83d2a6b382e"
+    repo: https://github.com/jaytmiller/science-platform-images.git
+    ref: a2f1ff7f40239ff29f2588e26981546bc666d8bc
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 
       nexus-notebooks-all
@@ -1413,11 +1413,3 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
-  data:
-    spec_inputs:
-      references/nexus-notebooks/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-    spec_exports: {}
-    pantry_exports: {}
-    metadata: {}
