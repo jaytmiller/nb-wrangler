@@ -1,6 +1,6 @@
 name: Build Mission Image
 on:
-  workspace_dispatch:
+  workflow_dispatch:
   push:
     branches: [dev]
   repository_dispatch:
@@ -10,5 +10,5 @@ jobs:
   run-wrangler:
     uses: ${{ github.repository_owner }}/nb-wrangler/.github/workflows/curate-reusable.yml@main
     with:
-      spec_file: 'nbw-wrangler-spec.yaml'
+      spec_file: nbw-wrangler-spec.yaml
     secrets: inherit
