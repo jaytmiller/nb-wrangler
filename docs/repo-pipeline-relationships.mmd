@@ -1,0 +1,46 @@
+graph TD
+    subgraph Repositories [Source Repositories]
+        NBW[nb-wrangler]
+        SPI[science-platform-images]
+        RN[roman_notebooks]
+    end
+
+    %% Structural Dependencies
+    RN -- "Imports" --> NBW
+    RN -- "Imports" --> SPI
+
+    subgraph Runner [Execution Context: roman_notebooks Runner]
+        direction TB
+        LA[Local Workflow]
+        RA[Reusable Curation Workflow]
+        Spec[nbw-wrangler-spec.yaml]
+        
+        LA -- "1. Invokes" --> RA
+        Spec -- "2. Configures" --> RA
+    end
+
+    %% Relationships across boundaries
+    RN -- "Triggers" --> LA
+    NBW -.->|Defines| RA
+    
+    %% Execution logic
+    RA -- "3. Bootstrap Tool" --> NBW
+    RA -- "4. Clone Logic" --> SPI
+    RA -- "5. Process Notebooks" --> RN
+    
+    RA -- "6. Push Mission Image" --> GHCR[(GHCR)]
+
+    %% Dev Overrides
+    subgraph Overrides [Development Mode]
+        Dev[Dev Overrides]
+    end
+    Spec -.-> Dev
+    Dev -.->|Fork/Branch Override| NBW
+    Dev -.->|Fork/Branch Override| SPI
+
+    style NBW fill:#e1f5fe,stroke:#01579b
+    style SPI fill:#e8f5e9,stroke:#1b5e20
+    style RN fill:#fff3e0,stroke:#e65100
+    style GHCR fill:#f3e5f5,stroke:#4a148c
+    style Runner fill:#f5f5f5,stroke:#9e9e9e,stroke-dasharray: 5 5
+    style Dev fill:#fff9c4,stroke:#fbc02d
