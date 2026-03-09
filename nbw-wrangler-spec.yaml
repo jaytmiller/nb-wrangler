@@ -19,11 +19,11 @@ dev_overrides:
   system:
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler
-      ref: main
+      ref: dev
       primary_repo: spacetelescope/nb-wrangler
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: main
+      ref: dev
   repositories:
     roman_notebooks:
       url: https://github.com/jaytmiller/roman_notebooks
@@ -57,11 +57,11 @@ system:
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-    primary_repo: spacetelescope/nb-wrangler
+    primary_repo: spacetelescope/roman_notebooks
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  spec_sha256: b03839db61909f0ef613710a83da1331e8fe3d5f38ec5ffcaeb1e02716d3948c
+  spec_sha256: c8a947e3515d24bf6346ad30acf61947a5d86fc80e4f369234f3f4d81246db59
   date_updated: '2026-03-05T09:04:22.955656'
 
 out:
