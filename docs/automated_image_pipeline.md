@@ -4,6 +4,8 @@ The `nb-wrangler` ecosystem has evolved from a set of manual tools into a fully 
 
 ## Architecture & Repository Relationships
 
+![Repository and Pipeline Relationships](repo-pipeline-relationships.png)
+
 The pipeline relies on the interaction between three key repository types:
 
 1.  **Notebook Repositories** (e.g., `roman_notebooks`):
