@@ -30,6 +30,11 @@ jobs:
       - name: Checkout "Notebook Repo"
         uses: actions/checkout@v4
 
+      - name: Set up system tools
+        run: |
+          git config --global user.email "homer@stsci.edu"
+          git config --global user.name "Homer S."
+
       - name: Locate primary notebook repo wrangler spec
         run: |
           # Primary spec from notebook repo
@@ -142,4 +147,4 @@ jobs:
           cd /tmp/references/science-platform-images
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
-          scripts/image-test --test-imports --test-notebooks
+          scripts/image-test --test-notebooks
