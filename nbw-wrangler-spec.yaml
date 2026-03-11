@@ -12,8 +12,8 @@ image_spec_header:
 
 repositories:
   roman_notebooks:
-    url: https://github.com/spacetelescope/roman_notebooks
-    ref: main
+    url: https://github.com/jaytmiller/roman_notebooks
+    ref: dev
 
 dev_overrides:
   system:
@@ -126,7 +126,7 @@ out:
       CRDS_CONTEXT: roman_0041.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
-      pandeia_refdata: 
+      pandeia_refdata:
         ${NBW_PANTRY}/shelves/roman-20.0.0/data/pandeia_data-2026.1-roman
       PSF_DIR: ${NBW_PANTRY}/shelves/roman-20.0.0/data/pandeia_psf-2026.1-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-20.0.0/data/stpsf-data
