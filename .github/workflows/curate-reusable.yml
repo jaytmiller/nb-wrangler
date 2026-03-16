@@ -49,10 +49,10 @@ jobs:
           chmod +x nb-wrangler
           export WRANGLER_URL=$(./nb-wrangler resolve-repo ${NBW_SPEC})
           export WRANGLER_REF=$(./nb-wrangler resolve-ref ${NBW_SPEC} ${{ inputs.wrangler_ref }})
-          
+
           echo WRANGLER_URL=$WRANGLER_URL >> $GITHUB_ENV
           echo WRANGLER_REF=$WRANGLER_REF >> $GITHUB_ENV
-          
+
           cd ${GITHUB_WORKSPACE}/..
           git clone ${WRANGLER_URL} nb-wrangler-tool
           cd nb-wrangler-tool
@@ -74,7 +74,7 @@ jobs:
           echo SPEC_TAG=$SPEC_TAG >> $GITHUB_ENV
 
           echo SPEC_IMAGE_ID=${IMAGE_ROOT}:${SPEC_TAG} >> $GITHUB_ENV
-          
+
           export IMAGE_TAG=$(./nb-wrangler --spi-image-name 2>/dev/null )_$GITHUB_RUN_NUMBER
           echo IMAGE_TAG=$IMAGE_TAG  >> $GITHUB_ENV
 
@@ -147,4 +147,7 @@ jobs:
           cd /tmp/references/science-platform-images
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
-          scripts/image-test --test-notebooks
+          mkdir crds_cache
+          chmod 777 crds_cache
+          export SP_HOME=$(pwd)
+          image-test --test-notebooks
