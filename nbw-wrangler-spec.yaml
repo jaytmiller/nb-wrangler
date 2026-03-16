@@ -20,7 +20,7 @@ dev_overrides:
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler
       ref: dev
-      primary_repo: spacetelescope/nb-wrangler
+      primary_repo: jaytmiller/nb-wrangler
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
       ref: dev
