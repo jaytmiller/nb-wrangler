@@ -86,6 +86,10 @@ jobs:
           # name inside Docker archive
           echo SPEC_NAME=nbw-wrangler-spec.yaml >> $GITHUB_ENV
 
+          # Root location for curated data, also needed for notebook tests
+          source ./nb-wrangler environment
+          echo NBW_PANTRY=$NBW_PANTRY >>$GITHUB_ENV
+
       - name: Curate Environment
         run: |
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
@@ -97,8 +101,6 @@ jobs:
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
             ./nb-wrangler --data-reset
             ./nb-wrangler --data-curate
-            source ./nb-wrangler environment
-            echo NBW_PANTRY=$NBW_PANTRY
 
       - name: Test imports for native environment
         run: |
