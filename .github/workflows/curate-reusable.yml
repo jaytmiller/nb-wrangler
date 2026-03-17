@@ -127,7 +127,7 @@ jobs:
         run: |
           set -x
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          ./nb-wrangler --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
+          ./nb-wrangler --dev --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
           docker image ls
           docker tag notebook-${SPEC_DEPLOYMENT}:latest   ${IMAGE_ID}
           docker push ${IMAGE_ID}
@@ -136,7 +136,7 @@ jobs:
       - name: Scan Image with Trivy
         run: |
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          ./nb-wrangler --clone-repos --repos-dir /tmp/references
+          ./nb-wrangler --dev --clone-repos --repos-dir /tmp/references
           cd /tmp/references/science-platform-images
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
