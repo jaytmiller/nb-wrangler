@@ -148,6 +148,7 @@ jobs:
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
           mkdir crds_cache
-          chmod 777 crds_cache
+          chmod -R 777 crds_cache
           export SP_HOME=$(pwd)
+          chmod -R 777 /tmp/references/science-platform-images/.nbw-pantry
           image-test --test-notebooks
