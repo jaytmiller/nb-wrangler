@@ -147,6 +147,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "data_curation": self._run_data_curation_workflow,
             "data_reinstall": self._run_data_reinstall_workflow,
             "reset_curation": self._run_reset_curation,
+            "data_reset_curation": self._run_data_reset_curation,
         }
         for workflow in self.config.workflows:
             if workflow not in workflow_map:
@@ -354,12 +355,24 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _run_reset_curation(self) -> bool:
         return self.run_workflow(
-            "--data-reset-curation",
+            "--reset-curation",
             [
                 self._delete_repos,
                 self._delete_environment,
-                # self._env_compact,
+                self._env_compact,
                 self._reset_spec,
+                self._save_final_spec,
+                self._reset_log,
+            ],
+        )
+
+    def _run_data_reset_curation(self) -> bool:
+        return self.run_workflow(
+            "--data-reset-curation",
+            [
+                self._delete_repos,
+                self._data_delete,
+                self._data_reset_spec,
                 self._save_final_spec,
                 self._reset_log,
             ],

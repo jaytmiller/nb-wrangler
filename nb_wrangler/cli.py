@@ -56,7 +56,7 @@ def parse_args():
         (
             "--reset-curation",
             "reset_curation",
-            "Reset the environment, spec to force re-evuation of all inputs (env-delete, env-compact, spec-reset). NOTE: excludes deleting current repos;  can add --repos-delete",
+            "Reset the environment and spec to force re-evuation of all env inputs (env-delete, env-compact, spec-reset, delete-repos)",
         ),
         (
             "--data-curate",
@@ -67,6 +67,11 @@ def parse_args():
             "--data-reinstall",
             "data_reinstall",
             "Execute multi-step workflow to install and validate data, and define env vars, based on the wrangler spec.",
+        ),
+        (
+            "--data-reset-curation",
+            "data_reset_curation",
+            "Delete the data downloads and spec data info so a follow-on data curation will reevaluate all data inputs.",
         ),
         (
             "--submit-for-build",
