@@ -2,8 +2,8 @@ image_spec_header:
   image_name: "RGES-PIT-Nexus"
   description: "An environment defined using an external Mamba environment.yml file."
   display_name: "RGES PIT Nexus"
-  valid_on: "2026-01-16"
-  expires_on: "2028-01-16"
+  valid_on: "2026-03-18"
+  expires_on: "2027-03-18"
 
 environment_spec:
   path: environment.yml
@@ -22,6 +22,11 @@ system:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
   spec_sha256: b6754df9e80d015e45e621956d528222d6c830ea88cb4a682643a9a386b24ba4
+  nb-wrangler:
+    repo: https://github.com/spacetelescope/nb-wrangler.git
+    ref: main
+    primary_repo: rges-pit/nexus-notebooks
+
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
@@ -47,6 +52,7 @@ selected_notebooks:
     root_directory: notebooks
     include_subdirs:
       - .
+
 out:
   repositories:
     nexus-notebooks:
