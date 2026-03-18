@@ -186,7 +186,10 @@ class WranglerLogger:
             if isinstance(handler, logging.FileHandler):
                 logger.removeHandler(handler)
                 handler.close()
-        os.remove(LOG_FILE)
+        try:
+            os.remove(LOG_FILE)
+        except FileNotFoundError:
+            pass
         return True
 
     def _lformat(self, *args) -> str:

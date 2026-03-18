@@ -421,8 +421,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.reset_log, self._reset_log),
             (self.config.spi_image_name, self._spi_image_name),
             (self.config.spi_inject_reqs, self._spi_inject_reqs),
-            (self.config.spi_build_image, self.injector.build),
             (self.config.spi_prune_docker, self.injector.prune),
+            (self.config.spi_build_image, self.injector.build),
         ]
         if any(item[0] for item in flags_and_steps):
             self.logger.info("Running any explicitly selected steps.")

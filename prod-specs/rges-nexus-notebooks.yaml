@@ -12,21 +12,21 @@ environment_spec:
 # extra_mamba_packages:
 #  - emcee
 
-extra_pip_packages:
-  - pyarrow
-  - s3fs
+# extra_pip_packages:
+#   - pyarrow
+#   - s3fs
 
 system:
   spec_version: 2.1
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  spec_sha256: b6754df9e80d015e45e621956d528222d6c830ea88cb4a682643a9a386b24ba4
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
     primary_repo: rges-pit/nexus-notebooks
 
+  spec_sha256: 91908be77df112fba34cf87438eaf05ca35c582c7dc7efe51eafc631af714a75
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
@@ -54,6 +54,14 @@ selected_notebooks:
       - .
 
 out:
+  data:
+    spec_inputs:
+      references/nexus-notebooks/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+    spec_exports: {}
+    pantry_exports: {}
+    metadata: {}
   repositories:
     nexus-notebooks:
       url: https://github.com/rges-pit/nexus-notebooks.git
@@ -61,7 +69,7 @@ out:
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: a2f1ff7f40239ff29f2588e26981546bc666d8bc
+    ref: 4d7cf967ae632aea0a7acbf744b0693fb1717639
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 
       nexus-notebooks-all
@@ -407,7 +415,6 @@ out:
     botocore==1.42.61
         # via
         #   boto3
-        #   s3fs
         #   s3transfer
     bqplot==0.12.45
         # via
@@ -529,8 +536,6 @@ out:
         # via
         #   aiohttp
         #   aiosignal
-    fsspec==2026.2.0
-        # via s3fs
     gitdb==4.0.12
         # via gitpython
     gitpython==3.1.46
@@ -1024,8 +1029,6 @@ out:
         #   terminado
     pure-eval==0.2.3
         # via stack-data
-    pyarrow==23.0.1
-        # via -r extra_pip_packages.txt
     pycodestyle==2.14.0
         # via flake8
     pycparser==3.0 ; implementation_name != 'PyPy'
@@ -1166,8 +1169,6 @@ out:
         # via
         #   jsonschema
         #   referencing
-    s3fs==0.4.2
-        # via -r extra_pip_packages.txt
     s3transfer==0.16.0
         # via boto3
     scikit-image==0.26.0
@@ -1419,11 +1420,3 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
-  data:
-    spec_inputs:
-      references/nexus-notebooks/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-    spec_exports: {}
-    pantry_exports: {}
-    metadata: {}
