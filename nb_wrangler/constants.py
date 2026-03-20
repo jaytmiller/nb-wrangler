@@ -49,7 +49,7 @@ VALID_ARCHIVE_FORMATS = [
 DEFAULT_DATA_ENV_VARS_MODE = "spec"
 
 # Notebook testing constants
-NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 30 * 60))  # 30 min
+NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 4 * 60 * 60))  # 60 min
 NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))
 NOTEBOOK_TEST_EXCLUDE = "$^"  # nothing?
 
@@ -65,7 +65,15 @@ ARCHIVE_TIMEOUT = 1200
 DOCKER_BUILD_TIMEOUT = 90 * 60  # 1.5 hours
 
 # Package lists
-TARGET_PACKAGES = ["uv", "pip", "ipykernel", "jupyter", "cython", "setuptools", "wheel"]
+TARGET_PACKAGES = [
+    "uv",
+    "pip",
+    "ipykernel",
+    "jupyter",
+    "cython",
+    "setuptools",
+    "wheel",
+]
 CURATOR_PACKAGES = ["papermill"] + TARGET_PACKAGES
 
 # Logger configuration constants

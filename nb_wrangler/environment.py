@@ -209,8 +209,14 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             return error_func(fail)
         else:
             if success.strip().endswith(":"):
-                success += result.stdout.strip()
-            return self.logger.info(success) if success else True
+                extra_output = result.stderr.strip() + " ::: " + result.stdout.strip()
+            else:
+                extra_output = ""
+            self.logger.info(success) if success else True
+            for line in extra_output.splitlines():
+                if line.strip():
+                    self.logger.debug(">> " + line)
+            return True
 
     def create_environment(
         self, env_name: str, micromamba_specfile: Path | None = None
@@ -218,12 +224,17 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         """Create a new environment."""
         self.logger.info(f"Creating environment: {env_name}")
         mm_prefix = [self.mamba_command, "create", "--yes", "-n", env_name]
-        command = mm_prefix + ["-f", str(micromamba_specfile)]
+        command = mm_prefix + [
+            "-f",
+            str(micromamba_specfile),
+            "-vv",
+            "--strict-channel-priority",
+        ]
         result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)
         return self.handle_result(
             result,
             f"Failed to create environment {env_name}: \n",
-            f"Environment {env_name} created. It needs to be registered before JupyterLab will display it as an option.",
+            f"Environment {env_name} created. It needs to be registered before JupyterLab will display it as an option:",
         )
 
     def delete_environment(self, env_name: str) -> bool:
