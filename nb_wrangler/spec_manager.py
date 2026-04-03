@@ -390,14 +390,17 @@ class SpecManager(
             return self.logger.error("Spec save to", self._source_file, "failed...")
         return True
 
-    def remove_dev_overrides(self) -> bool:
+    def finalize_dev_overrides(self) -> bool:
         """Remove the 'dev_overrides' section from the spec file."""
         if "dev_overrides" in self._spec:
-            self.logger.info("Removing 'dev_overrides' section from spec.")
-            self._spec.pop("dev_overrides")
-            return self.save_spec_as(self._source_file)
-        self.logger.info("No 'dev_overrides' section found to remove.")
-        return True
+            self.logger.info("Deactivating 'dev_overrides' section of spec.")
+            overrides = self._spec.pop("dev_overrides")
+            return self.revise_and_save(
+                Path(self.config.spec_file).parent,
+                add_sha256=True,
+                deactivated_dev_overrides=overrides,
+            )
+        return self.logger.info("No 'dev_overrides' section found to remove.")
 
     # ---------------------------- hashes, crypto ----------------------------------
 
@@ -449,6 +452,21 @@ class SpecManager(
 
     ALLOWED_KEYWORDS: dict[str, Any] = {
         "dev_overrides": {
+            "repositories": ["url", "ref"],
+            "system": {
+                "spi": {
+                    "repo": None,
+                    "ref": None,
+                },
+                "nb-wrangler": {
+                    "repo": None,
+                    "ref": None,
+                    "primary_repo": None,
+                },
+                "date_updated": None,
+            },
+        },
+        "deactivated_dev_overrides": {
             "repositories": ["url", "ref"],
             "system": {
                 "spi": {

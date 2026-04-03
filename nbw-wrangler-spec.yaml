@@ -26,25 +26,11 @@ system:
     ref: main
     primary_repo: rges-pit/nexus-notebooks
 
-  spec_sha256: 7fe91a46ed94f1c7183a6363dfd3709e8774eebcbed75d7e26ddf5d075ba401e
+  spec_sha256: dd13e5c2d2e5881e087796e496ecb4cdccc61963a153300da1a1b9d7f9fce492
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
     ref: main
-
-dev_overrides:
-  system:
-    nb-wrangler:
-      repo: https://github.com/jaytmiller/nb-wrangler.git
-      ref: dev
-      primary_repo: jaytmiller/nexus-notebooks
-    spi:
-      repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: dev
-  repositories:
-    nexus-notebooks:
-      url: https://github.com/jaytmiller/nexus-notebooks.git
-      ref: dev
 
 selected_notebooks:
   nexus-notebooks-all:
@@ -1435,3 +1421,17 @@ out:
     spec_exports: {}
     pantry_exports: {}
     metadata: {}
+  deactivated_dev_overrides:
+    system:
+      nb-wrangler:
+        repo: https://github.com/jaytmiller/nb-wrangler.git
+        ref: dev
+        primary_repo: jaytmiller/nexus-notebooks
+      spi:
+        repo: https://github.com/jaytmiller/science-platform-images.git
+        ref: dev
+    repositories:
+      nexus-notebooks:
+        url: https://github.com/jaytmiller/nexus-notebooks.git
+        ref: dev
+

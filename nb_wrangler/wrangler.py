@@ -207,7 +207,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _finalize_dev_overrides(self) -> bool:
         """Remove the 'dev_overrides' section from the spec file."""
-        return self.spec_manager.remove_dev_overrides()
+        return self.spec_manager.finalize_dev_overrides()
 
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
@@ -381,6 +381,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         flags_and_steps: list[tuple[bool, Callable]] = [
+            (self.config.finalize_dev_overrides, self._finalize_dev_overrides),
             (self.config.clone_repos, self._prepare_all_repositories),
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),
@@ -399,7 +400,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_print_name, self._env_print_name),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
-            (self.config.finalize_dev_overrides, self._finalize_dev_overrides),
             (self.config.data_collect, self._data_collect),
             (self.config.data_list, self._data_list),
             (self.config.data_download, self._data_download),
@@ -444,6 +444,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             f"Resetting / deleting log file.  No {LOG_FILE} will be created for this wrangler run."
         )
         return self.logger._close_and_remove_logfile()
+
+    def _finalize_dev_overrides(self) -> bool:
+        self.logger.info("Replacing dev overrides for repos with production values.")
+        return self.spec_manager.finalize_dev_overrides()
 
     def _prepare_all_repositories(self, floating_mode=True) -> bool:
         """

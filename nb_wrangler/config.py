@@ -152,6 +152,7 @@ class WranglerConfig:
             repos_clean=args.repos_clean,
             overwrite_local_changes=args.overwrite_local_changes,
             stash_local_changes=args.stash_local_changes,
+            finalize_dev_overrides=args.finalize_dev_overrides,
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,
