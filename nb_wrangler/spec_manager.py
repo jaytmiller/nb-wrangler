@@ -395,11 +395,8 @@ class SpecManager(
         if "dev_overrides" in self._spec:
             self.logger.info("Deactivating 'dev_overrides' section of spec.")
             overrides = self._spec.pop("dev_overrides")
-            return self.revise_and_save(
-                Path(self.config.spec_file).parent,
-                add_sha256=True,
-                deactivated_dev_overrides=overrides,
-            )
+            self._spec["deactivated_dev_overrides"] = overrides
+            self.save_spec_as(self._source_file, add_sha256=True)
         return self.logger.info("No 'dev_overrides' section found to remove.")
 
     # ---------------------------- hashes, crypto ----------------------------------
