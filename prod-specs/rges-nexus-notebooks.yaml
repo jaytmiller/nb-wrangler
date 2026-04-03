@@ -2,19 +2,19 @@ image_spec_header:
   image_name: "RGES-PIT-Nexus"
   description: "An environment defined using an external Mamba environment.yml file."
   display_name: "RGES PIT Nexus"
-  valid_on: "2026-03-18"
-  expires_on: "2027-03-18"
+  valid_on: 2026-03-18
+  expires_on: 2027-03-18
 
 environment_spec:
   path: environment.yml
   repo: nexus-notebooks
 
-# extra_mamba_packages:
-#  - emcee
+extra_mamba_packages:
+  - setuptools<82.0.0
 
-# extra_pip_packages:
-#   - pyarrow
-#   - s3fs
+extra_pip_packages:
+  - pyarrow
+  - s3fs
 
 system:
   spec_version: 2.1
@@ -26,7 +26,7 @@ system:
     ref: main
     primary_repo: rges-pit/nexus-notebooks
 
-  spec_sha256: 91908be77df112fba34cf87438eaf05ca35c582c7dc7efe51eafc631af714a75
+  spec_sha256: 7fe91a46ed94f1c7183a6363dfd3709e8774eebcbed75d7e26ddf5d075ba401e
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
@@ -54,14 +54,6 @@ selected_notebooks:
       - .
 
 out:
-  data:
-    spec_inputs:
-      references/nexus-notebooks/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-    spec_exports: {}
-    pantry_exports: {}
-    metadata: {}
   repositories:
     nexus-notebooks:
       url: https://github.com/rges-pit/nexus-notebooks.git
@@ -69,7 +61,7 @@ out:
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: 4d7cf967ae632aea0a7acbf744b0693fb1717639
+    ref: 287bbe051ad1e26d48a825aaaafc9c2b8ae5e904
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 
       nexus-notebooks-all
@@ -223,7 +215,7 @@ out:
       - nodejs>=22.0
       - pip
       - pip-tools
-      - setuptools
+      - setuptools<82.0.0
       - python=3.11
       - numpy==1.26.0
       - scipy==1.11.3
@@ -261,6 +253,7 @@ out:
           - scikit-optimize
           - scikit-learn
           - nbi
+      - setuptools<82.0.0
       - uv
       - pip
       - ipykernel
@@ -307,13 +300,14 @@ out:
           - scikit-optimize
           - scikit-learn
           - nbi
-    extra_mamba_packages: []
+    extra_mamba_packages:
+      - setuptools<82.0.0
     spi_mamba_packages:
       - jupyter-packaging
       - nodejs>=22.0
       - pip
       - pip-tools
-      - setuptools
+      - setuptools<82.0.0
     wrangler_target_packages:
       - uv
       - pip
@@ -382,7 +376,7 @@ out:
         # via
         #   crds
         #   glue-core
-    astropy-iers-data==0.2026.3.2.0.47.4
+    astropy-iers-data==0.2026.3.16.0.53.33
         # via astropy
     astropy-sphinx-theme==2.0
         # via sphinx-astropy
@@ -402,19 +396,20 @@ out:
         #   sphinx
     beautifulsoup4==4.14.3
         # via nbconvert
-    black==26.1.0
+    black==26.3.1
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     bleach==6.3.0
         # via nbconvert
     blinker==1.9.0
         # via flask
-    bokeh==3.8.2
+    bokeh==3.9.0
         # via jupyter-bokeh
-    boto3==1.42.61
+    boto3==1.42.71
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    botocore==1.42.61
+    botocore==1.42.71
         # via
         #   boto3
+        #   s3fs
         #   s3transfer
     bqplot==0.12.45
         # via
@@ -433,7 +428,7 @@ out:
         # via pip-tools
     bytecode==0.17.0
         # via ddtrace
-    cachetools==7.0.2
+    cachetools==7.0.5
         # via solara-ui
     certifi==2026.2.25
         # via
@@ -447,7 +442,7 @@ out:
         #   argon2-cffi-bindings
         #   cryptography
         #   pyzmq
-    charset-normalizer==3.4.4
+    charset-normalizer==3.4.6
         # via requests
     ci-watson==0.11.0
         # via -r references/science-platform-images/deployments/common/common-env/testing.pip
@@ -479,13 +474,13 @@ out:
         # via
         #   bokeh
         #   matplotlib
-    crds==13.1.7
+    crds==13.1.10
         # via ci-watson
     cryptography==46.0.5
         # via certipy
     cycler==0.12.1
         # via matplotlib
-    ddtrace==4.5.0
+    ddtrace==4.6.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.20
         # via ipykernel
@@ -520,7 +515,7 @@ out:
         #   mpl-scatter-density
     fastjsonschema==2.21.2
         # via nbformat
-    filelock==3.25.0
+    filelock==3.25.2
         # via
         #   crds
         #   solara-server
@@ -528,7 +523,7 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/testing.pip
     flask==3.1.3
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    fonttools==4.61.1
+    fonttools==4.62.1
         # via matplotlib
     fqdn==1.5.1
         # via jsonschema
@@ -536,6 +531,8 @@ out:
         # via
         #   aiohttp
         #   aiosignal
+    fsspec==2026.3.0
+        # via s3fs
     gitdb==4.0.12
         # via gitpython
     gitpython==3.1.46
@@ -554,7 +551,7 @@ out:
         # via
         #   httpcore
         #   uvicorn
-    h5py==3.15.1
+    h5py==3.16.0
         # via glue-core
     httpcore==1.0.9
         # via httpx
@@ -570,7 +567,7 @@ out:
         #   jupyterhub
         #   requests
         #   yarl
-    imageio==2.37.2
+    imageio==2.37.3
         # via scikit-image
     imagesize==2.0.0
         # via sphinx
@@ -603,7 +600,14 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     ipysplitpanes==0.2.0
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    ipython==9.10.0
+    ipython==9.10.0 ; python_full_version < '3.12'
+        # via
+        #   -r references/science-platform-images/deployments/common/common-env/common.pip
+        #   glue-core
+        #   ipykernel
+        #   ipympl
+        #   ipywidgets
+    ipython==9.11.0 ; python_full_version >= '3.12'
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   glue-core
@@ -768,7 +772,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyterlab==4.5.5
+    jupyterlab==4.5.6
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter-collaboration
@@ -793,11 +797,11 @@ out:
         #   voila-gridstack
     jupytext==1.19.1
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    kiwisolver==1.4.9
+    kiwisolver==1.5.0
         # via matplotlib
     lark==1.3.1
         # via rfc3987-syntax
-    lazy-loader==0.4
+    lazy-loader==0.5
         # via scikit-image
     mako==1.3.10
         # via alembic
@@ -844,7 +848,7 @@ out:
         #   yarl
     mypy-extensions==1.1.0
         # via black
-    narwhals==2.17.0
+    narwhals==2.18.0
         # via bokeh
     nbclient==0.10.4
         # via
@@ -879,13 +883,13 @@ out:
         # via ipykernel
     networkx==3.6.1
         # via scikit-image
-    notebook==7.5.4
+    notebook==7.5.5
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     notebook-shim==0.2.4
         # via
         #   jupyterlab
         #   notebook
-    numpy==2.4.2
+    numpy==2.4.3
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   asdf
@@ -955,7 +959,6 @@ out:
         # via jupyterhub
     pandas==2.3.3
         # via
-        #   bokeh
         #   bqplot
         #   glue-core
     pandocfilters==1.5.1
@@ -994,7 +997,7 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     pipdeptree==2.31.0
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
-    platformdirs==4.9.2
+    platformdirs==4.9.4
         # via
         #   black
         #   jupyter-core
@@ -1029,11 +1032,13 @@ out:
         #   terminado
     pure-eval==0.2.3
         # via stack-data
+    pyarrow==23.0.1
+        # via -r extra_pip_packages.txt
     pycodestyle==2.14.0
         # via flake8
     pycparser==3.0 ; implementation_name != 'PyPy'
         # via cffi
-    pycrdt==0.12.46
+    pycrdt==0.12.50
         # via
         #   jupyter-server-ydoc
         #   jupyter-ydoc
@@ -1169,6 +1174,8 @@ out:
         # via
         #   jsonschema
         #   referencing
+    s3fs==0.4.2
+        # via -r extra_pip_packages.txt
     s3transfer==0.16.0
         # via boto3
     scikit-image==0.26.0
@@ -1181,7 +1188,7 @@ out:
         # via asdf
     send2trash==2.1.0
         # via jupyter-server
-    setuptools==82.0.0
+    setuptools==82.0.1
         # via
         #   astropy-sphinx-theme
         #   jupyter-packaging
@@ -1198,7 +1205,7 @@ out:
         #   pyds9
         #   python-dateutil
         #   rfc3339-validator
-    smmap==5.0.2
+    smmap==5.0.3
         # via gitdb
     snowballstemmer==3.0.1
         # via sphinx
@@ -1290,7 +1297,7 @@ out:
         # via
         #   jupyter-packaging
         #   yq
-    tornado==6.5.4
+    tornado==6.5.5
         # via
         #   bokeh
         #   glue-jupyter
@@ -1366,7 +1373,7 @@ out:
         # via
         #   botocore
         #   requests
-    uvicorn==0.41.0
+    uvicorn==0.42.0
         # via solara-server
     voila==0.5.11
         # via voila-gridstack
@@ -1400,7 +1407,7 @@ out:
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   ipywidgets
-    wrapt==2.1.1
+    wrapt==2.1.2
         # via ddtrace
     xlrd==2.0.2
         # via glue-core
@@ -1420,3 +1427,11 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/nexus-notebooks/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+    spec_exports: {}
+    pantry_exports: {}
+    metadata: {}
