@@ -26,13 +26,20 @@ system:
     ref: main
     primary_repo: rges-pit/nexus-notebooks
 
-  spec_sha256: 7fe91a46ed94f1c7183a6363dfd3709e8774eebcbed75d7e26ddf5d075ba401e
+  spec_sha256: e02a31859a235a0b0ca594975fa31b7cef2da422541ad6fd878518285c6f9e0d
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git
     ref: main
 
-dev_overrides:
+selected_notebooks:
+  nexus-notebooks-all:
+    repo: "nexus-notebooks"
+    root_directory: notebooks
+    include_subdirs:
+      - .
+
+deactivated_dev_overrides:
   system:
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
@@ -46,22 +53,23 @@ dev_overrides:
       url: https://github.com/jaytmiller/nexus-notebooks.git
       ref: dev
 
-selected_notebooks:
-  nexus-notebooks-all:
-    repo: "nexus-notebooks"
-    root_directory: notebooks
-    include_subdirs:
-      - .
-
 out:
+  data:
+    spec_inputs:
+      references/nexus-notebooks/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+    spec_exports: {}
+    pantry_exports: {}
+    metadata: {}
   repositories:
     nexus-notebooks:
       url: https://github.com/rges-pit/nexus-notebooks.git
-      ref: main
+      ref: b7f23fa1f08b086dcc972fb4a3a902630684cd0c
 
   spi:
-    repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: 287bbe051ad1e26d48a825aaaafc9c2b8ae5e904
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: c25930fbfb9c9a2dd390800811ae14734bc84658
   test_notebooks:
     references/nexus-notebooks/notebooks/a_rmdc26_workflow.ipynb: 
       nexus-notebooks-all
@@ -215,7 +223,7 @@ out:
       - nodejs>=22.0
       - pip
       - pip-tools
-      - setuptools<82.0.0
+      - setuptools
       - python=3.11
       - numpy==1.26.0
       - scipy==1.11.3
@@ -307,7 +315,7 @@ out:
       - nodejs>=22.0
       - pip
       - pip-tools
-      - setuptools<82.0.0
+      - setuptools
     wrangler_target_packages:
       - uv
       - pip
@@ -1427,11 +1435,3 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==3.23.0
         # via importlib-metadata
-  data:
-    spec_inputs:
-      references/nexus-notebooks/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-    spec_exports: {}
-    pantry_exports: {}
-    metadata: {}
