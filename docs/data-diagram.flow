@@ -1,0 +1,35 @@
+Create a mermaid diagram depicting the nb-wrangler workflow for managing notebook data.
+The workflow has these steps.
+
+1. The wrangler spec specifies repos to download.
+
+2. The nb-wrangler --curate-data command clones all of the selected repos.
+
+3. Each repo may include a refdata_dependencies file that specifies:
+
+   1. Named groups of data to download
+   2. Within each group N web references of archive files to download
+   3. The paths at which the archives should be unpacked
+   4. A "nested root" within each archive under which data really exists
+   5. An evironment variable that points to the group's data location: 3+4
+
+4. nb-wrangler adds the refdata_dependencies.yaml file to the spec.  There can
+   be only refdata file so if more than two repositories are specified the
+   "winner" is selected using the system.primary_repo field.
+
+5. nb-wrangler downloads and unpacks the archive files, nominally under its
+   "pantry" directory.
+
+6. For each archive file,  nb-wrangler computes a sha256 and adds it to the
+   spec for verification of future installations.
+
+7. nb-wrangler generates environment variable files in two formats: refdata
+   format fully adheres to the installation locations defined by
+   refdata_dependencies.yaml.  the second format defines paths relative to
+   the "pantry" directory where shared and/or archived files are stored.
+   In both cases, the env var files define valid paths on the file system.
+
+8. The wrangler injects environment variable definitions into the kernel .json
+   file automatically definining them for the notebook environment.  A wrangler
+   command can output export definitions suitable for initializing a shell
+   environment for use with terminals.
