@@ -1,0 +1,95 @@
+flowchart TD
+    %% ==========================
+    %% Main pipeline (one node per stage)
+    %% ==========================
+    A[Trigger] --> B[Bootstrap and Resolve]
+    B --> C[Automated Curation]
+    C --> D[SPI Injection]
+    D --> E[Image Build]
+    E --> F[Verification]
+    F --> G[Publish]
+
+    %% ==========================
+    %% Trigger options (sub‑graph)
+    %% ==========================
+    subgraph TriggerOptions
+        direction TB
+        A1[Push to Notebook Repo]
+        A2[Manual workflow_dispatch]
+        A3[Pull Request]
+    end
+    A1 --> A
+    A2 --> A
+    A3 --> A
+
+    %% ==========================
+    %% Bootstrap & Resolve (sub‑graph)
+    %% ==========================
+    subgraph BootstrapResolve
+        direction TB
+        B1[Download nb-wrangler bootstrap]
+        B2[Execute ./nb-wrangler bootstrap]
+    end
+    B1 --> B
+    B2 --> B
+
+    %% ==========================
+    %% Automated Curation (sub‑graph)
+    %% ==========================
+    subgraph AutomatedCuration
+        direction TB
+        C1[Run nb-wrangler --curate]
+        C2[Scan notebooks for imports]
+        C3[Compile lock‑files for pip/mamba]
+        C4[Update spec with frozen environment]
+    end
+    C1 --> C
+    C2 --> C
+    C3 --> C
+    C4 --> C
+
+    %% ==========================
+    %% SPI Injection (sub‑graph)
+    %% ==========================
+    subgraph SPIInjection
+        direction TB
+        D1[Run nb-wrangler --inject-spi]
+        D2[Clone science-platform-images repo]
+        D3[Inject curated requirements]
+    end
+    D1 --> D
+    D2 --> D
+    D3 --> D
+
+    %% ==========================
+    %% Image Build (sub‑graph)
+    %% ==========================
+    subgraph ImageBuild
+        direction TB
+        E1[Build Degenerate Image]
+        E2[Build Full Notebook Image]
+    end
+    E1 --> E
+    E2 --> E
+
+    %% ==========================
+    %% Verification (sub‑graph)
+    %% ==========================
+    subgraph Verification
+        direction TB
+        F1[Run security scans ]
+        F2[Execute nb-wrangler --test-notebooks]
+    end
+    F1 --> F
+    F2 --> F
+
+    %% ==========================
+    %% Styling
+    %% ==========================
+    style A fill:#f9f,stroke:#333,stroke-width:2px
+    style B fill:#bbf,stroke:#333,stroke-width:2px
+    style C fill:#bfb,stroke:#333,stroke-width:2px
+    style D fill:#fbb,stroke:#333,stroke-width:2px
+    style E fill:#ff9,stroke:#333,stroke-width:2px
+    style F fill:#ff9,stroke:#333,stroke-width:2px
+    style G fill:#9f9,stroke:#333,stroke-width:2px
