@@ -2,60 +2,60 @@ flowchart TD
     %% -------------------------------------------------
     %% 1. Initial spec
     %% -------------------------------------------------
-    A[🗂️ Wrangler spec] -->|specifies repos| B[🔧 nb‑wrangler --curate-data]
+    A[Wrangler spec] -->|specifies repos| B[nb‑wrangler --curate-data]
 
     %% -------------------------------------------------
     %% 2. Clone repos
     %% -------------------------------------------------
-    B --> C[📂 Clone all selected repos]
+    B --> C[ Clone all selected repos]
 
     %% -------------------------------------------------
     %% 3. Process refdata_dependencies.yaml
     %% -------------------------------------------------
     C --> D{Repo contains<br/>refdata_dependencies.yaml?}
-    D -- Yes --> E[🔎 Parse refdata_dependencies.yaml]
-    D -- No --> F[✅ Continue ]
+    D -- Yes --> E[ Parse refdata_dependencies.yaml]
+    D -- No --> F[ Continue ]
 
     %% 3a – inside the yaml file
-    E --> G[📑 Named groups of data]
-    G --> H[🔗 N web references per group]
-    H --> I[📂 Target unpack paths]
-    I --> J[📂 “nested root” inside each archive]
-    J --> K[🌐 Env‑var → <group‑data‑location> path = unpack‑path + nested‑root]
+    E --> G[ Named groups of data]
+    G --> H[ N web references per group]
+    H --> I[ Target unpack paths]
+    I --> J[ “nested root” inside each archive]
+    J --> K[ Env‑var → <group‑data‑location> path = unpack‑path + nested‑root]
 
     %% -------------------------------------------------
     %% 4. Choose the “winner” repo when >1 have a yaml
     %% -------------------------------------------------
     E --> L{Multiple repos with<br/>refdata_dependencies?}
-    L -- Yes --> M[🗳️ Select repo from <system.primary_repo>]
-    L -- No --> N[✅ Use the only repo with yaml]
-    M --> O[📝 Add chosen refdata_dependencies.yaml to spec]
+    L -- Yes --> M[Select repo from <system.primary_repo>]
+    L -- No --> N[Use the only repo with yaml]
+    M --> O[Add chosen refdata_dependencies.yaml to spec]
     N --> O
 
     %% -------------------------------------------------
     %% 5. Download & unpack archives (pantry)
     %% -------------------------------------------------
-    O --> P[⬇️ Download each archive N-per-group ]
-    P --> Q[📦 Unpack under <pantry>/… ]
+    O --> P[ Download each archive N-per-group ]
+    P --> Q[Unpack under <pantry>/… ]
 
     %% -------------------------------------------------
     %% 6. Compute SHA‑256 & record in spec
     %% -------------------------------------------------
-    Q --> R[🔐 Compute sha256 for each archive]
-    R --> S[🗒️ Add sha256 entries to spec for verification]
+    Q --> R[Compute sha256 for each archive]
+    R --> S[Add sha256 entries to spec for verification]
 
     %% -------------------------------------------------
     %% 7. Generate environment‑variable files
     %% -------------------------------------------------
     S --> T{Generate env‑var files}
-    T --> U[📄 Refdata‑format file full-install-locations]
-    T --> V[📄 Pantry‑relative format paths-relative-to-<pantry>]
+    T --> U[Refdata‑format file full-install-locations]
+    T --> V[Pantry‑relative format paths-relative-to-<pantry>]
 
     %% -------------------------------------------------
     %% 8. Inject into kernel & optional shell export
     %% -------------------------------------------------
-    U & V --> W[⚙️ Wrangler injects env‑var definitions<br/>into kernel‑metadata .json]
-    W --> X[💻 Optional: `nb‑wrangler export` → shell export statements]
+    U & V --> W[Wrangler injects env‑var definitions<br/>into kernel‑metadata .json]
+    W --> X[ Optional: `nb‑wrangler export` → shell export statements]
 
     %% -------------------------------------------------
     %% Styling
