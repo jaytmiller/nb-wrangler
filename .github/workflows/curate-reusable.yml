@@ -99,7 +99,7 @@ jobs:
       - name: Curate Data
         run: |
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-            ./nb-wrangler --data-reset
+            ./nb-wrangler --data-reset-curation
             ./nb-wrangler --data-curate
 
       - name: Test imports for native environment
