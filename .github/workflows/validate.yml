@@ -12,6 +12,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
 
+      - name: Set up system tools
+        run: |
+          git config --global user.email "homer@stsci.edu"
+          git config --global user.name "Homer S."
+
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
         with:
