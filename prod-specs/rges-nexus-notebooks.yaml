@@ -1,7 +1,9 @@
 image_spec_header:
-  image_name: "RGES-PIT-Nexus"
-  description: "An environment defined using an external Mamba environment.yml file."
-  display_name: "RGES PIT Nexus"
+  image_name: RGES-PIT-Nexus
+  description: An environment defined using an external Mamba environment.yml 
+    file.
+  deployment_name: wrangler
+  display_name: RGES PIT Nexus
   valid_on: 2026-03-18
   expires_on: 2027-03-18
 
@@ -26,7 +28,7 @@ system:
     ref: main
     primary_repo: rges-pit/nexus-notebooks
 
-  spec_sha256: e02a31859a235a0b0ca594975fa31b7cef2da422541ad6fd878518285c6f9e0d
+  spec_sha256: 30322631e82d571c1a45aec0bb945d5d88f2fe98a79e3e6e0891a0d5f36d8213
 repositories:
   nexus-notebooks:
     url: https://github.com/rges-pit/nexus-notebooks.git

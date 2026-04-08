@@ -530,6 +530,7 @@ class SpecManager(
         "image_spec_header": [
             "image_name",
             "kernel_name",
+            "deployment_name",
             "python_version",
             "valid_on",
             "expires_on",
