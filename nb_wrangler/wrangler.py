@@ -205,10 +205,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if not explicit_dev_cli:
                 self.config.dev = False
 
-    def _finalize_dev_overrides(self) -> bool:
-        """Remove the 'dev_overrides' section from the spec file."""
-        return self.spec_manager.finalize_dev_overrides()
-
     def run_workflow(self, name: str, steps: list) -> bool:
         self.logger.info("Running", name, "workflow")
         for step in steps:
@@ -446,7 +442,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.logger._close_and_remove_logfile()
 
     def _finalize_dev_overrides(self) -> bool:
-        self.logger.info("Replacing dev overrides for repos with production values.")
+        self.logger.info("Replacing dev overrides with production values.")
         return self.spec_manager.finalize_dev_overrides()
 
     def _prepare_all_repositories(self, floating_mode=True) -> bool:
