@@ -84,3 +84,11 @@ DEFAULT_COLOR_MODE = "auto"
 LOG_FILE = os.environ.get("NBW_LOG_FILE", "nb-wrangler.log")
 
 DATA_SPEC_NAME = "refdata_dependencies.yaml"
+
+DEFAULT_CLEANUP_PATTERNS = [
+    "__pycache__",
+    "*.pyc",
+    "*.pyo",
+    ".pytest_cache",
+    ".ipynb_checkpoints",
+]

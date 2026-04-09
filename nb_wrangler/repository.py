@@ -8,7 +8,7 @@ from typing import Optional, Dict
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
-from .constants import REPO_CLONE_TIMEOUT
+from .constants import REPO_CLONE_TIMEOUT, DEFAULT_CLEANUP_PATTERNS
 
 
 class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
@@ -401,8 +401,13 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
         if not self.is_clean(repo_path):
-            if not self._handle_dirty_repository(repo_name):
-                return False  # Operation failed or was aborted
+            self.logger.info(
+                f"Repository {repo_name} is dirty. Attempting auto-clean of default patterns."
+            )
+            self.clean_repo(repo_path, DEFAULT_CLEANUP_PATTERNS)
+            if not self.is_clean(repo_path):
+                if not self._handle_dirty_repository(repo_name):
+                    return False  # Operation failed or was aborted
 
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)
@@ -491,24 +496,32 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
         return resolved_repo_states
 
+    def clean_repo(self, repo_path: Path, patterns: list[str]) -> bool:
+        """Clean up specified patterns in a cloned repository."""
+        self.logger.debug(f"Cleaning patterns {patterns} in repository {repo_path}.")
+        try:
+            if not repo_path.exists():
+                self.logger.debug(f"Skipping clean for nonexistent: {repo_path}")
+                return True
+
+            for pattern in patterns:
+                for path in repo_path.rglob(pattern):
+                    if path.is_dir():
+                        self.logger.debug(f"Deleting directory: {path}")
+                        shutil.rmtree(path)
+                    else:
+                        self.logger.debug(f"Deleting file: {path}")
+                        path.unlink()
+            return True
+        except Exception as e:
+            return self.logger.exception(e, f"Error during cleaning of {repo_path}:")
+
     def clean_repos(self, urls: list[str], patterns: list[str]) -> bool:
         """Clean up specified patterns in cloned repositories."""
         self.logger.info(f"Cleaning patterns {patterns} in cloned repositories.")
-        try:
-            for url in urls:
-                repo_path = self._repo_path(url)
-                if not repo_path.exists():
-                    self.logger.debug(f"Skipping clean for nonexistent: {repo_path}")
-                    continue
-
-                for pattern in patterns:
-                    for path in repo_path.rglob(pattern):
-                        if path.is_dir():
-                            self.logger.debug(f"Deleting directory: {path}")
-                            shutil.rmtree(path)
-                        else:
-                            self.logger.debug(f"Deleting file: {path}")
-                            path.unlink()
-            return True
-        except Exception as e:
-            return self.logger.exception(e, "Error during repository cleaning:")
+        success = True
+        for url in urls:
+            repo_path = self._repo_path(url)
+            if not self.clean_repo(repo_path, patterns):
+                success = False
+        return success
