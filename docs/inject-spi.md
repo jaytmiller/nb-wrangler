@@ -81,9 +81,10 @@ gh auth login
 
 Follow the prompts to authenticate using your GitHub account. A standard GitHub CLI token will work.
 
-**NOTE:** Because `nb-wrangler` aggressively deletes repository clones, we set `--repos-dir` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nb-wrangler` from attempting to delete it.
+**NOTE:** Because `nb-wrangler` aggressively deletes repository clones, we set `--repos-dir spi-references` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nb-wrangler` from attempting to delete it when you perform other unrelated activities.  The default `--repos-dir` is `references` located relative to
+whereever you run nb-wrangler.
 
-The final result of the injection is available in the subdirectory `references/science-platform-images`, as demonstrated by the following `git status` output:
+The final result of the injection is available in the subdirectory `spi-references/science-platform-images`, as demonstrated by the following `git status` output:
 
 ```bash
 $ cd spi-references/science-platform-images
@@ -98,11 +99,12 @@ Changes not staged for commit:
 
 Untracked files:
   deployments/tike/environments/nbw-wrangler-spec.yaml
+  deployments/tike/environments/nbw-exports.sh
 
 no changes added to commit (use "git add" and/or "git commit -a")
 ```
 
-As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.
+As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.  Note that this particular pattern of injection is in the process of being replaced by a more flexible and automated approach based solely on the spec and nb-wrangler vs. classic install scripts.
 
 Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/mb-wrangler-spec.yaml`.
 
@@ -135,7 +137,9 @@ The following flags are available for advanced users or for testing experimental
 
 ## Key Differences from True Wrangler Builds
 
-While both `SPI injection` and `submit-for-build` approaches utilize the wrangler spec to define package requirements and related notebooks and/or data, they differ significantly in how the corresponding images are actually built and what is in them:
+True wrangler builds all share a common `wrangler` deployment and have a very generic Dockerfile.  As-of this writing they have
+few customizations other than mamba and pip package selections, notebooks, data, and environment variables. Consequently,  the 
+same wrangler deployment can serve many different projects.
 
 ### SPI Injection
 
@@ -146,17 +150,5 @@ While both `SPI injection` and `submit-for-build` approaches utilize the wrangle
 3. **Classic Build Scripts:** Package installation and cleanup are performed using standard build scripts such as `env-conda`, `env-compile`, and `env-sync`.
 4. **Manual Configuration:** Manual configuration of `post-start-hook` and tests is required to manage tasks like Git synchronization and notebook test setup.
 5. **Manual Image Management:** Manual image build, scanning, tagging, and pushing are necessary.
-6. **3+ Kernel Support:** While image size typically prohibits this,  the classic framework was designed to support both base an N-different mission-specific mamba environments.  Even adding it
-manually, a 3rd kernel will be much easier to do using classic builds than using standard wrangler builds.
-6. **Low Risk:** Since these builds are closely aligned with what we've done for years, they are lower risk.
-
-### Wrangler Submit For Build
-
-The `wrangler submit-for-build` approach is characterized by:
-
-1. **Fully Automated Pipeline:** Fully automated image builds, scanning, tagging, and hosting are performed upon submitting a spec.
-2. **`nb-wrangler` for Installation:** Environment and package installation are handled by `nb-wrangler` itself, rather than classic install scripts like `env-conda`, `env-compile`, and `env-sync`, resulting in higher fidelity reproduction of local spec-based development and test environments.
-3. **Single Kernel Mode:** Support for new single kernel versus base + mission kernel approach with minimal spec modifications. This trade-off prioritizes simplicity and smaller image size over the stability and isolation of mission environments. It also has the advantage that notebooks run in a
-single generic environment and hence don't need to declare some image-specific kernel name.
-4. **Smaller Image Size:** Significantly smaller overall image sizes, as only the software specified in the spec is installed.
-5. **Limited Package Support:** Currently, software installation is limited to `mamba` and `pip` packages; ad hoc UNIX libraries or Ubuntu packages are not yet supported.
+6. **3+ Kernel Support:** While image size typically prohibits this,  the classic framework was designed to support both base an N-different mission-specific mamba environments.  Even adding it manually, a 3rd kernel will be much easier to do using classic builds than using standard wrangler builds.
+7. **Low Risk:** Since these builds are closely aligned with what we've done for years, they are lower risk.
