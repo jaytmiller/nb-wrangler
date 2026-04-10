@@ -73,34 +73,34 @@ jobs:
           ./nb-wrangler $NBW_SPEC --spec-validate
 
       - name: Set up workflow env vars
-          # Both of owner/repo, e.g. spacetelescope/roman_notebooks
-          export IMAGE_REPO=$GITHUB_REPOSITORY
-          echo IMAGE_REPO=$IMAGE_REPO >>$GITHUB_ENV
-          export IMAGE_ROOT=ghcr.io/$IMAGE_REPO
-          echo IMAGE_ROOT=$IMAGE_ROOT >> $GITHUB_ENV
+        # Both of owner/repo, e.g. spacetelescope/roman_notebooks
+        export IMAGE_REPO=$GITHUB_REPOSITORY
+        echo IMAGE_REPO=$IMAGE_REPO >>$GITHUB_ENV
+        export IMAGE_ROOT=ghcr.io/$IMAGE_REPO
+        echo IMAGE_ROOT=$IMAGE_ROOT >> $GITHUB_ENV
 
-          # Full repo path of degenerate spec-only image, including tag
-          export SPEC_TAG=$(./nb-wrangler --spec-name 2>/dev/null )_$GITHUB_RUN_NUMBER
-          echo SPEC_TAG=$SPEC_TAG >> $GITHUB_ENV
-          echo SPEC_IMAGE_ID=${IMAGE_ROOT}:${SPEC_TAG} >> $GITHUB_ENV
+        # Full repo path of degenerate spec-only image, including tag
+        export SPEC_TAG=$(./nb-wrangler --spec-name 2>/dev/null )_$GITHUB_RUN_NUMBER
+        echo SPEC_TAG=$SPEC_TAG >> $GITHUB_ENV
+        echo SPEC_IMAGE_ID=${IMAGE_ROOT}:${SPEC_TAG} >> $GITHUB_ENV
 
-          # Full repo path of executable image, including tag
-          export IMAGE_TAG=$(./nb-wrangler --spi-image-name 2>/dev/null )_$GITHUB_RUN_NUMBER
-          echo IMAGE_TAG=$IMAGE_TAG  >> $GITHUB_ENV
-          echo IMAGE_ID=${IMAGE_ROOT}:${IMAGE_TAG} >> $GITHUB_ENV
+        # Full repo path of executable image, including tag
+        export IMAGE_TAG=$(./nb-wrangler --spi-image-name 2>/dev/null )_$GITHUB_RUN_NUMBER
+        echo IMAGE_TAG=$IMAGE_TAG  >> $GITHUB_ENV
+        echo IMAGE_ID=${IMAGE_ROOT}:${IMAGE_TAG} >> $GITHUB_ENV
 
-          # Nominally which classic mission (roman, tike, jwebbinar) or "wrangler" for generic builds
-          # Note that generic builds have very little or no Docker-level customization, such as extra C programs
-          # built under Docker using make.  Classic deployments
-          export SPEC_DEPLOYMENT=$(yq -r .image_spec_header.deployment_name ${NBW_SPEC})
-          echo  SPEC_DEPLOYMENT=$SPEC_DEPLOYMENT >> $GITHUB_ENV
+        # Nominally which classic mission (roman, tike, jwebbinar) or "wrangler" for generic builds
+        # Note that generic builds have very little or no Docker-level customization, such as extra C programs
+        # built under Docker using make.  Classic deployments
+        export SPEC_DEPLOYMENT=$(yq -r .image_spec_header.deployment_name ${NBW_SPEC})
+        echo  SPEC_DEPLOYMENT=$SPEC_DEPLOYMENT >> $GITHUB_ENV
 
-          # name inside Docker archive
-          echo SPEC_NAME=nbw-wrangler-spec.yaml >> $GITHUB_ENV
+        # name inside Docker archive
+        echo SPEC_NAME=nbw-wrangler-spec.yaml >> $GITHUB_ENV
 
-          # Root location for curated data and environment archives, also needed for notebook tests
-          source ./nb-wrangler environment
-          echo NBW_PANTRY=$NBW_PANTRY >>$GITHUB_ENV
+        # Root location for curated data and environment archives, also needed for notebook tests
+        source ./nb-wrangler environment
+        echo NBW_PANTRY=$NBW_PANTRY >>$GITHUB_ENV
 
       - name: Curate Environment
         run: |
