@@ -78,9 +78,9 @@ class SpecManager(
     @property
     def repositories(self) -> dict[str, Any]:
         """Return repositories, applying dev_overrides if enabled."""
-        base_repos = self._spec.get("repositories", {})
+        base_repos = self._spec.get("repositories") or {}
         if self.config.dev and "dev_overrides" in self._spec:
-            dev_repos = self._spec["dev_overrides"].get("repositories", {})
+            dev_repos = self._spec["dev_overrides"].get("repositories") or {}
             # Merge dev_repos into base_repos, overwriting if keys conflict
             merged_repos = copy.deepcopy(base_repos)
             for repo_name, dev_repo_config in dev_repos.items():
@@ -99,7 +99,7 @@ class SpecManager(
 
     @property
     def notebook_selections(self) -> dict[str, Any]:
-        return self._spec.get("selected_notebooks", {})
+        return self._spec.get("selected_notebooks") or {}
 
     @property
     def system(self) -> dict[str, Any]:
@@ -107,11 +107,11 @@ class SpecManager(
 
     @property
     def extra_mamba_packages(self) -> list[str]:
-        return list(self._spec.get("extra_mamba_packages", []))
+        return list(self._spec.get("extra_mamba_packages")) or []
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        return list(self._spec.get("extra_pip_packages", []))
+        return list(self._spec.get("extra_pip_packages")) or []
 
     @property
     def environment_spec(self) -> dict[str, Any] | None:
@@ -119,10 +119,10 @@ class SpecManager(
 
     @property
     def spi(self) -> dict[str, str]:
-        base_spi = self.system.get("spi", {})
+        base_spi = self.system.get("spi") or {}
         if self.config.dev and "dev_overrides" in self._spec:
             if "system" in self._spec["dev_overrides"]:
-                dev_spi = self._spec["dev_overrides"]["system"].get("spi", {})
+                dev_spi = self._spec["dev_overrides"]["system"].get("spi") or {}
                 if dev_spi:
                     merged_spi = copy.deepcopy(base_spi)
                     merged_spi.update(dev_spi)
@@ -131,10 +131,10 @@ class SpecManager(
 
     @property
     def nb_wrangler(self) -> dict[str, str]:
-        base_nbw = self.system.get("nb-wrangler", {})
+        base_nbw = self.system.get("nb-wrangler") or {}
         if self.config.dev and "dev_overrides" in self._spec:
             if "system" in self._spec["dev_overrides"]:
-                dev_nbw = self._spec["dev_overrides"]["system"].get("nb-wrangler", {})
+                dev_nbw = self._spec["dev_overrides"]["system"].get("nb-wrangler") or {}
                 if dev_nbw:
                     merged_nbw = copy.deepcopy(base_nbw)
                     merged_nbw.update(dev_nbw)
@@ -154,7 +154,7 @@ class SpecManager(
     @property
     def spec_iteration(self) -> str:
         """Determine the spec iteration (dev or prod) based on the presence of dev_overrides and the config."""
-        iteration = self._spec.get("dev_overrides", {}).get("repositories", {})
+        iteration = self._spec.get("dev_overrides", {}).get("repositories") or {}
         return "dev" if iteration else "prod"
 
     @property
@@ -487,6 +487,7 @@ class SpecManager(
             "deployment_name",
             "kernel_name",
             "display_name",
+            "manager",
         ],
         "repositories": ["url", "ref"],
         "environment_spec": ["uri", "repo", "path"],
@@ -760,6 +761,8 @@ class SpecManager(
     def _validate_repositories_section(self) -> bool:
         """Validate repositories section."""
         no_errors = True
+        if not self.repositories:
+            self.logger.debug("No repositories specified.")
         for name, repo in self.repositories.items():
             for key in repo:
                 if key not in self.ALLOWED_KEYWORDS["repositories"]:
@@ -775,6 +778,8 @@ class SpecManager(
     def _validate_notebook_selections_section(self) -> bool:
         """Validate selected_notebooks section."""
         no_errors = True
+        if not self.notebook_selections:
+            self.logger.debug("selected_notebooks is not specified.")
         for name, selection in self.notebook_selections.items():
             for key in selection:
                 if key not in self.ALLOWED_KEYWORDS["selected_notebooks"]:
@@ -919,9 +924,12 @@ class SpecManager(
                 else:
                     notebook_paths[notebook_path] = name
 
-        self.logger.info(
-            f"Found {len(notebook_paths)} notebooks in all notebook repositories."
-        )
+        if notebook_paths:
+            self.logger.info(
+                f"Found {len(notebook_paths)} notebooks in all notebook repositories."
+            )
+        else:
+            self.logger.debug("No notebooks found in any selection.")
         return dict(sorted(notebook_paths.items()))
 
     def _get_repo_dir(self, repos_dir: Path, repo_url: str) -> Path:

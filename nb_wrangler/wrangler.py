@@ -458,7 +458,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
         # Update spec with resolved repository states
-        output_repos_for_spec = self.spec_manager.to_dict().get("repositories", {})
+        output_repos_for_spec = self.spec_manager.to_dict().get("repositories") or {}
         self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
 
         # Update SPI ref with resolved hash

@@ -22,9 +22,10 @@ class NotebookImportProcessor(WranglerLoggable):
         nb_to_imports: dict[str, list[str]] = {}
         unique_notebooks: set[str] = set(notebook_paths)
         total_imports: set[str] = set()
-        self.logger.info(
-            f"Processing {len(unique_notebooks)} unique notebooks for imports."
-        )
+        if unique_notebooks:
+            self.logger.info(
+                f"Processing {len(unique_notebooks)} unique notebooks for imports."
+            )
         for nb_path_str in sorted(list(unique_notebooks)):
             nb_dict = self._read_notebook_json(nb_path_str)
             if nb_dict:
@@ -35,9 +36,10 @@ class NotebookImportProcessor(WranglerLoggable):
                 self.logger.debug(
                     f"Extracted {len(imports)} package imports from notebook {nb_path_str}: {imports}"
                 )
-        self.logger.info(
-            f"Extracted {len(total_imports)} package imports from {len(unique_notebooks)} notebooks."
-        )
+        if unique_notebooks:
+            self.logger.info(
+                f"Extracted {len(total_imports)} package imports from {len(unique_notebooks)} notebooks."
+            )
         return sorted(list(total_imports)), nb_to_imports
 
     def _read_notebook_json(self, nb_path: str) -> Optional[dict]:

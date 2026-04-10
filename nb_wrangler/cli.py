@@ -455,6 +455,12 @@ def parse_args():
         help="""Add the active spec to the pantry.  This creates a 'shelf' for one complete environment.""",
     )
     spec_group.add_argument(
+        "--spec-init",
+        type=str,
+        metavar="FILENAME",
+        help="""Generate a basic default nb-wrangler spec.yaml file template.""",
+    )
+    spec_group.add_argument(
         "--spec-list",
         action="store_true",
         help="""List all the available specs in the pantry.""",
@@ -550,6 +556,8 @@ def main() -> int:
     if args.version:
         print(constants.__version__)
         return 0
+    if args.spec_init:
+        return _main(args)
     if args.spec_uri is None:
         log = logger.WranglerLogger()
         if os.environ.get("NBW_SPEC") is None:
@@ -571,6 +579,12 @@ def main() -> int:
 
 def _main(args) -> int:
     """Main entry point for the CLI."""
+    if args.spec_init:
+        if utils.generate_spec_template(args.spec_init):
+            print(f"Generated spec template: {args.spec_init}")
+            return 0
+        else:
+            return 1
     config = config_mod.WranglerConfig.from_args(args)
     config_mod.set_args_config(config)
     log = logger.get_configured_logger()

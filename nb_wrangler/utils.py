@@ -406,3 +406,52 @@ def resolve_env(
     for key, val in env.items():
         result[key] = resolve_vars(val, env_dict)
     return result
+
+
+def generate_spec_template(filename: str | Path) -> bool:
+    """Generate a default nb-wrangler spec.yaml file with comments."""
+    template = f"""# nb-wrangler specification file
+# Generated on: {datetime.datetime.now().isoformat()}
+
+image_spec_header:
+  image_name: "my-environment"
+  description: "A description of my environment"
+  kernel_name: "my-kernel"
+  deployment_name: "wrangler"
+  display_name: "My Environment (Python 3.11)"
+  python_version: "3.11"
+  valid_on: "{datetime.date.today().isoformat()}"
+  expires_on: "{(datetime.date.today() + datetime.timedelta(days=365)).isoformat()}"
+
+repositories:
+  # Define repositories containing notebooks or requirements
+  # my_repo:
+  #   url: "https://github.com/user/repo.git"
+  #   ref: "main"
+
+selected_notebooks:
+  # Select notebooks to include and test
+  # my_notebooks:
+  #   repo: "my_repo"
+  #   include_subdirs: ["."]
+
+extra_pip_packages:
+  # List of additional pip packages to install
+  - numpy
+  - pandas
+  - matplotlib
+
+system:
+  spec_version: 2.1
+  spi:
+    repo: "https://github.com/spacetelescope/science-platform-images.git"
+  nb-wrangler:
+    repo: "https://github.com/spacetelescope/nb-wrangler.git"
+"""
+    try:
+        with open(filename, "w") as f:
+            f.write(template)
+        return True
+    except Exception as e:
+        print(f"Error generating spec template: {e}")
+        return False
