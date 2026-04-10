@@ -44,7 +44,7 @@ setup:
 
 # ==========================================================================================================
 
-YAML_FILES := $(shell find fnc-test-spec.yaml sample-specs -name "*.yaml")
+YAML_FILES := $(shell find sample-specs/fnc-test-spec.yaml sample-specs -name "*.yaml")
 
 .PHONY: specs-update specs-curate specs-data-curate specs-validate
 
@@ -103,62 +103,62 @@ fnc-bootstrap: fnc-preclean
 	./nb-wrangler bootstrap
 
 fnc-curate:
-	./nb-wrangler  fnc-test-spec.yaml --curate
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --curate
 
 fnc-reinstall:
-	./nb-wrangler  fnc-test-spec.yaml --reinstall
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --reinstall
 
 fnc-packages-uninstall: fnc-curate
-	./nb-wrangler  fnc-test-spec.yaml --packages-uninstall
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --packages-uninstall
 
 fnc-packages-install: fnc-curate fnc-packages-uninstall
-	./nb-wrangler   fnc-test-spec.yaml --packages-install
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --packages-install
 
 fnc-env-pack: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml --env-pack
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-pack
 
 fnc-env-unpack:  fnc-packages-uninstall
-	./nb-wrangler   fnc-test-spec.yaml --env-unpack
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-unpack
 
 fnc-test-imports: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml --test-imports
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --test-imports
 
 fnc-test-notebooks: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml --test-notebooks zooniverse_view
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --test-notebooks zooniverse_view
 
 fnc-test: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml -t zooniverse_view
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml -t zooniverse_view
 
 fnc-compact: fnc-packages-install
-	./nb-wrangler   fnc-test-spec.yaml --env-compact
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-compact
 
 fnc-packages-compile: fnc-clone-repos
-	./nb-wrangler   fnc-test-spec.yaml --packages-compile
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --packages-compile
 
 fnc-clone-repos:
-	./nb-wrangler   fnc-test-spec.yaml --clone-repos
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --clone-repos
 
 fnc-env-init: fnc-packages-compile
-	./nb-wrangler   fnc-test-spec.yaml --env-init
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-init
 
 fnc-env-delete: fnc-env-init
-	./nb-wrangler   fnc-test-spec.yaml --env-delete
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-delete
 
 fnc-env-register: fnc-env-init
-	./nb-wrangler   fnc-test-spec.yaml --env-register
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-register
 
 fnc-env-unregister: fnc-env-init
-	./nb-wrangler   fnc-test-spec.yaml --env-unregister
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-unregister
 
 fnc-env-kernel-cleanup: fnc-env-init
-	./nb-wrangler   fnc-test-spec.yaml --env-kernel-cleanup
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-kernel-cleanup
 
 fnc-spi-basic-workflow: fnc-inject-spi
 	echo "--- Running basic SPI workflow test ---"
 	# Ensure clean state for git operations and remove previous test branches
 	cd inject-spi-references/science-platform-images && git checkout main && git branch -D test-spi-branch || true
 	# Run inject-spi with branch, commit, prune, build
-	./nb-wrangler fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
+	./nb-wrangler sample-specs/fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
 		--spi-commit-message "Test SPI commit" \
 		--spi-prune --spi-build --spi-branch test-spi-branch
 	echo "--- Verifying basic SPI workflow test results ---"
@@ -168,16 +168,16 @@ fnc-spi-basic-workflow: fnc-inject-spi
 	git -C inject-spi-references/science-platform-images log -1 --pretty=format:"%s" test-spi-branch | grep "Test SPI commit"
 
 fnc-spec-reset: fnc-packages-compile
-	./nb-wrangler   fnc-test-spec.yaml --spec-reset
-	git checkout -- fnc-test-spec.yaml
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --spec-reset
+	git checkout -- sample-specs/fnc-test-spec.yaml
 
 fnc-spec-validate: fnc-packages-compile
-	./nb-wrangler   fnc-test-spec.yaml --spec-validate
-	git checkout -- fnc-test-spec.yaml
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --spec-validate
+	git checkout -- sample-specs/fnc-test-spec.yaml
 
 fnc-inject-spi:
 	rm -rf inject-spi-references
-	./nb-wrangler   fnc-test-spec.yaml --curate --inject-spi  --repos-dir  inject-spi-references
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --curate --inject-spi  --repos-dir  inject-spi-references
 
 
 
@@ -298,7 +298,7 @@ test-bootstrap-only:
 test-bootstrap-spec:
 	rm -rf $NBW_ROOT
 	make clean
-	./nb-wrangler bootstrap ./fnc-test-spec.yaml
+	./nb-wrangler bootstrap ./sample-specs/fnc-test-spec.yaml
 
 unit-test:  clean-test   ## run tests quickly with the default Python
 	pytest --pdb --doctest-continue-on-failure -vv --profile tests
