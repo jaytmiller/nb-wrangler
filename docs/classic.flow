@@ -1,0 +1,49 @@
+# Classic Image Builds (SPI Injection)
+
+## Overview
+
+The principle function of the wrangler is to automate interactions
+with notebook repos and their curators and to that end it can be
+broken down into three main aspects:
+
+1. The wrangler scrapes a collection of notebook repos for the
+package requirements needed to run specified notebooks;  typically
+each notebook defines a requirements.txt file and the wrangler
+solves constraints for the union of all of them producing a locked
+(fully pinned) package list for a notebook "mission" environment.
+Further,  it fetches and includes a refdata_dependencies.yaml file
+that the repo can use to define required data and environment variables.
+Thus the basic nature of part 1 is to define and install local
+versions of an environment.  As the culmination of this process,
+running the wrangler on the installed environment with --test-imports
+helps verify that all of the packages explicitly required by notebooks
+import successfully.
+
+2. The wrangler interacts with the science-platform-images (SPI) repo
+to inject the requirements determined by (1) above.  This is the automated
+version of a curator feeding the development team a package list via
+Jira which the developer then deposits into science-platform-images
+at the correct locations.  It's the role of science-platform-images
+to build notebook images according to the wrangler spec requirements.
+Thus for phase 2,  the wrangler uses a local clone of science-platform-images
+to perform code updates,  and has convenience functions to build the
+resulting configuration and also to create and push a pr to science-platform-images
+to record the release.
+
+3. Once science-platform-images has been updated with new requirements using
+steps (1) and (2) above, the image build and deployment process proceeds
+more-or-less in classic fashion.  Consequently familiar approaches to
+configuring, building, testing, pushing to ECR, and re-tagging an image to
+promote it should work.  Since science-platform-images doesn't know about
+the platform's ECR registry,  the built image needs to be retagged and pushed
+to ECR semi-manually.  Once the image is in ECR,  it needs to be tagged
+appropriately for use in some (TEST?) SDLC and the hub profiles need to be
+adjusted as needed to offer that image to SDLC users.  As an additional
+step to deploying some releases,  the developer should log in as admin and
+run the wrangler data installation mode which will install the data specified
+by the notebook repos under /teams/admin/nbw-pantry/...  Wrangler defined
+environment variables will point to this instalation location and will be
+both built into the environment kernel definition and available for terminal
+sessions.  Once a notebook session has been started and the environment and
+data are fully installed,  it should be possible to re-run import and notebook
+tests using /opt/environments/test.
