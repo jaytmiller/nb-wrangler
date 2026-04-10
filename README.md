@@ -165,17 +165,6 @@ For more information on supporting data see [Managing Notebook Reference Data](d
 
 ## Advanced Usage
 
-### Build Submission
-
-After you have curated a spec, you can submit it to a build service to automatically create a container image.
-
-```bash
-gh auth login
-./nb-wrangler spec.yaml --submit-for-build
-```
-The `--submit-for-build` command requires a valid `GitHub Personal Access Token (PAT)` with the necessary permissions and collaborator status with the targeted SPI repo.
-For more information, see the [Build Submission documentation](docs/submit.md).
-
 ### Development Overrides
 
 To streamline development with custom branches without altering your core `spec.yaml`, `nb-wrangler` supports `dev_overrides`.
@@ -209,6 +198,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--inject-spi`: Inject a spec into the SPI repository.
 
 ### Environment Management
+
 - `--env-init`: Create and kernelize the target environment.
 - `--env-delete`: Delete the target environment.
 - `--env-pack`: Pack the environment into an archive.
@@ -220,6 +210,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--env-print-name`: Print the environment name for the spec.
 
 ### Package Management
+
 - `--packages-compile`: Compile package requirements.
 - `--packages-install`: Install packages into the environment.
 - `--packages-uninstall`: Uninstall packages from the environment.
@@ -227,6 +218,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--packages-diagnostics`: Show which requirements files are included and their required packages.
 
 ### Testing
+
 - `-t`, `--test-all`: Run all tests (`--test-imports` and `--test-notebooks`).
 - `--test-imports`: Test package imports.
 - `--test-notebooks [REGEX]`: Test notebook execution. Can optionally take a comma-separated list of regex patterns to select specific notebooks.
@@ -235,6 +227,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--timeout INT`: Timeout in seconds for notebook tests.
 
 ### Data Management
+
 - `--data-collect`: Collect data archive and installation info and add to spec.
 - `--data-list`: List data archives.
 - `--data-download`: Download data archives to the pantry.
@@ -253,11 +246,13 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--data-symlink-install-data`: Create symlinks from install locations to the pantry data directory.
 
 ### Notebook Clones
+
 - `--clone-repos`: Clone notebook repositories.
 - `--repos-dir`: Directory for cloned repositories.
 - `--delete-repos`: Delete cloned repositories.
 
 ### Spec Management
+
 - `--spec-reset`: Reset the spec file to its original state (preserves `out.data`).
 - `--spec-add`: Add the spec to the pantry (a local collection of specs).
 - `--spec-list`: List available specs in the pantry.

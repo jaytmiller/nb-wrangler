@@ -141,7 +141,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         # Define workflow mappings
         workflow_map = {
             "curation": self._run_development_workflow,
-            "submit_for_build": self._run_submit_build_workflow,
             "inject_spi": self._inject_spi_workflow,
             "reinstall": self._run_reinstall_spec_workflow,
             "data_curation": self._run_data_curation_workflow,
@@ -241,17 +240,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self._data_validate,
                 self._data_unpack,
                 self._save_final_spec,
-            ],
-        )
-
-    def _run_submit_build_workflow(self) -> bool:
-        """Execute steps for the build submission workflow."""
-        return self.run_workflow(
-            "--submit-for-build",
-            [
-                self._validate_spec,
-                self._prepare_all_repositories,
-                self._submit_for_build,
             ],
         )
 
@@ -1031,10 +1019,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to unregister.")
         return self.env_manager.unregister_environment(self.resolved_kname)
-
-    def _submit_for_build(self) -> bool:
-        """PR the spec and trigger a wrangler image build."""
-        return self.injector.submit_for_build()
 
     def _spi_inject_reqs(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""

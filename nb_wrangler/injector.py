@@ -96,67 +96,10 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         is explicitly provided provided using --spi-branch."""
         return "spi-" + self.core_name.replace("nbw-", "")
 
-    def submit_for_build(self):
-        title = f"Wrangler spec for build {self.ingest_name}."
-        message = f"""
-Added wrangler spec {self.ingest_name} for {self.spec_manager.deployment_name}.
-Hash: {self.spec_manager.sha256}
-Description:
-{self.spec_manager.description}
-        """
-        if not self.add_to_ingest(
-            self.base_ingest_branch, self.ingest_name, self.ingest_branch, message
-        ):
-            return False
-        if not self.push_and_pr(
-            self.base_ingest_branch, self.ingest_branch, title, message
-        ):
-            return False
-        return self.logger.info("Spec submission complete.")
-
-    def add_to_ingest(
-        self,
-        base_ingest_branch: str,
-        ingest_name: str,
-        new_ingest_branch: str,
-        message: str,
-    ) -> bool | str:
-        """During GitHub actions, copy the spec from the ingest directory
-        to an archive location with a more recognizable name.
-        """
-        self.logger.info(
-            f"Adding spec {ingest_name} to ingest directory {self.ingest_dir} on branch {new_ingest_branch}."
-        )
-        if not self.repo_manager.branch_repo(
-            self.repo_name, new_ingest_branch, base_ingest_branch
-        ):
-            return False
-        spec_dest = self.spi_path / self.ingest_dir
-        spec_dest.mkdir(exist_ok=True, parents=True)
-        self.copy_file(self.spec_manager.spec_file, spec_dest / ingest_name)
-        if not self.repo_manager.git_add(self.repo_name, self.ingest_dir / ingest_name):
-            return False
-        if not self.repo_manager.git_commit(self.repo_name, message):
-            return False
-        return True
-
     def copy_file(self, fromfile: Path | str, tofile: Path | str) -> bool:
         fromfile, tofile = str(fromfile), str(tofile)
         self.logger.debug(f"Copying {fromfile} to {tofile}.")
         shutil.copy(fromfile, tofile)
-        return True
-
-    def push_and_pr(
-        self, base_ingest_branch: str, new_ingest_branch: str, title: str, message: str
-    ):
-        self.logger.info(f"Pushing submission branch {new_ingest_branch}....")
-        if not self.repo_manager.git_push(self.repo_name, new_ingest_branch):
-            return False
-        self.logger.info("Creating PR...")
-        if not self.repo_manager.github_create_pr(
-            self.repo_name, base_ingest_branch, title, message
-        ):
-            return False
         return True
 
     def set_wrangler_spec(self) -> bool:
