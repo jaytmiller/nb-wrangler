@@ -1,5 +1,4 @@
-name: Build Mission Image
-on:
+name: Trigger NB-Wrangler Curate Workflow
   workflow_dispatch:
   push:
     branches: [dev]
