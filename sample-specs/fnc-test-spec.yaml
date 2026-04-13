@@ -64,13 +64,13 @@ extra_pip_packages:
 system:
   spec_version: 2.0
   archive_format: .tar
+  primary_repo: spacetelescope/mast_notebooks
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
     ref: main
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-    primary_repo: spacetelescope/mast_notebooks
   spec_sha256: 81d20f2e5c3b94f948478345d2ddb0866a6075d28dec1e06d68d3be79711f7b4
   date_updated: '2026-03-04T18:24:02.403424'
 out:

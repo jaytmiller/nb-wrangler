@@ -18,21 +18,21 @@ repositories:
 system:
   spec_version: 2.1
   archive_format: .tar
+  primary_repo: spacetelescope/roman_notebooks
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-    primary_repo: spacetelescope/roman_notebooks
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
   date_updated: '2026-03-04T18:21:57.744342'
-  spec_sha256: a62285229a7d6126ec9cf2fca65f6a85706ec8a09aa4238ab1911ac89af1bd3a
+  spec_sha256: eddc7a52a038ad760f98c6ac3e8f3db316a00beeb24209b7cdf276109f7b92ac
 dev_overrides:
   system:
+    primary_repo: jaytmiller/roman_notebooks
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
       ref: dev
-      primary_repo: jaytmiller/roman_notebooks
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
       ref: dev

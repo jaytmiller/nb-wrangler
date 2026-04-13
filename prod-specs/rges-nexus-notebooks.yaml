@@ -20,13 +20,13 @@ extra_pip_packages:
 
 system:
   spec_version: 2.1
+  primary_repo: rges-pit/nexus-notebooks
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-    primary_repo: rges-pit/nexus-notebooks
 
   spec_sha256: 30322631e82d571c1a45aec0bb945d5d88f2fe98a79e3e6e0891a0d5f36d8213
 repositories:
@@ -43,10 +43,10 @@ selected_notebooks:
 
 deactivated_dev_overrides:
   system:
+    primary_repo: jaytmiller/nexus-notebooks
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
       ref: dev
-      primary_repo: jaytmiller/nexus-notebooks
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
       ref: dev

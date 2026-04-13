@@ -144,7 +144,13 @@ class SpecManager(
     @property
     def primary_repo(self) -> str | None:
         """Get the primary repository for this spec, if defined."""
-        return self.nb_wrangler.get("primary_repo")
+        base_primary = self.system.get("primary_repo")
+        if self.config.dev and "dev_overrides" in self._spec:
+            if "system" in self._spec["dev_overrides"]:
+                dev_primary = self._spec["dev_overrides"]["system"].get("primary_repo")
+                if dev_primary:
+                    return dev_primary
+        return base_primary
 
     @property
     def moniker(self) -> str:
@@ -405,7 +411,7 @@ class SpecManager(
     def sha256(self) -> str | None:
         hash = self.system.get("spec_sha256", None)
         if hash is None:
-            self.logger.debug("Spec has no spec_sha256 hash for verifying integrity.")
+            self.logger.debug("Spec has no_spec_sha256 hash for verifying integrity.")
             return None
         if len(hash) != 64 or not re.match("[a-z0-9]{64}", hash):
             self.logger.warning(f"System spec_sha256 hash '{hash}' is malformed.")
@@ -458,8 +464,8 @@ class SpecManager(
                 "nb-wrangler": {
                     "repo": None,
                     "ref": None,
-                    "primary_repo": None,
                 },
+                "primary_repo": None,
                 "date_updated": None,
             },
         },
@@ -473,8 +479,8 @@ class SpecManager(
                 "nb-wrangler": {
                     "repo": None,
                     "ref": None,
-                    "primary_repo": None,
                 },
+                "primary_repo": None,
                 "date_updated": None,
             },
         },
@@ -521,8 +527,8 @@ class SpecManager(
             "nb-wrangler": {
                 "repo": None,
                 "ref": None,
-                "primary_repo": None,
             },
+            "primary_repo": None,
             "date_updated": None,
         },
     }
