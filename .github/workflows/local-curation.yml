@@ -1,0 +1,12 @@
+# target repo
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        required: true
+
+jobs:
+  run-curate-reusable:
+    uses: ${{github.repository_owner}}/nb-wrangler/.github/workflows/curate-reusable.yml@${{github.ref}}
+    with:
+      spec_file: nbw-wrangler-spec.yaml

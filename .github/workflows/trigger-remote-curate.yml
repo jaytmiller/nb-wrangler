@@ -1,0 +1,25 @@
+name: Trigger Curation on NB-Wrangler
+
+on:
+  workflow_dispatch: # This must be indented under 'on'
+
+jobs:
+  trigger-workflow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger workflow
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.WRANGLER_CURATE }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: "${{ github.repository_owner }}",
+              repo: 'nb-wrangler',
+              workflow_id: 'curate-reusable.yml',
+              ref: "${{ github.ref }}",
+              inputs: {
+                version: '${{ github.sha }}',
+                spec_file: 'nbw-wrangler-spec.yaml',
+                wrangler_ref: "${{ github.ref }}",
+              }
+            })
