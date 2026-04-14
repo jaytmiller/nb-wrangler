@@ -102,6 +102,22 @@ class SpecManager(
         return self._spec.get("selected_notebooks") or {}
 
     @property
+    def refdata_dependencies(self) -> dict[str, Any] | None:
+        """Return refdata_dependencies, applying dev_overrides if enabled."""
+        base_refdata = self._spec.get("refdata_dependencies")
+        if self.config.dev and "dev_overrides" in self._spec:
+            dev_refdata = self._spec["dev_overrides"].get("refdata_dependencies")
+            if dev_refdata:
+                merged = copy.deepcopy(base_refdata) if base_refdata else {}
+                for key in ["install_files", "other_variables"]:
+                    if key in dev_refdata:
+                        if key not in merged or not isinstance(merged[key], dict):
+                            merged[key] = {}
+                        merged[key].update(dev_refdata[key])
+                return merged
+        return base_refdata
+
+    @property
     def system(self) -> dict[str, Any]:
         return self._spec["system"]
 
@@ -456,6 +472,7 @@ class SpecManager(
     ALLOWED_KEYWORDS: dict[str, Any] = {
         "dev_overrides": {
             "repositories": ["url", "ref"],
+            "refdata_dependencies": ["install_files", "other_variables"],
             "system": {
                 "spi": {
                     "repo": None,
@@ -471,6 +488,7 @@ class SpecManager(
         },
         "deactivated_dev_overrides": {
             "repositories": ["url", "ref"],
+            "refdata_dependencies": ["install_files", "other_variables"],
             "system": {
                 "spi": {
                     "repo": None,
@@ -496,6 +514,7 @@ class SpecManager(
             "manager",
         ],
         "repositories": ["url", "ref"],
+        "refdata_dependencies": ["install_files", "other_variables"],
         "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
@@ -560,6 +579,7 @@ class SpecManager(
             self._validate_top_level_structure()
             and self._validate_environment_spec()  # New comprehensive validation
             and self._validate_repositories_section()
+            and self._validate_refdata_dependencies_section()
             and self._validate_notebook_selections_section()
             and self._validate_system()
             and self._validate_spi_section()
@@ -780,6 +800,19 @@ class SpecManager(
                     f"Missing required 'url' field in repository '{name}'."
                 )
         return no_errors
+
+    def _validate_refdata_dependencies_section(self) -> bool:
+        """Validate refdata_dependencies section."""
+        if "refdata_dependencies" not in self._spec:
+            return True
+
+        from .data_manager import RefdataSpec
+
+        try:
+            RefdataSpec.from_dict("wrangler_spec", self._spec["refdata_dependencies"])
+            return True
+        except ValueError as e:
+            return self.logger.error(f"Invalid 'refdata_dependencies' in spec: {e}")
 
     def _validate_notebook_selections_section(self) -> bool:
         """Validate selected_notebooks section."""

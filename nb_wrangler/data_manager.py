@@ -189,10 +189,10 @@ class DataSection(WranglerLoggable):
 
 
 class RefdataSpec(WranglerLoggable):
-    def __init__(self, install_files={}, other_variables={}):
+    def __init__(self, install_files=None, other_variables=None):
         super().__init__()
-        self.install_files = install_files
-        self.other_variables = other_variables
+        self.install_files = install_files if install_files is not None else {}
+        self.other_variables = other_variables if other_variables is not None else {}
 
     def todict(self) -> dict[str, dict]:
         return dict(
@@ -354,6 +354,16 @@ class RefdataValidator(WranglerLoggable):
 
     def todict(self):
         return {name: refdata.todict() for name, refdata in self.all_data.items()}
+
+    def add_spec(self, refdata_path: str, spec_dict: dict):
+        """Add a refdata spec directly from a dictionary."""
+        self.all_data[str(refdata_path)] = RefdataSpec.from_dict(
+            refdata_path, spec_dict
+        )
+        if not self.validate_env_conflicts():
+            raise ValueError(
+                f"Environment conflicts found after adding spec '{refdata_path}'."
+            )
 
     def __str__(self):
         return utils.yaml_dumps(self.todict())

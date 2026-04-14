@@ -86,7 +86,7 @@ This optional top-level section allows developers to temporarily override any to
 
 When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nb-wrangler` will apply these overrides. When `--finalize-dev-overrides` is used, this section is removed.
 
-The structure of `dev_overrides` mirrors the top-level sections it intends to override. For example, to override `repositories` (including `url` for forked development) and `system.spi`:
+The structure of `dev_overrides` mirrors the top-level sections it intends to override. For example, to override `repositories` (including `url` for forked development), `refdata_dependencies`, and `system.spi`:
 
 ```yaml
 dev_overrides:
@@ -96,6 +96,9 @@ dev_overrides:
       ref: your-dev-branch
     another_repo:
       ref: another-dev-ref
+  refdata_dependencies:
+    other_variables:
+      YOUR_VAR: "dev_value"
   system:
     spi:
       ref: your-spi-dev-branch
@@ -119,6 +122,18 @@ The combination of `root_directory`, `include_subdirs`, and `exclude_subdirs` is
 1. Pick notebook directories directly under `root_directory` as individual `include_subdirs` lines.  This avoids the clutter of repeating `root_directory` with each notebook in an otherwise simple explicit list.
 2. To keep things simple, leave `root_directory` as an empty string and just include the full path from the root of the repo to the notebook directory in `include_subdirs`.
 3. Use regular expressions in `include_subdirs` and `exclude_subdirs` to select notebooks based on patterns. For example, `include_subdirs: [".*"]` will include all notebooks under the `root_directory`.
+
+### **refdata_dependencies**
+
+This optional section allows for image-wide data dependencies defined directly in the wrangler spec. These dependencies are merged with any `refdata_dependencies.yaml` files discovered at the root of the notebook repositories.
+
+This is useful for decoupling data definitions from specific notebook repositories, or for providing common data needed by all notebooks in the image.
+
+The format follows the same structure as the repository-level `refdata_dependencies.yaml` files:
+- **install_files**: A dictionary of data packages to download and unpack.
+- **other_variables**: A dictionary of environment variables to set.
+
+See [Reference Data Dependencies](refdata_dependencies.md) for more details on the format.
 
 ### **extra_mamba_packages**
 A list of additional mamba packages required by your environment but not specified by the notebook repos.

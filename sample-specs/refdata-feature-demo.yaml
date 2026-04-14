@@ -1,0 +1,134 @@
+# Image header information
+image_spec_header:
+  image_name: refdata-feature-demo
+  deployment_name: wrangler
+  kernel_name: refdata-demo
+  display_name: Refdata in Spec Demo
+  description: |
+    A demo spec illustrating the refdata_dependencies defined directly in the wrangler spec.
+  valid_on: 2026-04-13
+  expires_on: 2026-10-13
+  python_version: 3.12
+
+repositories:
+  # Using a small repo for demo purposes if possible, or just a placeholder
+  # Let's use roman_notebooks as it's already used in other tests
+  roman_notebooks:
+    url: https://github.com/spacetelescope/roman_notebooks
+    ref: main
+
+selected_notebooks:
+  aperture_photometry:
+    repo: roman_notebooks
+    root_directory: content/notebooks/aperture_photometry/
+    include_subdirs: ["."]
+
+# NEW FEATURE: DATA DEPENDENCIES DEFINED DIRECTLY IN SPEC
+# These are merged with any refdata_dependencies.yaml found in repositories.
+refdata_dependencies:
+  install_files:
+    demo_data:
+      version: '1.0.0'
+      environment_variable: DEMO_DATA_PATH
+      install_path: ${HOME}/demo_refdata/
+      data_path: demo_v1
+      data_url:
+        - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+  other_variables:
+    DEMO_VAR: "demo_value"
+
+# Overrides for the spec-defined refdata_dependencies during development
+dev_overrides:
+  refdata_dependencies:
+    other_variables:
+      DEMO_VAR: "demo_dev_value"
+      NEW_DEV_VAR: "added_in_dev"
+
+system:
+  spec_version: 2.0
+  archive_format: .tar
+  spi:
+    repo: https://github.com/spacetelescope/science-platform-images.git
+  nb-wrangler:
+    repo: https://github.com/spacetelescope/nb-wrangler.git
+out:
+  data:
+    spec_inputs:
+      tests/temp-repos/roman_notebooks/refdata_dependencies.yaml:
+        install_files:
+          pandeia:
+            version: '2025.9'
+            environment_variable: pandeia_refdata
+            install_path: ${HOME}/refdata/
+            data_path: pandeia_data-2025.9-roman
+            data_url:
+              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+          stpsf:
+            version: 2.1.0
+            environment_variable: STPSF_PATH
+            install_path: ${HOME}/refdata/
+            data_path: stpsf-data
+            data_url:
+              - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+          stips:
+            version: 2.3.0
+            environment_variable: stips_data
+            install_path: ${HOME}/refdata/
+            data_path: stips_data
+            data_url:
+              - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
+          synphot:
+            version: 1.6.0
+            environment_variable: PYSYN_CDBS
+            install_path: ${HOME}/refdata/
+            data_path: grp/redcat/trds/
+            data_url:
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+        other_variables:
+          CRDS_SERVER_URL: https://roman-crds.stsci.edu
+          CRDS_CONTEXT: roman_0041.pmap
+          CRDS_PATH: ${HOME}/crds_cache
+      tests/temp-repos/nbw-spec/refdata_dependencies.yaml:
+        install_files:
+          demo_data:
+            version: 1.0.0
+            environment_variable: DEMO_DATA_PATH
+            install_path: ${HOME}/demo_refdata/
+            data_path: demo_v1
+            data_url:
+              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+        other_variables:
+          DEMO_VAR: "demo_dev_value"
+          NEW_DEV_VAR: "added_in_dev"
+    spec_exports:
+      pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
+      STPSF_PATH: ${HOME}/refdata/stpsf-data
+      stips_data: ${HOME}/refdata/stips_data
+      PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
+      DEMO_DATA_PATH: ${HOME}/demo_refdata/demo_v1
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+      DEMO_VAR: "demo_dev_value"
+      NEW_DEV_VAR: "added_in_dev"
+    pantry_exports:
+      pandeia_refdata: 
+        ${NBW_PANTRY}/shelves/refdata-feature-demo/data/pandeia_data-2025.9-roman
+      STPSF_PATH: ${NBW_PANTRY}/shelves/refdata-feature-demo/data/stpsf-data
+      stips_data: ${NBW_PANTRY}/shelves/refdata-feature-demo/data/stips_data
+      PYSYN_CDBS: 
+        ${NBW_PANTRY}/shelves/refdata-feature-demo/data/grp/redcat/trds
+      DEMO_DATA_PATH: ${NBW_PANTRY}/shelves/refdata-feature-demo/data/demo_v1
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0041.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+      DEMO_VAR: "demo_dev_value"
+      NEW_DEV_VAR: "added_in_dev"

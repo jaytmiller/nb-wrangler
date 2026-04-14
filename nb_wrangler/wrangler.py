@@ -563,6 +563,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.repos_dir, repo_urls
         )
 
+        if spec_refdata := self.spec_manager.refdata_dependencies:
+            data_validator.add_spec(
+                str(self.repo_manager.repos_dir / "nbw-spec/refdata_dependencies.yaml"),
+                spec_refdata,
+            )
+
         spec_exports = data_validator.get_spec_exports()
         self.pantry_shelf.save_exports_file("nbw-spec-exports.sh", spec_exports)
         pantry_exports = data_validator.get_pantry_exports(
