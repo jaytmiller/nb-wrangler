@@ -27,7 +27,7 @@ flowchart TD
     %% 4. Choose the “winner” repo when >1 have a yaml
     %% -------------------------------------------------
     E --> L{Multiple repos with<br/>refdata_dependencies?}
-    L -- Yes --> M[Select repo from <system.primary_repo>]
+    L -- Yes --> M[Select repo from system.primary_repo]
     L -- No --> N[Use the only repo with yaml]
     M --> O[Add chosen refdata_dependencies.yaml to spec]
     N --> O

@@ -53,6 +53,10 @@ extra_pip_packages:
 system:
   spec_version: 1.0
   archive_format: .tar
+  primary_repo: tike_content
+  nb-wrangler:
+    repo: https://github.com/spacetelescope/nb-wrangler.git
+    ref: main
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
@@ -127,9 +131,15 @@ This section contains specifications for the system environment. It is updated b
 
    - **spec_version**: The version of the specification being used (e.g., `1.0`).
    - **archive_format**: The format used for archiving environments (e.g., `.tar`).
+   - **primary_repo**: The name of the primary repository (must match a key in the `repositories` section). This repository is treated as the "owner" of the spec and is used to drive automated workflows.
+   - **nb-wrangler**: A dictionary specifying the `nb-wrangler` repository to use for the curation process.
+     - **repo**: The URL of the git repository.
+     - **ref**: (Optional) The branch, tag, or commit hash to use.
    - **spi**: A dictionary specifying the Science Platform Images (SPI) repository to use.
      - **repo**: The URL of the git repository.
      - **ref**: (Optional) The branch, tag, or commit hash to use. Defaults to the repository's default branch.
    - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking. It is added by `nb-wrangler`.
+   - **date_updated**: The timestamp when the spec was last updated.
+
 
    
