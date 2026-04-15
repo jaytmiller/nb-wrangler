@@ -26,7 +26,7 @@ system:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
   date_updated: '2026-03-04T18:21:57.744342'
-  spec_sha256: e39d2e3425e4293dc2aacb7353719d9aa39aab3f30017a6feb09bea1ccd3cd2a
+  spec_sha256: ff7e954af032b734d49a51adaeccf2eef805b2e966e911f4553cf4c2eac2b313
 
 dev_overrides:
   system:
@@ -125,7 +125,7 @@ out:
       CRDS_CONTEXT: roman_0041.pmap
       CRDS_PATH: ${HOME}/crds_cache
     pantry_exports:
-      pandeia_refdata:
+      pandeia_refdata: 
         ${NBW_PANTRY}/shelves/roman-22.0.0/data/pandeia_data-2026.1-roman
       PSF_DIR: ${NBW_PANTRY}/shelves/roman-22.0.0/data/pandeia_psf-2026.1-roman
       STPSF_PATH: ${NBW_PANTRY}/shelves/roman-22.0.0/data/stpsf-data
@@ -183,37 +183,37 @@ out:
     repo: https://github.com/jaytmiller/science-platform-images.git
     ref: e798bf49f6b64fb5f1bb1ac9d801952a9eb8d764
   test_notebooks:
-    references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb:
+    references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/background_visualization_tool/RBVT.ipynb:
+    references/roman_notebooks/notebooks/background_visualization_tool/RBVT.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/data_discovery_and_access/data_discovery_and_access.ipynb:
+    references/roman_notebooks/notebooks/data_discovery_and_access/data_discovery_and_access.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/data_visualization/data_visualization.ipynb:
+    references/roman_notebooks/notebooks/data_visualization/data_visualization.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/exposure_pipeline/exposure_pipeline.ipynb:
+    references/roman_notebooks/notebooks/exposure_pipeline/exposure_pipeline.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/footprint_visualization/footprint_visualization.ipynb:
+    references/roman_notebooks/notebooks/footprint_visualization/footprint_visualization.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/grism_spectral_extraction/grism_spectral_extraction.ipynb:
+    references/roman_notebooks/notebooks/grism_spectral_extraction/grism_spectral_extraction.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/ground_test_analysis/wfi_tvac_brightstar.ipynb:
+    references/roman_notebooks/notebooks/ground_test_analysis/wfi_tvac_brightstar.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/measuring_galaxy_shapes/measuring_galaxy_shapes.ipynb:
+    references/roman_notebooks/notebooks/measuring_galaxy_shapes/measuring_galaxy_shapes.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/mosaic_pipeline/mosaic_pipeline.ipynb:
+    references/roman_notebooks/notebooks/mosaic_pipeline/mosaic_pipeline.ipynb: 
       roman_all
     references/roman_notebooks/notebooks/pandeia/pandeia.ipynb: roman_all
     references/roman_notebooks/notebooks/rist/rist.ipynb: roman_all
-    references/roman_notebooks/notebooks/roman_cutouts/roman_cutouts.ipynb:
+    references/roman_notebooks/notebooks/roman_cutouts/roman_cutouts.ipynb: 
       roman_all
     references/roman_notebooks/notebooks/romanisim/romanisim.ipynb: roman_all
     references/roman_notebooks/notebooks/stips/stips.ipynb: roman_all
     references/roman_notebooks/notebooks/stpsf/stpsf.ipynb: roman_all
     references/roman_notebooks/notebooks/synphot/synphot.ipynb: roman_all
-    references/roman_notebooks/notebooks/time_domain_simulations/time_domain_simulations.ipynb:
+    references/roman_notebooks/notebooks/time_domain_simulations/time_domain_simulations.ipynb: 
       roman_all
-    references/roman_notebooks/notebooks/working_with_asdf/working_with_asdf.ipynb:
+    references/roman_notebooks/notebooks/working_with_asdf/working_with_asdf.ipynb: 
       roman_all
   test_imports:
     - argparse
