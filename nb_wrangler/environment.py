@@ -421,7 +421,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             f"Testing imports by notebook for {len(nb_to_imports)} notebooks..."
         )
         no_errors = True
-        for notebook, imports in nb_to_imports.items():
+        for i, (notebook, imports) in enumerate(nb_to_imports.items()):
             here = os.getcwd()
             try:
                 notebook_include_regex = (
@@ -433,7 +433,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                     )
                     continue
                 os.chdir(Path(notebook).parent)
-                self.logger.info(f"Testing imports for {notebook}.")
+                self.logger.info(f"Testing imports for {i} / {len(nb_to_imports)} notebook {notebook}.")
                 no_errors = self.test_imports(env_name, imports) and no_errors
             except Exception as e:
                 self.logger.exception(f"Failed due to exception: {e}.")
@@ -446,8 +446,8 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         """Test package imports."""
         self.logger.info(f"Testing {len(imports)} imports")
         failed_imports = []
-        for import_ in imports:
-            self.logger.debug(f"Testing import: {import_}")
+        for i, import_ in enumerate(imports):
+            self.logger.info(f"Testing import {i} / {len(imports)}  : {import_}")
             result = self.env_run(
                 env_name,
                 f"python -c 'import {import_}'",
@@ -457,7 +457,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             succeeded = self.handle_result(
                 result,
                 f"Failed to import {import_}:",
-                f"Import of {import_} succeeded.",
+                # f"Import of {import_} succeeded.",
             )
             if not succeeded:
                 failed_imports.append(import_)
