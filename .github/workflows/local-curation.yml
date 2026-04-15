@@ -9,8 +9,8 @@ on:
 
 jobs:
   run-curate-reusable:
-    # It is safer to use @main or a specific tag instead of github.ref 
+    # It is safer to use @main or a specific tag instead of github.ref
     # unless you are certain the same branch exists in both repos.
-    uses: ${{ github.repository_owner }}/nb-wrangler/.github/workflows/curate-reusable.yml@main
+    uses: spacetelescope/nb-wrangler/.github/workflows/curate-reusable.yml@main
     with:
       spec_file: nbw-wrangler-spec.yaml
