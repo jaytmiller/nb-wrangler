@@ -71,7 +71,7 @@ system:
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-  spec_sha256: 81d20f2e5c3b94f948478345d2ddb0866a6075d28dec1e06d68d3be79711f7b4
+  spec_sha256: 953bf354833fe9acb543ea63097c8ee26626319ec86e4020a081769839902fc1
   date_updated: '2026-03-04T18:24:02.403424'
 
 refdata_dependencies:
@@ -83,8 +83,8 @@ refdata_dependencies:
       data_path: data_v1
       data_url:
         - https://example.com/data.tar.gz
-    other_variables:
-      CUSTOM_VAR: "custom_value"
+  other_variables:
+    CUSTOM_VAR: "custom_value"
 
 out:
   repositories:
@@ -104,17 +104,17 @@ out:
     : mast_kepler_identifying
     ? inject-spi-references/mast_notebooks/notebooks/Kepler/instrumental_noise_4_electronic_noise/instrumental_noise_4_electronic_noise.ipynb
     : mast_kepler_identifying
-    inject-spi-references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb:
+    inject-spi-references/mast_notebooks/notebooks/TESS/beginner_how_to_use_lc/beginner_how_to_use_lc.ipynb: 
       mast_tess_beginner
-    inject-spi-references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb:
+    inject-spi-references/mast_notebooks/notebooks/TESS/beginner_tour_lc_tp/beginner_tour_lc_tp.ipynb: 
       mast_tess_beginner
-    inject-spi-references/tike_content/content/notebooks/data-access/data-access.ipynb:
+    inject-spi-references/tike_content/content/notebooks/data-access/data-access.ipynb: 
       tike_data_access
-    inject-spi-references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb:
+    inject-spi-references/tike_content/content/notebooks/lcviz-tutorial/lcviz_tutorial.ipynb: 
       tike_lcviz_tutorial
-    inject-spi-references/tike_content/content/notebooks/tglc/tglc.ipynb:
+    inject-spi-references/tike_content/content/notebooks/tglc/tglc.ipynb: 
       tike_tglc
-    inject-spi-references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb:
+    inject-spi-references/tike_content/content/notebooks/zooniverse_view_lightcurve/zooniverse_view_lightcurve.ipynb: 
       tike_zooniverse
   test_imports:
     - astropy
