@@ -201,7 +201,8 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 
 - `--env-init`: Create and kernelize the target environment.
 - `--env-delete`: Delete the target environment.
-- `--env-pack`: Pack the environment into an archive.
+- `--env-archive-delete`: Delete the "code" portions of the pantry for the current spec (environment archives).
+- `--env-pack`: Pack the target environment into an archive file.
 - `--env-unpack`: Unpack an environment from an archive.
 - `--env-register`: Register the environment as a Jupyter kernel.
 - `--env-unregister`: Unregister the environment from Jupyter.
@@ -294,4 +295,3 @@ Secondary goals,  include but are not limited to:
 - Building Docker images for curators or science platform admins or pipelines.
 - Testiing environments (importing all requested package) and notebooks.
 - Automating any/all of these tasks for notebook repos / curators and the science platforms.
-

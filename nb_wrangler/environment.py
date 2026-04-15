@@ -433,7 +433,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                     )
                     continue
                 os.chdir(Path(notebook).parent)
-                self.logger.info(f"Testing imports for {i} / {len(nb_to_imports)} notebook {notebook}.")
+                self.logger.info(
+                    f"Testing imports for {i} / {len(nb_to_imports)} notebook {notebook}."
+                )
                 no_errors = self.test_imports(env_name, imports) and no_errors
             except Exception as e:
                 self.logger.exception(f"Failed due to exception: {e}.")

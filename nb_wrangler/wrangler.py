@@ -398,6 +398,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
             (self.config.env_delete, self._delete_environment),
+            (self.config.env_archive_delete, self._env_archive_delete),
             (self.config.env_kernel_cleanup, self._cleanup_kernels),
             (self.config.env_compact, self._env_compact),
             (self.config.spec_reset, self._reset_spec),
@@ -977,6 +978,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 f"Failed to delete environment {self.resolved_kname}. This can be normal if it never existed."
             )
         return True
+
+    def _env_archive_delete(self) -> bool:
+        """Delete the environment and notebook archives from the pantry."""
+        self.logger.info("Deleting environment and notebook archives from the pantry.")
+        return self.pantry_shelf.delete_code(self.spec_manager.moniker)
 
     def _env_compact(self) -> bool:
         return self.env_manager.compact()

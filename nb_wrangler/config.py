@@ -72,6 +72,7 @@ class WranglerConfig:
     env_pack: bool = False
     env_unpack: bool = False
     env_delete: bool = False
+    env_archive_delete: bool = False
     env_register: bool = False
     env_unregister: bool = False
     env_compact: bool = False
@@ -157,6 +158,7 @@ class WranglerConfig:
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,
             env_delete=args.env_delete,
+            env_archive_delete=args.env_archive_delete,
             env_register=args.env_register,
             env_unregister=args.env_unregister,
             env_archive_format=args.env_archive_format,

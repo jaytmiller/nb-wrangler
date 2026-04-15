@@ -167,16 +167,22 @@ def parse_args():
         help="Completely delete the target environment after processing.",
     )
     env_group.add_argument(
+        "--env-archive-delete",
+        action="store_true",
+        dest="env_archive_delete",
+        help="Delete the 'code' portions of the pantry for the current spec (environment archives).",
+    )
+    env_group.add_argument(
         "--env-pack",
         action="store_true",
         dest="env_pack",
-        help="Pack the target environment into an archive file for distribution or archival.",
+        help="Pack the target environment into an archive file and store in the pantry.",
     )
     env_group.add_argument(
         "--env-unpack",
         action="store_true",
         dest="env_unpack",
-        help="Unpack a previously packed archive file into the target environment directory.",
+        help="Unpack a previously packed archive file into the live environment directory.",
     )
     env_group.add_argument(
         "--env-register",

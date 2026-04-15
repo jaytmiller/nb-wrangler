@@ -313,6 +313,55 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
             no_errors = self.delete_either(data_delete, archive_tuple) and no_errors
         return no_errors
 
+    def delete_code(self, moniker: str) -> bool:
+        """Delete the code portions of the shelf: environment archives and notebook repos."""
+        no_errors = True
+
+        # 1. Delete environment archive(s)
+        for env_archive in self.archive_root.glob(f"env-{moniker.lower()}.*"):
+            self.logger.info(f"Deleting environment archive at {env_archive}...")
+            try:
+                env_archive.unlink(missing_ok=True)
+            except Exception as e:
+                no_errors = (
+                    self.logger.exception(
+                        e, f"Failed deleting environment archive {env_archive}."
+                    )
+                    and no_errors
+                )
+
+        # 2. Delete repo archive(s) if any
+        for repo_archive in self.archive_root.glob("repo-*"):
+            self.logger.info(f"Deleting repo archive at {repo_archive}...")
+            try:
+                repo_archive.unlink(missing_ok=True)
+            except Exception as e:
+                no_errors = (
+                    self.logger.exception(
+                        e, f"Failed deleting repo archive {repo_archive}."
+                    )
+                    and no_errors
+                )
+
+        # 3. Delete notebook-repos directory
+        if self.notebook_repos_path.exists():
+            self.logger.info(
+                f"Deleting notebook repositories directory at {self.notebook_repos_path}..."
+            )
+            try:
+                shutil.rmtree(str(self.notebook_repos_path))
+                self.notebook_repos_path.mkdir(parents=True, exist_ok=True)
+            except Exception as e:
+                no_errors = (
+                    self.logger.exception(
+                        e,
+                        f"Failed deleting notebook repositories {self.notebook_repos_path}.",
+                    )
+                    and no_errors
+                )
+
+        return no_errors
+
     def delete_either(
         self, data_delete: str, archive_tuple: tuple[str, str, str, str, str]
     ) -> bool:
