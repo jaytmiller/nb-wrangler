@@ -12,14 +12,15 @@ jobs:
         with:
           github-token: ${{ secrets.WRANGLER_CURATE }}
           script: |
+            const ref = context.ref.replace('refs/heads/', '').replace('refs/tags/', '') || "main"
             await github.rest.actions.createWorkflowDispatch({
-              owner: "${{ github.repository_owner }}",
+              owner: context.repo.owner,
               repo: 'nb-wrangler',
               workflow_id: 'curate-reusable.yml',
-              ref: "${{ github.ref }}",
+              ref: ref,
               inputs: {
-                version: '${{ github.sha }}',
+                version: context.sha,
                 spec_file: 'nbw-wrangler-spec.yaml',
-                wrangler_ref: "${{ github.ref }}",
+                wrangler_ref: ref,
               }
             })
