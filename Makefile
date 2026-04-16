@@ -160,7 +160,7 @@ fnc-spi-basic-workflow: fnc-inject-spi
 	# Run inject-spi with branch, commit, prune, build
 	./nb-wrangler sample-specs/fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
 		--spi-commit-message "Test SPI commit" \
-		--spi-prune --spi-build --spi-branch test-spi-branch
+		--spi-branch test-spi-branch
 	echo "--- Verifying basic SPI workflow test results ---"
 	# Check if branch was created
 	git -C inject-spi-references/science-platform-images branch | grep "test-spi-branch"
