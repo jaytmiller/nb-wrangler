@@ -16,8 +16,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import requests
-import boto3  # type: ignore
-from botocore.exceptions import NoCredentialsError, PartialCredentialsError  # type: ignore
 from ruamel.yaml import YAML, scalarstring  # type: ignore[import]
 from ruamel.yaml import YAMLError  # noqa: F401
 
@@ -194,33 +192,6 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> str:
             return filename
         except requests.exceptions.RequestException as e:
             print(f"Error downloading file: {e}")
-            raise e
-
-    # Check for S3 URI
-    elif uri.startswith("s3://"):  # XXXX untested
-        try:
-            # Parse the S3 URI
-            parsed_uri = urllib.parse.urlparse(uri)
-            bucket_name = parsed_uri.netloc
-            object_key = parsed_uri.path.lstrip("/")
-
-            # Create a boto3 S3 client
-            s3_client = boto3.client("s3")
-
-            # Download the object from S3
-            response = s3_client.get_object(Bucket=bucket_name, Key=object_key)
-            data = response["Body"].read().decode("utf-8")  # type: ignore[index]
-
-            # Generate a filename from the last element of the URI
-            filename = os.path.basename(object_key)
-            with open(filename, "w+") as f:
-                f.write(data)
-            return filename
-        except (NoCredentialsError, PartialCredentialsError) as e:
-            print(f"AWS credentials error: {e}")
-            raise e
-        except Exception as e:
-            print(f"Error downloading from S3: {e}")
             raise e
     # If URI doesn't match any of the supported types
     else:

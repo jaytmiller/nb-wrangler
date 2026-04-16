@@ -28,7 +28,6 @@ dependencies = [
     "ruamel-yaml>=0.17.0",
     "uv",
     "setuptools",
-    "boto3",
     "httpx",
     "ddtrace"
 ]
