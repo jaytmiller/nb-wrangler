@@ -3,13 +3,13 @@ name: Trigger NB-Wrangler Curate Workflow
 on:
   workflow_dispatch:
   push:
-    branches: [dev]
+    branches: [main]
   repository_dispatch:
     types: [notebook_repo_update]
 
 jobs:
   run-wrangler:
-    uses: jaytmiller/nb-wrangler/.github/workflows/curate-reusable.yml@dev
+    uses: spacetelescope/nb-wrangler/.github/workflows/curate-reusable.yml@main
     with:
       spec_file: nbw-wrangler-spec.yaml
     secrets: inherit
