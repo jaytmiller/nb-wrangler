@@ -1,0 +1,47 @@
+# Plab B Overview
+
+Plan B is a system designed to leverage the difference in performance between container
+storage and EFS in order to support software environments that are relatively fast to
+install and use (container storage) but also persistent (EFS).
+
+1. Command to install wrangler spec as live environment and persist to designated pantry.
+
+nb-wrangler nbw-wrangler-spec.yaml --reinstall --env-pack
+nb-wrangler nbw-wrangler-spec.yaml --data-install  (optional if shared data available? tricky)
+
+2. Command to uninstall live environment to release container space.
+
+nb-wrangler nbw-wrangler-spec.yaml --env-delete
+
+3. Command to restore archived environment to live status.
+
+nbw-wrangler nbw-wrangler-spec.yaml --env-unpack
+
+4. Command to delete environment archive to release archive space.
+
+(nbw-wrangler nbw-wrangler-spec.yaml --env-archive-delete)
+
+
+5. Investigate mamba/micromamba environment archive commands as alternative to tar.
+
+
+6. Notation for referring to specs whether "wild" or archived., including globbing or regex.
+
+For regex/glob searches use nbw://(pattern)
+For https use https://...
+For file use <local path>
+For registry use nbw-
+
+7. Integration with wrangler data management so activated data tracks activated environment.
+
+8. Ability to support user, team, and mission level installations with progressively more
+isolation from unprivileged users.  Propose NBW_PATH which points to pantry-1:pantry-2:pantry-3...
+
+9. Barebones generic JupyterLab image.  Propose clean break from science-platform-images with
+goals of minimal size and simplicity.  Using jupyter/docker-stacks to track community development
+is optional since it adds complexity and pre-adds many packages.
+
+10. Set NBW_SPEC from profile and "activate" selected env during post-start-hook.
+
+11a. Environment library lab extension
+11b. Environment library notebook server env activator / deactivator

@@ -36,7 +36,7 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 898c31b5c6dd4fb39d7f3151d6524115041102088ee8aa01c08b805f8e373c37
+  spec_sha256: 4eea99eccda75a7516571dfcc8b4a99be31b370d3c7d46259dd52a52a63df1c2
 out:
   repositories:
     roman_notebooks:
@@ -297,22 +297,22 @@ out:
       - setuptools
       - wheel
   non_mamba_pip_package_files:
+    - references/roman_notebooks/content/notebooks/ground_test_analysis/requirements.txt
     - references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
-    - references/roman_notebooks/content/notebooks/pandeia/requirements.txt
+    - references/roman_notebooks/content/notebooks/footprint_visualization/requirements.txt
     - references/roman_notebooks/content/notebooks/working_with_asdf/requirements.txt
-    - references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
+    - references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
     - references/roman_notebooks/content/notebooks/aperture_photometry/requirements.txt
     - references/roman_notebooks/content/notebooks/data_discovery_and_access/requirements.txt
+    - references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+    - references/roman_notebooks/content/notebooks/stpsf/requirements.txt
+    - references/roman_notebooks/content/notebooks/pandeia/requirements.txt
     - references/roman_notebooks/content/notebooks/data_visualization/requirements.txt
     - references/roman_notebooks/content/notebooks/background_visualization_tool/requirements.txt
-    - references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
-    - references/roman_notebooks/content/notebooks/stpsf/requirements.txt
-    - references/roman_notebooks/content/notebooks/footprint_visualization/requirements.txt
-    - references/roman_notebooks/content/notebooks/grism_spectral_extraction/requirements.txt
-    - references/roman_notebooks/content/notebooks/ground_test_analysis/requirements.txt
     - references/roman_notebooks/content/notebooks/synphot/requirements.txt
+    - references/roman_notebooks/content/notebooks/mosaic_pipeline/requirements.txt
     - references/roman_notebooks/content/notebooks/stips/requirements.txt
-    - references/roman_notebooks/content/notebooks/exposure_pipeline/requirements.txt
+    - references/roman_notebooks/content/notebooks/roman_cutouts/requirements.txt
     - references/science-platform-images/deployments/common/common-env/required.pip
     - references/science-platform-images/deployments/common/common-env/testing.pip
     - references/science-platform-images/deployments/common/common-env/jupyter.pip
@@ -320,6 +320,8 @@ out:
     - references/science-platform-images/deployments/common/common-env/docs.pip
     - extra_pip_packages.txt
   pip_compiler_output: |
+    accessible-pygments==0.0.5
+        # via pydata-sphinx-theme
     aiobotocore==3.4.0
         # via s3fs
     aiohappyeyeballs==2.6.1
@@ -481,7 +483,7 @@ out:
         #   tweakwcs
     astropy-iers-data==0.2026.4.13.0.58.2
         # via astropy
-    astropy-sphinx-theme==2.0
+    astropy-sphinx-theme==3.0
         # via sphinx-astropy
     astroquery==0.4.11
         # via
@@ -501,11 +503,13 @@ out:
     babel==2.18.0
         # via
         #   jupyterlab-server
+        #   pydata-sphinx-theme
         #   sphinx
     beautifulsoup4==4.14.3
         # via
         #   astroquery
         #   nbconvert
+        #   pydata-sphinx-theme
         #   stsynphot
     black==26.3.1
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
@@ -622,7 +626,7 @@ out:
         #   casa-formats-io
         #   distributed
         #   spectral-cube
-    ddtrace==4.7.0
+    ddtrace==4.7.1
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.20
         # via ipykernel
@@ -641,6 +645,7 @@ out:
     docutils==0.22.4
         # via
         #   nbsphinx
+        #   pydata-sphinx-theme
         #   sphinx
         #   sphinx-rtd-theme
     drizzle==2.2.0
@@ -667,7 +672,7 @@ out:
         #   mpl-scatter-density
     fastjsonschema==2.21.2
         # via nbformat
-    filelock==3.25.2
+    filelock==3.28.0
         # via
         #   crds
         #   solara-server
@@ -989,7 +994,7 @@ out:
         # via jupyter-server
     jupyter-server-ydoc==2.3.0
         # via jupyter-collaboration
-    jupyter-ydoc==3.4.0
+    jupyter-ydoc==3.4.1
         # via jupyter-server-ydoc
     jupyterhub==5.4.4
         # via
@@ -1042,7 +1047,7 @@ out:
         # via
         #   dask
         #   roman-datamodels
-    mako==1.3.10
+    mako==1.3.11
         # via alembic
     markdown==3.10.2
         # via
@@ -1255,7 +1260,7 @@ out:
         #   pysiaf
     opentelemetry-api==1.41.0
         # via ddtrace
-    packaging==26.0
+    packaging==26.1
         # via
         #   asdf
         #   asdf-astropy
@@ -1413,10 +1418,12 @@ out:
         # via pycrdt-websocket
     pycrdt-websocket==0.16.0
         # via jupyter-server-ydoc
-    pydantic==2.13.0
+    pydantic==2.13.1
         # via jupyterhub
-    pydantic-core==2.46.0
+    pydantic-core==2.46.1
         # via pydantic
+    pydata-sphinx-theme==0.17.0
+        # via sunpy-sphinx-theme
     pydeps==3.0.2
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     pyds9==1.8.1
@@ -1429,10 +1436,12 @@ out:
         # via flake8
     pygments==2.20.0
         # via
+        #   accessible-pygments
         #   ipython
         #   ipython-pygments-lexers
         #   nbconvert
         #   nbdime
+        #   pydata-sphinx-theme
         #   pytest
         #   rich
         #   solara-ui
@@ -1653,7 +1662,6 @@ out:
         # via jupyter-server
     setuptools==82.0.1
         # via
-        #   astropy-sphinx-theme
         #   galsim
         #   jupyter-packaging
         #   jupyterlab
@@ -1718,14 +1726,17 @@ out:
     sphinx==9.1.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/docs.pip
+        #   astropy-sphinx-theme
         #   nbsphinx
         #   numpydoc
+        #   pydata-sphinx-theme
         #   sphinx-astropy
         #   sphinx-automodapi
         #   sphinx-gallery
         #   sphinx-rtd-theme
         #   sphinxcontrib-jquery
         #   stsci-rtd-theme
+        #   sunpy-sphinx-theme
     sphinx-astropy==1.10
         # via -r references/science-platform-images/deployments/common/common-env/docs.pip
     sphinx-automodapi==0.22.0
@@ -1797,6 +1808,8 @@ out:
         #   -r references/roman_notebooks/content/notebooks/synphot/requirements.txt
         #   pandeia-engine
         #   stips
+    sunpy-sphinx-theme==2.1.1
+        # via astropy-sphinx-theme
     synphot==1.7.0
         # via
         #   -r references/roman_notebooks/content/notebooks/measuring_galaxy_shapes/requirements.txt
@@ -1890,6 +1903,7 @@ out:
         #   opentelemetry-api
         #   pydantic
         #   pydantic-core
+        #   pydata-sphinx-theme
         #   pyee
         #   reacton
         #   referencing

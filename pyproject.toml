@@ -55,16 +55,3 @@ path = "nb_wrangler/constants.py"
 include = [
     "/nb_wrangler",
 ]
-
-
-
-
-[project.scripts]
-nbw = "nb_wrangler.nbw:main"
-nb-wrangler = "nb_wrangler.nbw:main"
-
-# [tool.hatch.build.targets.wheel]
-# force-include = ["scripts/nbw.py" = "nb_wrangler/nbw.py"]
-
-# [tool.hatch.build.targets.sdist]
-# force-include = ["scripts/cli.py" = "nb_wrangler/nb-wrangler"]
