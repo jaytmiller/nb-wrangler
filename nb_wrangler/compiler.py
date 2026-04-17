@@ -62,11 +62,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.logger.info(
             "Compiling combined pip requirements to determine package versions ")
 
-        if ("uv pip" in str(self.config.pip_command) and
-            not self._run_uv_compile(output_path, package_files)):
-            return self.logger.error(
-                "========== Failed compiling combined pip requirements with uv =========="
-            )
+        if "uv pip" in str(self.config.pip_command):
+            if not self._run_uv_compile(output_path, package_files):
+                return self.logger.error(
+                    "========== Failed compiling combined pip requirements with uv =========="
+                )
         elif not self._run_pip_compile(output_path, package_files):
             return self.logger.error(
                 "========== Failed compiling combined pip requirements with pip =========="

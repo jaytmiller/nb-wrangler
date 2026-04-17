@@ -158,7 +158,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
         self.logger.debug(f"Running command with no shell: {command} {parameters}")
-        self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
+        # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
         # self.logger.debug(f"Command output: {result.stdout}")
         if check:
@@ -176,12 +176,12 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         command = self._condition_cmd(command)
         if not self.is_base_env_alias(environment):
             self.logger.debug(
-                f"Running command {command} in environment: {environment}"
+                f"Running command in environment: {environment}"
             )
             mm_prefix = [self.mamba_command, "run", "-n", environment]
         else:
             self.logger.debug(
-                f"Running command {command} in base environment for kernel {environment}"
+                f"Running command in base environment for kernel {environment}"
             )
             mm_prefix = []
         return self.wrangler_run(mm_prefix + command, **keys)
