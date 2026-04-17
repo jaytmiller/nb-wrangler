@@ -54,3 +54,7 @@ path = "nb_wrangler/constants.py"
 include = [
     "/nb_wrangler",
 ]
+
+[project.scripts]
+nbw = "nb_wrangler.cli:main"
+nb-wrangler = "nb_wrangler.cli:main"
