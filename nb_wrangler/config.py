@@ -102,7 +102,6 @@ class WranglerConfig:
     spec_reset: bool = False
     spec_validate: bool = False
     spec_ignore_hash: bool = False
-    spec_add_pip_hashes: bool = False
     spec_update_hash: bool = False
     finalize_dev_overrides: bool = False
 
@@ -181,7 +180,6 @@ class WranglerConfig:
             spec_reset=args.spec_reset,
             spec_validate=args.spec_validate,
             spec_ignore_hash=args.spec_ignore_hash,
-            spec_add_pip_hashes=args.spec_add_pip_hashes,
             spec_update_hash=args.spec_update_hash,
             data_reset_spec=args.data_reset_spec,
             data_collect=args.data_collect,

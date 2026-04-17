@@ -497,12 +497,6 @@ def parse_args():
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
     )
     spec_group.add_argument(
-        "--spec-add-pip-hashes",
-        action="store_true",
-        dest="spec_add_pip_hashes",
-        help="Record PyPi hashes of requested packages for more robust verification during later installs. Modifier to --compile only.",
-    )
-    spec_group.add_argument(
         "--finalize-dev-overrides",
         action="store_true",
         help="Remove the 'dev_overrides' section from the spec file.",

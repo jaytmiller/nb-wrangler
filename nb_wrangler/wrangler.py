@@ -220,8 +220,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "--curate",
             [
                 self._prepare_all_repositories,
-                self._compile_requirements,
+                self._compile_mamba_requirements,
                 self._initialize_environment,
+                self._compile_pip_requirements,
                 self._install_packages,
                 self._save_final_spec,
             ],
@@ -769,10 +770,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """
         Compiles the full environment, stores artifacts, and saves them to the spec.
         """
+        if not self._compile_mamba_requirements():
+            return self.logger.error("Failed to compile mamba requirements.")
+        if not self._compile_pip_requirements():
+            return self.logger.error("Failed to compile pip requirements.")
+        return True
+
+    def _compile_mamba_requirements(self) -> bool:
         self.logger.info("Compiling full environment definition.")
         notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks") or {}
-
-        # The compiler now handles all logic for the 4 methods
         (
             self.compiled_kernel_name,
             final_mamba_spec_dict,
@@ -781,25 +787,32 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         ) = self.compiler.consolidate_environment(
             list(notebook_paths_dict.keys()), self.injector, self.config.output_dir
         )
+        self.logger.debug("Consolidated environment definition.")
 
         compiled_mamba_spec_str = utils.yaml_block(
             utils.yaml_dumps(final_mamba_spec_dict)
         )
 
-        # Save artifacts to the spec's output section
-        if not self.spec_manager.revise_and_save(
-            self.config.output_dir,
-            add_sha256=not self.config.spec_ignore_hash,
-            kernel_name=self.resolved_kname,
-            mamba_spec=compiled_mamba_spec_str,
-            mamba_package_map=mamba_package_map,
-            non_mamba_pip_package_files=non_mamba_pip_pkg_files,
-        ):
-            return False
+        try:
+            # Save artifacts to the spec's output section
+            return self.spec_manager.revise_and_save(
+                self.config.output_dir,
+                add_sha256=not self.config.spec_ignore_hash,
+                kernel_name=self.resolved_kname,
+                mamba_spec=compiled_mamba_spec_str,
+                mamba_package_map=mamba_package_map,
+                non_mamba_pip_package_files=non_mamba_pip_pkg_files,
+            )
+        except Exception as e:
+            return self.logger.error(f"Failed to save compiled mamba spec: {e}")
+        return True
+    def _compile_pip_requirements(self) -> bool:
+
+        non_mamba_pip_pkg_files = self.spec_manager.get_output_data(
+            "non_mamba_pip_package_files", [])
 
         if not self.compiler.compile_requirements(
             non_mamba_pip_pkg_files,
-            self.config.spec_add_pip_hashes,
             self.pip_output_file,
         ):
             return self.logger.error("Failed to compile pip package versions.")

@@ -1,9 +1,11 @@
 """Requirements compilation and dependency resolution."""
 
 import sys
+import os
 from pathlib import Path
 import httpx
 from typing import Any
+import tempfile
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -47,7 +49,6 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
     def compile_requirements(
         self,
         package_files: list[str],
-        use_hashes: bool,
         output_path: Path,
     ) -> bool:
         """Compile requirements files into pinned versions,  outputs
@@ -59,15 +60,17 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             return self.logger.warning("No package list to resolve versions for.")
 
         self.logger.info(
-            "Compiling combined pip requirements to determine package versions "
-            + ("adding hashes." if use_hashes else "w/o hashes.")
-        )
+            "Compiling combined pip requirements to determine package versions ")
 
-        if not self._run_uv_compile(output_path, package_files, use_hashes):
+        if ("uv pip" in str(self.config.pip_command) and
+            not self._run_uv_compile(output_path, package_files)):
             return self.logger.error(
-                "========== Failed compiling combined pip requirements =========="
+                "========== Failed compiling combined pip requirements with uv =========="
             )
-
+        elif not self._run_pip_compile(output_path, package_files):
+            return self.logger.error(
+                "========== Failed compiling combined pip requirements with pip =========="
+            )
         package_versions = self.read_package_versions([output_path])
         return self.logger.info(
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
@@ -77,18 +80,16 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self,
         output_file: Path,
         requirements_files: list[str],
-        use_hashes: bool = False,
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
-        hash_sw = "--generate-hashes" if use_hashes else ""
         python_ver = (
             f"--python-version {self.spec_manager.python_version}"
             if self.spec_manager.python_version
             else ""
         )
         cmd = (
-            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
-            + f" --universal {hash_sw} {python_ver}"
+            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)}" # --python {self.python_path}"
+            + f" --universal {python_ver}"
             + " --no-header --annotate"
         )
         for f in requirements_files:
@@ -100,6 +101,54 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             result, f"{self.config.pip_command} compile failed: "
         )
 
+    def _run_pip_compile(
+        self,
+        output_file: Path,
+        requirements_files: list[str],
+    ) -> bool:
+        """Run classic pip compile command to resolve pip package constraints."""
+        
+        # Fix: Build args properly to avoid empty arguments
+        base_cmd_parts = [
+            str(self.config.pip_command),
+            # f"--python {self.python_path}",
+            "install",
+            "--quiet",
+            "--only-binary=all",
+        ]
+        cmd_parts = base_cmd_parts.copy()
+        for req_file in requirements_files:
+            self.logger.debug(f"Added {req_file} to pip compile command.")
+            cmd_parts += [f" -r {req_file}"] 
+        cmd = " ".join(cmd_parts)
+        
+        result = self.env_manager.env_run( self.spec_manager.kernel_name,
+            cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+        )
+        if not self.env_manager.handle_result(
+            result, f"{self.config.pip_command} compile failed: "
+        ):
+            return False
+
+        cmd = f"{str(self.config.pip_command)} freeze --quiet"
+        result = self.env_manager.env_run( self.spec_manager.kernel_name,
+            cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+        )
+        if not self.env_manager.handle_result(
+            result, f"{self.config.pip_command} freeze failed: "
+        ):
+            return False
+        lines = [ line.strip() for line in result.stdout.splitlines() if line.strip() ]
+        lines = [ line for line in lines if "@ file:///" not in line ]
+        print(lines)
+        try:
+            with output_file.open("w+") as f:
+                f.write("\n".join(lines) + "\n")
+        except Exception as e:
+            return self.logger.exception(e, f"Failed writing pip freeze output to '{output_file}'")
+        return True
+            
+
     def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
         """Read package versions from a list of requirements files omitting blank
         and comment lines.
@@ -108,7 +157,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         for req_file in sorted(requirements_files):
             lines = self._read_package_lines(req_file)
             package_versions.extend(lines)
-        return sorted(package_versions)
+        return sorted(list(set(package_versions)))
 
     def _read_package_lines(self, requirements_file: Path) -> list[str]:
         """Read package lines from requirements file omitting blank and comment lines.
@@ -142,49 +191,52 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             - dict[mamba pkg kind, packages]
             - list[non-mamba-package-files]
         """
-        base_mamba_spec = self._get_base_mamba_spec()
-        kernel_name = base_mamba_spec.get("name")
-        if not kernel_name:
-            raise ValueError("Could not determine kernel name from Mamba spec.")
+        try:
+            base_mamba_spec = self._get_base_mamba_spec()
+            kernel_name = base_mamba_spec.get("name")
+            if not kernel_name:
+                raise ValueError("Could not determine kernel name from Mamba spec.")
 
-        # Get SPI requirements now that we have a definitive kernel_name
-        spi_mamba_files = injector.find_spi_mamba_files()
+            # Get SPI requirements now that we have a definitive kernel_name
+            spi_mamba_files = injector.find_spi_mamba_files()
 
-        all_mamba_pkg_map = dict(
-            base_mamba_deps=base_mamba_spec.get("dependencies", []),
-            extra_mamba_packages=list(self.spec_manager.extra_mamba_packages),
-            spi_mamba_packages=self.read_package_versions(spi_mamba_files),
-            wrangler_target_packages=TARGET_PACKAGES,
-        )
+            all_mamba_pkg_map = dict(
+                base_mamba_deps=base_mamba_spec.get("dependencies", []),
+                extra_mamba_packages=list(self.spec_manager.extra_mamba_packages),
+                spi_mamba_packages=self.read_package_versions(spi_mamba_files),
+                wrangler_target_packages=TARGET_PACKAGES,
+            )
 
-        mamba_dep_list = [
-            pkg for sublist in sorted(all_mamba_pkg_map.values()) for pkg in sublist
-        ]
+            mamba_dep_list = [
+                pkg for sublist in sorted(all_mamba_pkg_map.values()) for pkg in sublist
+            ]
 
-        final_mamba_spec = dict(base_mamba_spec)
-        final_mamba_spec["dependencies"] = mamba_dep_list
-        if "channels" not in final_mamba_spec:
-            final_mamba_spec["channels"] = ["conda-forge"]
-        final_mamba_spec["name"] = kernel_name
+            final_mamba_spec = dict(base_mamba_spec)
+            final_mamba_spec["dependencies"] = mamba_dep_list
+            if "channels" not in final_mamba_spec:
+                final_mamba_spec["channels"] = ["conda-forge"]
+            final_mamba_spec["name"] = kernel_name
 
-        # Pip
-        notebook_req_files = self.find_requirements_files(notebook_paths)
-        spi_pip_files = injector.find_spi_pip_files()
-        extra_pip_packages_file = utils.writelines(
-            self.spec_manager.extra_pip_packages, "extra_pip_packages.txt"
-        )
-        # These paths should make self-identify where they came from, hence
-        # no dictionary needed here.
-        non_mamba_pip_req_files = list(notebook_req_files)
-        non_mamba_pip_req_files.extend(spi_pip_files)
-        non_mamba_pip_req_files.append(Path(extra_pip_packages_file))
+            # Pip
+            notebook_req_files = self.find_requirements_files(notebook_paths)
+            spi_pip_files = injector.find_spi_pip_files()
+            extra_pip_packages_file = utils.writelines(
+                self.spec_manager.extra_pip_packages, "extra_pip_packages.txt"
+            )
+            # These paths should make self-identify where they came from, hence
+            # no dictionary needed here.
+            non_mamba_pip_req_files = list(notebook_req_files)
+            non_mamba_pip_req_files.extend(spi_pip_files)
+            non_mamba_pip_req_files.append(Path(extra_pip_packages_file))
 
-        return (
-            kernel_name,
-            final_mamba_spec,
-            all_mamba_pkg_map,
-            [str(path) for path in non_mamba_pip_req_files],
-        )
+            return (
+                kernel_name,
+                final_mamba_spec,
+                all_mamba_pkg_map,
+                [str(path) for path in non_mamba_pip_req_files],
+            )
+        except Exception as e:
+            return self.logger.exception(e, "Failed to consolidate environment definition.")
 
     def _get_base_mamba_spec(self) -> dict:
         """Determines which of the four methods is used and returns the base mamba spec as a dict."""

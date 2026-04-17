@@ -158,7 +158,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
         self.logger.debug(f"Running command with no shell: {command} {parameters}")
-        # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
+        self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
         # self.logger.debug(f"Command output: {result.stdout}")
         if check:
