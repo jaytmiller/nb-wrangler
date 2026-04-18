@@ -175,9 +175,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         """
         command = self._condition_cmd(command)
         if not self.is_base_env_alias(environment):
-            self.logger.debug(
-                f"Running command in environment: {environment}"
-            )
+            self.logger.debug(f"Running command in environment: {environment}")
             mm_prefix = [self.mamba_command, "run", "-n", environment]
         else:
             self.logger.debug(

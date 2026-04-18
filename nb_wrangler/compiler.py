@@ -1,11 +1,9 @@
 """Requirements compilation and dependency resolution."""
 
 import sys
-import os
 from pathlib import Path
 import httpx
 from typing import Any
-import tempfile
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -60,7 +58,8 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             return self.logger.warning("No package list to resolve versions for.")
 
         self.logger.info(
-            "Compiling combined pip requirements to determine package versions ")
+            "Compiling combined pip requirements to determine package versions "
+        )
 
         if "uv pip" in str(self.config.pip_command):
             if not self._run_uv_compile(output_path, package_files):
@@ -88,7 +87,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             else ""
         )
         cmd = (
-            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)}" # --python {self.python_path}"
+            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)}"  # --python {self.python_path}"
             + f" --universal {python_ver}"
             + " --no-header --annotate"
         )
@@ -107,7 +106,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         requirements_files: list[str],
     ) -> bool:
         """Run classic pip compile command to resolve pip package constraints."""
-        
+
         # Fix: Build args properly to avoid empty arguments
         base_cmd_parts = [
             str(self.config.pip_command),
@@ -119,11 +118,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         cmd_parts = base_cmd_parts.copy()
         for req_file in requirements_files:
             self.logger.debug(f"Added {req_file} to pip compile command.")
-            cmd_parts += [f" -r {req_file}"] 
+            cmd_parts += [f" -r {req_file}"]
         cmd = " ".join(cmd_parts)
-        
-        result = self.env_manager.env_run( self.spec_manager.kernel_name,
-            cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+
+        result = self.env_manager.env_run(
+            self.spec_manager.kernel_name, cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
         if not self.env_manager.handle_result(
             result, f"{self.config.pip_command} compile failed: "
@@ -131,23 +130,24 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             return False
 
         cmd = f"{str(self.config.pip_command)} freeze --quiet"
-        result = self.env_manager.env_run( self.spec_manager.kernel_name,
-            cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+        result = self.env_manager.env_run(
+            self.spec_manager.kernel_name, cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
         )
         if not self.env_manager.handle_result(
             result, f"{self.config.pip_command} freeze failed: "
         ):
             return False
-        lines = [ line.strip() for line in result.stdout.splitlines() if line.strip() ]
-        lines = [ line for line in lines if "@ file:///" not in line ]
+        lines = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        lines = [line for line in lines if "@ file:///" not in line]
         print(lines)
         try:
             with output_file.open("w+") as f:
                 f.write("\n".join(lines) + "\n")
         except Exception as e:
-            return self.logger.exception(e, f"Failed writing pip freeze output to '{output_file}'")
+            return self.logger.exception(
+                e, f"Failed writing pip freeze output to '{output_file}'"
+            )
         return True
-            
 
     def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
         """Read package versions from a list of requirements files omitting blank
@@ -236,7 +236,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 [str(path) for path in non_mamba_pip_req_files],
             )
         except Exception as e:
-            return self.logger.exception(e, "Failed to consolidate environment definition.")
+            return self.logger.exception(
+                e, "Failed to consolidate environment definition."
+            )
 
     def _get_base_mamba_spec(self) -> dict:
         """Determines which of the four methods is used and returns the base mamba spec as a dict."""

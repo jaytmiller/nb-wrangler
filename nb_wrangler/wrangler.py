@@ -806,10 +806,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         except Exception as e:
             return self.logger.error(f"Failed to save compiled mamba spec: {e}")
         return True
+
     def _compile_pip_requirements(self) -> bool:
 
         non_mamba_pip_pkg_files = self.spec_manager.get_output_data(
-            "non_mamba_pip_package_files", [])
+            "non_mamba_pip_package_files", []
+        )
 
         if not self.compiler.compile_requirements(
             non_mamba_pip_pkg_files,
