@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.7.2"
+__version__ = "0.7.3"
 
 WRANGLER_SPEC_VERSION = 2.1
 
