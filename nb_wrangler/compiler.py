@@ -87,7 +87,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             else ""
         )
         cmd = (
-            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)}"  # --python {self.python_path}"
+            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
             + f" --universal {python_ver}"
             + " --no-header --annotate"
         )
