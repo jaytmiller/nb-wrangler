@@ -1,12 +1,14 @@
 graph TD
-    A[Scrape notebook repos & collect requirements] -->
-    B[Combine with refdata_dependencies.yaml] -->
+    A1[Fill in spec metadata, notebook repos, and selected notebooks.] -->
+    A2[Clone notebooks and SPI repos] -->
+    A3[Scrape notebook repos & collect requirements.txt] -->
+    B[Combine with refdata_dependencies.yaml if defined] -->
     C1[Download packages, resolve and lock versions] -->
     C2[Download and install data, compute archive hashes] -->
-    D[Build & test environment] -->
     E[Update SPI repo & push PR] -->
-    F[Classic image-build] -->
+    F[Classic Build & test environment] -->
     G[Retag & image-push to ECR] -->
     H[Adjust hub profiles] -->
-    I[Admin install shared data] -->
-    J[Start notebook session]
+    I[Admin install platform shared data] -->
+    J[Start notebook session] -->
+    K[Run notebooks automatically and/or manually, collect results]

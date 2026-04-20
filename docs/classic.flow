@@ -6,7 +6,12 @@ The principle function of the wrangler is to automate interactions
 with notebook repos and their curators and to that end it can be
 broken down into three main aspects:
 
-1. The wrangler scrapes a collection of notebook repos for the
+## Curating the notebook spec
+
+1. The curator clones an existing spec (see nb-wrangelr prod-specs
+and/or nb-wrangler/sample-specs), updates meta data, and defines
+the notebool repos and selected notebooks.
+The wrangler scrapes a collection of notebook repos for the
 package requirements needed to run specified notebooks;  typically
 each notebook defines a requirements.txt file and the wrangler
 solves constraints for the union of all of them producing a locked
@@ -19,6 +24,8 @@ running the wrangler on the installed environment with --test-imports
 helps verify that all of the packages explicitly required by notebooks
 import successfully.
 
+## Injecting image requirements into science-platform-images repos clone
+
 2. The wrangler interacts with the science-platform-images (SPI) repo
 to inject the requirements determined by (1) above.  This is the automated
 version of a curator feeding the development team a package list via
@@ -29,6 +36,8 @@ Thus for phase 2,  the wrangler uses a local clone of science-platform-images
 to perform code updates,  and has convenience functions to build the
 resulting configuration and also to create and push a pr to science-platform-images
 to record the release.
+
+## Build, tag, and push the notebook image
 
 3. Once science-platform-images has been updated with new requirements using
 steps (1) and (2) above, the image build and deployment process proceeds
