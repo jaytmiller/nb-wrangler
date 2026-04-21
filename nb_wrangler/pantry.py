@@ -446,7 +446,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
     ) -> bool:
         archive_filepath.parent.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else source_dirpath.name
-        cmd = f"tar -acf {archive_filepath} {select}"
+        cmd = f"tar -amcf {archive_filepath} {select}"
         cwd = source_dirpath if extract is not None else source_dirpath.parent
         result = self.env_manager.wrangler_run(
             cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT
@@ -469,7 +469,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         destination_dirpath = destination_dirpath.resolve()
         destination_dirpath.mkdir(parents=True, exist_ok=True)
         select = extract if extract is not None else ""
-        cmd = f"tar -axf {archive_filepath} {select}"
+        cmd = f"tar -amxf {archive_filepath} {select}"
         cwd = destination_dirpath
         result = self.env_manager.wrangler_run(
             cmd, cwd=cwd, check=False, timeout=ARCHIVE_TIMEOUT
