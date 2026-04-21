@@ -94,12 +94,12 @@ def elapsed_time(start_time: datetime.datetime) -> tuple[datetime.datetime, str]
     if days:
         return (
             now,
-            f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds/1000:03d}",
+            f"{days} days, {hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds / 1000:03d}",
         )
     else:
         return (
             now,
-            f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds//1000:03d}",
+            f"{hours:02d}:{minutes:02d}:{seconds:02d}.{microseconds // 1000:03d}",
         )
 
 

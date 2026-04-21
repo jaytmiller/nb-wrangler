@@ -51,8 +51,8 @@ class WranglerConfig:
 
     spec_file: str = ""
 
-    mamba_command: Path = NBW_MAMBA_CMD
-    pip_command: Path = NBW_PIP_CMD
+    mamba_command: str = NBW_MAMBA_CMD
+    pip_command: str = NBW_PIP_CMD
 
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False

@@ -315,7 +315,6 @@ class DataSectionUrl:
 
 
 class RefdataValidator(WranglerLoggable):
-
     def __init__(self, refdata_paths: list[str]):
         super().__init__()
         self.refdata_paths = refdata_paths
@@ -387,7 +386,7 @@ class RefdataValidator(WranglerLoggable):
 
     def validate_env_conflicts(self) -> bool:
         """Across all specs,  ensure no two specs define the same env var with different values."""
-        self.logger.debug("Validating no conflicts between any two refdata specs..." "")
+        self.logger.debug("Validating no conflicts between any two refdata specs...")
         paths = list(self.all_data.keys())
         no_errors = True
         for i in range(len(paths)):

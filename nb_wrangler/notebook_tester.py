@@ -74,11 +74,9 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         filtered_paths = []
 
         for nb_path in sorted(notebook_configs.keys()):
-
             if self._is_notebook_eligible_for_inclusion(
                 nb_path, include_regexes, exclude_regexes
             ):
-
                 filtered_paths.append(nb_path)
 
         filtered_configs = {path: notebook_configs[path] for path in filtered_paths}
@@ -86,7 +84,6 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info(f"Filtered notebook list to {len(filtered_configs)} entries:")
 
         for notebook in filtered_configs:
-
             self.logger.info(notebook)
 
         return filtered_configs
