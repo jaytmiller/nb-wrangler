@@ -11,9 +11,11 @@ WRANGLER_SPEC_VERSION = 2.1
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
 NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
-NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
-NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
+NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
+NBW_MM = Path(
+    os.environ.get("NBW_MM", os.environ.get("MAMBA_ROOT_PREFIX", NBW_ROOT / "mm"))
+)
 
 if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
@@ -24,12 +26,17 @@ if "npm_config_cache" not in os.environ:
 if "YARN_CACHE_FOLDER" not in os.environ:
     os.environ["YARN_CACHE_FOLDER"] = str(NBW_CACHE / "yarn")
 
+
 REPOS_DIR = "references"
 DATA_DIR = "data"
 NBW_URI = "nbw://"
 
-NBW_MAMBA_CMD = Path(os.environ.get("NBW_MAMBA_CMD", NBW_MM / "bin" / "micromamba"))
-NBW_PIP_CMD = Path(os.environ.get("NBW_PIP_CMD", "uv pip"))
+NBW_MAMBA_CMD = str(
+    os.environ.get(
+        "NBW_MAMBA_CMD", os.environ.get("MAMBA_EXE", NBW_MM / "bin" / "micromamba")
+    )
+)
+NBW_PIP_CMD = str(os.environ.get("NBW_PIP_CMD", "uv pip"))
 
 BUILTIN_PACKAGES = ["__future__", "builtins", "sys", "os", "copy"]
 
