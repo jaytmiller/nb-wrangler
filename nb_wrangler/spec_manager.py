@@ -23,6 +23,7 @@ class SpecManager(
         self._is_validated = False
         self._source_file = Path("")
         self._initial_spec_sha256 = None
+        self._source_file: Path = Path()  # Explicitly typed
 
     # ---------------------------- Property-based read/write access to spec data -------------------
     @property
@@ -172,7 +173,7 @@ class SpecManager(
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
         assert re.match(
-            "[a-zA-Z0-9\-_][a-zA-Z0-9\-_\.]{1,128}", self.image_name
+            r"[a-zA-Z0-9\-_][a-zA-Z0-9\-_\.]{1,128}", self.image_name
         ), "Invalid characters in image_name,  onlow letters, numbers, dashes, underscores, and dots are allowed, and it must be 1-255 characters long.  No leading dots."
         return self.image_name.replace(" ", "-").lower()  # + "-" + self.kernel_name
 
@@ -360,7 +361,11 @@ class SpecManager(
                     "Not updating spec_sha256 sum; Removing potentially outdated sum."
                 )
             if output_path.exists():
+                self.logger.debug(
+                    f"Output file {output_filepath} already exists and will be removed and overwritten."
+                )
                 output_path.unlink()  # Remove existing file if it
+            self.logger.debug(f"Writing spec to {output_filepath}.")
             with output_path.open("w+") as f:
                 f.write(self.to_string())
             self.logger.debug(f"Spec file saved to {output_filepath}.")

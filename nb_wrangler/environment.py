@@ -64,8 +64,31 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
     def nbw_root_dir(self) -> Path:
         return NBW_ROOT
 
+    # @property
+    # def nbw_mm_dir(self) -> Path:
+    #     """Determine the micromamba installation directory."""
+    #     # Prioritize explicit NBW_MM if set in environment
+    #     if "NBW_MM" in os.environ:
+    #         path = Path(os.environ["NBW_MM"])
+    #         for cmd in ["micromamba", "mamba", "conda"]:
+    #             if path.exists() and (path / "bin" / cmd).exists():
+    #                 return path
+    #     # Fallback to discovery from configured mamba_command
+    #     # Ensure we handle the case where mamba_command might be a name or path
+    #     cmd_part = self.mamba_command.split(" ")[0]
+    #     mamba_path = shutil.which(cmd_part)
+    #     if mamba_path is None:
+    #         raise RuntimeError(f"Could not find micromamba binary for command: {self.mamba_command}")
+    #     return Path(mamba_path).parent.parent
+
     @property
     def nbw_mm_dir(self) -> Path:
+        """Determine the micromamba installation directory.
+        CRITICAL: This must rely on configured paths, not discovery,
+        to ensure environments are isolated and predictable.
+        """
+        if "NBW_MM" in os.environ:
+            return Path(os.environ["NBW_MM"])
         return NBW_MM
 
     @property
