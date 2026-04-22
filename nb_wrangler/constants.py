@@ -10,13 +10,31 @@ WRANGLER_SPEC_VERSION = 2.1
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
-NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
+NBW_ROOT = Path(
+    os.environ.get(
+        "NBW_ROOT",
+        os.environ.get(
+            "MAMBA_ROOT_PREFIX", os.environ.get("CONDA_ROOT_PREFIX", HOME / ".nbw-live")
+        ),
+    )
+)
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
 NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
 NBW_MM = Path(
     os.environ.get("NBW_MM", os.environ.get("MAMBA_ROOT_PREFIX", NBW_ROOT / "mm"))
 )
 
+NBW_MAMBA_CMD = str(
+    os.environ.get(
+        "NBW_MAMBA_CMD", os.environ.get("MAMBA_EXE", NBW_MM / "bin" / "micromamba")
+    )
+)
+NBW_PIP_CMD = str(os.environ.get("NBW_PIP_CMD", "uv pip"))
+
+
+# Set cache environment variables if not already set, to ensure that tools like pip, npm,
+# and yarn use the designated cache directories which may speed up installations and reduce
+# redundant downloads.
 if "UV_CACHE_DIR" not in os.environ:
     os.environ["UV_CACHE_DIR"] = str(NBW_CACHE / "uv")
 if "PIP_CACHE_DIR" not in os.environ:
@@ -30,13 +48,6 @@ if "YARN_CACHE_FOLDER" not in os.environ:
 REPOS_DIR = "references"
 DATA_DIR = "data"
 NBW_URI = "nbw://"
-
-NBW_MAMBA_CMD = str(
-    os.environ.get(
-        "NBW_MAMBA_CMD", os.environ.get("MAMBA_EXE", NBW_MM / "bin" / "micromamba")
-    )
-)
-NBW_PIP_CMD = str(os.environ.get("NBW_PIP_CMD", "uv pip"))
 
 BUILTIN_PACKAGES = ["__future__", "builtins", "sys", "os", "copy"]
 
