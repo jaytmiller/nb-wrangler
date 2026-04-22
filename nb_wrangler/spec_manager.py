@@ -485,6 +485,7 @@ class SpecManager(
         "dev_overrides": {
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
+            "override_pip_versions": [],
             "system": {
                 "spi": {
                     "repo": None,
@@ -501,6 +502,7 @@ class SpecManager(
         "deactivated_dev_overrides": {
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
+            "override_pip_versions": [],
             "system": {
                 "spi": {
                     "repo": None,

@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 import httpx
 from typing import Any
+import re
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -48,6 +49,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self,
         package_files: list[str],
         output_path: Path,
+        override_pip_versions_file: str,
     ) -> bool:
         """Compile requirements files into pinned versions,  outputs
         the result to a file at `output_path` and then loads the
@@ -59,10 +61,6 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
         self.logger.info(
             "Compiling combined pip requirements to determine package versions "
-        )
-
-        override_pip_versions_file = utils.writelines(
-                self.spec_manager.override_pip_versions, "override_pip_versions.txt"
         )
 
         if "uv pip" in str(self.config.pip_command):
@@ -91,9 +89,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             if self.spec_manager.python_version
             else ""
         )
-        overrides = f"--override {override_pip_versions_file}" if override_pip_versions_file else ""
+        overrides = f"--overrides {override_pip_versions_file}" if override_pip_versions_file else ""
+        pip_command = re.sub(r"^pip$", r"uv pip ", str(self.config.pip_command))
         cmd = (
-            f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
+            f"{pip_command} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
             + f" --universal {python_ver}"
             + " --no-header --annotate"
             + f" {overrides}"
@@ -111,13 +110,17 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self,
         output_file: Path,
         requirements_files: list[str],
-        override_pip_packages_file: str,
+        override_pip_versions_file: str,
     ) -> bool:
         """Run classic pip compile command to resolve pip package constraints."""
 
         # Fix: Build args properly to avoid empty arguments
 
-        overrides = f"--override {override_pip_versions_file}" if override_pip_versions_file else ""
+        overrides = f"--overrides {override_pip_versions_file} if override_pip_versions_file else "
+        if overrides.strip():
+            self.logger.warning("Pip cannot compile with overrides because no --overrides switch exists.")
+            self.logger.warning("Attemptng to switch compilation to uv pip.")
+            return self._run_uv_compile(output_file, requirements_files, override_pip_versions_file)
 
         base_cmd_parts = [
             str(self.config.pip_command),

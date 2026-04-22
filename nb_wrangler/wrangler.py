@@ -106,6 +106,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.config.output_dir / f"{self.spec_manager.moniker}-override-pip.txt"
 
     @property
+    def override_pip_versions_file(self) -> str:
+        """Write override pip versions to a file and return its path."""
+        override_pip_versions = self.spec_manager.override_pip_versions
+        if not override_pip_versions:
+            return ""
+        return utils.writelines(
+            override_pip_versions, self.override_pip_output_file
+        )
+
+    @property
     def shelf_name(self) -> str:
         return self.spec_manager.shelf_name
 
@@ -820,6 +830,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not self.compiler.compile_requirements(
             non_mamba_pip_pkg_files,
             self.pip_output_file,
+            self.override_pip_versions_file,
         ):
             return self.logger.error("Failed to compile pip package versions.")
         try:
@@ -876,7 +887,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if not self.env_manager.install_packages(
                 self.resolved_kname,
                 self.pip_packages,
-                self.override_pip_packages,
+                self.override_pip_versions_file,
             ):
                 return False
         else:
