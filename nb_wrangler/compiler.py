@@ -61,12 +61,16 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             "Compiling combined pip requirements to determine package versions "
         )
 
+        override_pip_versions_file = utils.writelines(
+                self.spec_manager.override_pip_versions, "override_pip_versions.txt"
+        )
+
         if "uv pip" in str(self.config.pip_command):
-            if not self._run_uv_compile(output_path, package_files):
+            if not self._run_uv_compile(output_path, package_files, override_pip_versions_file):
                 return self.logger.error(
                     "========== Failed compiling combined pip requirements with uv =========="
                 )
-        elif not self._run_pip_compile(output_path, package_files):
+        elif not self._run_pip_compile(output_path, package_files, override_pip_versions_file):
             return self.logger.error(
                 "========== Failed compiling combined pip requirements with pip =========="
             )
@@ -79,6 +83,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self,
         output_file: Path,
         requirements_files: list[str],
+        override_pip_versions_file: str,
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
         python_ver = (
@@ -86,10 +91,12 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             if self.spec_manager.python_version
             else ""
         )
+        overrides = f"--override {override_pip_versions_file}" if override_pip_versions_file else ""
         cmd = (
             f"{str(self.config.pip_command)} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
             + f" --universal {python_ver}"
             + " --no-header --annotate"
+            + f" {overrides}"
         )
         for f in requirements_files:
             cmd += " " + f
@@ -104,16 +111,21 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self,
         output_file: Path,
         requirements_files: list[str],
+        override_pip_packages_file: str,
     ) -> bool:
         """Run classic pip compile command to resolve pip package constraints."""
 
         # Fix: Build args properly to avoid empty arguments
+
+        overrides = f"--override {override_pip_versions_file}" if override_pip_versions_file else ""
+
         base_cmd_parts = [
             str(self.config.pip_command),
             # f"--python {self.python_path}",
             "install",
             "--quiet",
             "--only-binary=all",
+            overrides
         ]
         cmd_parts = base_cmd_parts.copy()
         for req_file in requirements_files:

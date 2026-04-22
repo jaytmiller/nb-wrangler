@@ -26,7 +26,7 @@ system:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
   date_updated: '2026-03-04T18:21:57.744342'
-  spec_sha256: 97428a78df5b3b2ac5a1ef357562af9887a803bbb7ff00d77fe3c7f9baa2a253
+  spec_sha256: 3f0b56c46874cb8aed9352da5974d7d7c6115c91b3427802629749d49fcf34de
 
 selected_notebooks:
   roman_all:
@@ -44,11 +44,29 @@ selected_notebooks:
   # -----   tests:
   # -----     papermill: false
 
+deactivated_dev_overrides:
+  system:
+    primary_repo: jaytmiller/roman_notebooks
+    nb-wrangler:
+      repo: https://github.com/jaytmiller/nb-wrangler.git
+      ref: dev
+    spi:
+      repo: https://github.com/jaytmiller/science-platform-images.git
+      ref: dev
+  repositories:
+    roman_notebooks:
+      url: https://github.com/jaytmiller/roman_notebooks.git
+      ref: dev
+
 extra_mamba_packages:
   - pip
 extra_pip_packages:
   - boto3
   - lsstdesc.coord
+
+override_pip_versions:
+  - bqplot @ git+https://github.com/bmorris3/bqplot@pandas3
+
 out:
   data:
     spec_inputs:
@@ -161,17 +179,3 @@ out:
       roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
         size: '121835520'
         sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
-deactivated_dev_overrides:
-  system:
-    primary_repo: jaytmiller/roman_notebooks
-    nb-wrangler:
-      repo: https://github.com/jaytmiller/nb-wrangler.git
-      ref: dev
-    spi:
-      repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: dev
-  repositories:
-    roman_notebooks:
-      url: https://github.com/jaytmiller/roman_notebooks.git
-      ref: dev
-

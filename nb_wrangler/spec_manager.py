@@ -129,6 +129,10 @@ class SpecManager(
     @property
     def extra_pip_packages(self) -> list[str]:
         return list(self._spec.get("extra_pip_packages")) or []
+    
+    @property
+    def override_pip_versions(self) -> list[str]:
+        return list(self._spec.get("override_pip_versions")) or []
 
     @property
     def environment_spec(self) -> dict[str, Any] | None:
@@ -526,6 +530,7 @@ class SpecManager(
         "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
         "extra_pip_packages": [],
+        "override_pip_versions": [],
         "selected_notebooks": [
             "repo",
             "root_directory",

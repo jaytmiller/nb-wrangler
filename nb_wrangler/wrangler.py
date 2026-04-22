@@ -102,6 +102,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.config.output_dir / f"{self.spec_manager.moniker}-extra-pip.txt"
 
     @property
+    def override_pip_output_file(self):
+        return self.config.output_dir / f"{self.spec_manager.moniker}-override-pip.txt"
+
+    @property
     def shelf_name(self) -> str:
         return self.spec_manager.shelf_name
 
@@ -872,6 +876,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if not self.env_manager.install_packages(
                 self.resolved_kname,
                 self.pip_packages,
+                self.override_pip_packages,
             ):
                 return False
         else:
