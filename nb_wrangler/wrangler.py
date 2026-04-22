@@ -344,7 +344,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             [
                 self._delete_repos,
                 self._delete_environment,
-                self._env_compact,
+                # self._env_compact,
                 self._reset_spec,
                 self._save_final_spec,
                 self._reset_log,
