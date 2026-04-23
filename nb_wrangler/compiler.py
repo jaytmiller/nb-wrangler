@@ -64,11 +64,15 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         )
 
         if "uv pip" in str(self.config.pip_command):
-            if not self._run_uv_compile(output_path, package_files, override_pip_versions_file):
+            if not self._run_uv_compile(
+                output_path, package_files, override_pip_versions_file
+            ):
                 return self.logger.error(
                     "========== Failed compiling combined pip requirements with uv =========="
                 )
-        elif not self._run_pip_compile(output_path, package_files, override_pip_versions_file):
+        elif not self._run_pip_compile(
+            output_path, package_files, override_pip_versions_file
+        ):
             return self.logger.error(
                 "========== Failed compiling combined pip requirements with pip =========="
             )
@@ -89,7 +93,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             if self.spec_manager.python_version
             else ""
         )
-        overrides = f"--overrides {override_pip_versions_file}" if override_pip_versions_file else ""
+        overrides = (
+            f"--overrides {override_pip_versions_file}"
+            if override_pip_versions_file
+            else ""
+        )
         pip_command = re.sub(r"^pip$", r"uv pip ", str(self.config.pip_command))
         cmd = (
             f"{pip_command} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
@@ -118,9 +126,13 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
         overrides = f"--overrides {override_pip_versions_file} if override_pip_versions_file else "
         if overrides.strip():
-            self.logger.warning("Pip cannot compile with overrides because no --overrides switch exists.")
+            self.logger.warning(
+                "Pip cannot compile with overrides because no --overrides switch exists."
+            )
             self.logger.warning("Attemptng to switch compilation to uv pip.")
-            return self._run_uv_compile(output_file, requirements_files, override_pip_versions_file)
+            return self._run_uv_compile(
+                output_file, requirements_files, override_pip_versions_file
+            )
 
         base_cmd_parts = [
             str(self.config.pip_command),
@@ -128,7 +140,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             "install",
             "--quiet",
             "--only-binary=all",
-            overrides
+            overrides,
         ]
         cmd_parts = base_cmd_parts.copy()
         for req_file in requirements_files:

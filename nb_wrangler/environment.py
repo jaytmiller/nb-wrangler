@@ -288,7 +288,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         )
         return len(stripped_packages), req_path
 
-    def install_packages(self, env_name: str, pip_packages: list[str], override_pip_versions_file: str) -> bool:
+    def install_packages(
+        self, env_name: str, pip_packages: list[str], override_pip_versions_file: str
+    ) -> bool:
         """Install the compiled pip package list."""
         if not pip_packages:
             self.logger.info("No pip packages to install.")
@@ -297,7 +299,11 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         n_packages, req_path = self._get_package_file(env_name, pip_packages)
         self.logger.info(f"Installing {n_packages} packages to environment {env_name}.")
 
-        overrides = f"--overrides {override_pip_versions_file}" if override_pip_versions_file else ""
+        overrides = (
+            f"--overrides {override_pip_versions_file}"
+            if override_pip_versions_file
+            else ""
+        )
         if overrides:
             pip_cmd = re.sub(r"^pip$", r"uv pip", str(self.config.pip_command))
         else:

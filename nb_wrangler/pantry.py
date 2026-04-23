@@ -404,6 +404,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         self, archive_tuples: list[tuple[str, str, str, str, str]]
     ) -> bool:
         """Create symlinks from install_data locations to the pantry data directory."""
+        no_errors = True
         self.logger.info("Creating symlinks for install_data locations.")
         for archive_tuple in archive_tuples:
             install_data_path = utils.resolve_vars(archive_tuple[4], dict(os.environ))
@@ -416,17 +417,30 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
                 )
                 continue
 
-            realpath = os.path.realpath(symlink_path)
             if symlink_path.exists():
-                if symlink_path.is_symlink() and str(realpath) == str(target_path):
-                    self.logger.debug(
-                        f"Symlink '{symlink_path}' already exists and points to the correct target {target_path}. Skipping."
-                    )
-                    continue
+                if symlink_path.is_symlink():
+                    current_target = os.path.realpath(symlink_path)
+                    if str(current_target) == str(target_path):
+                        self.logger.debug(
+                            f"Symlink '{symlink_path}' already exists and points to the correct target {target_path}. Skipping."
+                        )
+                        continue
+                    else:
+                        self.logger.info(
+                            f"Removing existing symlink '{symlink_path}' (points to {current_target}) to update to {target_path}"
+                        )
+                        try:
+                            symlink_path.unlink()
+                        except Exception as e:
+                            self.logger.error(
+                                f"Failed to remove existing symlink '{symlink_path}': {e}"
+                            )
+                            return False
                 else:
-                    self.logger.warning(
-                        f"Path '{symlink_path}' already exists as {realpath} not the expected {target_path}. Skipping."
+                    self.logger.error(
+                        f"Existing file/directory at '{symlink_path}'.  Remove manually to enable symlink,  --data-reinstall."
                     )
+                    no_errors = False
                     continue
 
             self.logger.info(f"Creating symlink: '{symlink_path}' -> '{target_path}'")
@@ -436,7 +450,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
             except Exception as e:
                 self.logger.error(f"Failed to create symlink: {e}")
                 return False
-        return True
+        return no_errors
 
     def archive(
         self,

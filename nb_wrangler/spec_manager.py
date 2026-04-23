@@ -129,7 +129,7 @@ class SpecManager(
     @property
     def extra_pip_packages(self) -> list[str]:
         return list(self._spec.get("extra_pip_packages")) or []
-    
+
     @property
     def override_pip_versions(self) -> list[str]:
         return list(self._spec.get("override_pip_versions")) or []

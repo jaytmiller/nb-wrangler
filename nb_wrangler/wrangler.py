@@ -111,9 +111,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         override_pip_versions = self.spec_manager.override_pip_versions
         if not override_pip_versions:
             return ""
-        return utils.writelines(
-            override_pip_versions, self.override_pip_output_file
-        )
+        return utils.writelines(override_pip_versions, self.override_pip_output_file)
 
     @property
     def shelf_name(self) -> str:
