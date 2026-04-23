@@ -124,15 +124,15 @@ class SpecManager(
 
     @property
     def extra_mamba_packages(self) -> list[str]:
-        return list(self._spec.get("extra_mamba_packages")) or []
+        return list(self._spec.get("extra_mamba_packages") or [])
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        return list(self._spec.get("extra_pip_packages")) or []
+        return list(self._spec.get("extra_pip_packages") or [])
 
     @property
     def override_pip_versions(self) -> list[str]:
-        return list(self._spec.get("override_pip_versions")) or []
+        return list(self._spec.get("override_pip_versions") or [])
 
     @property
     def environment_spec(self) -> dict[str, Any] | None:
