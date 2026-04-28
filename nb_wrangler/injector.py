@@ -214,7 +214,7 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         )
         return self.env_manager.handle_result(
             result,
-            f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}: ",
+            f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}.",
             f"Built Docker image for {self.deployment_name} under {self.spi_path}.",
         )
 

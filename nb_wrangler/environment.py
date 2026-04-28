@@ -224,19 +224,22 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         error_func = error_func or self.logger.error
         if not isinstance(result, CompletedProcess):
             raise RuntimeError(f"Expected CompletedProcess, got {type(result)}")
+        output = ""
+        if result.stderr is not None:
+            output += result.stderr.strip()
+        if result.stdout is not None:
+            output += "\n:::\n" + result.stdout.strip()
         if result.returncode != 0:
             if fail.strip().endswith(":"):
-                fail += result.stderr.strip() + " ::: " + result.stdout.strip()
-            return error_func(fail)
+                fail += " " + output
+            error_func(fail)
+            return False
         else:
+            self.logger.info(success)
             if success.strip().endswith(":"):
-                extra_output = result.stderr.strip() + " ::: " + result.stdout.strip()
-            else:
-                extra_output = ""
-            self.logger.info(success) if success else True
-            for line in extra_output.splitlines():
-                if line.strip():
-                    self.logger.debug(">> " + line)
+                for line in output.splitlines():
+                    if line.strip():
+                        self.logger.debug(">> " + line)
             return True
 
     def create_environment(

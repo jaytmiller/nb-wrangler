@@ -356,6 +356,7 @@ class SpecManager(
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
+            self.refresh_date_updated()
             if add_sha256:
                 hash = self.add_sha256()
                 self.logger.debug(f"Setting spec_sha256 to {hash}.")
@@ -435,6 +436,13 @@ class SpecManager(
 
     # ---------------------------- hashes, crypto ----------------------------------
 
+    def refresh_date_updated(self) -> None:
+        """Update the date_updated field with the current time (adds it if missing)."""
+        self.system["date_updated"] = datetime.datetime.now().isoformat()
+        self.logger.debug(
+            f"Updated system.date_updated to {self.system['date_updated']}."
+        )
+
     @property
     def sha256(self) -> str | None:
         hash = self.system.get("spec_sha256", None)
@@ -445,10 +453,6 @@ class SpecManager(
             self.logger.warning(f"System spec_sha256 hash '{hash}' is malformed.")
         return hash
 
-    def refresh_date_updated(self) -> None:
-        """Update the date_updated field with the current time (adds it if missing)."""
-        self.system["date_updated"] = datetime.datetime.now().isoformat()
-
     def add_sha256(self) -> str:
         self.system["spec_sha256"] = ""
         self.system["spec_sha256"] = utils.sha256_str(self.to_string())
@@ -458,26 +462,17 @@ class SpecManager(
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
         expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
-            self._rehash_to_capture_date()
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
         self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
         actual_hash = self.add_sha256()
         if expected_hash == actual_hash:
             self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
-            self._rehash_to_capture_date
             return True
         else:
             self.logger.error(
                 f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
             )
-            self._rehash_to_capture_date()
             return False
-
-    def _rehash_to_capture_date(self):
-        self.logger.debug("Updating date_updated.")
-        self.refresh_date_updated()
-        final_hash = self.add_sha256()
-        self.logger.debug(f"Spec-sha256 re-hashing to capture date: {final_hash}")
 
     # ---------------------------- validation ----------------------------------
 
