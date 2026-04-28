@@ -255,7 +255,7 @@ clean-other:
 	rm -rf .mypy_cache
 	rm -f nb-wrangler.log
 	rm -rf inject-spi-references
-	rm extra_pip_packages.txt
+	rm -f extra_pip_packages.txt
 
 lint/flake8: ## check style with flake8
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \
