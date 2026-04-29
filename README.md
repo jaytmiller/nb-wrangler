@@ -48,6 +48,20 @@ Two other points are worthy of note:
 
 ### Locally / On your laptop
 
+#### Pip Installing (experimental)
+
+nb-wrangler now supports pip installs into existing mamba environments:
+
+```bash
+pip install nb-wrangler
+```
+
+This is a relatively new feature and because the wrangler itself works by creating multiple
+environments it is not always as reliable as the bootstrap method described below. If you do
+use this method it's advisable to create a dedicated nbwrangler environment to install to.
+
+#### Bootstrapping an Isolated Environment
+
 To get started, bootstrap `nb-wrangler` to create the necessary environments and directories (by default in `$HOME/.nbw-live`):
 
 ```bash
@@ -64,16 +78,21 @@ source ./nb-wrangler environment
 
 This command sets up the shell environment and activates the `nbwrangler` Python environment so
 that it (temporarily) replaces any other Python you had activated previously and is ready to
-start executing wrangler commands.
+start executing wrangler commands.  It should be mentioned that when the wrangler creates target
+environments from the spec it will install them indepdently to this nbwrangler environment which
+is intended only to support the tool itself.
 
-**NOTE:** Throughout this documentation you'll see `./nb-wrangler` used to run the nb-wrangler
-program.  This assumes that (a) nb-wrangler is in your current working directory and (b) nb-wrangler
-is executable.  Other alternatives to this approach exist: nb-wrangler may already be installed
-in a platform environment and automatically on your PATH.  Or you can put the nb-wrangler script
-in a "bin" directory somewhere that is on your PATH.  In those alternate cases,  you can just
-`source nb-wrangler ...` and drop the leading `./`.
+#### General Notes on Installing
 
-### On the STScI Science Platform
+##### `wget` is needed for Data Handling
+
+The data download mechanisms in nb-wrangler utilize `wget` under the hood to fetch data URL's. If
+your system does not already have it installed,  you need to install it before you can curate or
+reinstall data.  On Linux (including the science platforms) `wget` is almost certainly there but
+if not it should be an easy package install.   On OS-X `wget` is an easy install via `brew` and also
+via `mamba`.  Before working on data tasks, it's worth verifying `wget` is available on your PATH.
+
+### nb-wrangler On the STScI Science Platform
 
 This is viable but the exact environment settings and required workflows are still being formalized.
 
