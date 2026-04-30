@@ -1,10 +1,10 @@
+
 """Utility functions for nb-wrangler."""
 
 import os
 import io
 import re
 import urllib.parse
-
 # from typing import Optional
 import datetime
 import functools
@@ -142,6 +142,10 @@ def robust_get(
     if filepath.exists():
         filepath.unlink()
 
+    wget_exe = shutil.which("wget")
+    if not wget_exe:
+       raise RuntimeError("wget is not installed.  nb-wrangler data functions required wget for downloading files.")
+
     try:
         # Using wget instead of native code due to recalitrant Box links wget can handle
         # Two levels of timeout:  wget and subprocess.run.  Output direct to terminal.
@@ -168,7 +172,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> str:
     Currently intended for small quick downloads only due to lack of
     chunking and/or parallelism.
 
-    Return the local path.
+    Return the local path.`
     """
     # Check for file:// URI
     if uri.startswith("file://"):

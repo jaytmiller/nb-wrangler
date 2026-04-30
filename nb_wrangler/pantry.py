@@ -235,7 +235,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
             except Exception as e:
                 return self.logger.exception(
                     e,
-                    f"Failed downloading '{url}' to archive file '{fp}' at '{archive_path}':",
+                    f"Failed downloading '{url}' to archive file '{fp}':",
                 )
         else:
             self.logger.info(
