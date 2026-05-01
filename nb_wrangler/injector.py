@@ -219,11 +219,15 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         )
 
     def get_spi_requirements(self, kind, glob_patterns: list[Path]) -> list[Path]:
-        """Find extra mamba or pip requirements files required by SPI environments such as those
-        included in the common/common-env directory. mamba packages are typically non-Python packages
-        such as C libraries and compiles and install tools.  For Python packages,  using
-        pip to install them is preferred.
+
+        """Find extra mamba or pip requirements files required by SPI
+        environments such as those included in the common/common-env directory
+        and/or {deployment}/environments/common-hints.{pip,conda,mamba}. mamba
+        packages are typically non-Python packages such as C libraries and
+        compiles and install tools.  For Python packages, using pip to install
+        them is preferred.
         """
+
         spi_extra_requirements = []
         for pattern in glob_patterns:
             extras = Path(".").glob(str(pattern))
@@ -242,6 +246,7 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             "pip",
             [
                 self.deployments_path / "common/common-env/*.pip",
+                self.deployment_path / "environments/common-hints.pip",
             ],
         )
 
@@ -251,5 +256,7 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             [
                 self.deployments_path / "common/common-env/*.conda",
                 self.deployments_path / "common/common-env/*.mamba",
+                self.deployment_path / "environments/common-hints.conda",
+                self.deployment_path / "environments/common-hints.mamba",
             ],
         )
