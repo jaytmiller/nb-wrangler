@@ -25,8 +25,9 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-01T10:39:23.511479'
-  spec_sha256: 01672df79bc452af83fc1c467ad1338cfb29a6b3deadf55a26fc6d946b7ac405
+  date_updated: '2026-05-04T09:12:10.609504'
+  spec_sha256: 6e3b1d5476ec13e3abc654a1bce3955bac302d96ec6940052654264a1a0078f4
+
 selected_notebooks:
   roman_all:
     repo: roman_notebooks
@@ -63,12 +64,13 @@ extra_mamba_packages:
 extra_pip_packages:
   - boto3
   - lsstdesc.coord
+  # - bqplot==0.12.46
   # - jupyterlab<=4.5.6
 
 override_pip_versions:
   # - jdaviz @ git+https://github.com/spacetelescope/jdaviz@main
-  - bqplot @ git+https://github.com/bmorris3/bqplot@pandas3
-  - bqplot-gl @ git+https://github.com/bqplot/bqplot-gl@0.1.0a0
+  # - bqplot @ git+https://github.com/bmorris3/bqplot@pandas3
+  # - bqplot-gl @ git+https://github.com/bqplot/bqplot-gl@0.1.0a0
 
 
 out:
@@ -185,11 +187,11 @@ out:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: a5a0601f024fb2c5d3851e23645bb208a28a3e0d
+      ref: fd8394861c5c067542fa5cf7821981a6544798f0
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: 2230010060eb664ba64e995b82e84641df5a3a51
+    ref: d105ae012ff2c17427c69ec2d188fde7e5213bb1
   test_notebooks:
     references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb: 
       roman_all
@@ -497,25 +499,25 @@ out:
       - wheel
   non_mamba_pip_package_files:
     - references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
-    - references/roman_notebooks/notebooks/grism_spectral_extraction/requirements.txt
-    - references/roman_notebooks/notebooks/stips/requirements.txt
-    - references/roman_notebooks/notebooks/data_discovery_and_access/requirements.txt
-    - references/roman_notebooks/notebooks/catalog_database_access/requirements.txt
-    - references/roman_notebooks/notebooks/pandeia/requirements.txt
-    - references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
-    - references/roman_notebooks/notebooks/exposure_pipeline/requirements.txt
-    - references/roman_notebooks/notebooks/synphot/requirements.txt
-    - references/roman_notebooks/notebooks/footprint_visualization/requirements.txt
-    - references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
-    - references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
-    - references/roman_notebooks/notebooks/background_visualization_tool/requirements.txt
     - references/roman_notebooks/notebooks/working_with_asdf/requirements.txt
-    - references/roman_notebooks/notebooks/measuring_galaxy_shapes/requirements.txt
-    - references/roman_notebooks/notebooks/romanisim/requirements.txt
-    - references/roman_notebooks/notebooks/rist/requirements.txt
-    - references/roman_notebooks/notebooks/mosaic_pipeline/requirements.txt
-    - references/roman_notebooks/notebooks/stpsf/requirements.txt
+    - references/roman_notebooks/notebooks/exposure_pipeline/requirements.txt
     - references/roman_notebooks/notebooks/data_visualization/requirements.txt
+    - references/roman_notebooks/notebooks/background_visualization_tool/requirements.txt
+    - references/roman_notebooks/notebooks/romanisim/requirements.txt
+    - references/roman_notebooks/notebooks/measuring_galaxy_shapes/requirements.txt
+    - references/roman_notebooks/notebooks/footprint_visualization/requirements.txt
+    - references/roman_notebooks/notebooks/stips/requirements.txt
+    - references/roman_notebooks/notebooks/mosaic_pipeline/requirements.txt
+    - references/roman_notebooks/notebooks/catalog_database_access/requirements.txt
+    - references/roman_notebooks/notebooks/data_discovery_and_access/requirements.txt
+    - references/roman_notebooks/notebooks/rist/requirements.txt
+    - references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
+    - references/roman_notebooks/notebooks/pandeia/requirements.txt
+    - references/roman_notebooks/notebooks/synphot/requirements.txt
+    - references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
+    - references/roman_notebooks/notebooks/stpsf/requirements.txt
+    - references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
+    - references/roman_notebooks/notebooks/grism_spectral_extraction/requirements.txt
     - references/science-platform-images/deployments/common/common-env/required.pip
     - references/science-platform-images/deployments/common/common-env/common.pip
     - references/science-platform-images/deployments/common/common-env/docs.pip
@@ -761,25 +763,20 @@ out:
         #   aiobotocore
         #   boto3
         #   s3transfer
-    bqplot @ git+https://github.com/bmorris3/bqplot@50e74181aaa684219f20b27f0c24748685b032e1
+    bqplot==0.12.47
         # via
-        #   --override /Users/jmiller/.nbw-live/temps/roman-22.0.0-override-pip.txt
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   bqplot-gl
         #   bqplot-image-gl
         #   glue-jupyter
         #   ipyvolume
         #   jdaviz
-    bqplot-gl @ git+https://github.com/bqplot/bqplot-gl@acaa70ede959fec42462a8356c47fffdd774f759
-        # via
-        #   --override /Users/jmiller/.nbw-live/temps/roman-22.0.0-override-pip.txt
-        #   glue-jupyter
+    bqplot-gl==0.0.0
+        # via glue-jupyter
     bqplot-image-gl==1.9.2
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   glue-jupyter
-    bqscales==0.3.7
-        # via bqplot
     build==1.4.4
         # via pip-tools
     bytecode==0.17.0
@@ -1120,7 +1117,6 @@ out:
         #   anywidget
         #   bqplot
         #   bqplot-image-gl
-        #   bqscales
         #   glue-jupyter
         #   ipydatawidgets
         #   ipyevents
@@ -1268,7 +1264,6 @@ out:
     jupyterlab==4.5.6
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-        #   -r references/science-platform-images/deployments/roman/environments/common-hints.pip
         #   jupyter-collaboration
         #   notebook
     jupyterlab-git==0.52.0
@@ -1468,7 +1463,6 @@ out:
         #   astroquery
         #   bokeh
         #   bqplot
-        #   bqscales
         #   casa-formats-io
         #   contourpy
         #   crds
@@ -2189,7 +2183,6 @@ out:
     traitlets==5.14.3
         # via
         #   bqplot
-        #   bqscales
         #   ipykernel
         #   ipympl
         #   ipython
@@ -2215,7 +2208,6 @@ out:
     traittypes==0.2.3
         # via
         #   bqplot
-        #   bqscales
         #   ipydatawidgets
         #   ipyvolume
     tweakwcs==0.8.12
