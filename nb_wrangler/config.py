@@ -139,6 +139,9 @@ class WranglerConfig:
     spi_pr: bool = False
     spi_image_name: bool = False
 
+    docker_pull: Optional[str] = None
+    docker_cat: Optional[str] = None
+
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
         """Create WranglerConfig from argparse Namespace and spec file."""
@@ -212,6 +215,8 @@ class WranglerConfig:
             spi_push_branch=args.spi_push_branch,
             spi_pr=args.spi_pr,
             spi_image_name=args.spi_image_name,
+            docker_pull=args.docker_pull,
+            docker_cat=args.docker_cat,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

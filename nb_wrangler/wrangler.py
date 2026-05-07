@@ -16,6 +16,7 @@ from .environment import WranglerEnvable
 from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
+from .registry import RegistryManager
 from .data_manager import RefdataValidator
 from .pantry import NbwPantry
 from . import utils
@@ -37,6 +38,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         else:
             self.config.repos_dir = Path(self.config.repos_dir)
         self.repo_manager = RepositoryManager(self.config.repos_dir)
+        self.registry_manager = RegistryManager()
         self.notebook_import_processor = NotebookImportProcessor()
         self.tester = NotebookTester(self.spec_manager)
         self.compiler = RequirementsCompiler(
@@ -421,6 +423,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spi_inject_reqs, self._spi_inject_reqs),
             (self.config.spi_prune_docker, self.injector.prune),
             (self.config.spi_build_image, self.injector.build),
+            (self.config.docker_pull is not None, self._docker_pull),
+            (self.config.docker_cat is not None, self._docker_cat),
         ]
         if any(item[0] for item in flags_and_steps):
             self.logger.info("Running any explicitly selected steps.")
@@ -430,6 +434,22 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 if not step():
                     self.logger.error("FAILED Step", step.__name__, "... stopping...")
                     return False
+        return True
+
+    def _docker_pull(self) -> bool:
+        """Pull a Docker image."""
+        if self.config.docker_pull:
+            return self.registry_manager.pull(self.config.docker_pull)
+        return True
+
+    def _docker_cat(self) -> bool:
+        """Cat /spec.yaml from a Docker image."""
+        if self.config.docker_cat:
+            content = self.registry_manager.cat_spec(self.config.docker_cat)
+            if content:
+                print(content)
+                return True
+            return False
         return True
 
     def _cleanup_kernels(self) -> bool:

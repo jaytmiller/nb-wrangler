@@ -141,6 +141,23 @@ def parse_args():
         help="Print the image name corresponding to the current spec to stdout and exit.",
     )
 
+    registry_group = parser.add_argument_group(
+        "Registry / Docker",
+        "Flags to interact with Docker registries and images.",
+    )
+    registry_group.add_argument(
+        "--docker-pull",
+        type=str,
+        metavar="IMAGE",
+        help="Pull a Docker image from a registry.",
+    )
+    registry_group.add_argument(
+        "--docker-cat",
+        type=str,
+        metavar="IMAGE",
+        help="Extract and print /spec.yaml from a Docker image to stdout.",
+    )
+
     dev_group = parser.add_argument_group(
         "Development Overrides",
         "Flags for managing development-specific overrides in the spec.",
@@ -557,13 +574,14 @@ def main() -> int:
     if args.version:
         print(constants.__version__)
         return 0
-    if args.spec_init:
+    if args.spec_init or args.docker_cat:
         return _main(args)
     if args.spec_uri is None:
         log = logger.WranglerLogger()
         if os.environ.get("NBW_SPEC") is None:
-            log.error("No wrangler spec given and NBW_SPEC is not set, quitting...")
-            return 1
+            if not args.docker_pull:
+                log.error("No wrangler spec given and NBW_SPEC is not set, quitting...")
+                return 1
         else:
             spec = os.environ["NBW_SPEC"]
             log.info(f"Using spec defined by NBW_SPEC = {spec}")
@@ -586,9 +604,25 @@ def _main(args) -> int:
             return 0
         else:
             return 1
+
     config = config_mod.WranglerConfig.from_args(args)
     config_mod.set_args_config(config)
     log = logger.get_configured_logger()
+
+    if args.docker_cat:
+        from .registry import RegistryManager
+
+        content = RegistryManager().cat_spec(args.docker_cat)
+        if content:
+            sys.stdout.write(content)
+            return 0
+        return 1
+
+    if args.docker_pull and not args.spec_uri:
+        from .registry import RegistryManager
+
+        return 0 if RegistryManager().pull(args.docker_pull) else 1
+
     try:
         # Create configuration using simplified factory method
         if not config:
