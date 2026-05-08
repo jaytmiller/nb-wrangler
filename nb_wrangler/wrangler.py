@@ -19,6 +19,7 @@ from .injector import get_injector
 from .registry import RegistryManager
 from .data_manager import RefdataValidator
 from .pantry import NbwPantry
+from .data_wrangler import DataWrangler
 from . import utils
 
 
@@ -45,6 +46,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             spec_manager=self.spec_manager, repo_manager=self.repo_manager
         )
         self.injector = get_injector(self.repo_manager, self.spec_manager)
+        self.data_wrangler = DataWrangler(
+            self.spec_manager, self.pantry, self.repo_manager, self.env_manager
+        )
         # Store compiled artifacts
         self.compiled_kernel_name: str | None = None
         # Create output directories
@@ -249,11 +253,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             [
                 self._prepare_all_repositories,
                 self._spec_add,
-                self._data_collect,
-                self._data_download,
-                self._data_update,
-                self._data_validate,
-                self._data_unpack,
+                self.data_wrangler.collect,
+                self.data_wrangler.download,
+                self.data_wrangler.update,
+                self.data_wrangler.validate,
+                self.data_wrangler.unpack,
                 self._save_final_spec,
             ],
         )
@@ -346,9 +350,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             [
                 self._validate_spec,
                 self._spec_add,
-                self._data_download,
-                self._data_validate,
-                self._data_unpack,
+                self.data_wrangler.download,
+                self.data_wrangler.validate,
+                self.data_wrangler.unpack,
             ],
         )
 
@@ -370,8 +374,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "--data-reset-curation",
             [
                 self._delete_repos,
-                self._data_delete,
-                self._data_reset_spec,
+                self.data_wrangler.delete,
+                self.data_wrangler.reset_spec,
                 self._save_final_spec,
                 self._reset_log,
             ],
@@ -399,16 +403,16 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_print_name, self._env_print_name),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
-            (self.config.data_collect, self._data_collect),
-            (self.config.data_list, self._data_list),
-            (self.config.data_download, self._data_download),
-            (self.config.data_delete, self._data_delete),
-            (self.config.data_update, self._data_update),
-            (self.config.data_validate, self._data_validate),
-            (self.config.data_unpack, self._data_unpack),
-            (self.config.data_pack, self._data_pack),
-            (self.config.data_print_exports, self._data_print_exports),
-            (self.config.data_symlinks, self._data_symlink_install_data),
+            (self.config.data_collect, self.data_wrangler.collect),
+            (self.config.data_list, self.data_wrangler.list_data),
+            (self.config.data_download, self.data_wrangler.download),
+            (self.config.data_delete, self.data_wrangler.delete),
+            (self.config.data_update, self.data_wrangler.update),
+            (self.config.data_validate, self.data_wrangler.validate),
+            (self.config.data_unpack, self.data_wrangler.unpack),
+            (self.config.data_pack, self.data_wrangler.pack),
+            (self.config.data_print_exports, self.data_wrangler.print_exports),
+            (self.config.data_symlinks, self.data_wrangler.symlink_install_data),
             (self.config.repos_clean is not None, self._clean_repos),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),
@@ -417,7 +421,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.env_kernel_cleanup, self._cleanup_kernels),
             (self.config.env_compact, self._env_compact),
             (self.config.spec_reset, self._reset_spec),
-            (self.config.data_reset_spec, self._data_reset_spec),
+            (self.config.data_reset_spec, self.data_wrangler.reset_spec),
             (self.config.reset_log, self._reset_log),
             (self.config.spi_image_name, self._spi_image_name),
             (self.config.spi_inject_reqs, self._spi_inject_reqs),
@@ -587,193 +591,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """List the available shelves/specs in the pantry."""
         self.logger.info("Listing available shelves/specs in pantry.")
         return self.pantry.list_shelves()
-
-    def _data_collect(self) -> bool:
-        """Collect data from notebook repos."""
-        self.logger.info("Collecing data information from notebook repo data specs.")
-        output_repos = self.spec_manager.get_output_data("repositories")
-        repo_urls = [repo["url"] for repo in output_repos.values()]
-        data_validator = RefdataValidator.from_repo_urls(
-            self.config.repos_dir, repo_urls
-        )
-
-        if spec_refdata := self.spec_manager.refdata_dependencies:
-            data_validator.add_spec(
-                str(self.repo_manager.repos_dir / "nbw-spec/refdata_dependencies.yaml"),
-                spec_refdata,
-            )
-
-        spec_exports = data_validator.get_spec_exports()
-        self.pantry_shelf.save_exports_file("nbw-spec-exports.sh", spec_exports)
-        pantry_exports = data_validator.get_pantry_exports(
-            self.pantry_shelf.abstract_data_path
-        )
-        self.pantry_shelf.save_exports_file("nbw-pantry-exports.sh", pantry_exports)
-
-        if not self._register_environment():
-            self.logger.warning(
-                "Failed registering environment.  Env vars in JupyterLab may note be set."
-            )
-
-        return self.spec_manager.revise_and_save(
-            Path(self.config.spec_file).parent,
-            data=dict(
-                spec_inputs=data_validator.todict(),
-                spec_exports=spec_exports,
-                pantry_exports=pantry_exports,
-            ),
-        )
-
-    def _data_get_exports(self) -> Optional[str]:
-        """Print out the data environment variables on stdout according to the selected data
-        storage mode.  Since this can get called before data has ever been collected, let it
-        succeed normally even if no env vars are defined in the spec yet.
-        """
-        data = self.spec_manager.get_output_data("data")
-        if data is None:
-            self.logger.warning(
-                "No 'data' section in spec for defining environment variables."
-            )
-            return ""
-        mode = self.config.data_env_vars_mode
-        exports = data.get(mode + "_exports")
-        exports_str = ""
-        if exports is None:
-            self.logger.debug(
-                "Data environment for mode '{mode}' is not defined yet.  No environment variables to list."
-            )
-        else:
-            for var, value in exports.items():
-                exports_str += f'export {var}="{value}"\n'
-        return exports_str
-
-    def _data_print_exports(self) -> bool:
-        """Print out the data environment variables on stdout according to the selected data
-        storage mode.  Since this can get called before data has ever been collected, let it
-        succeed normally even if no env vars are defined in the spec yet.
-        """
-        print(self._data_get_exports())
-        return True
-
-    def _get_data_url_tuples(
-        self,
-    ) -> tuple[dict[str, Any], list[tuple[str, str, str, str, str]]]:
-        data = self.spec_manager.get_output_data("data")
-        spec_inputs = data["spec_inputs"]
-        data_validator = RefdataValidator.from_dict(spec_inputs)
-        urls = data_validator.get_data_urls(self.config.data_select)
-        return data, urls
-
-    def _data_list(self) -> bool:
-        self.logger.info("Listing selected data archives.")
-        _data, urls = self._get_data_url_tuples()
-        for url in urls[:-1]:
-            print(url)
-        return True
-
-    def _data_download(self) -> bool:
-        self.logger.info("Downloading selected data archives.")
-        _data, urls = self._get_data_url_tuples()
-        if not self.pantry_shelf.download_all_data(urls):
-            return self.logger.error("One or more data archive downloads failed.")
-        return self.logger.info("Selected data downloaded successfully.")
-
-    def _data_delete(self) -> bool:
-        self.logger.info(
-            f"Deleting selected data files of types {self.config.data_delete}."
-        )
-        _data, urls = self._get_data_url_tuples()
-        if not self.pantry_shelf.delete_archives(self.config.data_delete, urls):
-            return self.logger.error("One or more data archive deletes failed.")
-        return self.logger.info(
-            f"All selected data files of types {self.config.data_delete} removed successfully."
-        )
-
-    def _data_update(self) -> bool:
-        if self.config.data_no_validation:
-            return self.logger.info(
-                "Skipping data validation due to --data-no-validation."
-            )
-        self.logger.info("Collecting metadata for downloaded data archives.")
-        data, urls = self._get_data_url_tuples()
-        self.logger.debug(f"Collecting metadata for {urls}.")
-        data["metadata"] = self.pantry_shelf.collect_all_metadata(urls)
-        return self.spec_manager.revise_and_save(
-            Path(self.config.spec_file).parent,
-            data=data,
-        )
-
-    def _data_validate(self) -> bool:
-        if self.config.data_no_validation:
-            return self.logger.info(
-                "Skipping data validation due to --data-no-validation."
-            )
-        self.logger.info("Validating all downloaded data archives.")
-        data, urls = self._get_data_url_tuples()
-        metadata = data.get("metadata")
-        if metadata is not None:
-            if not self.pantry_shelf.validate_all_data(urls, metadata):
-                return self.logger.error("Some data archives did not validate.")
-            else:
-                return self.logger.info("All data archives validated.")
-        else:
-            return self.logger.error(
-                "Before it can be validated, data metadata must be updated."
-            )
-
-    def _data_unpack(self) -> bool:
-        self.logger.info("Unpacking downloaded data archives to live locations.")
-        if not self.config.data_no_symlinks:
-            self._data_symlink_install_data()
-        data, archive_tuples = self._get_data_url_tuples()
-        for archive_tuple in archive_tuples:
-            self.logger.debug(f"Unpacking data: {archive_tuple}")
-            src_archive = self.pantry_shelf.archive_filepath(archive_tuple)
-            if self.config.data_env_vars_mode == "pantry":
-                dest_path = self.pantry_shelf.data_path
-            else:
-                resolved = utils.resolve_vars(archive_tuple[4], dict(os.environ))
-                dest_path = Path(resolved)
-            final_path = dest_path / archive_tuple[3]
-            if final_path.exists() and self.config.data_no_unpack_existing:
-                self.logger.info(
-                    f"Skipping unpack for existing directory {final_path}."
-                )
-                continue
-            if not self.pantry_shelf.unarchive(src_archive, dest_path, ""):
-                return self.logger.error(
-                    f"Failed unpacking '{src_archive}' to '{dest_path}'."
-                )
-        if not self.pantry_shelf.save_exports_file(
-            "nbw-spec-exports.sh", data["spec_exports"]
-        ):
-            return self.logger.error("Failed exporting nbw-spec-exports.sh")
-        if not self.pantry_shelf.save_exports_file(
-            "nbw-pantry-exports.sh", data["pantry_exports"]
-        ):
-            return self.logger.error("Failed exporting nbw-spec-exports.sh")
-        if not self._register_environment():
-            self.logger.warning(
-                "Failed registering environment.  Env vars in JupyterLab may note be set."
-            )
-        return True
-
-    def _data_symlink_install_data(self) -> bool:
-        """Create symlinks from install_data locations to the pantry data directory."""
-        _data, archive_tuples = self._get_data_url_tuples()
-        self.pantry_shelf.symlink_install_data(archive_tuples)
-        return True
-
-    def _data_pack(self) -> bool:
-        self.logger.info("Packing downloaded data archives from live locations.")
-        no_errors = True
-        for archive_tuple in self._get_data_url_tuples()[1]:
-            dest_archive = self.pantry_shelf.archive_filepath(archive_tuple)
-            src_path = self.pantry_shelf.data_path
-            no_errors = (
-                self.pantry_shelf.archive(dest_archive, src_path, "") and no_errors
-            )
-        return no_errors
 
     def _clean_repos(self) -> bool:
         """Clean up specified patterns in cloned repositories."""
@@ -992,9 +809,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _reset_spec(self) -> bool:
         return self.spec_manager.reset_spec()
 
-    def _data_reset_spec(self) -> bool:
-        return self.spec_manager.data_reset_spec()
-
     def _unpack_environment(self) -> bool:
         """Unpack a pre-built environment from the pantry."""
         if not self.resolved_kname:
@@ -1085,7 +899,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Populat the local SPI clone with requirements and info from the spec."""
         if not self.resolved_kname:
             return self.logger.error("No kernel name found for SPI injection.")
-        exports_str = self._data_get_exports()
+        exports_str = self.data_wrangler.get_exports()
         return self.injector.inject(self.resolved_kname, exports_str)
 
     def _spi_image_name(self) -> bool:
