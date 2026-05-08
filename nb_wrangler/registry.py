@@ -1,7 +1,6 @@
 """Docker registry interaction for pulling images and extracting specs."""
 
 import subprocess
-from pathlib import Path
 from typing import Optional
 
 from .config import WranglerConfigurable
@@ -19,27 +18,29 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Pull a Docker image from a registry."""
         self.logger.info(f"Pulling Docker image: {image}")
         result = self.env_manager.wrangler_run(
-            ["docker", "pull", image],
-            check=False,
-            output_mode="uncaught"
+            ["docker", "pull", image], check=False, output_mode="uncaught"
         )
         return self.env_manager.handle_result(
             result,
             f"Failed to pull Docker image {image}.",
-            f"Successfully pulled Docker image {image}."
+            f"Successfully pulled Docker image {image}.",
         )
 
     def cat_spec(self, image: str, spec_path: Optional[str] = None) -> Optional[str]:
         """Extract and return the content of a spec file from a Docker image."""
-        
+
         # If no path provided, try a list of common locations
-        paths_to_try = [spec_path] if spec_path else ["/spec.yaml", "/nbw-wrangler-spec.yaml"]
-        
+        paths_to_try = (
+            [spec_path] if spec_path else ["/spec.yaml", "/nbw-wrangler-spec.yaml"]
+        )
+
         self.logger.info(f"Extracting spec from Docker image: {image}")
 
         # 1. Create a temporary container
         result = self.env_manager.wrangler_run(
-            ["docker", "create", image, "/bin/true"], check=False, output_mode="separate"
+            ["docker", "create", image, "/bin/true"],
+            check=False,
+            output_mode="separate",
         )
         if result.returncode != 0:
             self.logger.error(
@@ -55,8 +56,10 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 content = self._extract_file(container_id, path)
                 if content:
                     return content
-            
-            self.logger.error(f"Could not find a wrangler spec in {image}. Tried paths: {paths_to_try}")
+
+            self.logger.error(
+                f"Could not find a wrangler spec in {image}. Tried paths: {paths_to_try}"
+            )
             return None
 
         finally:
@@ -82,13 +85,15 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
 
             stdout, tar_stderr = tar_process.communicate()
-            cp_stderr = cp_process.stderr.read().decode()
+            cp_stderr = cp_process.stderr.read().decode() if cp_process.stderr else ""
             cp_process.wait()
 
             if tar_process.returncode == 0 and cp_process.returncode == 0:
                 return stdout
-            
-            self.logger.debug(f"Failed to extract {path}: cp_err={cp_stderr.strip()}, tar_err={tar_stderr.strip()}")
+
+            self.logger.debug(
+                f"Failed to extract {path}: cp_err={cp_stderr.strip()}, tar_err={tar_stderr.strip()}"
+            )
             return None
 
         except Exception as e:
