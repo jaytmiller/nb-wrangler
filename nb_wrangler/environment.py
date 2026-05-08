@@ -15,6 +15,9 @@ import shutil
 import shlex
 import re
 import subprocess
+import tempfile
+import contextlib
+import stat
 from subprocess import CompletedProcess
 from pathlib import Path
 from typing import Any, Optional
@@ -442,6 +445,41 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         except Exception as e:
             return self.logger.exception(e, f"Failed to compact wrangler: {e}")
 
+    @contextlib.contextmanager
+    def test_directory_setup(self, notebook_path: str | Path):
+        """Context manager to set up an isolated runtime directory for a notebook test.
+
+        It creates a temporary directory, copies the notebook's directory into it,
+        optionally copies shared modules, sets permissions, and changes the
+        current working directory to the new test directory.
+        """
+        with tempfile.TemporaryDirectory() as temp_dir:
+            source_path = os.path.dirname(os.path.abspath(notebook_path))
+            test_dir = Path(temp_dir) / "notebook-test"
+            shutil.copytree(source_path, test_dir)
+
+            if self.config.test_copy_shared:
+                shared_path = self.config.test_copy_shared
+                if not os.path.isabs(shared_path):
+                    shared_path = os.path.join(source_path, shared_path)
+
+                self.logger.info(
+                    f"Copying shared modules from {shared_path} to {test_dir}"
+                )
+                utils.copy_shared_modules(shared_path, test_dir)
+
+            # set permissions
+            os.chmod(test_dir, stat.S_IRWXU)
+            for path in test_dir.glob("*"):
+                os.chmod(path, stat.S_IRWXU)
+
+            here = os.getcwd()
+            os.chdir(test_dir)
+            try:
+                yield test_dir
+            finally:
+                os.chdir(here)
+
     def test_nb_imports(
         self, env_name: str, nb_to_imports: dict[str, list[str]]
     ) -> bool:
@@ -457,26 +495,24 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         )
         no_errors = True
         for i, (notebook, imports) in enumerate(nb_to_imports.items()):
-            here = os.getcwd()
+            notebook_include_regex = (
+                self.config.test_imports or self.config.test_all or ""
+            )
+            if not re.search(notebook_include_regex, notebook):
+                self.logger.debug(
+                    f"Skipping import tests for {notebook} not matching include regex {notebook_include_regex}."
+                )
+                continue
+
             try:
-                notebook_include_regex = (
-                    self.config.test_imports or self.config.test_all or ""
-                )
-                if not re.search(notebook_include_regex, notebook):
-                    self.logger.debug(
-                        f"Skipping import tests for {notebook} not matching include regex {notebook_include_regex}."
+                with self.test_directory_setup(notebook):
+                    self.logger.info(
+                        f"Testing imports for {i} / {len(nb_to_imports)} notebook {notebook}."
                     )
-                    continue
-                os.chdir(Path(notebook).parent)
-                self.logger.info(
-                    f"Testing imports for {i} / {len(nb_to_imports)} notebook {notebook}."
-                )
-                no_errors = self.test_imports(env_name, imports) and no_errors
+                    no_errors = self.test_imports(env_name, imports) and no_errors
             except Exception as e:
                 self.logger.exception(f"Failed due to exception: {e}.")
                 no_errors = False
-            finally:
-                os.chdir(here)
         return no_errors
 
     def test_imports(self, env_name: str, imports: list[str]) -> bool:

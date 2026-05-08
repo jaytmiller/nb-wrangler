@@ -300,6 +300,12 @@ def parse_args():
         help="Exclude notebooks from notebook test, defaulting to none,  otherwise comma-separated-regex str,  e.g. pat1,pat2",
     )
     testing_group.add_argument(
+        "--test-copy-shared",
+        type=str,
+        default="",
+        help="Glob Python modules at <path> and copy them to the runtime directory where an individual import test is running with respect to a particular notebook.",
+    )
+    testing_group.add_argument(
         "--jobs",
         default=NOTEBOOK_TEST_JOBS,
         type=int,

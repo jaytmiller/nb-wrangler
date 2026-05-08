@@ -4,6 +4,7 @@ import os
 import io
 import re
 import urllib.parse
+import glob
 
 # from typing import Optional
 import datetime
@@ -346,6 +347,25 @@ def clear_directory(directory_path):
             os.unlink(item_path)  # Remove file or symbolic link
         elif os.path.isdir(item_path):
             shutil.rmtree(item_path)  # Remove directory and all its contents
+
+
+def copy_shared_modules(path_pattern: str, target_dir: str | Path):
+    """Glob Python modules at path_pattern and copy them to target_dir."""
+    target_dir = Path(target_dir)
+    # If path_pattern is a directory, assume we want all potential modules in it
+    if os.path.isdir(path_pattern):
+        pattern = os.path.join(path_pattern, "*")
+    else:
+        pattern = path_pattern
+
+    for item in glob.glob(pattern):
+        if os.path.isfile(item) and item.endswith(".py"):
+            shutil.copy2(item, target_dir)
+        elif os.path.isdir(item) and os.path.exists(os.path.join(item, "__init__.py")):
+            # It's a package directory
+            shutil.copytree(
+                item, target_dir / os.path.basename(item), dirs_exist_ok=True
+            )
 
 
 def resolve_vars(template: str, mapping: dict[str, str]) -> str:

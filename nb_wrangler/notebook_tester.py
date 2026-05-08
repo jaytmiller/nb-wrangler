@@ -1,12 +1,8 @@
 """Notebook testing functionality."""
 
 import datetime
-import glob
 import os
-import shutil
-import stat
 import sys
-import tempfile
 from concurrent.futures import ProcessPoolExecutor
 import re
 
@@ -173,17 +169,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     ) -> tuple[bool, str]:
         """Test a single notebook in isolation using papermill."""
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            source_path = os.path.dirname(os.path.abspath(notebook))
-            test_dir = os.path.join(temp_dir, "notebook-test")
-            shutil.copytree(source_path, test_dir)
-            os.chdir(test_dir)
-
-            # set permissions
-            os.chmod(test_dir, stat.S_IRWXU)
-            for path in glob.glob("*"):
-                os.chmod(path, stat.S_IRWXU)
-
+        with self.env_manager.test_directory_setup(notebook):
             # Run the notebook
             if notebook.endswith(".ipynb"):
                 cmd = f"papermill --no-progress-bar {os.path.basename(notebook)} -k {environment} test.ipynb"
