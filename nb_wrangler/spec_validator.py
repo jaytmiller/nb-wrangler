@@ -1,6 +1,5 @@
 """Spec validation logic extracted from SpecManager."""
 
-from typing import Any, Optional
 from .logger import WranglerLoggable
 from .constants import WRANGLER_SPEC_VERSION, VALID_ARCHIVE_FORMATS
 

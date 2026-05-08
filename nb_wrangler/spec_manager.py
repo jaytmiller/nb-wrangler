@@ -8,8 +8,7 @@ import copy
 from . import utils
 from .logger import WranglerLoggable
 from .config import WranglerConfigurable  # Import WranglerConfigurable
-from .constants import DEFAULT_ARCHIVE_FORMAT, VALID_ARCHIVE_FORMATS
-from .constants import WRANGLER_SPEC_VERSION
+from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
 

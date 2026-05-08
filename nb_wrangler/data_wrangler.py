@@ -9,7 +9,7 @@ from .logger import WranglerLoggable
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
 from .data_manager import RefdataValidator
-from .pantry import NbwShelf, NbwPantry
+from .pantry import NbwPantry
 from .environment import EnvironmentManager
 from . import utils
 
@@ -74,45 +74,6 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
                     f"FAILED Workflow {name} Step {step.__name__}."
                 )
         return self.logger.info("Workflow", name, "completed.")
-
-    def run_data_curation_workflow(self) -> bool:
-        """Execute steps for data curation workflow, defining spec for data."""
-        # These methods are currently in NotebookWrangler but will be moved here.
-        # For now, we assume they are available in this class.
-        return self.run_workflow(
-            "--data-curate",
-            [
-                self.collect,
-                self.download,
-                self.update,
-                self.validate,
-                self.unpack,
-            ],
-        )
-
-    def run_data_reinstall_workflow(self) -> bool:
-        """Execute steps for data curation workflow, defining spec for data."""
-        return self.run_workflow(
-            "--data-reinstall",
-            [
-                self.download,
-                self.validate,
-                self.unpack,
-            ],
-        )
-
-    def run_data_reset_curation(self, delete_repos_func) -> bool:
-        return self.run_workflow(
-            "--data-reset-curation",
-            [
-                delete_repos_func,
-                self.delete,
-                self.reset_spec,
-                self.reset_log_func,  # This one is tricky
-            ],
-        )
-        # Actually, let's keep the workflow definitions in NotebookWrangler for now
-        # and just move the atomic data steps.
 
     def collect(self) -> bool:
         """Collect data from notebook repos."""

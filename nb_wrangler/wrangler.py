@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from typing import Any, Optional
 from collections.abc import Callable
 import copy
 
@@ -17,7 +16,6 @@ from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
 from .registry import RegistryManager
-from .data_manager import RefdataValidator
 from .pantry import NbwPantry
 from .data_wrangler import DataWrangler
 from . import utils
