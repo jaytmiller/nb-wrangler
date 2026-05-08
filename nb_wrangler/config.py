@@ -67,6 +67,7 @@ class WranglerConfig:
     repos_clean: Optional[list[str]] = None
     overwrite_local_changes: bool = False
     stash_local_changes: bool = False
+    use_dirty_repos: bool = False
 
     env_init: bool = False
     env_pack: bool = False
@@ -156,6 +157,7 @@ class WranglerConfig:
             repos_clean=args.repos_clean,
             overwrite_local_changes=args.overwrite_local_changes,
             stash_local_changes=args.stash_local_changes,
+            use_dirty_repos=args.use_dirty_repos,
             finalize_dev_overrides=args.finalize_dev_overrides,
             env_init=args.env_init,
             env_pack=args.env_pack,

@@ -453,6 +453,12 @@ def parse_args():
         dest="stash_local_changes",
         help="In any cloned repo, stash any local, uncommitted changes before matching the requested ref.",
     )
+    repo_update_group.add_argument(
+        "--use-dirty-repos",
+        action="store_true",
+        dest="use_dirty_repos",
+        help="In any cloned repo, use the current state as-is, even if it has local changes or is on a different ref.",
+    )
 
     spec_group = parser.add_argument_group(
         "Spec (nb-wrangler)", "Setup and management of wrangler spec itself."

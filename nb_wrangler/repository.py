@@ -380,8 +380,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             )
             return self.git_stash(repo_name)
 
+        if self.config.use_dirty_repos:
+            self.logger.info(f"Using dirty repository {repo_name} as-is.")
+            return True
+
         while True:
-            prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, or [A]bort? (S/D/A): "
+            prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, [I]gnore (use as-is), or [A]bort? (S/D/I/A): "
             choice = input(prompt).upper()
             if choice == "A":
                 self.logger.error("Operation aborted by user.")
@@ -390,6 +394,9 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 return self.git_stash(repo_name)
             elif choice == "D":
                 return self.git_reset_hard(repo_name)
+            elif choice == "I":
+                self.logger.info(f"Using dirty repository {repo_name} as-is.")
+                return True
 
     def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
         """Ensure a repository is cloned and at the correct, clean ref."""
@@ -400,6 +407,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         if not repo_path.exists():
             return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
+        if self.config.use_dirty_repos:
+            self.logger.info(
+                f"Using existing repository {repo_name} as-is due to --use-dirty-repos."
+            )
+            return True
+
         if not self.is_clean(repo_path):
             self.logger.info(
                 f"Repository {repo_name} is dirty. Attempting auto-clean of default patterns."
@@ -408,6 +421,8 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             if not self.is_clean(repo_path):
                 if not self._handle_dirty_repository(repo_name):
                     return False  # Operation failed or was aborted
+                if not self.is_clean(repo_path):
+                    return True  # User chose to ignore (as-is)
 
         # Now the repo is clean, check if it's on the correct commit
         current_sha = self.get_hash(repo_path)
