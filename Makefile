@@ -259,7 +259,7 @@ clean-other:
 	rm -f common_pip_packages.txt
 	rm -f common_mamba_packages.txt
 	rm -f extra_mamba_packages.txt
-
+	rm -f tests/data-functional/common_pip_packages.txt
 
 lint/flake8: ## check style with flake8
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \
