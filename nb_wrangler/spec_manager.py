@@ -188,7 +188,7 @@ class SpecManager(
         assert re.match(
             r"[a-zA-Z0-9\-_][a-zA-Z0-9\-_\.]{1,128}", self.image_name
         ), "Invalid characters in image_name,  onlow letters, numbers, dashes, underscores, and dots are allowed, and it must be 1-255 characters long.  No leading dots."
-        return self.image_name.replace(" ", "-").lower()  # + "-" + self.kernel_name
+        return self.image_name.replace(" ", "-")  # + "-" + self.kernel_name
 
     @property
     def spec_iteration(self) -> str:

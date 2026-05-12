@@ -159,7 +159,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         """Return the path for a packed environment within the shelf."""
         if not archive_format.startswith("."):
             archive_format = "." + archive_format
-        return self.archive_root / ("env-" + moniker.lower() + archive_format)
+        return self.archive_root / ("env-" + moniker + archive_format)
 
     @property
     def notebook_repos_path(self) -> Path:

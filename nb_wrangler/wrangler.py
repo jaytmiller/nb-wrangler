@@ -236,6 +236,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "--curate",
             [
                 self._prepare_all_repositories,
+                self._spec_add,
                 self._compile_mamba_requirements,
                 self._initialize_environment,
                 self._compile_pip_requirements,
