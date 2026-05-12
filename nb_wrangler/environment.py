@@ -228,9 +228,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         if not isinstance(result, CompletedProcess):
             raise RuntimeError(f"Expected CompletedProcess, got {type(result)}")
         output = ""
-        if result.stderr is not None:
+        if result.stderr is not None and result.stderr.strip():
             output += result.stderr.strip()
-        if result.stdout is not None:
+        if result.stdout is not None and result.stdout.strip():
             output += "\n:::\n" + result.stdout.strip()
         if result.returncode != 0:
             if fail.strip().endswith(":"):
@@ -238,7 +238,8 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             error_func(fail)
             return False
         else:
-            self.logger.info(success)
+            if success.strip():
+                self.logger.info(success)
             if success.strip().endswith(":"):
                 for line in output.splitlines():
                     if line.strip():
