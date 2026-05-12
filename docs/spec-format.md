@@ -88,7 +88,7 @@ Each entry in `repositories` has the following fields:
 ### **dev_overrides**
 This optional top-level section allows developers to temporarily override any top-level sections of the spec for development purposes without modifying the core production-ready configuration.
 
-When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nb-wrangler` will apply these overrides. When `--finalize-dev-overrides` is used, this section is removed.
+When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nbw` will apply these overrides. When `--finalize-dev-overrides` is used, this section is removed.
 
 The structure of `dev_overrides` mirrors the top-level sections it intends to override. For example, to override `repositories` (including `url` for forked development), `refdata_dependencies`, and `system.spi`:
 
@@ -152,7 +152,7 @@ A list of additional pip packages required specifically by your curated kernel e
 A list of additional pip packages required by your curated kernel environment that are *also* required by the science platform's base environment. When using SPI injection (`--inject-spi`), these packages are written to `common-hints.pip` to ensure they are available across all environments in the image.
 
 ### **system**
-This section contains specifications for the system environment. It is updated by nb-wrangler automatically and should rarely need curator updates.
+This section contains specifications for the system environment. It is updated by `nbw` automatically and should rarely need curator updates.
 
    - **spec_version**: The version of the specification being used (e.g., `1.0`).
    - **archive_format**: The format used for archiving environments (e.g., `.tar`).
@@ -163,7 +163,7 @@ This section contains specifications for the system environment. It is updated b
    - **spi**: A dictionary specifying the Science Platform Images (SPI) repository to use.
      - **repo**: The URL of the git repository.
      - **ref**: (Optional) The branch, tag, or commit hash to use. Defaults to the repository's default branch.
-   - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking. It is added by `nb-wrangler`.
+   - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking. It is added by `nbw`.
    - **date_updated**: The timestamp when the spec was last updated.
 
 

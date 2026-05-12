@@ -87,8 +87,7 @@ is intended only to support the tool itself.
 ##### `wget` is needed for Data Handling
 
 The data download mechanisms in nb-wrangler utilize `wget` under the hood to fetch data URL's. If
-your system does not already have it installed,  you need to install it before you can curate or
-reinstall data.  On Linux (including the science platforms) `wget` is almost certainly there but
+your system does not already have it installed,  you need to install it before you can do much.  On Linux (including the science platforms) `wget` is almost certainly there but
 if not it should be an easy package install.   On OS-X `wget` is an easy install via `brew` and also
 via `mamba`.  Before working on data tasks, it's worth verifying `wget` is available on your PATH.
 
@@ -101,7 +100,7 @@ instructions for doing in-situ development of platform environments using nb-wra
 
 ## How It Works
 
-The `nb-wrangler` workflow is divided into two main phases: **curation** and **reinstallation**.
+The `nb-wrangler` workflow is divided into two main phases: **curation** and **reinstallation**.   Throughout the examples below you'll see the command **`nbw`** which is the modern pre-installed method of running `nb-wrangler` vs. manually installing the command `nb-wrangler`.
 
 ### Phase 1: Curation
 
@@ -123,16 +122,16 @@ The main curation workflows are:
 Example:
 ```bash
 # Curate the software environment
-./nb-wrangler spec.yaml --curate
+nbw spec.yaml --curate
 
 # Test environment basics rapidly
-./nb-wrangler spec.yaml --test-imports
+nbw spec.yaml --test-imports
 
 # Curate the data dependencies
-./nb-wrangler spec.yaml --data-curate
+nbw spec.yaml --data-curate
 
 # Run each notebook headless using papermill
-./nb-wrangler spec.yaml --test-notebooks
+nbw spec.yaml --test-notebooks
 
 # Activate your new "target" environment!  Here kernel-name == mamba environment you are curating
 source ./nb-wrangler activate <your-kernel-name>
@@ -161,13 +160,13 @@ The main reinstallation workflows are:
 Example:
 ```bash
 # Reinstall the software environment
-./nb-wrangler spec.yaml --reinstall
+nbw spec.yaml --reinstall
 
 # Reinstall the data
-./nb-wrangler spec.yaml --data-reinstall
+nbw spec.yaml --data-reinstall
 
 # Run both import and notebook tests
-./nb-wrangler spec.yaml --test-all
+nbw spec.yaml --test-all
 
 # Activate your new "target" environment!  Here kernel-name == mamba environment you are curating
 source ./nb-wrangler activate <your-kernel-name>
@@ -202,7 +201,7 @@ See the [SPI Injection documentation](docs/inject-spi.md) for more details.
 
 ## Configuration Options
 
-`nb-wrangler` provides a wide range of command-line options to customize its behavior. Here are some of the most common ones, grouped by function:
+`nbw` provides a wide range of command-line options to customize its behavior. Here are some of the most common ones, grouped by function:
 
 ### Workflows
 
@@ -290,7 +289,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--log-times`: Configure timestamps in log messages.
 - `--color`: Colorize log output.
 
-For a full list of options, run `./nb-wrangler --help`.
+For a full list of options, run `nbw --help`.
 
 
 ## Input Formats
@@ -314,3 +313,4 @@ Secondary goals,  include but are not limited to:
 - Building Docker images for curators or science platform admins or pipelines.
 - Testiing environments (importing all requested package) and notebooks.
 - Automating any/all of these tasks for notebook repos / curators and the science platforms.
+.

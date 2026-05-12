@@ -70,13 +70,13 @@ The core of the automation is the `curate-reusable.yml` workflow. This workflow 
     *   It executes `./nb-wrangler bootstrap nbw-wrangler-spec.yaml`, automatically resolving and installing the correct tool version.
 
 3.  **Automated Curation:**
-    *   Runs `nb-wrangler --curate`.
+    *   Runs `nbw --curate`.
     *   Scans all notebooks for imports.
     *   Compiles strict lock-files for `pip` and `mamba` dependencies.
     *   Updates the spec with the "frozen" state of the environment.
 
 4.  **SPI Injection:**
-    *   Runs `nb-wrangler --inject-spi`.
+    *   Runs `nbw --inject-spi`.
     *   Clones the `science-platform-images` repo.
     *   Injects the curated requirements (pip requirements, mamba specs) into the SPI build context.
 
@@ -86,7 +86,7 @@ The core of the automation is the `curate-reusable.yml` workflow. This workflow 
 
 6.  **Verification:**
     *   **Scan:** Runs security scans (e.g., Trivy) on the built image.
-    *   **Test:** Executes `nb-wrangler --test-notebooks` *inside* the built container to verify that every notebook runs correctly in the final environment.
+    *   **Test:** Executes `nbw --test-notebooks` *inside* the built container to verify that every notebook runs correctly in the final environment.
 
 7.  **Publish:**
     *   Pushes the verified images to the container registry (GHCR).

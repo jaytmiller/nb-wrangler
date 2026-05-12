@@ -246,8 +246,8 @@ As part of curation, `nb-wrangler` captures the length and SHA256 hash of each a
 ### Example --data-curate
 
 ```bash
-../../nb-wrangler data-test-spec.yaml --data-reset-spec && \
-../../nb-wrangler data-test-spec.yaml --data-curate --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
+nbw data-test-spec.yaml --data-reset-spec && \
+nbw data-test-spec.yaml --data-curate --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml
 INFO: 00:00:00.000 Running explicitly selected steps, if any.
 INFO: 00:00:00.000 Running step _data_reset_spec
@@ -388,7 +388,7 @@ Environment configuration is achieved through a combination of bash scripts (whi
 ### Example --data-reinstall
 
 ```bash
-../../nb-wrangler data-test-spec.yaml --data-reinstall --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
+nbw data-test-spec.yaml --data-reinstall --data-select 'pandeia|stpsf|other-spectra_multi_v2_sed'
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/tests/data-functional/data-test-spec.yaml
 INFO: 00:00:00.000 Running workflows {self.config.workflows}.
 INFO: 00:00:00.000 Running data download / validation / unpacking workflow
@@ -513,7 +513,7 @@ In addition to kernel registration, `nb-wrangler` generates "exports" files name
 For data curation there are a variety of commands you can issue that can help recover from errors or failures:
 
 ```sh
-nb-wrangler spec.yaml --data-reset-spec [--data-delete both] [--data-select regex] [--delete-repos] [--reset-log]
+nbw spec.yaml --data-reset-spec [--data-delete both] [--data-select regex] [--delete-repos] [--reset-log]
 ```
 
 In particular, data downloading and unpacking can both be time consuming and more prone to failure

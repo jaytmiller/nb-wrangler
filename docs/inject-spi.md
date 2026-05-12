@@ -27,7 +27,7 @@ Additionally, for practical application, you will need:
 The base injection command is straightforward:
 
 ```bash
-$ nb-wrangler --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml
+$ nbw --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/tike-2025-07-beta.yaml
 INFO: 00:00:00.035 Running explicitly selected steps, if any.
 INFO: 00:00:00.000 Running step _clone_repos
@@ -63,7 +63,7 @@ INFO: 00:00:00.000 Elapsed: 00:00:07
 To fully automate the SPI injection process, including pushing changes and creating a Pull Request on GitHub, you can use the `--spi-push` and `--spi-pr` flags:
 
 ```bash
-$ nb-wrangler --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml --spi-push --spi-pr
+$ nbw --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml --spi-push --spi-pr
 ```
 
 This command will:
@@ -75,7 +75,7 @@ This command will:
 
 **GitHub Authentication (`gh auth login`)**
 
-To enable `nb-wrangler` to push branches and create Pull Requests on GitHub, you must first authenticate the GitHub CLI (`gh`). You can do this by running:
+To enable `nbw` to push branches and create Pull Requests on GitHub, you must first authenticate the GitHub CLI (`gh`). You can do this by running:
 
 ```bash
 gh auth login
@@ -83,8 +83,8 @@ gh auth login
 
 Follow the prompts to authenticate using your GitHub account. A standard GitHub CLI token will work.
 
-**NOTE:** Because `nb-wrangler` aggressively deletes repository clones, we set `--repos-dir spi-references` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nb-wrangler` from attempting to delete it when you perform other unrelated activities.  The default `--repos-dir` is `references` located relative to
-whereever you run nb-wrangler.
+**NOTE:** Because `nbw` aggressively deletes repository clones, we set `--repos-dir spi-references` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nbw` from attempting to delete it when you perform other unrelated activities.  The default `--repos-dir` is `references` located relative to
+whereever you run `nbw`.
 
 The final result of the injection is available in the subdirectory `spi-references/science-platform-images`, as demonstrated by the following `git status` output:
 

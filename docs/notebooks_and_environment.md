@@ -15,10 +15,10 @@ Science Platform environment.
 
 ## Notebook and Environment Curation
 
-Once the curator's inputs are specified,  *run nb-wrangler* like this:
+Once the curator's inputs are specified,  *run nbw* like this:
 
 ```bash
-./nb-wrangler sample-specs/roman-20.0.0.yaml --curate
+nbw sample-specs/roman-20.0.0.yaml --curate
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml
 INFO: 00:00:00.017 Running workflows ['curation'].
 INFO: 00:00:00.000 Running spec development / curation workflow
@@ -80,7 +80,7 @@ without the risk of recomputing something different.
 As a quick check on the built environment you can try out the notebook imports with `--test-imports`:
 
 ```sh
-./nb-wrangler sample-specs/roman-20.0.0.yaml --test-imports
+nbw sample-specs/roman-20.0.0.yaml --test-imports
 
 INFO: 00:00:00.000 Loading and validating spec sample-specs/roman-20.0.0.yaml
 INFO: 00:00:00.037 Running any explicitly selected steps.
@@ -182,7 +182,7 @@ Once the environment is built successfully and any required data is installed,
 you can automatically run all of the notebooks headlessly with:
 
 ```sh
-./nb-wrangler fnc-test-spec.yaml --test-notebooks
+nbw fnc-test-spec.yaml --test-notebooks
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
 INFO: 00:00:00.032 Running any explicitly selected steps.
 INFO: 00:00:00.000 Running step _test_notebooks
@@ -242,13 +242,13 @@ The `--test-notebooks` flag (and consequently `-t`, `--test-all`, and `--test-im
 For example, to run all notebooks with "tess" in their name:
 
 ```sh
-./nb-wrangler fnc-test-spec.yaml --test-notebooks ".*tess.*"
+nbw fnc-test-spec.yaml --test-notebooks ".*tess.*"
 ```
 
 To test imports only for notebooks with "roman" in their path:
 
 ```sh
-./nb-wrangler sample-specs/roman-20.0.0.yaml --test-imports ".*roman.*"
+nbw sample-specs/roman-20.0.0.yaml --test-imports ".*roman.*"
 ```
 
 ## Advanced Environments
@@ -410,7 +410,7 @@ At some later time and/or different location you can re-install a wrangler spec 
 using `--curate` as follows:
 
 ```sh
-./nb-wrangler fnc-test-spec.yaml --reinstall
+nbw fnc-test-spec.yaml --reinstall
 INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/fnc-test-spec.yaml
 INFO: 00:00:00.038 Running workflows ['reinstall'].
 INFO: 00:00:00.000 Running install-compiled-spec workflow
@@ -506,7 +506,7 @@ would otherwise short circuit the required repeat work as "already performed".
 Environment curation can be reset like this:
 
 ```sh
-nb-wrangler spec.yaml --reset-curation [--delete-repos]
+nbw spec.yaml --reset-curation [--delete-repos]
 ```
 
 This results in resetting the spec, deleting the environment, clearing package
@@ -519,6 +519,6 @@ get a robust update of upstream changes.
 The `--env-kernel-cleanup` flag scans the user's Jupyter kernel registry for "dead" kernels—those pointing to non-existent environments—and removes them. This helps maintain a clean and functional Jupyter environment.
 
 ```sh
-./nb-wrangler my-spec.yaml --env-kernel-cleanup
+nbw my-spec.yaml --env-kernel-cleanup
 ```
 
