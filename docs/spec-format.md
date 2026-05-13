@@ -88,7 +88,7 @@ Each entry in `repositories` has the following fields:
 ### **dev_overrides**
 This optional top-level section allows developers to temporarily override any top-level sections of the spec for development purposes without modifying the core production-ready configuration.
 
-When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nbw` will apply these overrides. When `--finalize-dev-overrides` is used, this section is removed.
+When the `--dev` CLI flag is used (or implicitly activated for curation workflows), `nbw` will apply these overrides. When the `--prod` flag is used, these overrides are explicitly ignored. When `--finalize-dev-overrides` is used, this section is removed.
 
 The structure of `dev_overrides` mirrors the top-level sections it intends to override. For example, to override `repositories` (including `url` for forked development), `refdata_dependencies`, and `system.spi`:
 

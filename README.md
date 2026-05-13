@@ -189,6 +189,7 @@ To streamline development with custom branches without altering your core `spec.
 
 - The `dev_overrides` section in `spec.yaml` allows you to temporarily specify development branches for repositories.
 - Use the `--dev` flag (or rely on implicit activation for curation workflows) to apply these overrides.
+- Use the `--prod` flag to explicitly disable these overrides and force production settings.
 - Use `--finalize-dev-overrides` to remove the `dev_overrides` section when preparing for production.
 
 For more details, see the [Spec Format documentation](docs/spec-format.md).

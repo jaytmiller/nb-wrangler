@@ -194,8 +194,12 @@ class SpecManager(
     @property
     def spec_iteration(self) -> str:
         """Determine the spec iteration (dev or prod) based on the presence of dev_overrides and the config."""
-        iteration = self._spec.get("dev_overrides", {}).get("repositories") or {}
-        return "dev" if iteration else "prod"
+        if not self.config.dev:
+            return "prod"
+        # If dev mode is enabled and dev_overrides exists with any content, it's a dev iteration
+        if "dev_overrides" in self._spec and self._spec["dev_overrides"]:
+            return "dev"
+        return "prod"
 
     @property
     def valid_range(self) -> str:

@@ -99,6 +99,7 @@ class WranglerConfig:
     inject_spi: bool = False
     dev: bool = False
     _dev_explicitly_set: bool = False
+    prod: bool = False
     submit_for_build: bool = False
 
     spec_reset: bool = False
@@ -184,6 +185,7 @@ class WranglerConfig:
             inject_spi=args.inject_spi,
             dev=args.dev,
             _dev_explicitly_set=args.dev,
+            prod=args.prod,
             spec_reset=args.spec_reset,
             spec_validate=args.spec_validate,
             spec_ignore_hash=args.spec_ignore_hash,

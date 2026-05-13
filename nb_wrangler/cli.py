@@ -162,10 +162,16 @@ def parse_args():
         "Development Overrides",
         "Flags for managing development-specific overrides in the spec.",
     )
-    dev_group.add_argument(
+    dev_mode_group = dev_group.add_mutually_exclusive_group()
+    dev_mode_group.add_argument(
         "--dev",
         action="store_true",
         help="Enable development overrides defined in the spec. (Implicit for some workflows).",
+    )
+    dev_mode_group.add_argument(
+        "--prod",
+        action="store_true",
+        help="Force production mode, disabling any development overrides.",
     )
 
     env_group = parser.add_argument_group(

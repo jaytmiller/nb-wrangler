@@ -4,9 +4,9 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.7.10"
+__version__ = "0.8.0"
 
-WRANGLER_SPEC_VERSION = 2.1
+WRANGLER_SPEC_VERSION = 2.2
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))

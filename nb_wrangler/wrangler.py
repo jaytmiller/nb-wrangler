@@ -176,8 +176,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _apply_dev_mode_defaults(self):
         """
         Applies implicit --dev settings based on the active workflow.
-        Explicit --dev/--no-dev flags will always override these defaults.
+        Explicit --dev/--prod flags will always override these defaults.
         """
+        if self.config.prod:
+            self.config.dev = False
+            self.logger.info(
+                "Production mode forced by --prod switch. Development overrides disabled."
+            )
+            return
+
         # Determine if dev_overrides exist in the spec
         dev_overrides_exist = self.spec_manager.dev_overrides_exist()
 
