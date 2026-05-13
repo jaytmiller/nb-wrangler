@@ -13,7 +13,7 @@ image_spec_header:
 repositories:
   roman_notebooks:
     url: https://github.com/spacetelescope/roman_notebooks.git
-    ref: dev
+    ref: ${ROMAN_NOTEBOOKS_TAG:-main}
 
 system:
   spec_version: 2.1
@@ -25,8 +25,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-05T16:37:07.207951'
-  spec_sha256: ad741097df6d3a9556915b999c9f6181c0c84a1a116b942b9bccbcf92a693349
+  date_updated: '2026-05-13T17:16:27.297453'
+  spec_sha256: b896867451f8894b74be249c2ee28691ddfefa6effb55db549d19568e54dae5b
 
 selected_notebooks:
   roman_all:
@@ -56,7 +56,7 @@ dev_overrides:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: dev
+      ref: ${ROMAN_NOTEBOOKS_TAG-dev}
 
 extra_mamba_packages:
   - pip

@@ -1,3 +1,4 @@
+import os
 import os.path
 import re
 import datetime
@@ -617,7 +618,8 @@ class SpecManager(
         """Get repository URLs mapped to their refs from the spec."""
         self._ensure_validated()
         return {
-            repo["url"]: repo.get("ref", "main") for repo in self.repositories.values()
+            repo["url"]: utils.resolve_vars(repo.get("ref", "main"), dict(os.environ))
+            for repo in self.repositories.values()
         }
 
     def get_output_repository_refs(self) -> dict[str, str | None]:

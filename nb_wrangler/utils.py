@@ -381,12 +381,32 @@ def resolve_vars(template: str, mapping: dict[str, str]) -> str:
     resolved = "The path is /home/user/project/alice"
 
     Supports $, ${}, and {} variable references.
+    Also supports bash-style default values: ${VAR:-default}
 
     returns (fully resolved template with respect to mapping)
     """
+
+    def _replacer(m):
+        # group(1): $VAR
+        # group(2): ${VAR} or ${VAR:-default}
+        # group(3): default value from group(2)
+        # group(4): {VAR}
+        var_name = m.group(1) or m.group(2) or m.group(4)
+        default = m.group(3)
+        val = mapping.get(var_name)
+
+        # In bash ${VAR:-default} uses default if VAR is unset OR empty.
+        # Here we check if val is None (unset) or empty string.
+        if val:
+            return val
+        if default is not None:
+            return default
+        # If no value and no default, return the original match (or empty string if we want to be strict)
+        return val if val is not None else m.group(0)
+
     return re.sub(
-        r"\$(\w+)|\${(\w+)}|{(\w+)}",
-        lambda m: mapping.get(m.group(1) or m.group(2) or m.group(3), m.group(0)),
+        r"\$(\w+)|\${(\w+)(?::-([^}]*))?}|{(\w+)}",
+        _replacer,
         template,
     )
 
