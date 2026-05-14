@@ -173,6 +173,11 @@ def parse_args():
         action="store_true",
         help="Force production mode, disabling any development overrides.",
     )
+    dev_group.add_argument(
+        "--finalize-dev-overrides",
+        action="store_true",
+        help="Deactivate the 'dev_overrides' section from the spec file.",
+    )
 
     env_group = parser.add_argument_group(
         "Environment",
@@ -531,11 +536,6 @@ def parse_args():
         action="store_true",
         dest="spec_ignore_hash",
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
-    )
-    spec_group.add_argument(
-        "--finalize-dev-overrides",
-        action="store_true",
-        help="Remove the 'dev_overrides' section from the spec file.",
     )
 
     misc_group = parser.add_argument_group("Miscellaneous", "Global wrangler settings.")

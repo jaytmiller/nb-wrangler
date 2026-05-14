@@ -3,7 +3,7 @@
 - **Development Overrides (`dev_overrides` and `--dev`, `--finalize-dev-overrides`):**
   - Introduced an optional `dev_overrides` section in `spec.yaml` to allow temporary overrides of repository references for development purposes.
   - `--dev` flag (implicitly activated for curation workflows) enables the application of `dev_overrides`.
-  - `--finalize-dev-overrides` flag removes the `dev_overrides` section, preparing the spec for production.
+  - `--finalize-dev-overrides` flag deactivates the `dev_overrides` section, preparing the spec for production.
 
 - **Enhanced SPI Automation (`--spi-branch`, `--spi-commit-message`, `--spi-build`, `--spi-prune`, `--spi-push`, `--spi-pr`):**
   - Expanded the `--inject-spi` workflow with flags to automate Git operations (branching, committing, pushing, PR creation) and Docker image management (pruning and building).

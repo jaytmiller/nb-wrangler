@@ -440,13 +440,13 @@ class SpecManager(
         return True
 
     def finalize_dev_overrides(self) -> bool:
-        """Remove the 'dev_overrides' section from the spec file."""
+        """Deactivate the 'dev_overrides' section from the spec file."""
         if "dev_overrides" in self._spec:
             self.logger.info("Deactivating 'dev_overrides' section of spec.")
             overrides = self._spec.pop("dev_overrides")
             self._spec["deactivated_dev_overrides"] = overrides
             return self.save_spec_as(self._source_file, add_sha256=True)
-        return self.logger.info("No 'dev_overrides' section found to remove.")
+        return self.logger.info("No 'dev_overrides' section found to deactivate.")
 
     # ---------------------------- hashes, crypto ----------------------------------
 
