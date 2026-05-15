@@ -2,6 +2,17 @@ name: NB-Wrangler Reusable Curation
 
 on:
   workflow_dispatch:
+    inputs:
+      spec_file:
+        description: 'The path to the wrangler spec file in the notebook repo'
+        required: false
+        type: string
+        default: 'nbw-wrangler-spec.yaml'
+      wrangler_ref:
+        description: 'The branch/tag/ref of nb-wrangler to use for the tool'
+        required: false
+        type: string
+        default: 'main'
   workflow_call:
     inputs:
       spec_file:

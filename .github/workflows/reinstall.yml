@@ -31,8 +31,8 @@ defaults:
     shell: bash
 
 jobs:
-  nb-wrangler-curate:
-    name: NB-Wrangler Curate
+  nb-wrangler-reinstall:
+    name: Production Reinstall
     runs-on: 'ubuntu-24.04'
     permissions:
       contents: read
@@ -81,7 +81,7 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
           source ./nb-wrangler environment
-          nbw --spec-validate
+          ./nb-wrangler --spec-validate
 
       - name: Set up workflow env vars
         run: |
@@ -92,12 +92,12 @@ jobs:
           echo IMAGE_ROOT=$IMAGE_ROOT >> $GITHUB_ENV
 
           # Full repo path of degenerate spec-only image, including tag
-          export SPEC_TAG=$(nbw --spec-name 2>/dev/null )_$GITHUB_RUN_NUMBER
+          export SPEC_TAG=$(./nb-wrangler --spec-name 2>/dev/null )_$GITHUB_RUN_NUMBER
           echo SPEC_TAG=$SPEC_TAG >> $GITHUB_ENV
           echo SPEC_IMAGE_ID=${IMAGE_ROOT}:${SPEC_TAG} >> $GITHUB_ENV
 
           # Full repo path of executable image, including tag
-          export IMAGE_TAG=$(nbw --spi-image-name 2>/dev/null )_$GITHUB_RUN_NUMBER
+          export IMAGE_TAG=$(./nb-wrangler --spi-image-name 2>/dev/null )_$GITHUB_RUN_NUMBER
           echo IMAGE_TAG=$IMAGE_TAG  >> $GITHUB_ENV
           echo IMAGE_ID=${IMAGE_ROOT}:${IMAGE_TAG} >> $GITHUB_ENV
 
@@ -138,8 +138,8 @@ jobs:
         run: |
           set -x
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          nbw --finalize-dev-overrides
-          nbw --prod --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
+          ./nb-wrangler --finalize-dev-overrides
+          ./nb-wrangler --prod --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
           docker image ls
           docker tag notebook-${SPEC_DEPLOYMENT}:latest   ${IMAGE_ID}
           docker push ${IMAGE_ID}
@@ -148,7 +148,7 @@ jobs:
       - name: Scan Image (disabled?)
         run: |
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          nbw --prod --clone-repos --repos-dir /tmp/references
+          ./nb-wrangler --prod --clone-repos --repos-dir /tmp/references
           cd /tmp/references/science-platform-images
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
@@ -157,7 +157,7 @@ jobs:
       - name: Test imports for native environment
         run: |
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-            nbw --test-imports --test-copy-shared ../../shared
+            ./nb-wrangler --test-imports --test-copy-shared ../../shared
 
       - name: Test notebooks inside image
         run: |
@@ -168,5 +168,5 @@ jobs:
           # make dirs globally writable since uid/gid inside Docker may not match outside
           chmod -R 777 ${HOME}/crds_cache
           chmod -R 777 ${NBW_PANTRY}
-          nbw --data-resinstall
+          ./nb-wrangler --data-resinstall
           image-test --test-notebooks
