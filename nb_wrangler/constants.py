@@ -66,6 +66,10 @@ VALID_ARCHIVE_FORMATS = [
 # nbw-exports.sh and kernel values will be from refdata_dependencies.yaml vs. relative to pantry shelf
 DEFAULT_DATA_ENV_VARS_MODE = "spec"
 
+# Registry defaults
+DEFAULT_REGISTRY = "ghcr.io"
+DEFAULT_PROJECT = "spacetelescope/nb-wrangler"
+
 # Notebook testing constants
 NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 4 * 60 * 60))  # 60 min
 NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))

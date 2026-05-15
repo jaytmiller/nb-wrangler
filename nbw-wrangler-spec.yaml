@@ -25,8 +25,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-13T17:52:25.025509'
-  spec_sha256: 7df0dcaa9ca3bf557fe323c4cadf8f9b602cb1a1f7b385c2f09ff8973352e95a
+  date_updated: '2026-05-15T11:08:21.851323'
+  spec_sha256: 8e8126fd6988fb0d43b65c2b61c8bf7a13ac9715de6841ed921eebe4c871ea39
 
 selected_notebooks:
   roman_all:
@@ -56,7 +56,7 @@ dev_overrides:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: ${ROMAN_NOTEBOOKS_TAG-dev}
+      ref: ${ROMAN_NOTEBOOKS_TAG:-dev}
 
 extra_mamba_packages:
   - pip
@@ -133,19 +133,20 @@ out:
       STPSF_PATH: ${HOME}/refdata/stpsf-data
       stips_data: ${HOME}/refdata/stips_data
       PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-      CRDS_SERVER_URL: https://roman-crds.stsci.edu
-      CRDS_CONTEXT: roman_0048.pmap
-      CRDS_PATH: ${HOME}/crds_cache
+      CRDS_SERVER_URL: ${CRDS_SERVER_URL:-https://roman-crds.stsci.edu}
+      CRDS_CONTEXT: ${CRDS_CONTEXT:-roman_0048.pmap}
+      CRDS_PATH: ${CRDS_PATH:-${HOME}/crds_cache}
     pantry_exports:
       pandeia_refdata: 
-        ${NBW_PANTRY}/shelves/roman-22.0.0/data/pandeia_data-2026.1-roman
-      PSF_DIR: ${NBW_PANTRY}/shelves/roman-22.0.0/data/pandeia_psfs-2026.1-roman
-      STPSF_PATH: ${NBW_PANTRY}/shelves/roman-22.0.0/data/stpsf-data
-      stips_data: ${NBW_PANTRY}/shelves/roman-22.0.0/data/stips_data
-      PYSYN_CDBS: ${NBW_PANTRY}/shelves/roman-22.0.0/data/grp/redcat/trds
-      CRDS_SERVER_URL: https://roman-crds.stsci.edu
-      CRDS_CONTEXT: roman_0048.pmap
-      CRDS_PATH: ${HOME}/crds_cache
+        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_data-2026.1-roman
+      PSF_DIR: 
+        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_psfs-2026.1-roman
+      STPSF_PATH: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stpsf-data
+      stips_data: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stips_data
+      PYSYN_CDBS: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/grp/redcat/trds
+      CRDS_SERVER_URL: ${CRDS_SERVER_URL:-https://roman-crds.stsci.edu}
+      CRDS_CONTEXT: ${CRDS_CONTEXT:-roman_0048.pmap}
+      CRDS_PATH: ${CRDS_PATH:-${HOME}/crds_cache}
     metadata:
       roman_notebooks/pandeia_data/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
         size: '17365154'
@@ -189,11 +190,11 @@ out:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: 88caaca09b870245626db70d4b2c23018d5bbe62
+      ref: ec76705dae15ca0b30007cb4a5a924070f608c46
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: effcd1b315d3f94684098d4372c9fa448a4dc6fc
+    ref: 7b78d45a37cc55a65a970e988513d8f0d8a43d13
   test_notebooks:
     references/roman_notebooks/notebooks/aperture_photometry/aperture_photometry.ipynb: 
       roman_all
