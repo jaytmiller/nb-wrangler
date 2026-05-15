@@ -16,7 +16,7 @@ jobs:
             await github.rest.actions.createWorkflowDispatch({
               owner: context.repo.owner,
               repo: 'nb-wrangler',
-              workflow_id: 'curate-reusable.yml',
+              workflow_id: 'curate.yml',
               ref: ref,
               inputs: {
                 version: context.sha,
