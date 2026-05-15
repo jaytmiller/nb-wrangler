@@ -7,7 +7,7 @@ Science Platform environment.
  The current process is to *define the spec*:
 
 - Bootstrap and/or install nb-wrangler
-- Copy an existing wrangler spec from the same project. See sample-specs.
+- Copy an existing wrangler spec from the same project. See specs/samples.
 - Update the header section of the spec.
 - Add repo and notebook selection information to the selected_notebooks section.
 - Add any extra mamba packages or mamba version constraints;  minimize these to those not available by pip
@@ -18,8 +18,8 @@ Science Platform environment.
 Once the curator's inputs are specified,  *run nbw* like this:
 
 ```bash
-nbw sample-specs/roman-20.0.0.yaml --curate
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml
+nbw specs/samples/roman-20.0.0.yaml --curate
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/specs/samples/roman-20.0.0.yaml
 INFO: 00:00:00.017 Running workflows ['curation'].
 INFO: 00:00:00.000 Running spec development / curation workflow
 INFO: 00:00:00.000 Running step _clone_repos.
@@ -37,18 +37,18 @@ INFO: 00:00:00.000 Found time_domain_simulations.ipynb under references/roman_no
 INFO: 00:00:00.000 Found 7 notebooks in all notebook repositories.
 INFO: 00:00:00.000 Processing 7 unique notebooks for imports.
 INFO: 00:00:00.002 Extracted 27 package imports from 7 notebooks.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/specs/samples/roman-20.0.0.yaml.
 INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/roman-20.0.0.yaml.
 INFO: 00:00:00.025 Running step _compile_requirements.
 INFO: 00:00:00.000 Generating mamba spec for target environment /home/ai/.nbw-live/temps/roman-20.0.0-roman-cal-mamba.yml.
 INFO: 00:00:00.000 Found SPI extra 1 mamba requirements files.
-INFO: 00:00:00.001 Revising spec file /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml.
+INFO: 00:00:00.001 Revising spec file /home/ai/nb-wrangler/specs/samples/roman-20.0.0.yaml.
 INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/roman-20.0.0.yaml.
 INFO: 00:00:00.028 Found 7 notebook requirements.txt files.
 INFO: 00:00:00.000 Found SPI extra 6 pip requirements files.
 INFO: 00:00:00.000 w/o hashes.
 INFO: 00:00:02.325 Compiled combined pip requirements to 366 package versions.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/specs/samples/roman-20.0.0.yaml.
 INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/roman-20.0.0.yaml.
 INFO: 00:00:00.063 Running step _initialize_environment.
 INFO: 00:00:00.009 Creating environment: roman-cal
@@ -60,7 +60,7 @@ INFO: 00:00:00.000 Installing packages from: ['/home/ai/.nbw-live/temps/roman-20
 INFO: 00:00:21.266 Package installation for roman-cal completed successfully.
 INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/mm/envs/roman-cal/roman-20.0.0.yaml.
 INFO: 00:00:00.057 Running step _save_final_spec.
-INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/sample-specs/roman-20.0.0.yaml.
+INFO: 00:00:00.000 Saving spec file to /home/ai/nb-wrangler/specs/samples/roman-20.0.0.yaml.
 INFO: 00:00:00.058 Saving spec file to /home/ai/.nbw-pantry/shelves/roman-20.0.0-roman-cal/nbw-wranger-spec.yaml.
 INFO: 00:00:00.063 Workflow spec development / curation completed.
 INFO: 00:00:00.000 Running any explicitly selected steps.
@@ -80,9 +80,9 @@ without the risk of recomputing something different.
 As a quick check on the built environment you can try out the notebook imports with `--test-imports`:
 
 ```sh
-nbw sample-specs/roman-20.0.0.yaml --test-imports
+nbw specs/samples/roman-20.0.0.yaml --test-imports
 
-INFO: 00:00:00.000 Loading and validating spec sample-specs/roman-20.0.0.yaml
+INFO: 00:00:00.000 Loading and validating spec specs/samples/roman-20.0.0.yaml
 INFO: 00:00:00.037 Running any explicitly selected steps.
 INFO: 00:00:00.000 Running step _test_imports
 INFO: 00:00:00.000 Testing imports by notebook for 7 notebooks...
@@ -248,7 +248,7 @@ nbw fnc-test-spec.yaml --test-notebooks ".*tess.*"
 To test imports only for notebooks with "roman" in their path:
 
 ```sh
-nbw sample-specs/roman-20.0.0.yaml --test-imports ".*roman.*"
+nbw specs/samples/roman-20.0.0.yaml --test-imports ".*roman.*"
 ```
 
 ## Advanced Environments

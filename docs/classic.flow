@@ -9,7 +9,7 @@ broken down into three main aspects:
 ## Curating the notebook spec
 
 1. The curator clones an existing spec (see nb-wrangelr prod-specs
-and/or nb-wrangler/sample-specs), updates meta data, and defines
+and/or nb-wrangler/specs/samples), updates meta data, and defines
 the notebool repos and selected notebooks.
 The wrangler scrapes a collection of notebook repos for the
 package requirements needed to run specified notebooks;  typically

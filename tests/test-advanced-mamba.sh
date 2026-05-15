@@ -22,7 +22,7 @@ source "$NBW_CMD" environment
 
 echo "--- TESTING INLINE (CONCATENATED) SPEC ---"
 # 2. Run curation for inline spec
-$NBW_CMD sample-specs/inline-mamba-spec.yaml --curate
+$NBW_CMD specs/samples/inline-mamba-spec.yaml --curate
 
 # 3. Verify packages for inline spec
 #    - python=3.9 (base)
@@ -43,11 +43,11 @@ echo "--- INLINE SPEC TEST PASSED ---"
 
 # 4. Clean up the inline environment
 $NBW_CMD deactivate
-$NBW_CMD sample-specs/inline-mamba-spec.yaml --env-delete
+$NBW_CMD specs/samples/inline-mamba-spec.yaml --env-delete
 
 echo "--- TESTING URI (LOCAL FILE) SPEC ---"
 # 5. Run curation for URI spec
-$NBW_CMD sample-specs/uri-mamba-spec.yaml --curate
+$NBW_CMD specs/samples/uri-mamba-spec.yaml --curate
 
 # 6. Verify packages for URI spec
 #    - python=3.10 (base)
@@ -67,7 +67,7 @@ echo "--- URI SPEC TEST PASSED ---"
 
 # 7. Final cleanup
 source $NBW_CMD deactivate
-$NBW_CMD sample-specs/uri-mamba-spec.yaml --env-delete
+$NBW_CMD specs/samples/uri-mamba-spec.yaml --env-delete
 
 # rm -rf "$NBW_ROOT"
 

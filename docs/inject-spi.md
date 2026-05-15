@@ -27,8 +27,8 @@ Additionally, for practical application, you will need:
 The base injection command is straightforward:
 
 ```bash
-$ nbw --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/sample-specs/tike-2025-07-beta.yaml
+$ nbw --clone --repos-dir spi-references --inject-spi specs/samples/tike-2025-07-beta.yaml
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/specs/samples/tike-2025-07-beta.yaml
 INFO: 00:00:00.035 Running explicitly selected steps, if any.
 INFO: 00:00:00.000 Running step _clone_repos
 INFO: 00:00:00.000 Setting up repository clones.
@@ -41,7 +41,7 @@ INFO: 00:00:01.493 Successfully cloned repository to spi-references/tike_content
 INFO: 00:00:00.003 Found 8 notebooks in all notebook repositories.
 INFO: 00:00:00.000 Processing 8 unique notebooks for imports.
 INFO: 00:00:00.001 Extracted 7 package imports from 8 notebooks.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/sample-specs/tike-2025-07-beta.yaml.
+INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/specs/samples/tike-2025-07-beta.yaml.
 INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/tike-2025-07-beta.yaml.
 INFO: 00:00:00.057 Running step inject
 INFO: 00:00:00.000 Initiating SPI injection into spi-references/science-platform-images for tike kernel tess...
@@ -63,7 +63,7 @@ INFO: 00:00:00.000 Elapsed: 00:00:07
 To fully automate the SPI injection process, including pushing changes and creating a Pull Request on GitHub, you can use the `--spi-push` and `--spi-pr` flags:
 
 ```bash
-$ nbw --clone --repos-dir spi-references --inject-spi sample-specs/tike-2025-07-beta.yaml --spi-push --spi-pr
+$ nbw --clone --repos-dir spi-references --inject-spi specs/samples/tike-2025-07-beta.yaml --spi-push --spi-pr
 ```
 
 This command will:

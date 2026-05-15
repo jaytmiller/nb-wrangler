@@ -3,7 +3,7 @@ set -e
 
 # Test script for refdata_dependencies in wrangler spec feature.
 
-SPEC_FILE="sample-specs/refdata-feature-demo.yaml"
+SPEC_FILE="specs/samples/refdata-feature-demo.yaml"
 REPOS_DIR="tests/temp-repos"
 LOG_FILE="tests/refdata-test.log"
 
