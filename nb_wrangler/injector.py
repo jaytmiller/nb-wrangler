@@ -150,7 +150,10 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         where: str | Path,
         literal: Optional[str | list[str] | dict[str, str]] = None,
     ) -> None:
-        self.logger.info(f"Injecting field {field} to {where}")
+        if field:
+            self.logger.info(f"Injecting field {field} to {where}")
+        else:
+            self.logger.info(f"Injecting {where}")
         where = Path(where)
         if not where.parent.exists():
             self.logger.warning(
