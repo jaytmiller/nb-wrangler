@@ -448,7 +448,7 @@ class RefdataValidator(WranglerLoggable):
         result = dict()
         for refdata_path, refdata in self.all_data.items():
             result.update(refdata.other_variables)
-        return self.add_overrides(result)
+        return result  # self.add_overrides(result)
     
     def add_overrides(self, env_vars: dict[str, str]) -> dict[str, str]:
         """Adjust values to favor existing environment definitions first before falling back to 
