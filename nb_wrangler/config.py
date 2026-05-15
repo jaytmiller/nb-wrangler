@@ -144,6 +144,7 @@ class WranglerConfig:
 
     docker_pull: Optional[str] = None
     docker_cat: Optional[str] = None
+    docker_list: Optional[str] = None
 
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
@@ -223,6 +224,7 @@ class WranglerConfig:
             spi_image_name=args.spi_image_name,
             docker_pull=args.docker_pull,
             docker_cat=args.docker_cat,
+            docker_list=args.docker_list,
             verbose=args.verbose,
             debug=args.debug,
             log_times=args.log_times,

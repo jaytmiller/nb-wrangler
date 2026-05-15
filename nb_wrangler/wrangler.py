@@ -435,6 +435,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spi_build_image, self.injector.build),
             (self.config.docker_pull is not None, self._docker_pull),
             (self.config.docker_cat is not None, self._docker_cat),
+            (self.config.docker_list is not None, self._docker_list),
         ]
         if any(item[0] for item in flags_and_steps):
             self.logger.info("Running any explicitly selected steps.")
@@ -460,6 +461,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 print(content)
                 return True
             return False
+        return True
+
+    def _docker_list(self) -> bool:
+        """List specs from the registry."""
+        if self.config.docker_list:
+            tags = self.registry_manager.list_specs(self.config.docker_list)
+            for tag in tags:
+                print(tag)
         return True
 
     def _cleanup_kernels(self) -> bool:

@@ -157,6 +157,12 @@ def parse_args():
         metavar="IMAGE",
         help="Extract and print /spec.yaml from a Docker image to stdout.",
     )
+    registry_group.add_argument(
+        "--docker-list",
+        type=str,
+        metavar="SPEC_GLOB",
+        help="List all spec names matching the spec-glob from the registry.",
+    )
 
     dev_group = parser.add_argument_group(
         "Development Overrides",
@@ -592,7 +598,7 @@ def main() -> int:
     if args.version:
         print(constants.__version__)
         return 0
-    if args.spec_init or args.docker_cat:
+    if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)
     if args.spec_uri is None:
         log = logger.WranglerLogger()
@@ -626,6 +632,14 @@ def _main(args) -> int:
     config = config_mod.WranglerConfig.from_args(args)
     config_mod.set_args_config(config)
     log = logger.get_configured_logger()
+
+    if args.docker_list and not args.spec_uri:
+        from .registry import RegistryManager
+
+        tags = RegistryManager().list_specs(args.docker_list)
+        for tag in tags:
+            print(tag)
+        return 0
 
     if args.docker_cat:
         from .registry import RegistryManager

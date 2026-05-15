@@ -74,6 +74,64 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 ["docker", "rm", container_id], check=False, output_mode="separate"
             )
 
+    def list_specs(self, shorthand: str) -> list[str]:
+        """List all spec names matching the shorthand/glob from the registry."""
+        if not shorthand:
+            return []
+
+        registry = DEFAULT_REGISTRY
+        project = DEFAULT_PROJECT
+        tag_pattern = shorthand
+
+        # If it contains a colon, it's [project]:[tag] or [registry]/[project]:[tag]
+        if ":" in shorthand:
+            path, tag_pattern = shorthand.split(":", 1)
+            if "/" in path:
+                parts = path.split("/")
+                if "." in parts[0] or len(parts) > 2:
+                    registry = parts[0]
+                    project = "/".join(parts[1:])
+                else:
+                    project = path
+            else:
+                if "/" in project:
+                    project = f"{project.split('/')[0]}/{path}"
+                else:
+                    project = path
+
+        try:
+            tags = self._list_tags(registry, project)
+        except Exception as e:
+            self.logger.error(f"Failed to list tags for {registry}/{project}: {e}")
+            return []
+
+        pattern = tag_pattern
+        if tag_pattern.startswith("_"):
+            pattern = "*" + tag_pattern
+
+        # Specs are prefixed with nbs_
+        preferred_prefix = "nbs_"
+        matches = []
+        
+        # Try matching with nbs_ prefix first if not already present
+        if not pattern.startswith(preferred_prefix):
+            prefix_pattern = preferred_prefix + pattern
+            # If the pattern doesn't end with a glob, assume it's a prefix match or exact match
+            if not any(c in prefix_pattern for c in "*?"):
+                prefix_pattern += "*"
+            matches = [t for t in tags if fnmatch.fnmatch(t, prefix_pattern)]
+
+        if not matches:
+            # Fallback to direct pattern match
+            matches = [t for t in tags if fnmatch.fnmatch(t, pattern)]
+
+        # Further filter to ensure we only return nbs_ tags if we didn't use the prefix pattern
+        if not pattern.startswith(preferred_prefix):
+             matches = [t for t in matches if t.startswith(preferred_prefix)]
+
+        matches.sort()
+        return matches
+
     def resolve_image(self, shorthand: str, preferred_prefix: str = "") -> str:
         """Resolve a shorthand image name or tag to a full URI.
 
