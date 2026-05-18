@@ -112,7 +112,7 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         # Specs are prefixed with nbs_
         preferred_prefix = "nbs_"
         matches = []
-        
+
         # Try matching with nbs_ prefix first if not already present
         if not pattern.startswith(preferred_prefix):
             prefix_pattern = preferred_prefix + pattern
@@ -127,7 +127,7 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Further filter to ensure we only return nbs_ tags if we didn't use the prefix pattern
         if not pattern.startswith(preferred_prefix):
-             matches = [t for t in matches if t.startswith(preferred_prefix)]
+            matches = [t for t in matches if t.startswith(preferred_prefix)]
 
         matches.sort()
         return matches
@@ -174,7 +174,7 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "*" in tag_pattern
             or "?" in tag_pattern
             or tag_pattern.startswith("_")
-            or (not ":" in shorthand and preferred_prefix)
+            or (":" not in shorthand and preferred_prefix)
         ):
             try:
                 tags = self._list_tags(registry, project)
@@ -230,7 +230,6 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         resp.raise_for_status()
         return resp.json().get("tags", [])
-
 
     def _extract_file(self, container_id: str, path: str) -> Optional[str]:
         """Helper to extract a single file from a container."""
