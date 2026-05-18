@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+import argparse
+import fnmatch
 import json
 import os
 import sys
@@ -9,40 +11,51 @@ import requests
 from requests.auth import HTTPBasicAuth
 
 
-# --- Config -------------------------------------------
+# --- Config & Session Setup ---------------------------
 
-OWNER = "spacetelescope"
-PACKAGE_TYPE = "container"   # "docker" or "container"
-PACKAGE_NAME = "nb-wrangler"
-SCOPE = "users" if OWNER != "spacetelescope" else "orgs"
 # GitHub API v2026-03-10 style (omit trailing slash)
 GITHUB_BASE = "https://api.github.com"
-
-# Either use:
-#   - Personal Access Token (recommended)
-#   - or basic auth: OWNER + password (less secure)
-AUTH_TOKEN = os.getenv("GITHUB_TOKEN")  # or: HTTPBasicAuth("user", "pass")
-
-# How far back to delete (e.g. 30 days)
-CUTOFF_DAYS = 9
 
 # Output file for your cleanup logic
 CLEANUP_FILE = Path("cleanup.versions")
 
-# --- Compute cleanup.versions -------------------------
-
 session = requests.Session()
+# Either use:
+#   - Personal Access Token (recommended)
+#   - or basic auth: OWNER + password (less secure)
+AUTH_TOKEN = os.getenv("GITHUB_TOKEN")
 if AUTH_TOKEN:
     session.headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
 session.headers["Accept"] = "application/vnd.github+json"
 session.headers["X-GitHub-Api-Version"] = "2026-03-10"
 
 
-def fetch_versions():
-    url = f"{GITHUB_BASE}/{SCOPE}/{OWNER}/packages/{PACKAGE_TYPE}/{PACKAGE_NAME}/versions"
-    resp = session.get(url)
-    resp.raise_for_status()
-    return resp.json()
+def fetch_packages(owner, scope, package_type):
+    packages = []
+    url = f"{GITHUB_BASE}/{scope}/{owner}/packages?package_type={package_type}"
+    while url:
+        resp = session.get(url)
+        resp.raise_for_status()
+        packages.extend(resp.json())
+        if "next" in resp.links:
+            url = resp.links["next"]["url"]
+        else:
+            url = None
+    return packages
+
+
+def fetch_versions(owner, scope, package_type, package_name):
+    versions = []
+    url = f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}/versions"
+    while url:
+        resp = session.get(url)
+        resp.raise_for_status()
+        versions.extend(resp.json())
+        if "next" in resp.links:
+            url = resp.links["next"]["url"]
+        else:
+            url = None
+    return versions
 
 
 def write_cleanup_lines(versions):
@@ -54,13 +67,10 @@ def write_cleanup_lines(versions):
     print(f"Wrote {len(versions)} versions to {CLEANUP_FILE}", file=sys.stderr)
 
 
-# --- Original cleanup logic ---------------------------
-
-
-def delete_version(version_id):
+def delete_version(owner, scope, package_type, package_name, version_id):
     # Example: delete single version
     url = (
-        f"{GITHUB_BASE}/{SCOPE}/{OWNER}/packages/{PACKAGE_TYPE}/{PACKAGE_NAME}"
+        f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}"
         f"/versions/{version_id}"
     )
     resp = session.delete(url)
@@ -68,7 +78,6 @@ def delete_version(version_id):
         print(f"Successfully deleted version {version_id}", file=sys.stderr)
     else:
         print(f"Failed to delete version {version_id}: {resp.status_code}", file=sys.stderr)
-        # Optionally: resp.raise_for_status()
 
 
 def parse_line(line):
@@ -84,35 +93,115 @@ def parse_line(line):
         print(f"WARNING: failed to parse line: {line!r} -> {e}", file=sys.stderr)
         return None
 
-def main():
-    try:
-        versions = fetch_versions()
-        write_cleanup_lines(versions)
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching versions: {e}", file=sys.stderr)
-        sys.exit(1)
 
-    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=CUTOFF_DAYS)
+def main():
+    parser = argparse.ArgumentParser(description="Cleanup GitHub Packages versions.")
+    parser.add_argument(
+        "name",
+        nargs="?",
+        default="nb-wrangler",
+        help="Package name or glob pattern (default: nb-wrangler).",
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=9,
+        help="Cutoff days for deletion (default: 9).",
+    )
+    parser.add_argument(
+        "--owner",
+        default="spacetelescope",
+        help="GitHub owner (default: spacetelescope).",
+    )
+    parser.add_argument(
+        "--type",
+        default="container",
+        help="Package type: 'container' or 'docker' (default: container).",
+    )
+    parser.add_argument(
+        "-i",
+        "--interactive",
+        action="store_true",
+        help="Confirm each deletion before doing it.",
+    )
+    args = parser.parse_args()
+
+    owner = args.owner
+    package_type = args.type
+    pattern = args.name
+    cutoff_days = args.days
+    interactive = args.interactive
+
+    # SCOPE logic from original script
+    scope = "users" if owner != "spacetelescope" else "orgs"
+
+    # Determine packages to process
+    if any(c in pattern for c in "*?[]"):
+        print(f"Searching for packages matching pattern '{pattern}' in {owner} ({scope})...")
+        try:
+            all_packages = fetch_packages(owner, scope, package_type)
+            target_packages = [p["name"] for p in all_packages if fnmatch.fnmatch(p["name"], pattern)]
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching packages: {e}", file=sys.stderr)
+            sys.exit(1)
+    else:
+        target_packages = [pattern]
+
+    if not target_packages:
+        print(f"No packages found matching pattern: {pattern}")
+        return
+
+    print(f"Target packages: {', '.join(target_packages)}")
+
+    cutoff_dt = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
     cutoff_epoch = int(cutoff_dt.timestamp())
 
-    deleted = kept = 0
+    total_deleted = 0
+    total_kept = 0
 
-    for line in CLEANUP_FILE.read_text().splitlines():
-        parsed = parse_line(line)
-        if not parsed:
+    for package_name in target_packages:
+        print(f"\n--- Processing package: {package_name} ---", file=sys.stderr)
+        try:
+            versions = fetch_versions(owner, scope, package_type, package_name)
+            write_cleanup_lines(versions)
+        except requests.exceptions.RequestException as e:
+            print(f"Error fetching versions for {package_name}: {e}", file=sys.stderr)
             continue
 
-        version_id, created_at, created_epoch, tags = parsed   # this line is fine
-        print("Parsed:", parsed)
+        deleted = kept = 0
+        if CLEANUP_FILE.exists():
+            for line in CLEANUP_FILE.read_text().splitlines():
+                parsed = parse_line(line)
+                if not parsed:
+                    continue
 
-        if created_epoch < cutoff_epoch:
-            print(f"Deleting tags={tags} version id={version_id} created_at={created_at} created_epoch={created_epoch} cutoff_epoch={cutoff_epoch}")
-            delete_version(version_id)
-            deleted += 1
-        else:
-            print(f"Keeping tags={tags} version id={version_id} created_at={created_at} created_epoch={created_epoch} cutoff_epoch={cutoff_epoch}")
-            kept += 1
-        print(f"Done. Deleted={deleted}, kept={kept}")
+                version_id, created_at, created_epoch, tags = parsed
+                
+                if created_epoch < cutoff_epoch:
+                    print(f"Candidate for deletion: tags={tags} version id={version_id} created_at={created_at}")
+                    
+                    do_delete = True
+                    if interactive:
+                        choice = input(f"Delete version {version_id} (tags={tags})? [y/N] ").lower()
+                        if choice not in ("y", "yes"):
+                            do_delete = False
+                    
+                    if do_delete:
+                        delete_version(owner, scope, package_type, package_name, version_id)
+                        deleted += 1
+                    else:
+                        print(f"Skipping version {version_id}")
+                        kept += 1
+                else:
+                    print(f"Keeping tags={tags} version id={version_id} created_at={created_at} (within cutoff)")
+                    kept += 1
+                print(f"Current package status: Deleted={deleted}, kept={kept}")
+        
+        print(f"Finished package {package_name}. Deleted={deleted}, kept={kept}")
+        total_deleted += deleted
+        total_kept += kept
+
+    print(f"\nAll done. Total Deleted={total_deleted}, Total Kept={total_kept}")
 
 
 if __name__ == "__main__":
