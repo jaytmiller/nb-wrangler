@@ -114,6 +114,15 @@ jobs:
           source ./nb-wrangler environment
           echo NBW_PANTRY=$NBW_PANTRY >>$GITHUB_ENV
 
+          # Flag that is true IFF the spec still has dev_overrides and can build --dev images
+          if grep dev_overrides: ${NBW_SPEC}; then
+             export NBW_DEV_MODE="--dev"
+          else
+             export NBW_DEV_MODE="--prod"
+          fi
+          echo NBW_DEV_MODE=$NBW_DEV_MODE >>$GITHUB_env
+
+
       - name: Log in to GHCR
         run: echo "${{ github.token }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
 
@@ -138,8 +147,15 @@ jobs:
         run: |
           set -x
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          ./nb-wrangler --finalize-dev-overrides
-          ./nb-wrangler --prod --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
+          case "${NBW_DEV_MODE}" in
+             "--dev")
+                 echo "WARNING: Building DEV image based on spec dev_overrides repo values to define code, tools, notebooks."
+                 break;;
+             "--prod")
+                echo "INFO: Building PROD image based on spec nominal repo values to define code, tools, notebooks."
+                break;;
+          fi
+          ./nb-wrangler "${NBW_DEV_MODE}" --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
           docker image ls
           docker tag notebook-${SPEC_DEPLOYMENT}:latest   ${IMAGE_ID}
           docker push ${IMAGE_ID}
@@ -148,7 +164,7 @@ jobs:
       - name: Scan Image (disabled?)
         run: |
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-          ./nb-wrangler --prod --clone-repos --repos-dir /tmp/references
+          ./nb-wrangler "${NBW_DEV_MODE}" --clone-repos --repos-dir /tmp/references
           cd /tmp/references/science-platform-images
           scripts/image-configure ${SPEC_DEPLOYMENT}
           source setup-env
@@ -157,7 +173,7 @@ jobs:
       - name: Test imports for native environment
         run: |
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-            ./nb-wrangler --test-imports --test-copy-shared ../../shared
+            ./nb-wrangler ${NBW_DEV_MODE} --test-imports --test-copy-shared ../../shared
 
       - name: Test notebooks inside image
         run: |
