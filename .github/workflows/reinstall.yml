@@ -120,7 +120,7 @@ jobs:
           else
              export NBW_DEV_MODE="--prod"
           fi
-          echo NBW_DEV_MODE=$NBW_DEV_MODE >>$GITHUB_env
+          echo NBW_DEV_MODE=$NBW_DEV_MODE >>$GITHUB_ENV
 
 
       - name: Log in to GHCR
