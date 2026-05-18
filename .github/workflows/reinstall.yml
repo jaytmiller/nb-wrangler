@@ -176,7 +176,7 @@ jobs:
       - name: Test imports for native environment
         run: |
             cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-            ./nb-wrangler ${NBW_DEV_MODE} --test-imports --test-copy-shared ../../shared
+            ./nb-wrangler ${NBW_DEV_MODE} --clone-repos --repos-dir /tmp/references --test-imports --test-copy-shared ../../shared
 
       - name: Test notebooks inside image
         run: |
