@@ -1,4 +1,4 @@
-name: Production Build / Re-install from locked spec
+name: Production / Re-install locked spec
 
 on:
   workflow_dispatch:
@@ -149,12 +149,15 @@ jobs:
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
           case "${NBW_DEV_MODE}" in
              "--dev")
-                 echo "WARNING: Building DEV image based on spec dev_overrides repo values to define code, tools, notebooks."
-                 break;;
+                echo "WARNING: Building DEV image based on spec dev_overrides repo values to define code, tools, notebooks."
+                break;;
              "--prod")
                 echo "INFO: Building PROD image based on spec nominal repo values to define code, tools, notebooks."
                 break;;
-          fi
+             *) echo "ERROR: Invalid wrangler curation / repo clone mode."
+                false
+                break;;
+          esac
           ./nb-wrangler "${NBW_DEV_MODE}" --clone-repos --spi-inject-reqs --spi-build-image --repos-dir /tmp/references
           docker image ls
           docker tag notebook-${SPEC_DEPLOYMENT}:latest   ${IMAGE_ID}
