@@ -173,10 +173,16 @@ jobs:
           source setup-env
           scripts/image-scan
 
-      - name: Test imports for native environment
+      - name: Test imports inside image
         run: |
-            cd $GITHUB_WORKSPACE/../nb-wrangler-tool
-            ./nb-wrangler ${NBW_DEV_MODE} --clone-repos --repos-dir /tmp/references --test-imports --test-copy-shared ../../shared
+          cd /tmp/references/science-platform-images
+          scripts/image-configure ${SPEC_DEPLOYMENT}
+          source setup-env
+          mkdir ${HOME}/crds_cache
+          # make dirs globally writable since uid/gid inside Docker may not match outside
+          chmod -R 777 ${HOME}/crds_cache
+          chmod -R 777 ${NBW_PANTRY}
+          image-test
 
       - name: Test notebooks inside image
         run: |
