@@ -134,7 +134,7 @@ jobs:
           cp ${NBW_SPEC} .
           cat > Dockerfile << EOF
           FROM scratch
-          COPY nbw-wrangler-spec.yaml ${SPEC_NAME}
+          COPY ${NBW_SPEC} ${SPEC_NAME}
           EOF
 
       - name: Build Spec archive and push to GHCR
