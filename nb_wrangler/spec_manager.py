@@ -141,6 +141,14 @@ class SpecManager(
         return list(self._spec.get("common_pip_packages") or [])
 
     @property
+    def apt_packages(self) -> list[str]:
+        return list(self._spec.get("apt_packages") or [])
+
+    @property
+    def has_apt_packages(self) -> bool:
+        return "apt_packages" in self._spec
+
+    @property
     def override_pip_versions(self) -> list[str]:
         return list(self._spec.get("override_pip_versions") or [])
 
@@ -543,6 +551,7 @@ class SpecManager(
         "common_mamba_packages": [],
         "extra_pip_packages": [],
         "common_pip_packages": [],
+        "apt_packages": [],
         "override_pip_versions": [],
         "selected_notebooks": [
             "repo",

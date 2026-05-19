@@ -389,6 +389,10 @@ requirements.txt files.
 
 Similarly, `common_pip_packages` specifies pip packages that should be installed in both your curated environment and the science platform's base environment.
 
+### Inlined apt_packages
+
+You can also specify system-level packages to be installed via `apt-get` by adding `apt_packages` to the wrangler spec. These packages will be collected into `apt-packages.txt` during the SPI injection process (`--inject-spi`) and installed during the subsequent image build.
+
 ### Notebook Repo Helper Modules
 
 Lastly,  it's possible for each notebook directory to define local `.py` helper modules directly although

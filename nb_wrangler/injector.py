@@ -138,6 +138,17 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             self.environments_path / "common-hints.pip",
             self.spec_manager.common_pip_packages,
         )
+        apt_file = self.environments_path / "apt-packages.txt"
+        if self.spec_manager.has_apt_packages:
+            self._inject(
+                None,
+                apt_file,
+                self.spec_manager.apt_packages,
+            )
+        elif apt_file.exists():
+            self.logger.info(f"Removing {apt_file} as apt_packages is not in spec.")
+            apt_file.unlink()
+
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )

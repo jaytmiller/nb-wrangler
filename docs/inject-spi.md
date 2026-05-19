@@ -104,11 +104,12 @@ Untracked files:
   deployments/tike/environments/nbw-exports.sh
   deployments/tike/environments/common-hints.mamba
   deployments/tike/environments/common-hints.pip
+  deployments/tike/environments/apt-packages.txt
 
 no changes added to commit (use "git add" and/or "git commit -a")
 ```
 
-As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.  Note that this particular pattern of injection is in the process of being replaced by a more flexible and automated approach based solely on the spec and nb-wrangler vs. classic install scripts.
+As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, the system-level `apt_packages` (apt-packages.txt), and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.  Note that this particular pattern of injection is in the process of being replaced by a more flexible and automated approach based solely on the spec and nb-wrangler vs. classic install scripts.
 
 Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/mb-wrangler-spec.yaml`.
 

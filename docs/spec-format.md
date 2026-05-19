@@ -54,6 +54,10 @@ extra_pip_packages:
 common_pip_packages:
   - requests
 
+apt_packages:
+  - curl
+  - vim
+
 system:
   spec_version: 1.0
   archive_format: .tar
@@ -150,6 +154,9 @@ A list of additional pip packages required specifically by your curated kernel e
 
 ### **common_pip_packages**
 A list of additional pip packages required by your curated kernel environment that are *also* required by the science platform's base environment. When using SPI injection (`--inject-spi`), these packages are written to `common-hints.pip` to ensure they are available across all environments in the image.
+
+### **apt_packages**
+A list of system-level packages to be installed via `apt-get`. When using SPI injection (`--inject-spi`), these packages are written to `apt-packages.txt` and will be installed during the image build process.
 
 ### **system**
 This section contains specifications for the system environment. It is updated by `nbw` automatically and should rarely need curator updates.
