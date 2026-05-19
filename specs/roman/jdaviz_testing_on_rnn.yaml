@@ -26,8 +26,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-19T13:46:58.336633'
-  spec_sha256: 12825d32b6249955cdfe3a40b5994062341c18d25beacf9193ce3aa5e1c0a8c2
+  date_updated: '2026-05-19T15:45:27.199658'
+  spec_sha256: 6a2e96b497b51c8d73539c92db71e31878e703693401c4449718ee9e97bb88d9
 
 selected_notebooks:
   roman_all:
@@ -45,6 +45,13 @@ selected_notebooks:
   # -----     - data_visualization/data_visualization.ipynb
   # -----   tests:
   # -----     papermill: false
+
+
+apt_packages:
+  - libgl1-mesa-dev
+  - libglu1-mesa-dev
+  - libglfw3-dev
+  - libglew-dev
 
 extra_mamba_packages:
   - pip
@@ -66,9 +73,9 @@ common_pip_packages:
 override_pip_versions: []
 
 
-deactivated_dev_overrides:
+dev_overrides:
   system:
-    primary_repo: jaytmiller/roman_notebooks
+    primary_repo: spacetelescope/roman_notebooks
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
       ref: dev
@@ -79,6 +86,7 @@ deactivated_dev_overrides:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
       ref: dev
+
 out:
   repositories:
     roman_notebooks:
