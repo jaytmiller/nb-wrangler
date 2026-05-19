@@ -132,8 +132,8 @@ jobs:
           mkdir docker-root
           cd docker-root
           cp ${NBW_SPEC} .
-          cat > Dockerfile << EOF
           export SPEC_BNAME=$(basename ${NBW_SPEC})
+          cat > Dockerfile << EOF
           FROM scratch
           COPY ${SPEC_BNAME} ${SPEC_NAME}
           EOF
