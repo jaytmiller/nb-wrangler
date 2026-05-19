@@ -149,6 +149,10 @@ class SpecManager(
         return "apt_packages" in self._spec
 
     @property
+    def dockerfile_aux_sh(self) -> str | None:
+        return self._spec.get("dockerfile_aux_sh")
+
+    @property
     def override_pip_versions(self) -> list[str]:
         return list(self._spec.get("override_pip_versions") or [])
 
@@ -552,6 +556,7 @@ class SpecManager(
         "extra_pip_packages": [],
         "common_pip_packages": [],
         "apt_packages": [],
+        "dockerfile_aux_sh": None,
         "override_pip_versions": [],
         "selected_notebooks": [
             "repo",

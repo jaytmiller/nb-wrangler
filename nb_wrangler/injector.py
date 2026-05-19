@@ -149,6 +149,19 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             self.logger.info(f"Removing {apt_file} as apt_packages is not in spec.")
             apt_file.unlink()
 
+        aux_sh_file = self.environments_path / "dockerfile-aux.sh"
+        if self.spec_manager.dockerfile_aux_sh:
+            self._inject(
+                None,
+                aux_sh_file,
+                self.spec_manager.dockerfile_aux_sh,
+            )
+        elif aux_sh_file.exists():
+            self.logger.info(
+                f"Removing {aux_sh_file} as dockerfile_aux_sh is not in spec."
+            )
+            aux_sh_file.unlink()
+
         self.spec_manager.save_spec_as(
             self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
         )

@@ -105,13 +105,14 @@ Untracked files:
   deployments/tike/environments/common-hints.mamba
   deployments/tike/environments/common-hints.pip
   deployments/tike/environments/apt-packages.txt
+  deployments/tike/environments/dockerfile-aux.sh
 
 no changes added to commit (use "git add" and/or "git commit -a")
 ```
 
-As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, the system-level `apt_packages` (apt-packages.txt), and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.  Note that this particular pattern of injection is in the process of being replaced by a more flexible and automated approach based solely on the spec and nb-wrangler vs. classic install scripts.
+As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, the system-level `apt_packages` (apt-packages.txt), the `dockerfile_aux_sh` (dockerfile-aux.sh) script, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.
 
-Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/mb-wrangler-spec.yaml`.
+Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/nb-wrangler-spec.yaml`.
 
 Before proceeding, it's recommended to add and commit all changes under `spi-references/science-platform-images/deployments`:
 
@@ -143,7 +144,7 @@ The following flags are available for advanced users or for testing experimental
 ## Key Differences from True Wrangler Builds
 
 True wrangler builds all share a common `wrangler` deployment and have a very generic Dockerfile.  As-of this writing they have
-few customizations other than mamba and pip package selections, notebooks, data, and environment variables. Consequently,  the 
+few customizations other than mamba and pip package selections, notebooks, data, and environment variables. Consequently,  the
 same wrangler deployment can serve many different projects.
 
 ### SPI Injection

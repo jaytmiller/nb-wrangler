@@ -58,6 +58,11 @@ apt_packages:
   - curl
   - vim
 
+dockerfile_aux_sh: |
+  # Install some extra stuff
+  echo "Installing extra stuff..."
+  apt-get update && apt-get install -y some-extra-pkg
+
 system:
   spec_version: 1.0
   archive_format: .tar
@@ -157,6 +162,9 @@ A list of additional pip packages required by your curated kernel environment th
 
 ### **apt_packages**
 A list of system-level packages to be installed via `apt-get`. When using SPI injection (`--inject-spi`), these packages are written to `apt-packages.txt` and will be installed during the image build process.
+
+### **dockerfile_aux_sh**
+A block of text that will be written to `environments/dockerfile-aux.sh` as-is during SPI injection (`--inject-spi`). This is nominally used for custom bash commands that need to be executed during the image build process.
 
 ### **system**
 This section contains specifications for the system environment. It is updated by `nbw` automatically and should rarely need curator updates.
