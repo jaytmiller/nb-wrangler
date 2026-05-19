@@ -5,15 +5,15 @@ image_spec_header:
   kernel_name: RomanNexus-2026.1
   display_name: Roman Research Nexus 2026.1
   description: |
-    This spec is for the production version of Roman 2026.1
-  valid_on: 2026-05-22
-  expires_on: 2026-11-22
+    This spec is for the production version of roman-22.0.0
+  valid_on: 2026-04-06
+  expires_on: 2026-10-06
   python_version: 3.12
 
 repositories:
   roman_notebooks:
     url: https://github.com/spacetelescope/roman_notebooks.git
-    ref: main
+    ref: dev
 
 system:
   spec_version: 2.1
@@ -25,9 +25,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-18T10:57:55.403010'
-  spec_sha256: 75b466b61cf4ca29a5501dac0649c39a7e5e56c9d7ef87f785f2dbc0370774c0
-
+  date_updated: '2026-05-12T18:20:20.161018'
+  spec_sha256: 0fba2bfa7c13fe84b94ce32573f5b30576665146604768e1bfe0d47ec19c7bf5
 selected_notebooks:
   roman_all:
     repo: roman_notebooks
@@ -76,121 +75,10 @@ override_pip_versions:
 
 
 out:
-  data:
-    spec_inputs:
-      references/roman_notebooks/refdata_dependencies.yaml:
-        install_files:
-          pandeia_data:
-            version: '2026.1'
-            environment_variable: pandeia_refdata
-            install_path: ${HOME}/refdata/
-            data_path: pandeia_data-2026.1-roman
-            data_url:
-              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
-          pandeia_psf:
-            version: '2026.1'
-            environment_variable: PSF_DIR
-            install_path: ${HOME}/refdata/
-            data_path: pandeia_psfs-2026.1-roman
-            data_url:
-              - https://stsci.box.com/shared/static/5qkyvr5steg2fo2zxbqj2jxcmbmz1c4w.gz
-          stpsf:
-            version: 2.1.0
-            environment_variable: STPSF_PATH
-            install_path: ${HOME}/refdata/
-            data_path: stpsf-data
-            data_url:
-              - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
-          stips:
-            version: 2.3.0
-            environment_variable: stips_data
-            install_path: ${HOME}/refdata/
-            data_path: stips_data
-            data_url:
-              - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
-          synphot:
-            version: 1.6.0
-            environment_variable: PYSYN_CDBS
-            install_path: ${HOME}/refdata/
-            data_path: grp/redcat/trds/
-            data_url:
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
-              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
-        other_variables:
-          CRDS_SERVER_URL: https://roman-crds.stsci.edu
-          CRDS_CONTEXT: roman_0048.pmap
-          CRDS_PATH: ${HOME}/crds_cache
-    spec_exports:
-      pandeia_refdata: ${HOME}/refdata/pandeia_data-2026.1-roman
-      PSF_DIR: ${HOME}/refdata/pandeia_psfs-2026.1-roman
-      STPSF_PATH: ${HOME}/refdata/stpsf-data
-      stips_data: ${HOME}/refdata/stips_data
-      PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
-      CRDS_SERVER_URL: ${CRDS_SERVER_URL:-https://roman-crds.stsci.edu}
-      CRDS_CONTEXT: ${CRDS_CONTEXT:-roman_0048.pmap}
-      CRDS_PATH: ${CRDS_PATH:-${HOME}/crds_cache}
-    pantry_exports:
-      pandeia_refdata: 
-        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_data-2026.1-roman
-      PSF_DIR: 
-        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_psfs-2026.1-roman
-      STPSF_PATH: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stpsf-data
-      stips_data: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stips_data
-      PYSYN_CDBS: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/grp/redcat/trds
-      CRDS_SERVER_URL: ${CRDS_SERVER_URL:-https://roman-crds.stsci.edu}
-      CRDS_CONTEXT: ${CRDS_CONTEXT:-roman_0048.pmap}
-      CRDS_PATH: ${CRDS_PATH:-${HOME}/crds_cache}
-    metadata:
-      roman_notebooks/pandeia_data/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
-        size: '17365154'
-        sha256: a048cecef53ed29bec2b39981bbb633cc2f0ad1c63c61f6dfebae56bbf91c83d
-      roman_notebooks/pandeia_psf/5qkyvr5steg2fo2zxbqj2jxcmbmz1c4w.gz:
-        size: '548548732'
-        sha256: 6de88ab72c8d4fadafec52aac69705b8ed842ad34d38c3fb3e9866e3f934f4e9
-      roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz:
-        size: '92294357'
-        sha256: bbdfbe7c5aa7ee7fdb60efed13720ba3e0619c976b77aa0d63941dd59a4b6a98
-      roman_notebooks/stips/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz:
-        size: '153097868'
-        sha256: 15a430e67c7526abb4bd0f56379631ef7cb10a93f72b5d5dbd7919b441422d6a
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar:
-        size: '1285222400'
-        sha256: 3f01b858d88960f864cad56a03d2425955ae3951a979378da612af960c5f6b59
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar:
-        size: '90347520'
-        sha256: 66faaaeeb04e855a09c6cb8bc9b748c8fbedf23b782208dba84e10c4f0fd450b
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar:
-        size: '42772480'
-        sha256: 8f7a220bc9480900c372015847057b06a2c218ae8b2dbf8020e6a1dd2990b42c
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar:
-        size: '81684480'
-        sha256: 95ca73356f38a703064c346e286f571b53f78964d5511d1b538ff086f5ce897e
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar:
-        size: '1868328960'
-        sha256: 1ffb5e136dc4f846cd95b83843eb89f7a5171f58732705b25f07a99c4d8cf50d
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar:
-        size: '8695121920'
-        sha256: 69b3ba91db2a3290bacbe48ef7b7626905567d89e7e03d11b3cefeadf5f26fd7
-      roman_notebooks/synphot/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar:
-        size: '8909717'
-        sha256: 01b2eae81852d56971796a62c82ff7f76256e1fdaabccf2f7f09151b1283640a
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar:
-        size: '34160640'
-        sha256: 3338b1fb400d752c02c06132e0ce804ef8a9751f6ff535b41d022f60b0364d81
-      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
-        size: '121835520'
-        sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: ec76705dae15ca0b30007cb4a5a924070f608c46
+      ref: 980c19ab6c5b4d2c298086f2323cfae5ed9ef160
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
@@ -505,30 +393,30 @@ out:
       - setuptools
       - wheel
   non_mamba_pip_package_files:
-    - references/roman_notebooks/notebooks/rist/requirements.txt
-    - references/roman_notebooks/notebooks/catalog_database_access/requirements.txt
     - references/roman_notebooks/notebooks/exposure_pipeline/requirements.txt
-    - references/roman_notebooks/notebooks/pandeia/requirements.txt
-    - references/roman_notebooks/notebooks/grism_spectral_extraction/requirements.txt
-    - references/roman_notebooks/notebooks/stpsf/requirements.txt
-    - references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
-    - references/roman_notebooks/notebooks/synphot/requirements.txt
+    - references/roman_notebooks/notebooks/catalog_database_access/requirements.txt
     - references/roman_notebooks/notebooks/working_with_asdf/requirements.txt
-    - references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
-    - references/roman_notebooks/notebooks/background_visualization_tool/requirements.txt
-    - references/roman_notebooks/notebooks/romanisim/requirements.txt
+    - references/roman_notebooks/notebooks/synphot/requirements.txt
     - references/roman_notebooks/notebooks/stips/requirements.txt
     - references/roman_notebooks/notebooks/measuring_galaxy_shapes/requirements.txt
-    - references/roman_notebooks/notebooks/data_visualization/requirements.txt
+    - references/roman_notebooks/notebooks/stpsf/requirements.txt
     - references/roman_notebooks/notebooks/mosaic_pipeline/requirements.txt
+    - references/roman_notebooks/notebooks/romanisim/requirements.txt
+    - references/roman_notebooks/notebooks/background_visualization_tool/requirements.txt
     - references/roman_notebooks/notebooks/data_discovery_and_access/requirements.txt
     - references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
-    - references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
+    - references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
+    - references/roman_notebooks/notebooks/pandeia/requirements.txt
+    - references/roman_notebooks/notebooks/data_visualization/requirements.txt
+    - references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
     - references/roman_notebooks/notebooks/footprint_visualization/requirements.txt
-    - references/science-platform-images/deployments/common/common-env/required.pip
-    - references/science-platform-images/deployments/common/common-env/testing.pip
-    - references/science-platform-images/deployments/common/common-env/jupyter.pip
+    - references/roman_notebooks/notebooks/rist/requirements.txt
+    - references/roman_notebooks/notebooks/grism_spectral_extraction/requirements.txt
+    - references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
     - references/science-platform-images/deployments/common/common-env/common.pip
+    - references/science-platform-images/deployments/common/common-env/jupyter.pip
+    - references/science-platform-images/deployments/common/common-env/testing.pip
+    - references/science-platform-images/deployments/common/common-env/required.pip
     - references/science-platform-images/deployments/common/common-env/docs.pip
     - references/science-platform-images/deployments/roman/environments/common-hints.pip
     - extra_pip_packages.txt
@@ -536,7 +424,7 @@ out:
   pip_compiler_output: |
     accessible-pygments==0.0.5
         # via pydata-sphinx-theme
-    aiobotocore==3.6.0
+    aiobotocore==3.7.0
         # via s3fs
     aiohappyeyeballs==2.6.1
         # via aiohttp
@@ -717,7 +605,7 @@ out:
         # via
         #   romanisim
         #   stcal
-    astropy-iers-data==0.2026.5.4.1.4.54
+    astropy-iers-data==0.2026.5.11.1.8.52
         # via astropy
     astropy-sphinx-theme==3.0
         # via sphinx-astropy
@@ -784,7 +672,7 @@ out:
         #   jdaviz
     bqplot-gl==0.0.0
         # via glue-jupyter
-    bqplot-image-gl==1.9.2
+    bqplot-image-gl==1.10.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   glue-jupyter
@@ -849,12 +737,15 @@ out:
         # via
         #   bokeh
         #   matplotlib
-    crds==13.1.16
+    crds==13.1.15
         # via
         #   -r references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/notebooks/exposure_pipeline/requirements.txt
         #   -r references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
         #   -r references/roman_notebooks/notebooks/mosaic_pipeline/requirements.txt
+        #   -r references/roman_notebooks/notebooks/romanisim/requirements.txt
+        #   -r references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
+        #   -r references/roman_notebooks/notebooks/working_with_asdf/requirements.txt
         #   ci-watson
         #   romancal
         #   romanisim
@@ -872,7 +763,7 @@ out:
         #   casa-formats-io
         #   distributed
         #   spectral-cube
-    ddtrace==4.8.0
+    ddtrace==4.8.4
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     debugpy==1.8.20
         # via ipykernel
@@ -903,6 +794,7 @@ out:
     echo==0.15.0
         # via
         #   glue-core
+        #   glue-jupyter
         #   jdaviz
     entrypoints==0.4
         # via papermill
@@ -955,7 +847,7 @@ out:
         #   romanisim
     gitdb==4.0.12
         # via gitpython
-    gitpython==3.1.49
+    gitpython==3.1.50
         # via
         #   -r references/science-platform-images/deployments/common/common-env/required.pip
         #   nbdime
@@ -966,7 +858,7 @@ out:
         #   glue-astronomy
         #   glue-jupyter
         #   jdaviz
-    glue-jupyter==0.27.0
+    glue-jupyter==0.28.0
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jdaviz
@@ -1029,7 +921,7 @@ out:
         # via jupyterlab
     humanize==4.15.0
         # via solara-ui
-    idna==3.13
+    idna==3.14
         # via
         #   anyio
         #   httpx
@@ -1210,9 +1102,9 @@ out:
         #   nbclient
         #   solara-server
         #   voila
-    jupyter-collaboration==4.3.0
+    jupyter-collaboration==4.4.0
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyter-collaboration-ui==2.3.0
+    jupyter-collaboration-ui==2.4.0
         # via jupyter-collaboration
     jupyter-core==5.9.1
         # via
@@ -1225,7 +1117,7 @@ out:
         #   nbconvert
         #   nbformat
         #   voila
-    jupyter-docprovider==2.3.0
+    jupyter-docprovider==2.4.0
         # via jupyter-collaboration
     jupyter-events==0.12.1
         # via
@@ -1239,7 +1131,7 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     jupyter-resource-usage==1.2.1
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyter-server==2.18.1
+    jupyter-server==2.18.2
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter-app-launcher
@@ -1264,15 +1156,15 @@ out:
         #   jupyter-app-launcher
     jupyter-server-terminals==0.5.4
         # via jupyter-server
-    jupyter-server-ydoc==2.3.0
+    jupyter-server-ydoc==2.4.0
         # via jupyter-collaboration
     jupyter-ydoc==3.4.1
         # via jupyter-server-ydoc
-    jupyterhub==5.4.5
+    jupyterhub==5.4.6
         # via
         #   -r references/science-platform-images/deployments/common/common-env/common.pip
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
-    jupyterlab==4.5.6
+    jupyterlab==4.5.7
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter-collaboration
@@ -1297,7 +1189,7 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   ipywidgets
         #   voila-gridstack
-    jupytext==1.19.1
+    jupytext==1.19.2
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     keyring==25.7.0
         # via astroquery
@@ -1323,6 +1215,7 @@ out:
         # via pysiaf
     lz4==4.4.5
         # via
+        #   -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
         #   dask
         #   roman-datamodels
     mako==1.3.12
@@ -1331,7 +1224,7 @@ out:
         # via
         #   pymdown-extensions
         #   solara-ui
-    markdown-it-py==4.0.0
+    markdown-it-py==4.2.0
         # via
         #   jupytext
         #   mdit-py-plugins
@@ -1373,13 +1266,13 @@ out:
         #   soc-roman-tools
         #   specreduce
         #   stpsf
-    matplotlib-inline==0.2.1
+    matplotlib-inline==0.2.2
         # via
         #   ipykernel
         #   ipython
     mccabe==0.7.0
         # via flake8
-    mdit-py-plugins==0.5.0
+    mdit-py-plugins==0.6.0
         # via jupytext
     mdurl==0.1.2
         # via markdown-it-py
@@ -1402,7 +1295,7 @@ out:
         #   yarl
     mypy-extensions==1.1.0
         # via black
-    narwhals==2.20.0
+    narwhals==2.21.0
         # via bokeh
     nbclassic==1.3.3
         # via jdaviz
@@ -1443,7 +1336,7 @@ out:
         #   nbclassic
     networkx==3.6.1
         # via scikit-image
-    notebook==7.5.5
+    notebook==7.5.6
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     notebook-shim==0.2.4
         # via
@@ -1584,7 +1477,7 @@ out:
         #   xarray
     pamela==1.2.0 ; sys_platform != 'win32'
         # via jupyterhub
-    pandas==3.0.2
+    pandas==3.0.3
         # via
         #   -r references/roman_notebooks/notebooks/background_visualization_tool/requirements.txt
         #   -r references/roman_notebooks/notebooks/footprint_visualization/requirements.txt
@@ -1657,7 +1550,9 @@ out:
     pluggy==1.6.0
         # via pytest
     poppy==1.1.2
-        # via stpsf
+        # via
+        #   stips
+        #   stpsf
     prometheus-client==0.25.0
         # via
         #   jupyter-resource-usage
@@ -1665,7 +1560,7 @@ out:
         #   jupyterhub
     prompt-toolkit==3.0.52
         # via ipython
-    propcache==0.4.1
+    propcache==0.5.2
         # via
         #   aiohttp
         #   yarl
@@ -1709,9 +1604,9 @@ out:
         # via pycrdt-websocket
     pycrdt-websocket==0.16.0
         # via jupyter-server-ydoc
-    pydantic==2.13.3
+    pydantic==2.13.4
         # via jupyterhub
-    pydantic-core==2.46.3
+    pydantic-core==2.46.4
         # via pydantic
     pydata-sphinx-theme==0.17.1
         # via sunpy-sphinx-theme
@@ -1845,7 +1740,7 @@ out:
         # via
         #   glue-astronomy
         #   jdaviz
-    requests==2.33.1
+    requests==2.34.0
         # via
         #   -r references/roman_notebooks/notebooks/pandeia/requirements.txt
         #   -r references/roman_notebooks/notebooks/synphot/requirements.txt
@@ -1883,7 +1778,7 @@ out:
         # via rich-click
     rich-click==1.9.7
         # via solara-server
-    roman-datamodels==0.30.0
+    roman-datamodels==0.30.1
         # via
         #   -r references/roman_notebooks/notebooks/aperture_photometry/requirements.txt
         #   -r references/roman_notebooks/notebooks/data_discovery_and_access/requirements.txt
@@ -1893,6 +1788,7 @@ out:
         #   -r references/roman_notebooks/notebooks/ground_test_analysis/requirements.txt
         #   -r references/roman_notebooks/notebooks/measuring_galaxy_shapes/requirements.txt
         #   -r references/roman_notebooks/notebooks/mosaic_pipeline/requirements.txt
+        #   -r references/roman_notebooks/notebooks/roman_cutouts/requirements.txt
         #   -r references/roman_notebooks/notebooks/romanisim/requirements.txt
         #   -r references/roman_notebooks/notebooks/time_domain_simulations/requirements.txt
         #   -r references/roman_notebooks/notebooks/working_with_asdf/requirements.txt
@@ -2012,7 +1908,7 @@ out:
         #   rfc3339-validator
     skyproj==2.1.1
         # via -r references/roman_notebooks/notebooks/footprint_visualization/requirements.txt
-    smart-open==7.6.0
+    smart-open==7.6.1
         # via s3path
     smmap==5.0.3
         # via gitdb
@@ -2036,7 +1932,7 @@ out:
         # via distributed
     soupsieve==2.8.3
         # via beautifulsoup4
-    specreduce==1.8.0
+    specreduce==1.9.0
         # via
         #   glue-astronomy
         #   jdaviz
@@ -2067,7 +1963,7 @@ out:
         #   sphinxcontrib-jquery
         #   stsci-rtd-theme
         #   sunpy-sphinx-theme
-    sphinx-astropy==1.10
+    sphinx-astropy==1.11
         # via -r references/science-platform-images/deployments/common/common-env/docs.pip
     sphinx-automodapi==0.22.0
         # via
@@ -2109,11 +2005,11 @@ out:
         #   solara-server
     stcal==1.17.0
         # via romancal
-    stdatamodels==5.0.1
+    stdatamodels==5.0.2
         # via jdaviz
     stdlib-list==0.12.0
         # via pydeps
-    stips==2.3
+    stips==2.3.1
         # via -r references/roman_notebooks/notebooks/stips/requirements.txt
     stpipe==0.11.1
         # via romancal
@@ -2165,7 +2061,7 @@ out:
         # via scikit-image
     tinycss2==1.4.0
         # via bleach
-    tomlkit==0.14.0
+    tomlkit==0.15.0
         # via
         #   jupyter-packaging
         #   yq
@@ -2193,7 +2089,7 @@ out:
         # via
         #   papermill
         #   spectral-cube
-    traitlets==5.14.3
+    traitlets==5.15.0
         # via
         #   bqplot
         #   ipykernel
@@ -2252,7 +2148,7 @@ out:
         #   pandas
     uri-template==1.3.0
         # via jsonschema
-    urllib3==2.6.3
+    urllib3==2.7.0
         # via
         #   botocore
         #   distributed
@@ -2323,3 +2219,114 @@ out:
         # via distributed
     zipp==3.23.1
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/roman_notebooks/refdata_dependencies.yaml:
+        install_files:
+          pandeia_data:
+            version: '2026.1'
+            environment_variable: pandeia_refdata
+            install_path: ${HOME}/refdata/
+            data_path: pandeia_data-2026.1-roman
+            data_url:
+              - https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz
+          pandeia_psf:
+            version: '2026.1'
+            environment_variable: PSF_DIR
+            install_path: ${HOME}/refdata/
+            data_path: pandeia_psfs-2026.1-roman
+            data_url:
+              - https://stsci.box.com/shared/static/5qkyvr5steg2fo2zxbqj2jxcmbmz1c4w.gz
+          stpsf:
+            version: 2.1.0
+            environment_variable: STPSF_PATH
+            install_path: ${HOME}/refdata/
+            data_path: stpsf-data
+            data_url:
+              - https://stsci.box.com/shared/static/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz
+          stips:
+            version: 2.3.0
+            environment_variable: stips_data
+            install_path: ${HOME}/refdata/
+            data_path: stips_data
+            data_url:
+              - https://stsci.box.com/shared/static/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz
+          synphot:
+            version: 1.6.0
+            environment_variable: PYSYN_CDBS
+            install_path: ${HOME}/refdata/
+            data_path: grp/redcat/trds/
+            data_url:
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar
+              - https://archive.stsci.edu/hlsps/reference-atlases/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar
+        other_variables:
+          CRDS_SERVER_URL: https://roman-crds.stsci.edu
+          CRDS_CONTEXT: roman_0048.pmap
+          CRDS_PATH: ${HOME}/crds_cache
+    spec_exports:
+      pandeia_refdata: ${HOME}/refdata/pandeia_data-2026.1-roman
+      PSF_DIR: ${HOME}/refdata/pandeia_psfs-2026.1-roman
+      STPSF_PATH: ${HOME}/refdata/stpsf-data
+      stips_data: ${HOME}/refdata/stips_data
+      PYSYN_CDBS: ${HOME}/refdata/grp/redcat/trds/
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0048.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+    pantry_exports:
+      pandeia_refdata: 
+        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_data-2026.1-roman
+      PSF_DIR: 
+        ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/pandeia_psfs-2026.1-roman
+      STPSF_PATH: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stpsf-data
+      stips_data: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/stips_data
+      PYSYN_CDBS: ${NBW_PANTRY}/shelves/RomanNexus-2026.1/data/grp/redcat/trds
+      CRDS_SERVER_URL: https://roman-crds.stsci.edu
+      CRDS_CONTEXT: roman_0048.pmap
+      CRDS_PATH: ${HOME}/crds_cache
+    metadata:
+      roman_notebooks/pandeia_data/0qjvuqwkurhx1xd13i63j760cosep9wh.gz:
+        size: '17365154'
+        sha256: a048cecef53ed29bec2b39981bbb633cc2f0ad1c63c61f6dfebae56bbf91c83d
+      roman_notebooks/pandeia_psf/5qkyvr5steg2fo2zxbqj2jxcmbmz1c4w.gz:
+        size: '548548732'
+        sha256: 6de88ab72c8d4fadafec52aac69705b8ed842ad34d38c3fb3e9866e3f934f4e9
+      roman_notebooks/stpsf/kqfolg2bfzqc4mjkgmujo06d3iaymahv.gz:
+        size: '92294357'
+        sha256: bbdfbe7c5aa7ee7fdb60efed13720ba3e0619c976b77aa0d63941dd59a4b6a98
+      roman_notebooks/stips/761vz7zav7pux03fg0hhqq7z2uw8nmqw.tgz:
+        size: '153097868'
+        sha256: 15a430e67c7526abb4bd0f56379631ef7cb10a93f72b5d5dbd7919b441422d6a
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_everything_multi_v18_sed.tar:
+        size: '1285222400'
+        sha256: 3f01b858d88960f864cad56a03d2425955ae3951a979378da612af960c5f6b59
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_star-galaxy-models_multi_v3_synphot2.tar:
+        size: '90347520'
+        sha256: 66faaaeeb04e855a09c6cb8bc9b748c8fbedf23b782208dba84e10c4f0fd450b
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_castelli-kurucz-2004-atlas_multi_v2_synphot3.tar:
+        size: '42772480'
+        sha256: 8f7a220bc9480900c372015847057b06a2c218ae8b2dbf8020e6a1dd2990b42c
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_kurucz-1993-atlas_multi_v2_synphot4.tar:
+        size: '81684480'
+        sha256: 95ca73356f38a703064c346e286f571b53f78964d5511d1b538ff086f5ce897e
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_pheonix-models_multi_v3_synphot5.tar:
+        size: '1868328960'
+        sha256: 1ffb5e136dc4f846cd95b83843eb89f7a5171f58732705b25f07a99c4d8cf50d
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_calibration-spectra_multi_v13_synphot6.tar:
+        size: '8695121920'
+        sha256: 69b3ba91db2a3290bacbe48ef7b7626905567d89e7e03d11b3cefeadf5f26fd7
+      roman_notebooks/synphot/hlsp_reference-atlases_jwst_multi_etc-models_multi_v1_synphot7.tar:
+        size: '8909717'
+        sha256: 01b2eae81852d56971796a62c82ff7f76256e1fdaabccf2f7f09151b1283640a
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_modewave_multi_v1_synphot8.tar:
+        size: '34160640'
+        sha256: 3338b1fb400d752c02c06132e0ce804ef8a9751f6ff535b41d022f60b0364d81
+      roman_notebooks/synphot/hlsp_reference-atlases_hst_multi_other-spectra_multi_v2_sed.tar:
+        size: '121835520'
+        sha256: b8901e54c03a185d19cd08e9590a7b959d82901d02abc7a9a3f468c8691db70b
