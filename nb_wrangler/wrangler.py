@@ -511,7 +511,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
 
         # Update spec with resolved repository states
-        output_repos_for_spec = self.spec_manager.to_dict().get("repositories") or {}
+        output_repos_for_spec = copy.deepcopy(self.spec_manager.repositories)
         self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
 
         # Update SPI ref with resolved hash
@@ -541,7 +541,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             and not self.config.inject_spi
             and not self.config.submit_for_build
         ):
-            if floating_mode:
+            if floating_mode or self.config.dev:
                 spi_info = self.spec_manager.spi
             else:  # locked mode
                 spi_info = self.spec_manager.get_output_data(
@@ -563,6 +563,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     "Locked mode is on, but no refs found in spec output for notebook repos. Falling back to input spec refs."
                 )
                 notebook_repo_refs = self.spec_manager.get_repository_refs()
+
+            if self.config.dev:
+                # In dev mode, we want to allow dev_overrides to take precedence over locked refs
+                for repo_name in self.spec_manager.dev_overrides_repositories:
+                    # Use the fully-resolved repo info from spec_manager.repositories
+                    # which already has the dev_overrides applied.
+                    repo_info = self.spec_manager.repositories.get(repo_name)
+                    if repo_info:
+                        url = repo_info.get("url")
+                        ref = repo_info.get("ref")
+                        if url and ref:
+                            notebook_repo_refs[url] = ref
 
         for url in notebook_repo_urls:
             all_repos_to_prepare[url] = notebook_repo_refs.get(url, "main")

@@ -101,6 +101,11 @@ class SpecManager(
         return "dev_overrides" in self._spec
 
     @property
+    def dev_overrides_repositories(self) -> dict[str, Any]:
+        """Return only the repositories that are defined in dev_overrides."""
+        return self._spec.get("dev_overrides", {}).get("repositories") or {}
+
+    @property
     def notebook_selections(self) -> dict[str, Any]:
         return self._spec.get("selected_notebooks") or {}
 

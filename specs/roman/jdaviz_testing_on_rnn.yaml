@@ -26,8 +26,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-05-19T15:45:27.199658'
-  spec_sha256: 6a2e96b497b51c8d73539c92db71e31878e703693401c4449718ee9e97bb88d9
+  date_updated: '2026-05-20T07:57:50.376460'
+  spec_sha256: b94c6341c500dbd90623ba29944310a1d4f369a75919b5585bdf4f6ac64ef0ae
 
 selected_notebooks:
   roman_all:
@@ -35,17 +35,6 @@ selected_notebooks:
     root_directory: notebooks/
     include_subdirs:
       - omit-all-notebooks-to-avoid-constraint-pinning
-
-  # -----   exclude_subdirs:
-  # -----     - data_visualization/data_visualization.ipynb
-  # ----- roman_data_viz:
-  # -----   repo: roman_notebooks
-  # -----   root_directory: notebooks/
-  # -----   include_subdirs:
-  # -----     - data_visualization/data_visualization.ipynb
-  # -----   tests:
-  # -----     papermill: false
-
 
 apt_packages:
   - libgl1-mesa-dev
@@ -91,11 +80,11 @@ out:
   repositories:
     roman_notebooks:
       url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: 7f391657bc2bf47a784400d65d2882703787416d
+      ref: ec76705dae15ca0b30007cb4a5a924070f608c46
 
   spi:
-    repo: https://github.com/spacetelescope/science-platform-images.git
-    ref: 00bd6a2366c93c23e98c3f2fd23c206369c107ae
+    repo: https://github.com/jaytmiller/science-platform-images.git
+    ref: 8848203fdd1e46326292bb6e247e451322e3f5aa
   test_notebooks: {}
   test_imports: []
   nb_to_imports: {}
