@@ -31,19 +31,36 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.repo_manager = repo_manager
         self.python_path = python_path
 
-    def find_requirements_files(self, notebook_paths: list[str]) -> list[Path]:
-        """Find requirements.txt files in notebook directories."""
-        requirements_files = []
-        notebook_dirs = {Path(nb_path).parent for nb_path in notebook_paths}
-        for dir_path in notebook_dirs:
+    def find_requirements_files(self, notebook_paths: list[str]) -> list[tuple[Path, str]]:
+        """Find requirements.txt files in notebook directories.
+        Returns a list of (requirements_file, contributor_name) tuples.
+        """
+        requirements_data = []
+        # Group notebooks by their parent directory
+        dir_to_notebooks = {}
+        for nb_path in notebook_paths:
+            nb_path_obj = Path(nb_path)
+            parent = nb_path_obj.parent
+            if parent not in dir_to_notebooks:
+                dir_to_notebooks[parent] = []
+            dir_to_notebooks[parent].append(nb_path_obj.stem)
+
+        # For each directory, check if requirements.txt exists
+        for dir_path, nb_stems in sorted(dir_to_notebooks.items()):
             req_file = dir_path / "requirements.txt"
             if req_file.exists():
-                requirements_files.append(req_file)
-                self.logger.debug(f"Found requirements file: {req_file}")
+                # Sort stems for deterministic naming
+                contributor = "_".join(sorted(nb_stems))
+                # Truncate if too long to avoid OS filename limits
+                if len(contributor) > 100:
+                    contributor = contributor[:100] + "_etc"
+                requirements_data.append((req_file, contributor))
+                self.logger.debug(f"Found requirements file: {req_file} (from {contributor})")
+
         self.logger.info(
-            f"Found {len(requirements_files)} notebook requirements.txt files."
+            f"Found {len(requirements_data)} notebook requirements.txt files."
         )
-        return requirements_files
+        return requirements_data
 
     def compile_requirements(
         self,
@@ -200,12 +217,12 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         return sorted(lines)
 
     def _strip_versions_from_requirements(
-        self, req_files: list[Path], output_dir: Path
+        self, req_data: list[tuple[Path, str]], output_dir: Path
     ) -> list[Path]:
         """Strip version constraints from requirements files and write to temporary files."""
         stripped_files = []
         output_dir.mkdir(parents=True, exist_ok=True)
-        for req_file in req_files:
+        for req_file, contributor in req_data:
             stripped_content = []
             with req_file.open("r") as f:
                 for line in f:
@@ -218,7 +235,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     package_name = re.split(r"[=<>~!]", line)[0].strip()
                     stripped_content.append(package_name)
 
-            stripped_file = output_dir / f"stripped_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+            stripped_file = output_dir / f"stripped_{contributor}_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
             with stripped_file.open("w") as f:
                 f.write("\n".join(stripped_content) + "\n")
             stripped_files.append(stripped_file)
@@ -273,12 +290,14 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             final_mamba_spec["name"] = kernel_name
 
             # Pip
-            notebook_req_files = self.find_requirements_files(notebook_paths)
+            notebook_req_data = self.find_requirements_files(notebook_paths)
             if self.config.packages_ignore_versions:
                 self.logger.info("Ignoring version constraints in notebook requirements.txt files.")
                 notebook_req_files = self._strip_versions_from_requirements(
-                    notebook_req_files, output_dir
+                    notebook_req_data, output_dir
                 )
+            else:
+                notebook_req_files = [req_file for req_file, _ in notebook_req_data]
 
             spi_pip_files = injector.find_spi_pip_files()
             extra_pip_packages_file = utils.writelines(
