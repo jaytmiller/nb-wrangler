@@ -129,8 +129,8 @@ def main():
     parser.add_argument(
         "--days",
         type=int,
-        default=9,
-        help="Cutoff days for deletion (default: 9).",
+        default=14,
+        help="Cutoff days for deletion (default: 14).",
     )
     parser.add_argument(
         "--owner",
@@ -148,6 +148,19 @@ def main():
         action="store_true",
         help="Confirm each deletion before doing it.",
     )
+    parser.add_argument(
+        "-l",
+        "--list",
+        "--dry-run",
+        action="store_true",
+        dest="dry_run",
+        help="List versions that would be deleted without deleting them.",
+    )
+    parser.add_argument(
+        "-t",
+        "--tag",
+        help="Tag pattern to match (glob).",
+    )
     args = parser.parse_args()
 
     owner = args.owner
@@ -155,6 +168,8 @@ def main():
     pattern = args.name
     cutoff_days = args.days
     interactive = args.interactive
+    dry_run = args.dry_run
+    tag_pattern = args.tag
 
     # SCOPE logic from original script
     scope = "users" if owner != "spacetelescope" else "orgs"
@@ -165,6 +180,11 @@ def main():
         try:
             all_packages = fetch_packages(owner, scope, package_type)
             target_packages = [p["name"] for p in all_packages if fnmatch.fnmatch(p["name"], pattern)]
+            
+            if not target_packages and not tag_pattern:
+                print(f"No packages match '{pattern}'. Searching tags in default package 'nb-wrangler'...")
+                target_packages = ["nb-wrangler"]
+                tag_pattern = pattern
         except requests.exceptions.RequestException as e:
             print(f"Error fetching packages: {e}", file=sys.stderr)
             sys.exit(1)
@@ -176,6 +196,8 @@ def main():
         return
 
     print(f"Target packages: {', '.join(target_packages)}")
+    if tag_pattern:
+        print(f"Tag pattern: {tag_pattern}")
 
     cutoff_dt = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
     cutoff_epoch = int(cutoff_dt.timestamp())
@@ -200,16 +222,25 @@ def main():
                     continue
 
                 version_id, created_at, created_epoch, tags = parsed
-                
+
+                if tag_pattern:
+                    if not any(fnmatch.fnmatch(t, tag_pattern) for t in tags):
+                        continue
+
                 if created_epoch < cutoff_epoch:
                     print(f"Candidate for deletion: tags={tags} version id={version_id} created_at={created_at}")
-                    
+
+                    if dry_run:
+                        print(f"  [DRY RUN] Would delete version {version_id}")
+                        deleted += 1
+                        continue
+
                     do_delete = True
                     if interactive:
                         choice = input(f"Delete version {version_id} (tags={tags})? [y/N] ").lower()
                         if choice not in ("y", "yes"):
                             do_delete = False
-                    
+
                     if do_delete:
                         delete_version(owner, scope, package_type, package_name, version_id)
                         deleted += 1
@@ -220,7 +251,7 @@ def main():
                     print(f"Keeping tags={tags} version id={version_id} created_at={created_at} (within cutoff)")
                     kept += 1
                 print(f"Current package status: Deleted={deleted}, kept={kept}")
-        
+
         print(f"Finished package {package_name}. Deleted={deleted}, kept={kept}")
         total_deleted += deleted
         total_kept += kept
