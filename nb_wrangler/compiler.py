@@ -31,13 +31,15 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.repo_manager = repo_manager
         self.python_path = python_path
 
-    def find_requirements_files(self, notebook_paths: list[str]) -> list[tuple[Path, str]]:
+    def find_requirements_files(
+        self, notebook_paths: list[str]
+    ) -> list[tuple[Path, str]]:
         """Find requirements.txt files in notebook directories.
         Returns a list of (requirements_file, contributor_name) tuples.
         """
         requirements_data = []
         # Group notebooks by their parent directory
-        dir_to_notebooks = {}
+        dir_to_notebooks: dict[Path, list[str]] = {}
         for nb_path in notebook_paths:
             nb_path_obj = Path(nb_path)
             parent = nb_path_obj.parent
@@ -55,7 +57,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 if len(contributor) > 100:
                     contributor = contributor[:100] + "_etc"
                 requirements_data.append((req_file, contributor))
-                self.logger.debug(f"Found requirements file: {req_file} (from {contributor})")
+                self.logger.debug(
+                    f"Found requirements file: {req_file} (from {contributor})"
+                )
 
         self.logger.info(
             f"Found {len(requirements_data)} notebook requirements.txt files."
@@ -235,7 +239,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     package_name = re.split(r"[=<>~!]", line)[0].strip()
                     stripped_content.append(package_name)
 
-            stripped_file = output_dir / f"stripped_{contributor}_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+            stripped_file = (
+                output_dir
+                / f"stripped_{contributor}_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+            )
             with stripped_file.open("w") as f:
                 f.write("\n".join(stripped_content) + "\n")
             stripped_files.append(stripped_file)
@@ -292,7 +299,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             # Pip
             notebook_req_data = self.find_requirements_files(notebook_paths)
             if self.config.packages_ignore_versions:
-                self.logger.info("Ignoring version constraints in notebook requirements.txt files.")
+                self.logger.info(
+                    "Ignoring version constraints in notebook requirements.txt files."
+                )
                 notebook_req_files = self._strip_versions_from_requirements(
                     notebook_req_data, output_dir
                 )

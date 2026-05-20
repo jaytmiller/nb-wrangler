@@ -9,8 +9,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import requests
-from requests.auth import HTTPBasicAuth
 
+# from requests.auth import HTTPBasicAuth
 
 # --- Config & Session Setup ---------------------------
 
@@ -19,6 +19,7 @@ GITHUB_BASE = "https://api.github.com"
 
 # Output file for your cleanup logic
 CLEANUP_FILE = Path("cleanup.versions")
+
 
 def get_auth_token():
     """Retrieve GitHub token from environment or gh CLI."""
@@ -30,14 +31,12 @@ def get_auth_token():
     # Priority 2: GitHub CLI
     try:
         result = subprocess.run(
-            ["gh", "auth", "token"],
-            capture_output=True,
-            text=True,
-            check=True
+            ["gh", "auth", "token"], capture_output=True, text=True, check=True
         )
         return result.stdout.strip()
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
+
 
 session = requests.Session()
 # Either use:
@@ -47,8 +46,11 @@ AUTH_TOKEN = get_auth_token()
 if AUTH_TOKEN:
     session.headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
 else:
-    print("Warning: No GITHUB_TOKEN found and 'gh auth token' failed. "
-          "Requests may fail if authentication is required.", file=sys.stderr)
+    print(
+        "Warning: No GITHUB_TOKEN found and 'gh auth token' failed. "
+        "Requests may fail if authentication is required.",
+        file=sys.stderr,
+    )
 
 session.headers["Accept"] = "application/vnd.github+json"
 session.headers["X-GitHub-Api-Version"] = "2026-03-10"
@@ -70,7 +72,9 @@ def fetch_packages(owner, scope, package_type):
 
 def fetch_versions(owner, scope, package_type, package_name):
     versions = []
-    url = f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}/versions"
+    url = (
+        f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}/versions"
+    )
     while url:
         resp = session.get(url)
         resp.raise_for_status()
@@ -101,14 +105,17 @@ def delete_version(owner, scope, package_type, package_name, version_id):
     if resp.status_code in (204, 202):
         print(f"Successfully deleted version {version_id}", file=sys.stderr)
     else:
-        print(f"Failed to delete version {version_id}: {resp.status_code}", file=sys.stderr)
+        print(
+            f"Failed to delete version {version_id}: {resp.status_code}",
+            file=sys.stderr,
+        )
 
 
 def parse_line(line):
     try:
         obj = json.loads(line.strip())
         version_id = obj["id"]
-        created_at_str = obj["created_at"]   # keep original string
+        created_at_str = obj["created_at"]  # keep original string
         created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
         created_epoch = int(created_at.timestamp())
         tags = obj.get("metadata", {}).get("container", {}).get("tags", [])
@@ -176,13 +183,19 @@ def main():
 
     # Determine packages to process
     if any(c in pattern for c in "*?[]"):
-        print(f"Searching for packages matching pattern '{pattern}' in {owner} ({scope})...")
+        print(
+            f"Searching for packages matching pattern '{pattern}' in {owner} ({scope})..."
+        )
         try:
             all_packages = fetch_packages(owner, scope, package_type)
-            target_packages = [p["name"] for p in all_packages if fnmatch.fnmatch(p["name"], pattern)]
-            
+            target_packages = [
+                p["name"] for p in all_packages if fnmatch.fnmatch(p["name"], pattern)
+            ]
+
             if not target_packages and not tag_pattern:
-                print(f"No packages match '{pattern}'. Searching tags in default package 'nb-wrangler'...")
+                print(
+                    f"No packages match '{pattern}'. Searching tags in default package 'nb-wrangler'..."
+                )
                 target_packages = ["nb-wrangler"]
                 tag_pattern = pattern
         except requests.exceptions.RequestException as e:
@@ -228,7 +241,9 @@ def main():
                         continue
 
                 if created_epoch < cutoff_epoch:
-                    print(f"Candidate for deletion: tags={tags} version id={version_id} created_at={created_at}")
+                    print(
+                        f"Candidate for deletion: tags={tags} version id={version_id} created_at={created_at}"
+                    )
 
                     if dry_run:
                         print(f"  [DRY RUN] Would delete version {version_id}")
@@ -237,18 +252,24 @@ def main():
 
                     do_delete = True
                     if interactive:
-                        choice = input(f"Delete version {version_id} (tags={tags})? [y/N] ").lower()
+                        choice = input(
+                            f"Delete version {version_id} (tags={tags})? [y/N] "
+                        ).lower()
                         if choice not in ("y", "yes"):
                             do_delete = False
 
                     if do_delete:
-                        delete_version(owner, scope, package_type, package_name, version_id)
+                        delete_version(
+                            owner, scope, package_type, package_name, version_id
+                        )
                         deleted += 1
                     else:
                         print(f"Skipping version {version_id}")
                         kept += 1
                 else:
-                    print(f"Keeping tags={tags} version id={version_id} created_at={created_at} (within cutoff)")
+                    print(
+                        f"Keeping tags={tags} version id={version_id} created_at={created_at} (within cutoff)"
+                    )
                     kept += 1
                 print(f"Current package status: Deleted={deleted}, kept={kept}")
 
