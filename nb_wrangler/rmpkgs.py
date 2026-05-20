@@ -3,6 +3,7 @@ import argparse
 import fnmatch
 import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -19,13 +20,36 @@ GITHUB_BASE = "https://api.github.com"
 # Output file for your cleanup logic
 CLEANUP_FILE = Path("cleanup.versions")
 
+def get_auth_token():
+    """Retrieve GitHub token from environment or gh CLI."""
+    # Priority 1: Environment Variable
+    token = os.getenv("GITHUB_TOKEN")
+    if token:
+        return token
+
+    # Priority 2: GitHub CLI
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "token"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        return result.stdout.strip()
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+
 session = requests.Session()
 # Either use:
 #   - Personal Access Token (recommended)
 #   - or basic auth: OWNER + password (less secure)
-AUTH_TOKEN = os.getenv("GITHUB_TOKEN")
+AUTH_TOKEN = get_auth_token()
 if AUTH_TOKEN:
     session.headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
+else:
+    print("Warning: No GITHUB_TOKEN found and 'gh auth token' failed. "
+          "Requests may fail if authentication is required.", file=sys.stderr)
+
 session.headers["Accept"] = "application/vnd.github+json"
 session.headers["X-GitHub-Api-Version"] = "2026-03-10"
 
