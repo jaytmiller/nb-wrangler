@@ -1,5 +1,11 @@
 # Wrangler Spec Format
 
+You can generate a basic default wrangler spec template using the `--spec-init` command:
+
+```bash
+nbw --spec-init my-spec.yaml
+```
+
 ## Example Spec
 
 Below is a prototype wrangler spec for TIKE in the new format:

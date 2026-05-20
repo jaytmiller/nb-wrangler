@@ -10,6 +10,9 @@
   - `--spi-prune` allows removal of old Docker images to force a complete rebuild.
   - Improved workflow for injecting spec requirements into the `science-platform-images` repository.
 
+- **Spec Management:**
+  - Added `--spec-init FILENAME` to generate a basic default `spec.yaml` template file.
+
 # 0.8.0 02-03-2026 Enhanced Testing and Environment Management
 
 - Added regex support to `--test-notebooks` (and by extension `-t`, `--test-all`, `--test-imports`) allowing users to specify a subset of notebooks for testing.

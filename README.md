@@ -112,6 +112,7 @@ correct notebooks, pip requirements, and installable data.
 
 The main curation workflows are:
 
+- **`--spec-init FILENAME`:** Generate a basic default `spec.yaml` template to get started.
 - **`--curate`:** Compiles notebook requirements, creates the mamba environment, and
   installs pip dependencies.
 - **`--data-curate`:** Gathers data requirements from notebook repositories and
@@ -273,6 +274,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 
 ### Spec Management
 
+- `--spec-init FILENAME`: Generate a basic default `spec.yaml` template file.
 - `--spec-reset`: Reset the spec file to its original state (preserves `out.data`).
 - `--spec-add`: Add the spec to the pantry (a local collection of specs).
 - `--spec-list`: List available specs in the pantry.

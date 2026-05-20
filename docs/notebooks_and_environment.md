@@ -6,12 +6,12 @@ Science Platform environment.
  
  The current process is to *define the spec*:
 
-- Bootstrap and/or install nb-wrangler
-- Copy an existing wrangler spec from the same project. See specs/samples.
+- Bootstrap and/or install nb-wrangler.
+- Generate a new template spec using `nbw --spec-init my-spec.yaml` OR copy an existing wrangler spec from the same project (see `specs/samples`).
 - Update the header section of the spec.
-- Add repo and notebook selection information to the selected_notebooks section.
-- Add any extra mamba packages or mamba version constraints;  minimize these to those not available by pip
-- Add any extra pip packages or pip version constraints not defined in requirements.txt files
+- Add repo and notebook selection information to the `selected_notebooks` section.
+- Add any extra mamba packages or mamba version constraints; minimize these to those not available by pip.
+- Add any extra pip packages or pip version constraints not defined in `requirements.txt` files.
 
 ## Notebook and Environment Curation
 
