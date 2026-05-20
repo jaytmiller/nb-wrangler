@@ -255,7 +255,6 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         command = mm_prefix + [
             "-f",
             str(micromamba_specfile),
-            "-vv",
             "--strict-channel-priority",
         ]
         result = self.wrangler_run(command, check=False, timeout=ENV_CREATE_TIMEOUT)

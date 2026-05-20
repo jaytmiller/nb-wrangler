@@ -255,6 +255,12 @@ def parse_args():
         action="store_true",
         help="Print the environment name associated with this spec to stdout.",
     )
+    env_group.add_argument(
+        "--env-ignore-versions",
+        action="store_true",
+        dest="env_ignore_versions",
+        help="Remove version constraints from notebook requirements.txt files before environment compilation.",
+    )
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
     )

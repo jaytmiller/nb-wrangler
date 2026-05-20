@@ -77,6 +77,7 @@ class WranglerConfig:
     env_register: bool = False
     env_unregister: bool = False
     env_compact: bool = False
+    env_ignore_versions: bool = False
     env_archive_format: str = ""
     env_print_name: bool = False
     env_kernel_cleanup: bool = False
@@ -170,6 +171,7 @@ class WranglerConfig:
             env_unregister=args.env_unregister,
             env_archive_format=args.env_archive_format,
             env_compact=args.env_compact,
+            env_ignore_versions=args.env_ignore_versions,
             env_print_name=args.env_print_name,
             env_kernel_cleanup=args.env_kernel_cleanup,
             packages_compile=args.packages_compile,

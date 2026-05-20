@@ -199,6 +199,33 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     lines.append(line)
         return sorted(lines)
 
+    def _strip_versions_from_requirements(
+        self, req_files: list[Path], output_dir: Path
+    ) -> list[Path]:
+        """Strip version constraints from requirements files and write to temporary files."""
+        stripped_files = []
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for req_file in req_files:
+            stripped_content = []
+            with req_file.open("r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith(("#", "--hash")):
+                        stripped_content.append(line)
+                        continue
+                    # Strip version constraints: ==, >=, <=, >, <, ~=
+                    # Also handle multiple constraints like package>=1.0,<=2.0
+                    package_name = re.split(r"[=<>~!]", line)[0].strip()
+                    stripped_content.append(package_name)
+
+            stripped_file = output_dir / f"stripped_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+            with stripped_file.open("w") as f:
+                f.write("\n".join(stripped_content) + "\n")
+            stripped_files.append(stripped_file)
+            self.logger.debug(f"Created stripped requirements file: {stripped_file}")
+
+        return stripped_files
+
     def consolidate_environment(
         self, notebook_paths: list[str], injector: SpiInjector, output_dir: Path
     ) -> tuple[
@@ -247,6 +274,12 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
             # Pip
             notebook_req_files = self.find_requirements_files(notebook_paths)
+            if self.config.env_ignore_versions:
+                self.logger.info("Ignoring version constraints in notebook requirements.txt files.")
+                notebook_req_files = self._strip_versions_from_requirements(
+                    notebook_req_files, output_dir
+                )
+
             spi_pip_files = injector.find_spi_pip_files()
             extra_pip_packages_file = utils.writelines(
                 self.spec_manager.extra_pip_packages, "extra_pip_packages.txt"
