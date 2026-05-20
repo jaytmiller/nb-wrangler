@@ -274,7 +274,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
             # Pip
             notebook_req_files = self.find_requirements_files(notebook_paths)
-            if self.config.env_ignore_versions:
+            if self.config.packages_ignore_versions:
                 self.logger.info("Ignoring version constraints in notebook requirements.txt files.")
                 notebook_req_files = self._strip_versions_from_requirements(
                     notebook_req_files, output_dir
