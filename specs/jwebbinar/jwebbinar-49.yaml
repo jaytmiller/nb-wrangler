@@ -1,0 +1,68 @@
+# Image header information
+image_spec_header:
+  image_name: jwebbinar-49
+  deployment_name: jwebbinar
+  kernel_name: jwebbinar-49
+  display_name: jwebbinar 49
+  description: |
+    This spec is for the production version of jwebbinar-49
+  valid_on: 2026-06-01
+  expires_on: 2026-12-01
+  python_version: 3.12
+
+repositories:
+  jwebbinar_prep:
+    url: https://github.com/spacetelescope/jwebbinar_prep.git
+    ref: main
+
+selected_notebooks:
+  jwebbinar_all:
+    repo: jwebbinar_prep
+    root_directory: notebooks/
+    include_subdirs:
+      - '.*'
+  # -----   exclude_subdirs:
+  # -----     - data_visualization/data_visualization.ipynb
+  # ----- roman_data_viz:
+  # -----   repo: roman_notebooks
+  # -----   root_directory: notebooks/
+  # -----   include_subdirs:
+  # -----     - data_visualization/data_visualization.ipynb
+  # -----   tests:
+  # -----     papermill: false
+
+system:
+  spec_version: 2.1
+  archive_format: .tar
+  primary_repo: spacetelescope/roman_notebooks
+  nb-wrangler:
+    repo: https://github.com/spacetelescope/nb-wrangler.git
+    ref: main
+  spi:
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: main
+  date_updated: '2026-06-02T14:40:03.123746'
+  spec_sha256: 1972efd6fcd8c181f46c76fc23294842ed8e0b703d89f326da5922da8dc99d2c
+
+deactivated_dev_overrides:
+  system:
+    primary_repo: jaytmiller/roman_notebooks
+    nb-wrangler:
+      repo: https://github.com/jaytmiller/nb-wrangler.git
+      ref: dev
+    spi:
+      repo: https://github.com/jaytmiller/science-platform-images.git
+      ref: dev
+  repositories:
+    roman_notebooks:
+      url: https://github.com/jaytmiller/roman_notebooks.git
+      ref: dev
+
+# To add mamba packages to the basic mission environment, ideally minimize
+extra_mamba_packages: []
+
+# To add as many packages as possible from PyPi
+extra_pip_packages: []
+
+# These supersede all conflicting constraints
+override_pip_versions: []
