@@ -695,10 +695,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.override_pip_versions_file,
         ):
             return self.logger.error("Failed to compile pip package versions.")
-        try:
-            Path("extra_pip_packages.txt").unlink()
-        except FileNotFoundError:
-            pass
+
+        for filename in ["extra_pip_packages.txt", "common_pip_packages.txt"]:
+            try:
+                (self.config.output_dir / filename).unlink()
+            except FileNotFoundError:
+                pass
 
         compiled_pip_packages_str = utils.yaml_block(self.pip_output_file.open().read())
 
