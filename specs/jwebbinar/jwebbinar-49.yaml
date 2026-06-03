@@ -41,24 +41,9 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-06-03T14:16:13.411946'
-  spec_sha256: 622a9d2b96d9119faa6f881ea18457b7c7c301a7dbffa8a8567ca18edffd9f71
+  date_updated: '2026-06-03T15:13:03.307024'
+  spec_sha256: 5b1ae77df572a3de1952dae2795f76cf4112536df2ec78bc50009161863f3562
 
-dev_overrides:
-  system:
-    primary_repo: jaytmiller/roman_notebooks
-    nb-wrangler:
-      repo: https://github.com/jaytmiller/nb-wrangler.git
-      ref: dev
-    spi:
-      repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: dev
-  repositories:
-    jwebbinar_prep:
-      url: https://github.com/jaytmiller/jwebbinar_prep.git
-      ref: main
-
-# To add mamba packages to the basic mission environment, ideally minimize
 extra_mamba_packages: []
 
 # To add as many packages as possible from PyPi
@@ -1229,3 +1214,18 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     yq==3.4.3
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
+deactivated_dev_overrides:
+  system:
+    primary_repo: jaytmiller/roman_notebooks
+    nb-wrangler:
+      repo: https://github.com/jaytmiller/nb-wrangler.git
+      ref: dev
+    spi:
+      repo: https://github.com/jaytmiller/science-platform-images.git
+      ref: dev
+  repositories:
+    jwebbinar_prep:
+      url: https://github.com/jaytmiller/jwebbinar_prep.git
+      ref: main
+
+# To add mamba packages to the basic mission environment, ideally minimize
