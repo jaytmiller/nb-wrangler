@@ -136,7 +136,7 @@ jobs:
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
           mkdir docker-root
           cd docker-root
-          cp ${NBW_SPEC} .
+          cp $(basename ${NBW_SPEC}) .
           cat > Dockerfile << EOF
           FROM scratch
           COPY ${NBW_SPEC} ${SPEC_NAME}
