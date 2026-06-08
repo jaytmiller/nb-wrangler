@@ -136,10 +136,10 @@ jobs:
           cd $GITHUB_WORKSPACE/../nb-wrangler-tool
           mkdir docker-root
           cd docker-root
-          cp $(basename ${NBW_SPEC}) .
+          cp ${NBW_SPEC} .
           cat > Dockerfile << EOF
           FROM scratch
-          COPY ${NBW_SPEC} ${SPEC_NAME}
+          COPY $(basename ${NBW_SPEC}) ${SPEC_NAME}
           EOF
 
       - name: Build Spec archive and push to GHCR
