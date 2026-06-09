@@ -175,20 +175,25 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> str:
     Currently intended for small quick downloads only due to lack of
     chunking and/or parallelism.
 
-    Return the local path.`
+    Return the local path.
     """
-    # Check for file:// URI
-    if uri.startswith("file://"):
-        # Parse the URI
-        parsed_uri = urllib.parse.urlparse(uri)
-        path = parsed_uri.path
-        # Handle Windows paths by replacing forward slashes with backslashes
-        # This is a simplified approach and might not handle all cases correctly
+    parsed_uri = urllib.parse.urlparse(uri)
+    scheme = parsed_uri.scheme
+
+    # Check for file:// URI or local path
+    if scheme == "file" or not scheme:
+        path = parsed_uri.path if scheme == "file" else uri
         local_path = os.path.normpath(path)
-        return local_path
+        if os.path.exists(local_path):
+            return os.path.abspath(local_path)
+        else:
+            if not scheme:
+                raise FileNotFoundError(f"Local file not found: {uri}")
+            else:
+                raise FileNotFoundError(f"Local file not found from URI: {uri}")
 
     # Check for HTTP or HTTPS URI
-    elif uri.startswith("http://") or uri.startswith("https://"):
+    elif scheme in ["http", "https"]:
         try:
             response = requests.get(uri, timeout=timeout, allow_redirects=True)
             response.raise_for_status()
@@ -202,11 +207,7 @@ def uri_to_local_path(uri: str, timeout: int = 30) -> str:
             raise e
     # If URI doesn't match any of the supported types
     else:
-        # Check if it's a relative or absolute local path
-        if os.path.exists(uri):
-            return os.path.abspath(uri)
-        else:
-            raise ValueError(f"Undefined URI format for spec {uri}.")
+        raise ValueError(f"Unsupported URI scheme '{scheme}' for spec {uri}")
 
 
 @dataclass
