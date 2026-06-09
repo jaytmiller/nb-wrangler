@@ -112,7 +112,7 @@ no changes added to commit (use "git add" and/or "git commit -a")
 
 As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, the system-level `apt_packages` (apt-packages.txt), the `dockerfile_aux_sh` (dockerfile-aux.sh) script, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.
 
-Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/nb-wrangler-spec.yaml`.
+Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/nbw-wrangler-spec.yaml`.
 
 Before proceeding, it's recommended to add and commit all changes under `spi-references/science-platform-images/deployments`:
 

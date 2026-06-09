@@ -20,7 +20,7 @@ jobs:
               ref: ref,
               inputs: {
                 version: context.sha,
-                spec_file: 'nbw-wrangler-spec.yaml',
+                spec_file: 'specs/roman/nbw-wrangler-spec.yaml',
                 wrangler_ref: ref,
               }
             })

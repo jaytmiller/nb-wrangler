@@ -175,7 +175,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
 
     @property
     def spec_path(self) -> Path:
-        return self.path / "nbw-wranger-spec.yaml"
+        return self.path / "nbw-wrangler-spec.yaml"
 
     def set_wrangler_spec(self, wrangler_spec_path: str) -> Path:
         with self.spec_path.open("w+") as dest_stream:

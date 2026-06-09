@@ -104,7 +104,7 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
 
     def set_wrangler_spec(self) -> bool:
         """Write out the wrangler environment spec with a generic name."""
-        out_spec = self.environments_path / "nb-wrangler-spec.yaml"
+        out_spec = self.environments_path / "nbw-wrangler-spec.yaml"
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
         return self.spec_manager.save_spec(out_spec)
 

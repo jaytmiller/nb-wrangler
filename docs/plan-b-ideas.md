@@ -6,20 +6,20 @@ install or re-install.  To achieve this Plan B uses (container storage) and pers
 
 1. Command to install wrangler spec as live environment and persist to designated pantry.
 
-nb-wrangler nbw-wrangler-spec.yaml --reinstall --env-pack
-nb-wrangler nbw-wrangler-spec.yaml --data-install  (optional if shared data available? tricky)
+nb-wrangler specs/roman/nbw-wrangler-spec.yaml --reinstall --env-pack
+nb-wrangler specs/roman/nbw-wrangler-spec.yaml --data-install  (optional if shared data available? tricky)
 
 2. Command to uninstall live environment to release container space.
 
-nb-wrangler nbw-wrangler-spec.yaml --env-delete
+nb-wrangler specs/roman/nbw-wrangler-spec.yaml --env-delete
 
 3. Command to restore archived environment to live status.
 
-nbw-wrangler nbw-wrangler-spec.yaml --env-unpack
+nbw-wrangler specs/roman/nbw-wrangler-spec.yaml --env-unpack
 
 4. Command to delete environment archive to release archive space.
 
-(nbw-wrangler nbw-wrangler-spec.yaml --env-archive-delete)
+(nbw-wrangler specs/roman/nbw-wrangler-spec.yaml --env-archive-delete)
 
 5. Investigate mamba/micromamba environment bundling commands as alternative to less formal
 archives created with tar.   If Plan B is robust on the platform and using mamba unpacking

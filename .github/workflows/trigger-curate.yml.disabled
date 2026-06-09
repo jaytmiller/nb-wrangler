@@ -11,5 +11,5 @@ jobs:
   run-wrangler:
     uses: spacetelescope/nb-wrangler/.github/workflows/curate.yml@main
     with:
-      spec_file: nbw-wrangler-spec.yaml
+      spec_file: specs/roman/nbw-wrangler-spec.yaml
     secrets: inherit

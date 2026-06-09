@@ -7,7 +7,7 @@ on:
         description: 'The path to the wrangler spec file in the notebook repo'
         required: false
         type: string
-        default: 'nbw-wrangler-spec.yaml'
+        default: 'specs/roman/nbw-wrangler-spec.yaml'
       wrangler_ref:
         description: 'The branch/tag/ref of nb-wrangler to use for the tool'
         required: false
@@ -19,7 +19,7 @@ on:
         description: 'The path to the wrangler spec file in the notebook repo'
         required: false
         type: string
-        default: 'nbw-wrangler-spec.yaml'
+        default: 'specs/roman/nbw-wrangler-spec.yaml'
       wrangler_ref:
         description: 'The branch/tag/ref of nb-wrangler to use for the tool'
         required: false

@@ -10,7 +10,7 @@ The pipeline relies on the interaction between three key repository types:
 
 1.  **Notebook Repositories** (e.g., `roman_notebooks`):
     *   **Role:** The "Source of Truth".
-    *   **Content:** Jupyter notebooks and the **Wrangler Spec** (`nbw-wrangler-spec.yaml`).
+    *   **Content:** Jupyter notebooks and the **Wrangler Spec** (`specs/roman/nbw-wrangler-spec.yaml`).
     *   **Responsibility:** Defines *what* goes into the image (notebooks, data, packages) and *which version* of the tools to use.
 
 2.  **The Wrangler Repository** (`nb-wrangler`):
@@ -67,7 +67,7 @@ The core of the automation is the `curate-reusable.yml` workflow. This workflow 
 
 2.  **Bootstrap & Resolve:**
     *   The workflow downloads the `nb-wrangler` bootstrap script.
-    *   It executes `./nb-wrangler bootstrap nbw-wrangler-spec.yaml`, automatically resolving and installing the correct tool version.
+    *   It executes `./nb-wrangler bootstrap specs/roman/nbw-wrangler-spec.yaml`, automatically resolving and installing the correct tool version.
 
 3.  **Automated Curation:**
     *   Runs `nbw --curate`.
