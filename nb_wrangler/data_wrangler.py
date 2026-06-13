@@ -65,14 +65,23 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
             return False
         return True
 
-    def run_workflow(self, name: str, steps: list) -> bool:
+    def run_workflow(
+        self, name: str, steps: list, continue_on_failure: bool = False
+    ) -> bool:
         self.logger.info("Running", name, "workflow")
+        overall_success = True
         for step in steps:
             self.logger.info(f"Step {step.__name__} of Workflow {name}.")
             if not step():
-                return self.logger.error(
-                    f"FAILED Workflow {name} Step {step.__name__}."
-                )
+                if continue_on_failure:
+                    self.logger.warning(f"FAILED Workflow {name} Step {step.__name__}.")
+                    overall_success = False
+                else:
+                    return self.logger.error(
+                        f"FAILED Workflow {name} Step {step.__name__}."
+                    )
+        if not overall_success:
+            return self.logger.warning(f"Workflow {name} completed with errors.")
         return self.logger.info("Workflow", name, "completed.")
 
     def collect(self) -> bool:
