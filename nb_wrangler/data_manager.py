@@ -146,7 +146,7 @@ class DataSection(WranglerLoggable):
         self.version: str = version
         self.environment_variable: str = environment_variable
         self.install_path: str = install_path
-        self.data_path: str = data_path
+        self.data_path: str = data_path if data_path is not None else ""
         self.data_url: list[str] = data_url
 
         self.logger.verbose = True
@@ -258,6 +258,15 @@ class RefdataSpec(WranglerLoggable):
     @classmethod
     def from_dict(cls, refdata_path: str, spec_dict: dict) -> "RefdataSpec":
         self = cls()
+        if not isinstance(spec_dict, dict):
+            raise ValueError("spec_dict is not a dictionary.")
+        allowed_keys = {"install_files", "other_variables"}
+        unknown_keys = set(spec_dict.keys()) - allowed_keys
+        if unknown_keys:
+            self.logger.error(
+                f"Unknown keywords {list(unknown_keys)} in refdata section/file '{refdata_path}'."
+            )
+            raise ValueError(f"Unknown keywords {list(unknown_keys)} in refdata.")
         if not self.validate_install_files(
             refdata_path, spec_dict.get("install_files", {})
         ) or not self.validate_other_variables(
