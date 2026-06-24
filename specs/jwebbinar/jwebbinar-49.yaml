@@ -32,22 +32,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-06-24T15:12:21.504595'
-  spec_sha256: ca8be96be03cce0332824c8d30246bf1fe4342886fe6800daa24fc90fbeca21e
-
-dev_overrides:
-  system:
-    primary_repo: jaytmiller/roman_notebooks
-    nb-wrangler:
-      repo: https://github.com/jaytmiller/nb-wrangler.git
-      ref: dev
-    spi:
-      repo: https://github.com/jaytmiller/science-platform-images.git
-      ref: dev
-  # --- repositories:
-  # ---   jwebbinar_prep:
-  # ---     url: https://github.com/jaytmiller/jwebbinar_prep.git
-  # ---     ref: abstract-data-paths
+  date_updated: '2026-06-24T15:31:01.836622'
+  spec_sha256: aa9619b92ef11b5c53f4eb342151107526cb39c7cbf7163f171774d3344332b2
 
 extra_mamba_packages: []
 
@@ -74,47 +60,29 @@ refdata_dependencies:
 
 # To add mamba packages to the basic mission environment, ideally minimize
 
+deactivated_dev_overrides:
+  system:
+    primary_repo: jaytmiller/roman_notebooks
+    nb-wrangler:
+      repo: https://github.com/jaytmiller/nb-wrangler.git
+      ref: dev
+    spi:
+      repo: https://github.com/jaytmiller/science-platform-images.git
+      ref: dev
+  # --- repositories:
+  # ---   jwebbinar_prep:
+  # ---     url: https://github.com/jaytmiller/jwebbinar_prep.git
+  # ---     ref: abstract-data-paths
+
 out:
-  data:
-    spec_inputs:
-      /home/ai/references/jwebbinar_prep/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-      /home/ai/references/nbw-spec/refdata_dependencies.yaml:
-        install_files:
-          jwebbinar_49:
-            version: 1.0.0
-            environment_variable: JWEBBINAR_49_DATA
-            install_path: $HOME/references/jwebbinar_prep/data
-            data_path: .
-            data_url:
-              - https://stsci.box.com/shared/static/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz
-        other_variables:
-          CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-          CRDS_PATH: $HOME/crds_cache
-          JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    spec_exports:
-      JWEBBINAR_49_DATA: $HOME/references/jwebbinar_prep/data/.
-      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-      CRDS_PATH: $HOME/crds_cache
-      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    pantry_exports:
-      JWEBBINAR_49_DATA: ${NBW_PANTRY}/shelves/jwebbinar-49/data
-      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-      CRDS_PATH: $HOME/crds_cache
-      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    metadata:
-      nbw-spec/jwebbinar_49/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz:
-        size: '377642412'
-        sha256: fba8febaf75cd36d94b061a0bf868d8eaaaf48557484d7e19640b0af3a9b297a
   repositories:
     jwebbinar_prep:
       url: https://github.com/spacetelescope/jwebbinar_prep.git
       ref: 8ee297dbf191688e9b999bfdc3e0b852e5125925
 
   spi:
-    repo: https://github.com/jaytmiller/science-platform-images.git
-    ref: 9a60345bb08e09144532204c5e454a18781eeed4
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: 103cf61bea49a687cf8a168b76e1a415f4718b8c
   test_notebooks:
     references/jwebbinar_prep/jwebbinar49/01_alignment_concepts.ipynb: 
       jwebbinar_all
@@ -1580,3 +1548,35 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==4.1.0
         # via importlib-metadata
+  data:
+    spec_inputs:
+      references/jwebbinar_prep/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+      references/nbw-spec/refdata_dependencies.yaml:
+        install_files:
+          jwebbinar_49:
+            version: 1.0.0
+            environment_variable: JWEBBINAR_49_DATA
+            install_path: $HOME/references/jwebbinar_prep/data
+            data_path: .
+            data_url:
+              - https://stsci.box.com/shared/static/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz
+        other_variables:
+          CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+          CRDS_PATH: $HOME/crds_cache
+          JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    spec_exports:
+      JWEBBINAR_49_DATA: $HOME/references/jwebbinar_prep/data/.
+      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+      CRDS_PATH: $HOME/crds_cache
+      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    pantry_exports:
+      JWEBBINAR_49_DATA: ${NBW_PANTRY}/shelves/jwebbinar-49/data
+      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+      CRDS_PATH: $HOME/crds_cache
+      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    metadata:
+      nbw-spec/jwebbinar_49/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz:
+        size: '377642412'
+        sha256: fba8febaf75cd36d94b061a0bf868d8eaaaf48557484d7e19640b0af3a9b297a
