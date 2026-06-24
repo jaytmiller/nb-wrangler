@@ -25,15 +25,15 @@ selected_notebooks:
 system:
   spec_version: 2.1
   archive_format: .tar
-  primary_repo: spacetelescope/roman_notebooks
+  primary_repo: spacetelescope/jwebbinar_prep
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-06-24T09:53:41.045926'
-  spec_sha256: 6af8b6b2b884cecef046bc1ce12a5d68e1beb451f38fd5dfdc9945cf018551df
+  date_updated: '2026-06-24T15:12:21.504595'
+  spec_sha256: ca8be96be03cce0332824c8d30246bf1fe4342886fe6800daa24fc90fbeca21e
 
 dev_overrides:
   system:
@@ -44,10 +44,10 @@ dev_overrides:
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
       ref: dev
-  repositories:
-    jwebbinar_prep:
-      url: https://github.com/jaytmiller/jwebbinar_prep.git
-      ref: abstract-data-paths
+  # --- repositories:
+  # ---   jwebbinar_prep:
+  # ---     url: https://github.com/jaytmiller/jwebbinar_prep.git
+  # ---     ref: abstract-data-paths
 
 extra_mamba_packages: []
 
@@ -109,8 +109,8 @@ out:
         sha256: fba8febaf75cd36d94b061a0bf868d8eaaaf48557484d7e19640b0af3a9b297a
   repositories:
     jwebbinar_prep:
-      url: https://github.com/jaytmiller/jwebbinar_prep.git
-      ref: f11bc89338bddaf767cbd60e2b91baaa3bad505f
+      url: https://github.com/spacetelescope/jwebbinar_prep.git
+      ref: 8ee297dbf191688e9b999bfdc3e0b852e5125925
 
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
