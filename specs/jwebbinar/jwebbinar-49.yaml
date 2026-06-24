@@ -32,8 +32,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-06-24T15:31:01.836622'
-  spec_sha256: aa9619b92ef11b5c53f4eb342151107526cb39c7cbf7163f171774d3344332b2
+  date_updated: '2026-06-24T15:50:12.549210'
+  spec_sha256: f229cb3680c83fcef746336291bb7aacde21fdb3e938f2dfe01987694976637e
 
 extra_mamba_packages: []
 
@@ -41,7 +41,8 @@ extra_mamba_packages: []
 extra_pip_packages: []
 
 # These supersede all conflicting constraints
-override_pip_versions: []
+override_pip_versions:
+  - jhat==0.3.7
 
 refdata_dependencies:
   install_files:
@@ -75,6 +76,38 @@ deactivated_dev_overrides:
   # ---     ref: abstract-data-paths
 
 out:
+  data:
+    spec_inputs:
+      references/jwebbinar_prep/refdata_dependencies.yaml:
+        install_files: {}
+        other_variables: {}
+      references/nbw-spec/refdata_dependencies.yaml:
+        install_files:
+          jwebbinar_49:
+            version: 1.0.0
+            environment_variable: JWEBBINAR_49_DATA
+            install_path: $HOME/references/jwebbinar_prep/data
+            data_path: .
+            data_url:
+              - https://stsci.box.com/shared/static/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz
+        other_variables:
+          CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+          CRDS_PATH: $HOME/crds_cache
+          JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    spec_exports:
+      JWEBBINAR_49_DATA: $HOME/references/jwebbinar_prep/data/.
+      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+      CRDS_PATH: $HOME/crds_cache
+      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    pantry_exports:
+      JWEBBINAR_49_DATA: ${NBW_PANTRY}/shelves/jwebbinar-49/data
+      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
+      CRDS_PATH: $HOME/crds_cache
+      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
+    metadata:
+      nbw-spec/jwebbinar_49/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz:
+        size: '377642412'
+        sha256: fba8febaf75cd36d94b061a0bf868d8eaaaf48557484d7e19640b0af3a9b297a
   repositories:
     jwebbinar_prep:
       url: https://github.com/spacetelescope/jwebbinar_prep.git
@@ -618,8 +651,10 @@ out:
         # via
         #   keyring
         #   secretstorage
-    jhat==0.3.6
-        # via -r references/jwebbinar_prep/jwebbinar49/requirements.txt
+    jhat==0.3.7
+        # via
+        #   --override /home/ai/micromamba/temps/jwebbinar-49-override-pip.txt
+        #   -r references/jwebbinar_prep/jwebbinar49/requirements.txt
     jinja2==3.1.6
         # via
         #   bokeh
@@ -1548,35 +1583,3 @@ out:
         # via -r references/science-platform-images/deployments/common/common-env/common.pip
     zipp==4.1.0
         # via importlib-metadata
-  data:
-    spec_inputs:
-      references/jwebbinar_prep/refdata_dependencies.yaml:
-        install_files: {}
-        other_variables: {}
-      references/nbw-spec/refdata_dependencies.yaml:
-        install_files:
-          jwebbinar_49:
-            version: 1.0.0
-            environment_variable: JWEBBINAR_49_DATA
-            install_path: $HOME/references/jwebbinar_prep/data
-            data_path: .
-            data_url:
-              - https://stsci.box.com/shared/static/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz
-        other_variables:
-          CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-          CRDS_PATH: $HOME/crds_cache
-          JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    spec_exports:
-      JWEBBINAR_49_DATA: $HOME/references/jwebbinar_prep/data/.
-      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-      CRDS_PATH: $HOME/crds_cache
-      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    pantry_exports:
-      JWEBBINAR_49_DATA: ${NBW_PANTRY}/shelves/jwebbinar-49/data
-      CRDS_SERVER_URL: https://jwst-crds.stsci.edu
-      CRDS_PATH: $HOME/crds_cache
-      JWEBBINAR_49_OUT: $HOME/references/jwebbinar_prep/outputs
-    metadata:
-      nbw-spec/jwebbinar_49/ne5lhejqsg8lzakb3djde3n4cm9u6yww.gz:
-        size: '377642412'
-        sha256: fba8febaf75cd36d94b061a0bf868d8eaaaf48557484d7e19640b0af3a9b297a
