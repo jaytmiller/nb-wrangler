@@ -509,6 +509,11 @@ def parse_args():
         help="Print the nb-wrangler repository ref associated with this spec.",
     )
     spec_group.add_argument(
+        "--print-repo-tags",
+        action="store_true",
+        help="Print out the repositories sections of the spec with one URL and reference per line.",
+    )
+    spec_group.add_argument(
         "--spec-add",
         action="store_true",
         help="""Add the active spec to the pantry.  This creates a 'shelf' for one complete environment.""",

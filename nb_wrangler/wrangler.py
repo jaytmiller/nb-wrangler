@@ -413,6 +413,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spec_name, self._spec_name),
             (self.config.print_wrangler_repo, self._print_wrangler_repo),
             (self.config.print_wrangler_ref, self._print_wrangler_ref),
+            (self.config.print_repo_tags, self._print_repo_tags),
             (self.config.env_pack, self._pack_environment),
             (self.config.env_unpack, self._unpack_environment),
             (self.config.env_register, self._register_environment),
@@ -623,6 +624,20 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _print_wrangler_ref(self) -> bool:
         """Print the nb-wrangler repository ref associated with this spec."""
         print(self.spec_manager.nb_wrangler.get("ref", ""))
+        return True
+
+    def _print_repo_tags(self) -> bool:
+        """Print the repositories sections of the spec with one URL and reference per line."""
+        if not self.config.prod:
+            self.logger.error("--print-repo-tags can only be used in --prod mode.")
+            return False
+        output_repos = self.spec_manager.get_output_data("repositories")
+        for repo_name, repo_info in self.spec_manager.repositories.items():
+            if isinstance(repo_info, dict):
+                url = repo_info.get("url")
+                ref = repo_info.get("ref") or "main"
+                if url:
+                    print(f"{url} {ref}")
         return True
 
     def _spec_list(self) -> bool:

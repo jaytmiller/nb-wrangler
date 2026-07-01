@@ -131,6 +131,7 @@ class WranglerConfig:
     spec_name: bool = False
     print_wrangler_repo: bool = False
     print_wrangler_ref: bool = False
+    print_repo_tags: bool = False
     spec_list: bool = False
     spec_add: bool = False
 
@@ -214,6 +215,7 @@ class WranglerConfig:
             spec_name=args.spec_name,
             print_wrangler_repo=args.print_wrangler_repo,
             print_wrangler_ref=args.print_wrangler_ref,
+            print_repo_tags=args.print_repo_tags,
             spec_list=args.spec_list,
             spec_add=args.spec_add,
             spi_branch=args.spi_branch,
