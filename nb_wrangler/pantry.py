@@ -58,16 +58,15 @@ from .constants import NBW_PANTRY, DATA_GET_TIMEOUT, ARCHIVE_TIMEOUT
 
 
 class NbwPantry(WranglerLoggable):
-    def __init__(self, path: Path = NBW_PANTRY):
+    def __init__(self, path: Optional[Path] = None):
         """
         Initialize the NbwPantry with a logger, a spec manager, and an environment manager.
 
         The pantry is responsible for managing shelves, cans, and the overall environment store.
         """
         super().__init__()
-        self.path = path
+        self.path = path if path is not None else NBW_PANTRY
         self.shelves = self.path / "shelves"
-        self.shelves.mkdir(parents=True, exist_ok=True)
 
     def get_shelf(self, shelf_name: str) -> "NbwShelf":
         """
@@ -142,11 +141,6 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         super().__init__()
         self.path = shelf_path
 
-        self.path.mkdir(parents=True, exist_ok=True)
-        self.archive_root.mkdir(parents=True, exist_ok=True)
-        self.notebook_repos_path.mkdir(parents=True, exist_ok=True)
-        self.data_path.mkdir(parents=True, exist_ok=True)
-
     @property
     def name(self):
         return self.path.name
@@ -178,6 +172,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         return self.path / "nbw-wrangler-spec.yaml"
 
     def set_wrangler_spec(self, wrangler_spec_path: str) -> Path:
+        self.path.mkdir(parents=True, exist_ok=True)
         with self.spec_path.open("w+") as dest_stream:
             with Path(wrangler_spec_path).open("r") as source_stream:
                 dest_stream.write(source_stream.read())
@@ -300,6 +295,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
 
     def save_exports_file(self, filename: str, exports: dict[str, str]) -> bool:
         self.logger.info("New data exports file available at", self.path / filename)
+        self.path.mkdir(parents=True, exist_ok=True)
         with (self.path / filename).open("w+") as stream:
             for var, value in exports.items():
                 stream.write(f"export {var}={value}\n")

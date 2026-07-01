@@ -61,7 +61,6 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         super().__init__()
         self.mamba_command = str(self.config.mamba_command)
         self.pip_command = str(self.config.pip_command)
-        self.nbw_pantry_dir.mkdir(exist_ok=True, parents=True)
 
     @property
     def nbw_root_dir(self) -> Path:
