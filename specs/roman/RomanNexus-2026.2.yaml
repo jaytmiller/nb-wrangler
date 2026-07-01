@@ -1,0 +1,78 @@
+# Image header information
+image_spec_header:
+  image_name: RomanNexus-2026.2
+  deployment_name: roman   # non-wrangler requires updating SPI kernel name
+  kernel_name: RomanNexus-2026.2
+  display_name: Roman Research Nexus 2026.2
+  description: |
+    This spec is for final Roman's pre-launch release
+  valid_on: 2026-07-17
+  expires_on: 2027-01-17
+  python_version: 3.12
+
+repositories:
+  roman_notebooks:
+    url: https://github.com/spacetelescope/roman_notebooks.git
+    ref: main
+
+system:
+  spec_version: 2.1
+  archive_format: .tar
+  primary_repo: spacetelescope/roman_notebooks
+  nb-wrangler:
+    repo: https://github.com/spacetelescope/nb-wrangler.git
+    ref: main
+  spi:
+    repo: https://github.com/spacetelescope/science-platform-images.git
+    ref: main
+  date_updated: '2026-07-01T16:10:56.049072'
+  spec_sha256: 6df4c4fc959bed4e493bdc2b7a6b6ad4a081ae994eb78aadc0324464613e6902
+
+selected_notebooks:
+  roman_all:
+    repo: roman_notebooks
+    root_directory: notebooks/
+    include_subdirs:
+      - '.*'
+  # -----   exclude_subdirs:
+  # -----     - data_visualization/data_visualization.ipynb
+  # ----- roman_data_viz:
+  # -----   repo: roman_notebooks
+  # -----   root_directory: notebooks/
+  # -----   include_subdirs:
+  # -----     - data_visualization/data_visualization.ipynb
+  # -----   tests:
+  # -----     papermill: false
+
+dev_overrides:
+  system:
+    primary_repo: jaytmiller/roman_notebooks
+    nb-wrangler:
+      repo: https://github.com/jaytmiller/nb-wrangler.git
+      ref: dev
+    spi:
+      repo: https://github.com/jaytmiller/science-platform-images.git
+      ref: dev
+  repositories:
+    roman_notebooks:
+      url: https://github.com/spacetelescope/roman_notebooks.git
+      ref: main
+
+extra_mamba_packages:
+  - pip
+common_mamba_packages: []
+
+extra_pip_packages:
+  - boto3
+  - lsstdesc.coord
+
+common_pip_packages:
+  - bqplot>=0.12.47
+
+override_pip_versions:
+  # - jdaviz @ git+https://github.com/spacetelescope/jdaviz@main
+  # - bqplot @ git+https://github.com/bmorris3/bqplot@pandas3
+  # - bqplot-gl @ git+https://github.com/bqplot/bqplot-gl@0.1.0a0
+
+
+out: {}
