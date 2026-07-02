@@ -29,8 +29,12 @@ system:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
   nb-wrangler:
     repo: "https://github.com/spacetelescope/nb-wrangler.git"
-  date_updated: '2026-07-02T08:41:02.100132'
-  spec_sha256: 36b956f5de82f0ba4c512e9cd81f47fce1aa0fd1a9a41489e15b4c73b8d8e3f3
+  date_updated: '2026-07-02T15:45:41.703131'
+  spec_sha256: c21703255d982982fa430d245cf99350b0cb610cbbc82c76fc5cf4cc75563dbe
+
+extra_pip_packages:
+  - jupyter
+
 out:
   repositories:
     jwebbinar_prep:
@@ -625,7 +629,9 @@ out:
     jsonschema-specifications==2025.9.1
         # via jsonschema
     jupyter==1.1.1
-        # via -r references/jwebbinar_prep/jwebbinar50/requirements.txt
+        # via
+        #   -r /Users/cganley/.nbw-live/temps/extra_pip_packages.txt
+        #   -r references/jwebbinar_prep/jwebbinar50/requirements.txt
     jupyter-app-launcher==0.3.2
         # via -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     jupyter-bokeh==4.1.0
