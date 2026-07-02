@@ -56,6 +56,7 @@ class WranglerConfig:
 
     output_dir: Path = NBW_ROOT / "temps"
     verbose: bool = False
+    quiet: bool = False
     debug: bool = False
     log_times: str = DEFAULT_LOG_TIMES_MODE
     reset_log: bool = False
@@ -230,6 +231,7 @@ class WranglerConfig:
             docker_cat=args.docker_cat,
             docker_list=args.docker_list,
             verbose=args.verbose,
+            quiet=args.quiet,
             debug=args.debug,
             log_times=args.log_times,
             reset_log=args.reset_log,

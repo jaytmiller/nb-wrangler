@@ -146,11 +146,13 @@ class WranglerLogger:
         debug_mode: bool = False,
         log_times: str = DEFAULT_LOG_TIMES_MODE,
         color: str = DEFAULT_COLOR_MODE,
+        quiet: bool = False,
     ):
         self.verbose = verbose
         self.debug_mode = debug_mode
         self.log_times = log_times
         self.color = color
+        self.quiet = quiet
         self.errors: list[str] = []
         self.warnings: list[str] = []
         self.exceptions: list[str] = []
@@ -162,9 +164,11 @@ class WranglerLogger:
         color_and_time_formatter = ColorAndTimeFormatter(
             log_times=self.log_times, color=self.color
         )
-        color_and_time_handler = logging.StreamHandler()
-        color_and_time_handler.setFormatter(color_and_time_formatter)
-        handlers = [color_and_time_handler]
+        handlers = []
+        if not self.quiet:
+            color_and_time_handler = logging.StreamHandler()
+            color_and_time_handler.setFormatter(color_and_time_formatter)
+            handlers.append(color_and_time_handler)
         if LOG_FILE:
             file_handler = logging.FileHandler(LOG_FILE)
             file_handler_formatter = ColorAndTimeFormatter(
@@ -269,6 +273,7 @@ class WranglerLogger:
         """
         return cls(
             verbose=config.verbose,
+            quiet=config.quiet,
             debug_mode=config.debug,
             log_times=config.log_times,
             color=config.color,

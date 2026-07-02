@@ -13,7 +13,7 @@ image_spec_header:
 repositories:
   roman_notebooks:
     url: https://github.com/spacetelescope/roman_notebooks.git
-    ref: main
+    ref: "2026.2"
 
 system:
   spec_version: 2.1
@@ -21,7 +21,7 @@ system:
   primary_repo: spacetelescope/roman_notebooks
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
-    ref: main
+    ref: dev
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main

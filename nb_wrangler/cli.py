@@ -562,6 +562,12 @@ def parse_args():
         help="Enable DEBUG log output",
     )
     misc_group.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Suppress all log output to stderr; only stdout will be visible.",
+    )
+    misc_group.add_argument(
         "--debug",
         action="store_true",
         help="Drop into debugging with pdb on exceptions.",
