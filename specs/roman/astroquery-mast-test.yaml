@@ -1,0 +1,37 @@
+# nb-wrangler specification file
+# Generated on: 2026-07-07T16:41:55.380798
+
+image_spec_header:
+  image_name: "my-environment"
+  description: "A description of my environment"
+  kernel_name: "my-kernel"
+  deployment_name: "wrangler"
+  display_name: "My Environment (Python 3.11)"
+  python_version: "3.11"
+  valid_on: "2026-07-07"
+  expires_on: "2027-07-07"
+
+repositories:
+  # Define repositories containing notebooks or requirements
+  # my_repo:
+  #   url: "https://github.com/user/repo.git"
+  #   ref: "main"
+
+selected_notebooks:
+  # Select notebooks to include and test
+  # my_notebooks:
+  #   repo: "my_repo"
+  #   include_subdirs: ["."]
+
+extra_pip_packages:
+  # List of additional pip packages to install
+  - numpy
+  - pandas
+  - matplotlib
+
+system:
+  spec_version: 2.1
+  spi:
+    repo: "https://github.com/spacetelescope/science-platform-images.git"
+  nb-wrangler:
+    repo: "https://github.com/spacetelescope/nb-wrangler.git"
