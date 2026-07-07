@@ -29,10 +29,10 @@ system:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
   nb-wrangler:
     repo: "https://github.com/spacetelescope/nb-wrangler.git"
-  date_updated: '2026-07-07T17:04:29.416795'
-  spec_sha256: b8c0068cfa38b68276f1995e57ff86d80a53fddce90171022e0fac114270f54a
+  date_updated: '2026-07-07T17:31:00.575384'
+  spec_sha256: dcb56990df3f4e03935320dbf47c703856bf71c0fd2cc2610d3029280da0eb5e
 
-common_mamba_packages:
+common_pip_packages:
   - jupyterlab
   - bqplot<0.13
   - bqplot-gl==0.0.0
@@ -90,9 +90,6 @@ out:
       - pip
       - pip-tools
       - setuptools<82.0.0
-      - jupyterlab
-      - bqplot<0.13
-      - bqplot-gl==0.0.0
       - python=3.12
       - uv
       - pip
@@ -104,10 +101,7 @@ out:
   mamba_package_map:
     base_mamba_deps:
       - python=3.12
-    common_mamba_packages:
-      - jupyterlab
-      - bqplot<0.13
-      - bqplot-gl==0.0.0
+    common_mamba_packages: []
     extra_mamba_packages: []
     spi_mamba_packages:
       - jupyter-packaging
@@ -283,6 +277,7 @@ out:
         #   s3transfer
     bqplot==0.12.47
         # via
+        #   -r /Users/cganley/.nbw-live/temps/common_pip_packages.txt
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   bqplot-gl
         #   bqplot-image-gl
@@ -291,7 +286,9 @@ out:
         #   ipyvolume
         #   jdaviz
     bqplot-gl==0.0.0
-        # via glue-jupyter
+        # via
+        #   -r /Users/cganley/.nbw-live/temps/common_pip_packages.txt
+        #   glue-jupyter
     bqplot-image-gl==1.10.1
         # via
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
@@ -725,6 +722,7 @@ out:
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
     jupyterlab==4.6.1
         # via
+        #   -r /Users/cganley/.nbw-live/temps/common_pip_packages.txt
         #   -r references/science-platform-images/deployments/common/common-env/jupyter.pip
         #   jupyter
         #   jupyter-collaboration
