@@ -7,10 +7,66 @@ from pathlib import Path
 import copy
 
 from . import utils
+from . import yaml_typed_values
 from .logger import WranglerLoggable
 from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
+
+
+def _date_as_string(value):
+    """Convert a date-like value (datetime.date, datetime.datetime, or str) to 'YYYY-MM-DD' if possible."""
+    if isinstance(value, (datetime.date, datetime.datetime)):
+        return value.isoformat()
+    return value  # already a string
+
+
+def _normalize_spec(spec_dict):
+    """Normalize YAML-parsed types in spec sections that are meant to be opaque strings.
+
+    After loading from YAML, unquoted values like ``python_version: 3.12`` become floats,
+    ``valid_on: 2026-04-13`` becomes a date, and bare ``true/false`` become bools.
+    This normalizes them back to strings so the rest of the codebase works regardless of
+    quoting choices in the YAML source.
+    """
+    # Normalize image_spec_header -- all values here are meant to be strings
+    header = spec_dict.get("image_spec_header")
+    if isinstance(header, dict):
+        yaml_typed_values.normalize_header(header)
+
+    # Normalize system section
+    system = spec_dict.get("system")
+    if isinstance(system, dict):
+        yaml_typed_values.normalize_dict_values(system)
+
+    # Normalize any refdata_dependencies nested dicts (version fields)
+    refdata = spec_dict.get("refdata_dependencies")
+    if isinstance(refdata, dict):
+        install_files = refdata.get("install_files")
+        if isinstance(install_files, dict):
+            for section in install_files.values():
+                if isinstance(section, dict):
+                    yaml_typed_values.normalize_dict_values(section)
+
+    # Normalize other top-level sections with string values that could be coerced by YAML
+    string_sections = [
+        "extra_mamba_packages",
+        "common_mamba_packages",
+        "extra_pip_packages",
+        "common_pip_packages",
+        "apt_packages",
+        "override_pip_versions",
+        "dockerfile_aux_sh",
+    ]
+    for section in string_sections:
+        val = spec_dict.get(section)
+        if isinstance(val, list):
+            for i, item in enumerate(val):
+                if not isinstance(item, (dict, list)):
+                    normalized = yaml_typed_values.normalize_value(item)
+                    val[i] = normalized
+        elif section == "dockerfile_aux_sh" and val is not None:
+            spec_dict[section] = str(val)
 
 
 class SpecManager(
@@ -221,12 +277,12 @@ class SpecManager(
     @property
     def valid_range(self) -> str:
         """Get a human-readable valid date range string based on the spec header."""
-        if valid_on := self.header.get("valid_on"):
-            valid_on = valid_on.isoformat()
+        if valid_on_raw := self.header.get("valid_on"):
+            valid_on = _date_as_string(valid_on_raw)
         else:
             valid_on = "undef"
-        if expires_on := self.header.get("expires_on"):
-            expires_on = expires_on.isoformat()
+        if expires_on_raw := self.header.get("expires_on"):
+            expires_on = _date_as_string(expires_on_raw)
         else:
             expires_on = "undef"
         return valid_on.replace("-", "") + "-" + expires_on.replace("-", "")
@@ -348,6 +404,7 @@ class SpecManager(
             with self._source_file.open("r") as f:
                 docs = list(utils.get_yaml().load_all(f))
             self._spec = docs[0]
+            _normalize_spec(self._spec)
             if len(docs) > 1:
                 self.inline_mamba_spec = docs[1]
                 self.logger.debug("Found inline mamba spec (second YAML document).")
