@@ -29,8 +29,8 @@ system:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
   nb-wrangler:
     repo: "https://github.com/spacetelescope/nb-wrangler.git"
-  date_updated: '2026-07-07T17:31:00.575384'
-  spec_sha256: dcb56990df3f4e03935320dbf47c703856bf71c0fd2cc2610d3029280da0eb5e
+  date_updated: '2026-07-08T08:18:45.291338'
+  spec_sha256: 9c6e36235ee25c72a40e2a374a0940135fa3009426ee0da3055bda1ba90b14b3
 
 common_mamba_packages:
   - jupyterlab
@@ -95,6 +95,9 @@ out:
       - pip
       - pip-tools
       - setuptools<82.0.0
+      - jupyterlab
+      - bqplot<0.13
+      - bqplot-gl==0.0.0
       - python=3.12
       - uv
       - pip
@@ -106,7 +109,10 @@ out:
   mamba_package_map:
     base_mamba_deps:
       - python=3.12
-    common_mamba_packages: []
+    common_mamba_packages:
+      - jupyterlab
+      - bqplot<0.13
+      - bqplot-gl==0.0.0
     extra_mamba_packages: []
     spi_mamba_packages:
       - jupyter-packaging
