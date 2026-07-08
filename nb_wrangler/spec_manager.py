@@ -14,32 +14,23 @@ from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
 
-def _date_as_string(value):
-    """Convert a date-like value (datetime.date, datetime.datetime, or str) to 'YYYY-MM-DD' if possible."""
-    if isinstance(value, (datetime.date, datetime.datetime)):
-        return value.isoformat()
-    return value  # already a string
 
 
-def _normalize_spec(spec_dict):
-    """Normalize YAML-parsed types in spec sections that are meant to be opaque strings.
-
-    After loading from YAML, unquoted values like ``python_version: 3.12`` become floats,
-    ``valid_on: 2026-04-13`` becomes a date, and bare ``true/false`` become bools.
-    This normalizes them back to strings so the rest of the codebase works regardless of
-    quoting choices in the YAML source.
+def _apply_normalization(spec_dict: dict) -> None:
+    """Mutate *spec_dict* so that all fields which the code expects as strings are
+    stored as plain Python ``str`` objects, regardless of how they were quoted in YAML.
     """
-    # Normalize image_spec_header -- all values here are meant to be strings
+    # Header – always string values
     header = spec_dict.get("image_spec_header")
     if isinstance(header, dict):
         yaml_typed_values.normalize_header(header)
 
-    # Normalize system section
+    # System section (opaque strings)
     system = spec_dict.get("system")
     if isinstance(system, dict):
         yaml_typed_values.normalize_dict_values(system)
 
-    # Normalize any refdata_dependencies nested dicts (version fields)
+    # Refdata – only the nested install_files dicts need normalisation
     refdata = spec_dict.get("refdata_dependencies")
     if isinstance(refdata, dict):
         install_files = refdata.get("install_files")
@@ -48,25 +39,26 @@ def _normalize_spec(spec_dict):
                 if isinstance(section, dict):
                     yaml_typed_values.normalize_dict_values(section)
 
-    # Normalize other top-level sections with string values that could be coerced by YAML
-    string_sections = [
+    # Sections that are defined to be *string‑only* lists.
+    string_list_sections = {
         "extra_mamba_packages",
         "common_mamba_packages",
         "extra_pip_packages",
         "common_pip_packages",
         "apt_packages",
         "override_pip_versions",
-        "dockerfile_aux_sh",
-    ]
-    for section in string_sections:
-        val = spec_dict.get(section)
+    }
+
+    for name in string_list_sections:
+        val = spec_dict.get(name)
         if isinstance(val, list):
             for i, item in enumerate(val):
                 if not isinstance(item, (dict, list)):
-                    normalized = yaml_typed_values.normalize_value(item)
-                    val[i] = normalized
-        elif section == "dockerfile_aux_sh" and val is not None:
-            spec_dict[section] = str(val)
+                    val[i] = yaml_typed_values.normalize_value(item)
+
+    # ``dockerfile_aux_sh`` is a scalar that must be string.
+    if "dockerfile_aux_sh" in spec_dict and spec_dict["dockerfile_aux_sh"] is not None:
+        spec_dict["dockerfile_aux_sh"] = str(spec_dict["dockerfile_aux_sh"])
 
 
 class SpecManager(
@@ -404,7 +396,7 @@ class SpecManager(
             with self._source_file.open("r") as f:
                 docs = list(utils.get_yaml().load_all(f))
             self._spec = docs[0]
-            _normalize_spec(self._spec)
+            _apply_normalization(self._spec)
             if len(docs) > 1:
                 self.inline_mamba_spec = docs[1]
                 self.logger.debug("Found inline mamba spec (second YAML document).")

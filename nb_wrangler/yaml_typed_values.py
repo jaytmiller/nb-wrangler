@@ -27,7 +27,7 @@ def normalize_value(value):
     returns a string representation compatible with the existing .isoformat() calls.
     """
     if value is None:
-        return ""
+        return None
 
     # Booleans that should be strings come out as True/False
     if isinstance(value, bool):
@@ -37,13 +37,8 @@ def normalize_value(value):
     if isinstance(value, (date, datetime)):
         return value.isoformat()
 
-    # Floats/integers that should be strings (e.g., python_version: 3.12)
-    if isinstance(value, float):
-        # Avoid turning `1.0` into `"1"` -- preserve decimal point
-        s = str(value)
-        if "." not in s:
-            s += ".0"
-        return s
+    if isinstance(value, (int, float)):
+        return str(value)
 
     # Plain integers that should be strings
     if isinstance(value, int):
@@ -60,7 +55,7 @@ def normalize_dict_values(d, *, path=""):
     Returns `d` mutated in place for convenience.
     """
     if not isinstance(d, dict):
-        return d or d == 0 or d is False
+        return d
 
     for key, value in list(d.items()):
         if isinstance(value, dict):
@@ -68,22 +63,21 @@ def normalize_dict_values(d, *, path=""):
         elif isinstance(value, list):
             for i, item in enumerate(value):
                 if isinstance(item, (dict, list)):
-                    normalize_dict_values(item, path=f"{path}[{i}]")
+                    normalize_dict_values(item)
                 else:
-                    normalized = normalize_value(item)
-                    value[i] = normalized
+                    value[i] = normalize_value(item)
         else:
             d[key] = normalize_value(value)
 
     return d
 
 
-def normalize_header(header):
-    """Normalize the image_spec_header specifically, applying fields that are known
-    to always be string-valued in the codebase but may be parsed as other types."""
-    # The header fields that get coerced by normalize_dict_values already cover it,
-    # but we document them explicitly here for clarity:
-    #   python_version  -> str (was float e.g. 3.12)
-    #   valid_on        -> str (was datetime.date)
-    #   expires_on      -> str (was datetime.date)
-    return normalize_dict_values(header or {})
+def normalize_header(header: dict | None) -> dict:
+    """Alias kept for readability – normalises the image spec header.
+
+    The function simply forwards to :func:`normalize_dict_values` so callers can use a
+    descriptive name without re‑implementing any logic.
+    """
+    if isinstance(header, dict):
+        normalize_dict_values(header)
+    return header or {}
