@@ -32,11 +32,6 @@ system:
   date_updated: '2026-07-08T08:18:45.291338'
   spec_sha256: 9c6e36235ee25c72a40e2a374a0940135fa3009426ee0da3055bda1ba90b14b3
 
-common_mamba_packages:
-  - jupyterlab
-  - bqplot<0.13
-  - bqplot-gl==0.0.0
-
 common_pip_packages:
   - jupyterlab
   - bqplot<0.13
