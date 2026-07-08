@@ -1,5 +1,4 @@
 import os
-import os.path
 import re
 import datetime
 from typing import Any, Optional
@@ -52,9 +51,7 @@ def _apply_normalization(spec_dict: dict) -> None:
     for name in string_list_sections:
         val = spec_dict.get(name)
         if isinstance(val, list):
-            for i, item in enumerate(val):
-                if not isinstance(item, (dict, list)):
-                    val[i] = yaml_typed_values.normalize_value(item)
+            yaml_typed_values.normalize_dict_values({name: val})
 
     # ``dockerfile_aux_sh`` is a scalar that must be string.
     if "dockerfile_aux_sh" in spec_dict and spec_dict["dockerfile_aux_sh"] is not None:
@@ -70,9 +67,9 @@ class SpecManager(
         super().__init__()
         self._spec = {}
         self._is_validated = False
-        self._source_file = Path("")
+        self._source_file: Path = Path()
         self._initial_spec_sha256 = None
-        self._source_file: Path = Path()  # Explicitly typed
+
         self.validator = SpecValidator(self)
 
     # ---------------------------- Property-based read/write access to spec data -------------------

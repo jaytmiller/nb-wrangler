@@ -40,9 +40,7 @@ def normalize_value(value):
     if isinstance(value, (int, float)):
         return str(value)
 
-    # Plain integers that should be strings
-    if isinstance(value, int):
-        return str(value)
+
 
     return value
 
