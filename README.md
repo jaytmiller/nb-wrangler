@@ -229,6 +229,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--env-compact`: Compact the wrangler installation by deleting package caches.
 - `--env-archive-format`: Override format for environment pack/unpack.
 - `--env-print-name`: Print the environment name for the spec.
+- `--env-kernel-cleanup`: Scans the user's kernel registry for 'dead' kernels (kernels pointing to non-existent environments) and removes them.
 
 ### Package Management
 
@@ -236,7 +237,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--packages-install`: Install packages into the environment.
 - `--packages-uninstall`: Uninstall packages from the environment.
 - `--packages-omit-spi`: Don't include 'common' SPI packages.
-- `--packages-diagnostics`: Show which requirements files are included and their required packages.
+- `--packages-ignore-versions`: Remove version constraints from notebook requirements.txt files before environment compilation.
 
 ### Testing
 
@@ -244,6 +245,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--test-imports`: Test package imports.
 - `--test-notebooks [REGEX]`: Test notebook execution. Can optionally take a comma-separated list of regex patterns to select specific notebooks.
 - `--test-notebooks-exclude [REGEX]`: Exclude notebooks from testing using a comma-separated list of regex patterns.
+- `--test-copy-shared [GLOB]`: Copy Python modules matching a glob pattern to the runtime directory where an individual import test is running with respect to a particular notebook.
 - `--jobs INT`: Number of parallel jobs for notebook testing.
 - `--timeout INT`: Timeout in seconds for notebook tests.
 
@@ -264,13 +266,8 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--data-select [REGEX]`: Regex to select specific data archives.
 - `--data-no-validation`: Skip data validation.
 - `--data-no-unpack-existing`: Skip unpack if the target directory exists.
-- `--data-symlink-install-data`: Create symlinks from install locations to the pantry data directory.
-
-### Notebook Clones
-
-- `--clone-repos`: Clone notebook repositories.
-- `--repos-dir`: Directory for cloned repositories.
-- `--delete-repos`: Delete cloned repositories.
+- `--data-symlinks`: Create symlinks from install locations to the pantry data directory.
+- `--data-no-symlinks`: Do not create symlinks during --data-unpack.
 
 ### Spec Management
 
@@ -283,14 +280,43 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-update-hash`: Update spec SHA256 hash.
 - `--spec-ignore-hash`: Do not add or verify the spec hash.
 - `--spec-add-pip-hashes`: Record PyPI hashes for packages during compilation.
+- `--print-wrangler-repo`: Print the nb-wrangler repository URL associated with this spec.
+- `--print-wrangler-ref`: Print the nb-wrangler repository ref associated with this spec.
+- `--print-repo-tags`: Print out the repositories sections of the spec with one URL and reference per line.
+- `--spec-name`: Generate a name suitable for referring to this image/spec/build and print to stdout.
 
 ### Miscellaneous
 - `--verbose`: Enable DEBUG log output.
+- `-q`, `--quiet`: Suppress all log output to stderr; only stdout will be visible.
 - `--debug`: Drop into debugger on exceptions.
 - `--profile`: Run with cProfile and print stats.
 - `--reset-log`: Delete the log file.
-- `--log-times`: Configure timestamps in log messages.
-- `--color`: Colorize log output.
+- `--log-times [MODE]`: Include timestamps in log messages (valid modes: absolute, elapsed, both, none).
+- `--color [MODE]`: Colorize log output.
+
+### SPI Automation
+- `--spi-branch NAME`: Create a new branch in the SPI repo with this name.
+- `--spi-commit-message MESSAGE...`: Commit message for the new branch.
+- `--spi-prune-docker`: Prune old Docker images before a build.
+- `--spi-inject-reqs`: Copy requirements fields from the wrangler spec into the SPI repo clone.
+- `--spi-build-image`: Trigger a Docker build in the SPI repo.
+- `--spi-push-branch`: Push the new branch to the remote SPI repo.
+- `--spi-pr`: Create a pull request for the new branch in the SPI repo.
+- `--spi-image-name`: Print the image name corresponding to the current spec to stdout and exit.
+
+### Docker Registry
+- `--docker-pull IMAGE`: Pull a Docker image from a registry.
+- `--docker-cat IMAGE`: Extract and print /spec.yaml from a Docker image to stdout.
+- `--docker-list SPEC_GLOB`: List all spec names matching the spec-glob from the registry.
+
+### Notebook Clones
+- `--clone-repos`: Clone notebook repos to the directory indicated by --repos-dir.
+- `--repos-dir PATH`: Directory where notebook and other repos will be cloned.
+- `--delete-repos`: Delete --repo-dir and clones after processing.
+- `--repos-clean [PATTERN]`: Clean up specified patterns in cloned repos (defaults to __pycache__).
+- `--overwrite-local-changes`: In any cloned repo, overwrite local uncommitted changes to match the requested ref.
+- `--stash-local-changes`: In any cloned repo, stash local uncommitted changes before matching the requested ref.
+- `--use-dirty-repos`: In any cloned repo, use the current state as-is even if it has local changes.
 
 For a full list of options, run `nbw --help`.
 
