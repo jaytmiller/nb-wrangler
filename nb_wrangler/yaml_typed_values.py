@@ -40,42 +40,15 @@ def normalize_value(value):
     if isinstance(value, (int, float)):
         return str(value)
 
+    if isinstance(value, str):
+        return value
 
+    if isinstance(value, dict):
+        for k, v in value.items():
+            value[k] = normalize_value(v)
+
+    if isinstance(value, list):
+        for i, item in enumerate(value):
+            value[i] = normalize_value(item)
 
     return value
-
-
-def normalize_dict_values(d, *, path=""):
-    """Recursively traverse a loaded YAML dict and coerce values to types consistent
-    with the wrangler codebase's string expectations.
-
-    Leaves lists intact (only normalizes the scalar values within them).
-    Returns `d` mutated in place for convenience.
-    """
-    if not isinstance(d, dict):
-        return d
-
-    for key, value in list(d.items()):
-        if isinstance(value, dict):
-            normalize_dict_values(value, path=f"{path}.{key}")
-        elif isinstance(value, list):
-            for i, item in enumerate(value):
-                if isinstance(item, (dict, list)):
-                    normalize_dict_values(item)
-                else:
-                    value[i] = normalize_value(item)
-        else:
-            d[key] = normalize_value(value)
-
-    return d
-
-
-def normalize_header(header: dict | None) -> dict:
-    """Alias kept for readability – normalises the image spec header.
-
-    The function simply forwards to :func:`normalize_dict_values` so callers can use a
-    descriptive name without re‑implementing any logic.
-    """
-    if isinstance(header, dict):
-        normalize_dict_values(header)
-    return header or {}

@@ -12,22 +12,23 @@ from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
-
-
-
+'''
 def _apply_normalization(spec_dict: dict) -> None:
     """Mutate *spec_dict* so that all fields which the code expects as strings are
     stored as plain Python ``str`` objects, regardless of how they were quoted in YAML.
     """
-    # Header – always string values
-    header = spec_dict.get("image_spec_header")
-    if isinstance(header, dict):
-        yaml_typed_values.normalize_header(header)
-
-    # System section (opaque strings)
-    system = spec_dict.get("system")
-    if isinstance(system, dict):
-        yaml_typed_values.normalize_dict_values(system)
+    dictionary_sections = {
+        "image_spec_header",
+        "system",
+        "dev_overrides",
+        "repositories",
+        "selected_notebooks",
+        "ref_data_dependencies",
+    }
+    for section in dictionary_sections:
+        section_dict = spec_dict.get(section)
+        if isinstance(section_dict, dict):
+            yaml_typed_values.normalize_value(section_dict)
 
     # Refdata – only the nested install_files dicts need normalisation
     refdata = spec_dict.get("refdata_dependencies")
@@ -56,6 +57,8 @@ def _apply_normalization(spec_dict: dict) -> None:
     # ``dockerfile_aux_sh`` is a scalar that must be string.
     if "dockerfile_aux_sh" in spec_dict and spec_dict["dockerfile_aux_sh"] is not None:
         spec_dict["dockerfile_aux_sh"] = str(spec_dict["dockerfile_aux_sh"])
+
+'''
 
 
 class SpecManager(
@@ -267,11 +270,11 @@ class SpecManager(
     def valid_range(self) -> str:
         """Get a human-readable valid date range string based on the spec header."""
         if valid_on_raw := self.header.get("valid_on"):
-            valid_on = _date_as_string(valid_on_raw)
+            valid_on = yaml_typed_values.normalize_value(valid_on_raw)
         else:
             valid_on = "undef"
         if expires_on_raw := self.header.get("expires_on"):
-            expires_on = _date_as_string(expires_on_raw)
+            expires_on = yaml_typed_values.normalize_value(expires_on_raw)
         else:
             expires_on = "undef"
         return valid_on.replace("-", "") + "-" + expires_on.replace("-", "")
@@ -393,7 +396,7 @@ class SpecManager(
             with self._source_file.open("r") as f:
                 docs = list(utils.get_yaml().load_all(f))
             self._spec = docs[0]
-            _apply_normalization(self._spec)
+            yaml_typed_values.normalize_value(self._spec)
             if len(docs) > 1:
                 self.inline_mamba_spec = docs[1]
                 self.logger.debug("Found inline mamba spec (second YAML document).")

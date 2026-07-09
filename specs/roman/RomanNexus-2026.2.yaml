@@ -6,9 +6,9 @@ image_spec_header:
   display_name: Roman Research Nexus 2026.2
   description: |
     This spec is for final Roman's pre-launch release
-  valid_on: 2026-07-17
-  expires_on: 2027-01-17
-  python_version: 3.12
+  valid_on: '2026-07-17'
+  expires_on: '2027-01-17'
+  python_version: '3.12'
 
 repositories:
   roman_notebooks:
@@ -16,7 +16,7 @@ repositories:
     ref: "2026.2"
 
 system:
-  spec_version: 2.1
+  spec_version: '2.1'
   archive_format: .tar
   primary_repo: spacetelescope/roman_notebooks
   nb-wrangler:
@@ -25,8 +25,8 @@ system:
   spi:
     repo: https://github.com/spacetelescope/science-platform-images.git
     ref: main
-  date_updated: '2026-07-01T16:10:56.049072'
-  spec_sha256: 6df4c4fc959bed4e493bdc2b7a6b6ad4a081ae994eb78aadc0324464613e6902
+  date_updated: '2026-07-09T07:38:35.428828'
+  spec_sha256: 696c6eb86cd6ccfb026db35f9be1f9cc9c23cdb59d68d7fd7ff64e9ed42b55a4
 
 selected_notebooks:
   roman_all:
@@ -55,8 +55,8 @@ dev_overrides:
       ref: dev
   repositories:
     roman_notebooks:
-      url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: main
+      url: https://github.com/jaytmiller/roman_notebooks.git
+      ref: 2026.2
 
 extra_mamba_packages:
   - pip

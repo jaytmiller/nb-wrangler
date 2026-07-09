@@ -33,6 +33,7 @@ export PRINT_HELP_PYSCRIPT
 define TEST_OUTPUTS
 output
 references
+inject-spi-references
 endef
 export TEST_OUTPUTS
 
@@ -254,7 +255,6 @@ clean-other:
 	rm -fr htmlcov/
 	rm -rf .mypy_cache
 	rm -f nb-wrangler.log
-	rm -rf inject-spi-references
 	rm -f extra_pip_packages.txt
 	rm -f common_pip_packages.txt
 	rm -f common_mamba_packages.txt
