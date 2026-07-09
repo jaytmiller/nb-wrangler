@@ -4,7 +4,6 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional, Dict
-from packaging.version import Version, InvalidVersion
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -107,10 +106,12 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 )
         else:
             try:
-                branch_to_clone = ref if floating_mode else None
+                # In floating mode we clone without a specific ref; we'll resolve and checkout later.
+                # In locked (non‑floating) mode we may need to clone a particular branch/tag directly.
+                branch_to_clone = None if floating_mode else ref
                 self.git_clone(repo_url, repo_path, ref=branch_to_clone)
 
-                # Ensure the checkout happens only after successful clone
+                # Ensure the checkout happens only after successful clone for locked mode
                 if not floating_mode and ref:
                     self.logger.info(
                         f"Locked mode: checking out ref {ref} for repo {repo_url}"
@@ -118,7 +119,8 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     self.run(f"git checkout {ref}", check=True, cwd=repo_path)
             except Exception as e:
                 return self.logger.exception(
-                    e, f"Failed to setup repository {repo_url}."
+                    e,
+                    f"Failed to setup repository {repo_url}.",
                 )
 
         return repo_path
@@ -339,29 +341,21 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_name = repo_path.name
 
         # Determine if the ref is a commit hash
-        is_commit_hash = len(desired_ref) == 40 and all(
-            c in "0123456789abcdefABCDEF" for c in desired_ref
-        )
+        is_commit_hash = self._is_commit_hash(desired_ref)
 
-        clone_ref = None
-        if not is_commit_hash:
-            clone_ref = desired_ref
-        else:
-            self.logger.info(
-                f"Desired ref {desired_ref} appears to be a commit hash. "
-                "Cloning default branch before checkout."
-            )
-
-        # git_clone will clone and then checkout if clone_ref is not None
-        if not self.git_clone(repo_url, repo_path, ref=clone_ref):
+        # Clone repository without specifying a ref; we'll handle checkout afterwards.
+        if not self.git_clone(repo_url, repo_path):
             return False
 
-        # If it was a hash, we cloned the default branch, now checkout the hash
+        # If the desired reference is a raw commit SHA, check it out directly.
         if is_commit_hash:
             return self.git_checkout(repo_name, desired_ref)
 
-        # For tag-prefix refs, resolve to SHA and checkout by SHA
-        # to avoid pathspec matching issues
+        # Attempt to checkout the ref directly (branch or tag). This works for branches and exact tags.
+        if self.git_checkout(repo_name, desired_ref):
+            return True
+
+        # For tag‑prefix refs (or ambiguous cases), resolve to a SHA then checkout.
         resolved = self.resolve_ref_to_sha(repo_name, desired_ref)
         if resolved:
             self.logger.info(f"Resolved ref '{desired_ref}' to SHA {resolved}")
@@ -491,14 +485,16 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
             if result.returncode == 0:
                 return result.stdout.strip()
-            self.logger.error(f"Failed to resolve selected tag '{best_tag}' in repo {repo_name}.")
+            self.logger.error(
+                f"Failed to resolve selected tag '{best_tag}' in repo {repo_name}."
+            )
         # Fallback: try resolving ref directly (branch name or commit hash)
         result = self.run(f"git rev-parse {ref}", check=False, cwd=repo_root)
         if result.returncode == 0:
             return result.stdout.strip()
         self.logger.error(f"Failed to resolve ref '{ref}' in repo {repo_name}")
         return None
-    
+
     def fetch_sorted_tags(self, repo_path: Path) -> list[str]:
         """Fetch all tags from the remote and return them sorted lexicographically descending.
         Tags are treated as plain strings; no semantic version parsing is performed.
@@ -518,7 +514,9 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         """Check if a string looks like a commit hash (40-char hex)."""
         return len(ref) == 40 and all(c in "0123456789abcdefABCDEF" for c in ref)
 
-    def resolve_ref_to_entry(self, repo_name: str, ref: str) -> Optional[tuple[Optional[str], str]]:
+    def resolve_ref_to_entry(
+        self, repo_name: str, ref: str
+    ) -> Optional[tuple[Optional[str], str]]:
         """Resolve a git ref (branch, tag prefix, or hash) to the matched entry.
 
         Returns a tuple of (matched_tag_or_ref, sha), or None if resolution fails.
@@ -574,7 +572,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     f"Could not get current SHA for {repo_url} after preparation."
                 )
             resolved_repo_states[repo_url] = current_sha
-            
+
             # Capture the matched ref name using the same logic as resolve_ref_to_sha
             is_hash = self._is_commit_hash(desired_ref)
             if is_hash:
