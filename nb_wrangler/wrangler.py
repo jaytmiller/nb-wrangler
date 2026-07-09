@@ -649,12 +649,31 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return True
 
     def _print_repo_tags(self) -> bool:
-        """Print the repositories sections of the spec with one URL and reference per line."""
-        for repo_info in self.spec_manager.get_repository_refs().items():
-            url = repo_info[0]
-            ref = repo_info[1] or "main"
-            if url:
-                print(f"{url} {ref}")
+        """Print repository URLs with resolved references.
+
+        Preference order:
+        1. Use the *output* ``repositories`` section (produced after preparation). If a
+           ``resolved_ref`` field exists for a repo, print that; otherwise fall back to its
+           ``ref`` value or ``"main"``.
+        2. If no output repositories are present, use the original input spec
+           ``self.spec_manager.repositories`` following the same resolution logic.
+        """
+        # Try output section first – it contains resolved reference information.
+        output_repos = self.spec_manager.get_output_data("repositories", {})
+        repo_dicts = (
+            list(output_repos.values()) if isinstance(output_repos, dict) else []
+        )
+
+        if not repo_dicts:
+            # Fallback to input spec repositories (the original definitions).
+            repo_dicts = [repo for repo in self.spec_manager.repositories.values()]
+
+        for repo_data in repo_dicts:
+            url = repo_data.get("url")
+            if not url:
+                continue
+            ref = repo_data.get("resolved_ref") or repo_data.get("ref") or "main"
+            print(f"{url} {ref}")
         return True
 
     def _spec_list(self) -> bool:
