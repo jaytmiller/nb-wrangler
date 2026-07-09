@@ -4,6 +4,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from typing import Optional, Dict
+from packaging.version import Version, InvalidVersion
 
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
@@ -357,10 +358,16 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
         # If it was a hash, we cloned the default branch, now checkout the hash
         if is_commit_hash:
-            self.logger.info(f"Checking out specific commit {desired_ref}.")
             return self.git_checkout(repo_name, desired_ref)
 
-        return True
+        # For tag-prefix refs, resolve to SHA and checkout by SHA
+        # to avoid pathspec matching issues
+        resolved = self.resolve_ref_to_sha(repo_name, desired_ref)
+        if resolved:
+            self.logger.info(f"Resolved ref '{desired_ref}' to SHA {resolved}")
+            return self.git_checkout(repo_name, resolved)
+
+        return False
 
     def _handle_dirty_repository(self, repo_name: str) -> bool:
         """
@@ -440,7 +447,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return True
 
         self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}.")
-        return self.git_checkout(repo_name, desired_ref)
+        return self.git_checkout(repo_name, target_sha)
 
     def git_stash(self, repo_name: str) -> bool:
         """Stash local changes in the given repository."""
@@ -467,24 +474,79 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         )
 
     def resolve_ref_to_sha(self, repo_name: str, ref: str) -> Optional[str]:
-        """Resolve a git ref (branch, tag) to its specific commit SHA."""
+        """Resolve a git ref (branch, tag prefix, or hash) to its commit SHA.
+        If multiple tags share the given prefix, the highest semver tag is used.
+        """
         repo_root = self.repos_dir / repo_name
-        self.logger.debug(f"Resolving ref '{ref}' to SHA in {repo_root}")
-        # Fetch first to ensure the ref is available locally
-        fetch_result = self.run("git fetch", check=False, cwd=repo_root)
-        if fetch_result.returncode != 0:
-            self.logger.error(f"Failed to fetch {repo_root} before resolving ref.")
-            return None
-        # Use rev-parse to get the commit SHA
+        self.logger.info(f"Resolving ref '{ref}' to SHA in {repo_root}")
+        # Fetch latest tags and refs
+        self.run("git fetch --tags", check=False, cwd=repo_root)
+        # Get sorted tags (highest semver first)
+        all_tags = self.fetch_sorted_tags(repo_root)
+        # Filter tags that start with the provided ref as a prefix
+        matching_tags = [t for t in all_tags if t.startswith(ref)]
+        if matching_tags:
+            best_tag = matching_tags[0]  # already highest due to sorting
+            self.logger.info(f"Selected tag '{best_tag}' for ref prefix '{ref}'.")
+            result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
+            if result.returncode == 0:
+                return result.stdout.strip()
+            self.logger.error(f"Failed to resolve selected tag '{best_tag}' in repo {repo_name}.")
+        # Fallback: try resolving ref directly (branch name or commit hash)
         result = self.run(f"git rev-parse {ref}", check=False, cwd=repo_root)
         if result.returncode == 0:
             return result.stdout.strip()
         self.logger.error(f"Failed to resolve ref '{ref}' in repo {repo_name}")
         return None
+    
+    def fetch_sorted_tags(self, repo_path: Path) -> list[str]:
+        """Fetch all tags from the remote and return them sorted lexicographically descending.
+        Tags are treated as plain strings; no semantic version parsing is performed.
+        """
+        # Ensure we have latest tags
+        self.run("git fetch --tags", check=False, cwd=repo_path)
+        result = self.run("git tag -l", check=False, cwd=repo_path)
+        if result.returncode != 0:
+            self.logger.error(f"Failed to list tags in {repo_path}")
+            return []
+        tags = [line.strip() for line in result.stdout.splitlines() if line.strip()]
+        # Sort strings descending (highest lexical order first)
+        tags.sort(reverse=True)
+        return tags
+
+    def _is_commit_hash(self, ref: str) -> bool:
+        """Check if a string looks like a commit hash (40-char hex)."""
+        return len(ref) == 40 and all(c in "0123456789abcdefABCDEF" for c in ref)
+
+    def resolve_ref_to_entry(self, repo_name: str, ref: str) -> Optional[tuple[Optional[str], str]]:
+        """Resolve a git ref (branch, tag prefix, or hash) to the matched entry.
+
+        Returns a tuple of (matched_tag_or_ref, sha), or None if resolution fails.
+        For prefix-tag matching, matched is the specific tag name that was chosen.
+        For direct branch/tag names, matched is the input ref itself.
+        """
+        repo_root = self.repos_dir / repo_name
+        # Fetch latest tags and refs
+        self.run("git fetch --tags", check=False, cwd=repo_root)
+        # Get sorted tags (highest lexicographic first)
+        all_tags = self.fetch_sorted_tags(repo_root)
+        # Filter tags that start with the provided ref as a prefix
+        matching_tags = [t for t in all_tags if t.startswith(ref)]
+        if matching_tags:
+            best_tag = matching_tags[0]  # already highest due to sorting
+            result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
+            if result.returncode == 0:
+                return (best_tag, result.stdout.strip())
+        # Fallback: try resolving ref directly (branch name or commit hash)
+        result = self.run(f"git rev-parse {ref}", check=False, cwd=repo_root)
+        if result.returncode == 0:
+            return (ref, result.stdout.strip())
+        self.logger.error(f"Failed to resolve ref '{ref}' in repo {repo_name}")
+        return None
 
     def prepare_repositories(
         self, repos_to_prepare: Dict[str, str], floating_mode: bool = True
-    ) -> Dict[str, str]:
+    ) -> tuple[Dict[str, str], Dict[str, Optional[str]]]:
         """
         Prepare multiple repositories and return their resolved states.
 
@@ -493,9 +555,13 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             floating_mode: Whether to use floating mode (update to latest)
 
         Returns:
-            Dictionary mapping repo URLs to their resolved commit hashes
+            Tuple of (resolved_shas, resolved_refs) where:
+                - resolved_shas maps repo URLs to their resolved commit SHAs
+                - resolved_refs maps repo URLs to the resolved tag/branch name that was matched
+                  (captured via tag-prefix resolution logic; None for commit-hash refs)
         """
         resolved_repo_states = {}
+        resolved_ref_names: Dict[str, Optional[str]] = {}
         for repo_url, desired_ref in repos_to_prepare.items():
             if not self.prepare_repository(repo_url, desired_ref):
                 raise RuntimeError(f"Failed to prepare repository {repo_url}")
@@ -508,8 +574,18 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     f"Could not get current SHA for {repo_url} after preparation."
                 )
             resolved_repo_states[repo_url] = current_sha
+            
+            # Capture the matched ref name using the same logic as resolve_ref_to_sha
+            is_hash = self._is_commit_hash(desired_ref)
+            if is_hash:
+                resolved_ref_names[repo_url] = None
+            else:
+                repo_name = repo_path.name
+                matched_entry = self.resolve_ref_to_entry(repo_name, desired_ref)
+                if matched_entry:
+                    resolved_ref_names[repo_url] = matched_entry[0]
 
-        return resolved_repo_states
+        return resolved_repo_states, resolved_ref_names
 
     def clean_repo(self, repo_path: Path, patterns: list[str]) -> bool:
         """Clean up specified patterns in a cloned repository."""

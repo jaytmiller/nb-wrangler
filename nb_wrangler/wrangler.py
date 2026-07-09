@@ -498,6 +498,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Replacing dev overrides with production values.")
         return self.spec_manager.finalize_dev_overrides()
 
+    def _is_commit_hash(self, ref: str) -> bool:
+        length = len(ref)
+        if length != 40:
+            return False
+        hex_chars = set("0123456789abcdefABCDEF")
+        return all(c in hex_chars for c in ref)
+
     def _prepare_all_repositories(self, floating_mode=True) -> bool:
         """
         Prepares all repositories (SPI and notebook repos) by cloning,
@@ -510,7 +517,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Prepare each repository and get resolved states
         try:
-            resolved_repo_states = self.repo_manager.prepare_repositories(
+            resolved_repo_states, resolved_ref_names = self.repo_manager.prepare_repositories(
                 all_repos_to_prepare, floating_mode
             )
         except RuntimeError as e:
@@ -524,7 +531,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Update spec with resolved repository states
         output_repos_for_spec = copy.deepcopy(self.spec_manager.repositories)
-        self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states)
+        input_refs = {url: ref for url, ref in all_repos_to_prepare.items()}
+        self._update_spec_with_repo_states(output_repos_for_spec, resolved_repo_states, input_refs, resolved_ref_names)
 
         # Update SPI ref with resolved hash
         spi_output = copy.deepcopy(self.spec_manager.spi)
@@ -594,7 +602,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return all_repos_to_prepare
 
     def _update_spec_with_repo_states(
-        self, output_repos_for_spec, resolved_repo_states
+        self, output_repos_for_spec, resolved_repo_states, input_refs=None, resolved_ref_names=None
     ):
         """Update the spec with resolved repository states."""
         for name, repo_data in output_repos_for_spec.items():
@@ -602,6 +610,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 repo_data["ref"] = resolved_repo_states[repo_data["url"]]
             repo_data.pop("branch", None)
             repo_data.pop("hash", None)
+            
+            # Add resolved_ref for non-commit-hash refs (e.g., tag "2026.2" -> "2026.2.2")
+            url = repo_data.get("url", "")
+            if url in (input_refs or {}):
+                desired_ref = input_refs[url]
+                if not self._is_commit_hash(desired_ref) and resolved_ref_names:
+                    resolved_tag = resolved_ref_names.get(url)
+                    if resolved_tag:
+                        repo_data["resolved_ref"] = resolved_tag
 
     def _prepare_all_repositories_locked(self) -> bool:
         return self._prepare_all_repositories(floating_mode=False)
