@@ -12,7 +12,7 @@ image_spec_header:
 
 repositories:
   roman_notebooks:
-    url: https://github.com/spacetelescope/roman_notebooks.git
+    url: https://github.com/jaytmiller/roman_notebooks.git
     ref: "2026.2"
 
 system:
@@ -23,10 +23,10 @@ system:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: dev
   spi:
-    repo: https://github.com/spacetelescope/science-platform-images.git
-    ref: main
-  date_updated: '2026-07-14T07:40:52.280469'
-  spec_sha256: 42202207631916761b6fd0368157722a450ddceccdcd2f28a6d7d5365249e7d1
+    repo: https://github.com/jaytmiller/science-platform-images.git
+    ref: dev
+  date_updated: '2026-07-14T09:47:31.181699'
+  spec_sha256: 963a07fdeb9c507fb161fd767bbcffa899d6f4c5646c201f9b1a3225ba9df189
 
 selected_notebooks:
   roman_all:
