@@ -1,5 +1,6 @@
 """Repository management for cloning and updating notebook repositories."""
 
+import os
 import shutil
 import tempfile
 from pathlib import Path
@@ -93,11 +94,15 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     if not checkout_success and ref:
                         resolved_sha = self.resolve_ref_to_sha(repo_name, ref)
                         if resolved_sha:
-                            checkout_success = self.git_checkout(repo_name, resolved_sha)
+                            checkout_success = self.git_checkout(
+                                repo_name, resolved_sha
+                            )
 
                     if checkout_success:
                         if ref:
-                            self.run("git pull", check=True, cwd=repo_path)  # Pull updates
+                            self.run(
+                                "git pull", check=True, cwd=repo_path
+                            )  # Pull updates
                     else:
                         raise ValueError(
                             f"Could not find ref '{ref_to_checkout}' in {repo_url}."
@@ -408,26 +413,48 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             elif choice == "I":
                 return self.logger.info(f"Using dirty repository {repo_name} as-is.")
 
-
     def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
         """Ensure a repository is cloned and at the correct, clean ref."""
         self.logger.info(f"Preparing repository {repo_url} at ref {desired_ref}")
         repo_name = repo_url.split("/")[-1].replace(".git", "")
         repo_path = self._repo_path(repo_url)
 
-        # If the directory exists but is not a valid git repo (e.g., .git missing or no commits), treat it as non‑existent and reclone.
-        if not repo_path.exists() or not (repo_path / ".git").exists():
-            shutil.move(str(repo_path), str(repo_path) + ".bak", copy_function=shutil.copytree)
+        if not repo_path.exists():
+            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
+        elif (repo_path / ".git").exists():
+            backup_dir = str(repo_path) + ".bak"
+            if os.path.exists(backup_dir):
+                self.logger.warning(
+                    f"Backup directory {backup_dir} already exists; removing it before new backup."
+                )
+                try:
+                    shutil.rmtree(backup_dir)
+                except Exception as e:
+                    return self.logger.error(
+                        f"Failed to remove existing backup {backup_dir}: {e}"
+                    )
+
+            # Move the current repo into the backup location, then reclone fresh.
+            try:
+                shutil.move(str(repo_path), backup_dir, copy_function=shutil.copytree)
+            except Exception as e:
+                return self.logger.error(
+                    f"Failed to backup existing repository {repo_name}: {e}"
+                )
             return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
         # Additional safeguard: if the repository has no commits (unborn HEAD), force a fresh clone.
         if self.get_hash(repo_path) is None:
-            self.logger.warning(f"Repository {repo_name} appears to be empty or unborn; recloning.")
-            # Clean up the broken directory before recloning
+            self.logger.warning(
+                f"Repository {repo_name} appears to be empty or unborn; recloning."
+            )
+            # Remove the broken directory before recloning
             try:
-                shutil.move(str(repo_path), str(repo_path) + ".bak", copy_function=shutil.copytree)
+                shutil.rmtree(repo_path)
             except Exception as e:
-                return self.logger.error(f"Failed to remove corrupted repository {repo_name}: {e}")
+                return self.logger.error(
+                    f"Failed to delete corrupted repository {repo_name}: {e}"
+                )
             return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
         if self.config.use_dirty_repos:
