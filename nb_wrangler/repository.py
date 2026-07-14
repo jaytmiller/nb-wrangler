@@ -66,10 +66,11 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_path = self._repo_path(repo_url)
         if repo_path.exists():
             self.logger.info(f"Using existing local clone at {repo_path}")
+            repo_name = repo_path.name
             try:
                 if floating_mode:
                     self.logger.info(f"Floating mode: updating repo {repo_url}")
-                    self.run("git fetch", check=True, cwd=repo_path)
+                    self.run("git fetch --tags", check=True, cwd=repo_path)
 
                     # Determine default branch from origin
                     result = self.run(
@@ -85,11 +86,22 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                     )
                     ref_to_checkout = ref or f"origin/{default_branch}"
 
-                    self.run(
-                        f"git checkout {ref_to_checkout}", check=True, cwd=repo_path
-                    )
-                    if ref:
-                        self.run("git pull", check=True, cwd=repo_path)  # Pull updates
+                    # Attempt direct checkout first (exact branch or tag)
+                    checkout_success = self.git_checkout(repo_name, ref_to_checkout)
+
+                    # For tag‑prefix refs (e.g., "2026.2"), fall back to prefix matching
+                    if not checkout_success and ref:
+                        resolved_sha = self.resolve_ref_to_sha(repo_name, ref)
+                        if resolved_sha:
+                            checkout_success = self.git_checkout(repo_name, resolved_sha)
+
+                    if checkout_success:
+                        if ref:
+                            self.run("git pull", check=True, cwd=repo_path)  # Pull updates
+                    else:
+                        raise ValueError(
+                            f"Could not find ref '{ref_to_checkout}' in {repo_url}."
+                        )
                 else:  # locked mode
                     if ref:
                         self.logger.info(
