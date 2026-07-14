@@ -394,22 +394,20 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return self.git_stash(repo_name)
 
         if self.config.use_dirty_repos:
-            self.logger.info(f"Using dirty repository {repo_name} as-is.")
-            return True
+            return self.logger.info(f"Using dirty repository {repo_name} as-is.")
 
         while True:
             prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, [I]gnore (use as-is), or [A]bort? (S/D/I/A): "
             choice = input(prompt).upper()
             if choice == "A":
-                self.logger.error("Operation aborted by user.")
-                return False
+                return self.logger.error("Operation aborted by user.")
             elif choice == "S":
                 return self.git_stash(repo_name)
             elif choice == "D":
                 return self.git_reset_hard(repo_name)
             elif choice == "I":
-                self.logger.info(f"Using dirty repository {repo_name} as-is.")
-                return True
+                return self.logger.info(f"Using dirty repository {repo_name} as-is.")
+
 
     def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
         """Ensure a repository is cloned and at the correct, clean ref."""
@@ -417,14 +415,25 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_name = repo_url.split("/")[-1].replace(".git", "")
         repo_path = self._repo_path(repo_url)
 
-        if not repo_path.exists():
+        # If the directory exists but is not a valid git repo (e.g., .git missing or no commits), treat it as non‑existent and reclone.
+        if not repo_path.exists() or not (repo_path / ".git").exists():
+            shutil.move(str(repo_path), str(repo_path) + ".bak", copy_function=shutil.copytree)
+            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
+
+        # Additional safeguard: if the repository has no commits (unborn HEAD), force a fresh clone.
+        if self.get_hash(repo_path) is None:
+            self.logger.warning(f"Repository {repo_name} appears to be empty or unborn; recloning.")
+            # Clean up the broken directory before recloning
+            try:
+                shutil.move(str(repo_path), str(repo_path) + ".bak", copy_function=shutil.copytree)
+            except Exception as e:
+                return self.logger.error(f"Failed to remove corrupted repository {repo_name}: {e}")
             return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
         if self.config.use_dirty_repos:
-            self.logger.info(
+            return self.logger.info(
                 f"Using existing repository {repo_name} as-is due to --use-dirty-repos."
             )
-            return True
 
         if not self.is_clean(repo_path):
             self.logger.info(
@@ -447,10 +456,9 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
         if current_sha == target_sha:
             sha_info = f" ({target_sha[:7]})" if target_sha else ""
-            self.logger.info(
+            return self.logger.info(
                 f"Repository {repo_name} is already at the desired ref {desired_ref}{sha_info}."
             )
-            return True
 
         self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}.")
         return self.git_checkout(repo_name, target_sha)
