@@ -1,6 +1,7 @@
 #! /bin/bash
 
 # set -x
+set +x  # make sure -x (debug output) is off
 
 setup_env() {
     export NBW_PYTHON_VERSION=${NBW_PYTHON_VERSION:-"3.11"}

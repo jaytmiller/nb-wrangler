@@ -231,11 +231,21 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     def git_checkout(self, repo_name: str, branch: str) -> bool:
         repo_root = self.repos_dir / repo_name
         result = self.run(f"git checkout {branch}", check=False, cwd=repo_root)
-        return self.handle_result(
-            result,
-            f"Failed checking out repo {repo_name} existing branch {branch}: ",
-            f"Checked out repo {repo_name} existing branch {branch}.",
-        )
+        if result.returncode == 0:
+            return self.logger.info(
+                f"Checked out repo {repo_name} existing branch {branch}."
+            )
+        else:
+            self.logger.warning(
+                f"Failed checking out repo {repo_name} existing branch {branch}."
+            )
+            self.logger.warning(
+                "This is normal for abstract tags that do not exist but patch tags do exist."
+            )
+            self.logger.debug(f"returncode was: {result.returncode}")
+            self.logger.debug(f"stdout was: {result.stdout}")
+            self.logger.debug(f"stderr was: {result.stderr}")
+            return False
 
     def git_create_branch(self, repo_name, new_branch):
         repo_root = self.repos_dir / repo_name
@@ -528,7 +538,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         matching_tags = [t for t in all_tags if t.startswith(ref)]
         if matching_tags:
             best_tag = matching_tags[0]  # already highest due to sorting
-            self.logger.info(f"Selected tag '{best_tag}' for ref prefix '{ref}'.")
+            self.logger.info(f"Selected patch tag '{best_tag}' for ref prefix '{ref}'.")
             result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
             if result.returncode == 0:
                 return result.stdout.strip()
