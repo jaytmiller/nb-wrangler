@@ -248,6 +248,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
 	rm -fr .pytest_cache nb_wranger/.pytest_cache
 	rm -fr $$TEST_OUTPUTS
+	git checkout -- specs/samples tests/data-functional
 
 clean-other:
 	rm -rf prof
