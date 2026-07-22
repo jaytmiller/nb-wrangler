@@ -12,54 +12,6 @@ from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
-'''
-def _apply_normalization(spec_dict: dict) -> None:
-    """Mutate *spec_dict* so that all fields which the code expects as strings are
-    stored as plain Python ``str`` objects, regardless of how they were quoted in YAML.
-    """
-    dictionary_sections = {
-        "image_spec_header",
-        "system",
-        "dev_overrides",
-        "repositories",
-        "selected_notebooks",
-        "ref_data_dependencies",
-    }
-    for section in dictionary_sections:
-        section_dict = spec_dict.get(section)
-        if isinstance(section_dict, dict):
-            yaml_typed_values.normalize_value(section_dict)
-
-    # Refdata – only the nested install_files dicts need normalisation
-    refdata = spec_dict.get("refdata_dependencies")
-    if isinstance(refdata, dict):
-        install_files = refdata.get("install_files")
-        if isinstance(install_files, dict):
-            for section in install_files.values():
-                if isinstance(section, dict):
-                    yaml_typed_values.normalize_dict_values(section)
-
-    # Sections that are defined to be *string‑only* lists.
-    string_list_sections = {
-        "extra_mamba_packages",
-        "common_mamba_packages",
-        "extra_pip_packages",
-        "common_pip_packages",
-        "apt_packages",
-        "override_pip_versions",
-    }
-
-    for name in string_list_sections:
-        val = spec_dict.get(name)
-        if isinstance(val, list):
-            yaml_typed_values.normalize_dict_values({name: val})
-
-    # ``dockerfile_aux_sh`` is a scalar that must be string.
-    if "dockerfile_aux_sh" in spec_dict and spec_dict["dockerfile_aux_sh"] is not None:
-        spec_dict["dockerfile_aux_sh"] = str(spec_dict["dockerfile_aux_sh"])
-
-'''
-
 
 class SpecManager(
     WranglerLoggable, WranglerConfigurable
@@ -212,6 +164,15 @@ class SpecManager(
     @property
     def environment_spec(self) -> dict[str, Any] | None:
         return self._spec.get("environment_spec")
+
+    @property
+    def assets(self) -> list[dict[str, str]]:
+        """Return a list of asset definitions from the spec.
+        
+        Each asset is a dictionary with keys: repo, ref, source, destination.
+        Returns an empty list if no assets are defined.
+        """
+        return self._spec.get("assets") or []
 
     @property
     def spi(self) -> dict[str, str]:
@@ -603,6 +564,12 @@ class SpecManager(
             "manager",
         ],
         "repositories": ["url", "ref"],
+        # Assets is a list of dictionaries, each with repo/ref/source/destination keys.
+        # We define the structure for validation purposes. The validator should handle 
+        # lists by checking that items match expected patterns if needed.
+        "assets": [  # List indicator - actual item schema defined below in comments or handled specially
+            {"repo": None, "ref": None, "source": None, "destination": None}
+        ],  
         "refdata_dependencies": ["install_files", "other_variables"],
         "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
@@ -647,6 +614,8 @@ class SpecManager(
     }
 
     REQUIRED_KEYWORDS: dict[str, Any] = {
+        # Assets is optional - not included in required keywords unless specified otherwise.
+        
         "image_spec_header": [
             "image_name",
             "kernel_name",
@@ -675,7 +644,7 @@ class SpecManager(
             return self.logger.error("Spec validation failed.")
 
     def _ensure_validated(self) -> None:
-        """Ensure the spec has been validated before access."""
+        """Ensure the spec has been validated before accessing data."""
         if not self._is_validated:
             raise RuntimeError("Spec must be validated before accessing data")
 
