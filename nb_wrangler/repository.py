@@ -73,24 +73,14 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 self.logger.info(
                     f"Locked mode: checking out ref {ref} for repo {repo_url}"
                 )
-                self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+                self.git_checkout_required(repo_path, ref)
         except Exception as e:
             return self.logger.exception(e, f"Failed to setup repository {repo_url}.")
         return repo_path
 
     def _get_default_branch(self, repo_path: Path) -> Optional[str]:
         """Resolve the default branch name from origin/HEAD."""
-        result = self.run(
-            "git symbolic-ref refs/remotes/origin/HEAD",
-            check=False,
-            capture_output=True,
-            cwd=repo_path,
-        )
-        if result.returncode != 0:
-            return None
-        return (
-            result.stdout.strip().replace("refs/remotes/origin/", "").replace("\n", "")
-        )
+        return self.git_head_ref(repo_path)
 
     def _resolve_ref_with_fallback(
         self, repo_name: str, ref_to_checkout: str, ref: Optional[str]
@@ -121,7 +111,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         self.logger.debug(f"Floating mode: updating repo {repo_url}")
         checkout_success = False
         try:
-            self.run("git fetch --tags", check=True, cwd=repo_path)
+            self.git_fetch_tags(repo_path)
             default_branch = self._get_default_branch(repo_path)
             if default_branch is None:
                 return self.logger.error(  # returns None
@@ -134,7 +124,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             )
 
             if checkout_success and ref:
-                self.run("git pull", check=True, cwd=repo_path)
+                self.git_pull(repo_path)
             elif not checkout_success:
                 raise ValueError(
                     f"Could not find ref '{ref_to_checkout}' in {repo_url}."
@@ -152,7 +142,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
                 self.logger.info(
                     f"Locked mode: checking out ref {ref} for repo {repo_url}"
                 )
-                self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+                self.git_checkout_required(repo_path, ref)
             else:
                 self.logger.warning(
                     "Locked mode enabled, but no ref provided for "
@@ -341,6 +331,40 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             f"Failed adding remote {remote_name} = {remote_url} to {repo_path}: ",
             f"Added remote {remote_name} to {repo_path}.",
             error_func=self.logger.debug,
+        )
+
+    def git_checkout_required(self, repo_path: Path, ref: str) -> None:
+        """Check out a specific ref in the given repository path.
+
+        Unlike ``git_checkout``, this raises on failure (``check=True``).
+        Used by callers that require the checkout to succeed unconditionally.
+        """
+        self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+
+    def git_fetch_tags(self, repo_path: Path, check: bool = True) -> None:
+        """Fetch all tags from the remote of a repository."""
+        self.run("git fetch --tags", check=check, cwd=repo_path)
+
+    def git_pull(self, repo_path: Path) -> None:
+        """Pull updates from the tracked upstream branch."""
+        self.run("git pull", check=True, cwd=repo_path)
+
+    def git_head_ref(self, repo_path: Path) -> Optional[str]:
+        """Resolve ``refs/remotes/origin/HEAD`` to a default branch name.
+
+        Returns ``None`` when symbolic-ref cannot find the value (e.g.,
+        on repositories that have never been pushed).
+        """
+        result = self.run(
+            "git symbolic-ref refs/remotes/origin/HEAD",
+            check=False,
+            capture_output=True,
+            cwd=repo_path,
+        )
+        if result.returncode != 0:
+            return None
+        return (
+            result.stdout.strip().replace("refs/remotes/origin/", "").replace("\n", "")
         )
 
     def github_create_pr(
@@ -639,8 +663,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_root = self.repos_dir / repo_name
         self.logger.info(f"Resolving ref '{ref}' to SHA in {repo_root}")
         # Fetch latest tags and refs
-        self.run("git fetch --tags", check=False, cwd=repo_root)
-        # Get sorted tags (highest semver first)
+        self.git_fetch_tags(repo_root, check=False)
         all_tags = self.fetch_sorted_tags(repo_root)
         # Filter tags that start with the provided ref as a prefix
         matching_tags = [t for t in all_tags if t.startswith(ref)]
@@ -665,7 +688,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         Tags are treated as plain strings; no semantic version parsing is performed.
         """
         # Ensure we have latest tags
-        self.run("git fetch --tags", check=False, cwd=repo_path)
+        self.git_fetch_tags(repo_path, check=False)
         result = self.run("git tag -l", check=False, cwd=repo_path)
         if result.returncode != 0:
             self.logger.error(f"Failed to list tags in {repo_path}")
@@ -690,8 +713,7 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         """
         repo_root = self.repos_dir / repo_name
         # Fetch latest tags and refs
-        self.run("git fetch --tags", check=False, cwd=repo_root)
-        # Get sorted tags (highest lexicographic first)
+        self.git_fetch_tags(repo_root, check=False)
         all_tags = self.fetch_sorted_tags(repo_root)
         # Filter tags that start with the provided ref as a prefix
         matching_tags = [t for t in all_tags if t.startswith(ref)]
