@@ -57,6 +57,111 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
     get_repo_path = _repo_path
 
+    def _clone_repo(
+        self,
+        repo_url: str,
+        repo_path: Path,
+        floating_mode: bool,
+        ref: Optional[str],
+    ) -> Optional[Path]:
+        """Clone a new repository and perform post-clone checkout in locked mode."""
+        try:
+            # Floating mode clones without a specific ref; we resolve later.
+            branch_to_clone = None if floating_mode else ref
+            self.git_clone(repo_url, repo_path, ref=branch_to_clone)
+            if not floating_mode and ref:
+                self.logger.info(
+                    f"Locked mode: checking out ref {ref} for repo {repo_url}"
+                )
+                self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+        except Exception as e:
+            return self.logger.exception(e, f"Failed to setup repository {repo_url}.")
+        return repo_path
+
+    def _get_default_branch(self, repo_path: Path) -> Optional[str]:
+        """Resolve the default branch name from origin/HEAD."""
+        result = self.run(
+            "git symbolic-ref refs/remotes/origin/HEAD",
+            check=False,
+            capture_output=True,
+            cwd=repo_path,
+        )
+        if result.returncode != 0:
+            return None
+        return (
+            result.stdout.strip().replace("refs/remotes/origin/", "").replace("\n", "")
+        )
+
+    def _resolve_ref_with_fallback(
+        self, repo_name: str, ref_to_checkout: str, ref: Optional[str]
+    ) -> bool:
+        """Try a direct checkout then fall back to tag-prefix resolution.
+
+        Returns True on success. The fallback only runs when *ref* is set,
+        because there is nothing meaningful to resolve otherwise (e.g. the
+        default-branch case where ref_to_checkout already succeeded above).
+        """
+        checkout_success = self.git_checkout(repo_name, ref_to_checkout)
+        if not checkout_success and ref:
+            resolved_sha = self.resolve_ref_to_sha(repo_name, ref)
+            if resolved_sha:
+                checkout_success = self.git_checkout(repo_name, resolved_sha)
+        return checkout_success
+
+    def _update_floating(
+        self, repo_path: Path, repo_url: str, ref: Optional[str]
+    ) -> Optional[Path]:
+        """Update an existing repository in floating mode.
+
+        Fetches tags, resolves the default branch (or uses the given ref),
+        checks out via direct attempt then tag-prefix fallback, and pulls for
+        updates when a specific ref was requested. Returns None on failure so
+        callers propagate the original error semantics.
+        """
+        self.logger.debug(f"Floating mode: updating repo {repo_url}")
+        checkout_success = False
+        try:
+            self.run("git fetch --tags", check=True, cwd=repo_path)
+            default_branch = self._get_default_branch(repo_path)
+            if default_branch is None:
+                return self.logger.error(  # returns None
+                    f"Failed to determine default branch for {repo_url}."
+                )
+            ref_to_checkout = ref or f"origin/{default_branch}"
+
+            checkout_success = self._resolve_ref_with_fallback(
+                repo_path.name, ref_to_checkout, ref
+            )
+
+            if checkout_success and ref:
+                self.run("git pull", check=True, cwd=repo_path)
+            elif not checkout_success:
+                raise ValueError(
+                    f"Could not find ref '{ref_to_checkout}' in {repo_url}."
+                )
+        except Exception as e:
+            return self.logger.exception(e, f"Failed to update repository {repo_url}.")
+        return repo_path if checkout_success else None
+
+    def _update_locked(
+        self, repo_path: Path, repo_url: str, ref: Optional[str]
+    ) -> Optional[Path]:
+        """Update an existing repository in locked (non-floating) mode."""
+        try:
+            if ref:
+                self.logger.info(
+                    f"Locked mode: checking out ref {ref} for repo {repo_url}"
+                )
+                self.run(f"git checkout {ref}", check=True, cwd=repo_path)
+            else:
+                self.logger.warning(
+                    "Locked mode enabled, but no ref provided for "
+                    f"{repo_url}. Using existing state."
+                )
+        except Exception as e:
+            return self.logger.exception(e, f"Failed to update repository {repo_url}.")
+        return repo_path
+
     def _setup_remote_repo(
         self,
         repo_url: str,
@@ -65,86 +170,18 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
     ) -> Optional[Path]:
         """Set up a remote repository by cloning or updating."""
         repo_path = self._repo_path(repo_url)
-        if repo_path.exists():
-            self.logger.debug(f"Using existing local clone at {repo_path}")
-            repo_name = repo_path.name
-            try:
-                if floating_mode:
-                    self.logger.debug(f"Floating mode: updating repo {repo_url}")
-                    self.run("git fetch --tags", check=True, cwd=repo_path)
-
-                    # Determine default branch from origin
-                    result = self.run(
-                        "git symbolic-ref refs/remotes/origin/HEAD",
-                        check=False,
-                        capture_output=True,
-                        cwd=repo_path,
-                    )
-                    if result.returncode != 0:
-                        return self.logger.error(
-                            f"Failed to determine default branch for {repo_url}."
-                        )
-                    default_branch = (
-                        result.stdout.strip()
-                        .replace("refs/remotes/origin/", "")
-                        .replace("\n", "")
-                    )
-                    ref_to_checkout = ref or f"origin/{default_branch}"
-
-                    # Attempt direct checkout first (exact branch or tag)
-                    checkout_success = self.git_checkout(repo_name, ref_to_checkout)
-
-                    # For tag‑prefix refs (e.g., "2026.2"), fall back to prefix matching
-                    if not checkout_success and ref:
-                        resolved_sha = self.resolve_ref_to_sha(repo_name, ref)
-                        if resolved_sha:
-                            checkout_success = self.git_checkout(
-                                repo_name, resolved_sha
-                            )
-
-                    if checkout_success:
-                        if ref:
-                            self.run(
-                                "git pull", check=True, cwd=repo_path
-                            )  # Pull updates
-                    else:
-                        raise ValueError(
-                            f"Could not find ref '{ref_to_checkout}' in {repo_url}."
-                        )
-                else:  # locked mode
-                    if ref:
-                        self.logger.info(
-                            f"Locked mode: checking out ref {ref} for repo {repo_url}"
-                        )
-                        self.run(f"git checkout {ref}", check=True, cwd=repo_path)
-                    else:
-                        self.logger.warning(
-                            f"Locked mode enabled, but no ref provided for {repo_url}. Using existing state."
-                        )
-            except Exception as e:
-                return self.logger.exception(
-                    e, f"Failed to update repository {repo_url}."
-                )
-        else:
-            try:
-                # In floating mode we clone without a specific ref; we'll resolve and checkout later.
-                # In locked (non‑floating) mode we may need to clone a particular branch/tag directly.
-                branch_to_clone = None if floating_mode else ref
-                self.git_clone(repo_url, repo_path, ref=branch_to_clone)
-
-                # Ensure the checkout happens only after successful clone for locked mode
-                if not floating_mode and ref:
-                    self.logger.info(
-                        f"Locked mode: checking out ref {ref} for repo {repo_url}"
-                    )
-                    self.run(f"git checkout {ref}", check=True, cwd=repo_path)
-            except Exception as e:
-                return self.logger.exception(
-                    e,
-                    f"Failed to setup repository {repo_url}.",
-                )
-
-        return repo_path
+        if not repo_path.exists():
+            return self._clone_repo(repo_url, repo_path, floating_mode, ref)
+        self.logger.debug(f"Using existing local clone at {repo_path}")
+        try:
+            result = (
+                self._update_floating(repo_path, repo_url, ref)
+                if floating_mode
+                else self._update_locked(repo_path, repo_url, ref)
+            )
+        except Exception as e:
+            return self.logger.exception(e, f"Failed to update repository {repo_url}.")
+        return result
 
     def git_clone(
         self,
@@ -426,67 +463,103 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             elif choice == "I":
                 return self.logger.info(f"Using dirty repository {repo_name} as-is.")
 
-    def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
-        """Ensure a repository is cloned and at the correct, clean ref."""
-        self.logger.info(f"Preparing repository {repo_url} at ref {desired_ref}")
-        repo_name = repo_url.split("/")[-1].replace(".git", "")
+    @staticmethod
+    def _derive_repo_name(repo_url: str) -> str:
+        """Extract the repository name from a URL or path string."""
+        return repo_url.split("/")[-1].replace(".git", "")
+
+    def _clone_if_missing(self, repo_url: str, desired_ref: str) -> bool:
+        """Fresh-clone a not-yet-existing repository and check out the requested ref."""
+        repo_path = self._repo_path(repo_url)
+        return self._clone_and_checkout(repo_url, repo_path, desired_ref)
+
+    def _backup_then_reclone(
+        self, repo_url: str, repo_name: str, desired_ref: str
+    ) -> bool:
+        """Back up an existing git repository directory then re-clone it fresh."""
+        repo_path = self._repo_path(repo_url)
+        backup_dir = f"{repo_path}.bak"
+        if os.path.exists(backup_dir):
+            self.logger.warning(
+                f"Backup directory {backup_dir} already exists; removing it before new backup."
+            )
+            try:
+                shutil.rmtree(backup_dir)
+            except Exception as e:
+                return self.logger.error(
+                    f"Failed to remove existing backup {backup_dir}: {e}"
+                )
+
+        # Move the current repo into the backup location, then reclone fresh.
+        try:
+            shutil.move(str(repo_path), backup_dir, copy_function=shutil.copytree)
+        except Exception as e:
+            return self.logger.error(
+                f"Failed to backup existing repository {repo_name}: {e}"
+            )
+        return self._clone_and_checkout(repo_url, repo_path, desired_ref)
+
+    def _reclone_if_unborn(
+        self, repo_url: str, repo_name: str, desired_ref: str
+    ) -> bool:
+        """Force a fresh clone when the existing repository has no commits (unborn HEAD).
+
+        Only reached from prepare_repository after the `.git`-existence branch matched, so a
+        non-.git entry is expected here; we conservatively confirm via get_hash and re-clone.
+        Returns True once recovered (caller proceeds to checkout); returns False on failure.
+        """
         repo_path = self._repo_path(repo_url)
 
-        if not repo_path.exists():
-            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
-        elif (repo_path / ".git").exists():
-            backup_dir = str(repo_path) + ".bak"
-            if os.path.exists(backup_dir):
-                self.logger.warning(
-                    f"Backup directory {backup_dir} already exists; removing it before new backup."
-                )
-                try:
-                    shutil.rmtree(backup_dir)
-                except Exception as e:
-                    return self.logger.error(
-                        f"Failed to remove existing backup {backup_dir}: {e}"
-                    )
+        if (
+            self.get_hash(repo_path) is not None
+        ):  # Already has commits; nothing unborn here.
+            return True
 
-            # Move the current repo into the backup location, then reclone fresh.
-            try:
-                shutil.move(str(repo_path), backup_dir, copy_function=shutil.copytree)
-            except Exception as e:
-                return self.logger.error(
-                    f"Failed to backup existing repository {repo_name}: {e}"
-                )
-            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
-
-        # Additional safeguard: if the repository has no commits (unborn HEAD), force a fresh clone.
-        if self.get_hash(repo_path) is None:
-            self.logger.warning(
-                f"Repository {repo_name} appears to be empty or unborn; recloning."
+        # Additional safeguard: the repository exists but has no commits -> fresh clone.
+        self.logger.warning(
+            f"Repository {repo_name} appears to be empty or unborn; recloning."
+        )
+        # Remove the broken directory before recloning.
+        try:
+            shutil.rmtree(repo_path)
+        except Exception as e:
+            return self.logger.error(
+                f"Failed to delete corrupted repository {repo_name}: {e}"
             )
-            # Remove the broken directory before recloning
-            try:
-                shutil.rmtree(repo_path)
-            except Exception as e:
-                return self.logger.error(
-                    f"Failed to delete corrupted repository {repo_name}: {e}"
-                )
-            return self._clone_and_checkout(repo_url, repo_path, desired_ref)
+        return self._clone_and_checkout(repo_url, repo_path, desired_ref)
 
-        if self.config.use_dirty_repos:
-            return self.logger.info(
-                f"Using existing repository {repo_name} as-is due to --use-dirty-repos."
-            )
+    def _auto_clean_if_dirty(self, repo_name: str) -> bool:
+        """Auto-clean a dirty repository; decide whether preparation may proceed.
 
+        Returns True when the user accepts proceeding to ref/checkout resolution:
+        either the tree is now clean, or the user explicitly chose "use as-is".
+        Returns False only on explicit abort/failure (mirrors prepare_repository's
+        original `return False` for a failed/aborted dirty-repo interaction).
+        """
+        repo_path = self.repos_dir / repo_name
+
+        # Repository already clean: proceed to ref checkout.
+        if self.is_clean(repo_path):
+            return True
+
+        # Dirty: attempt an auto-clean of default patterns first, then interact.
+        self.logger.info(
+            f"Repository {repo_name} is dirty. Attempting auto-clean of default patterns."
+        )
+        self.clean_repo(repo_path, DEFAULT_CLEANUP_PATTERNS)
         if not self.is_clean(repo_path):
-            self.logger.info(
-                f"Repository {repo_name} is dirty. Attempting auto-clean of default patterns."
-            )
-            self.clean_repo(repo_path, DEFAULT_CLEANUP_PATTERNS)
-            if not self.is_clean(repo_path):
-                if not self._handle_dirty_repository(repo_name):
-                    return False  # Operation failed or was aborted
-                if not self.is_clean(repo_path):
-                    return True  # User chose to ignore (as-is)
+            handled = self._handle_dirty_repository(repo_name)
+            if not handled:  # Operation failed or was aborted by the user.
+                return False
 
-        # Now the repo is clean, check if it's on the correct commit
+        # Clean now, OR still dirty after interaction where the user chose to continue.
+        # In the original this branch short-circuited with `return True`, so we treat any
+        # non-failure result (including persistent dirt from an "ignore as-is" choice) as proceed.
+        return True
+
+    def _checkout_if_needed(self, repo_name: str, desired_ref: str) -> bool:
+        """Ensure a clean repository is checked out at the requested ref."""
+        repo_path = self.repos_dir / repo_name
         current_sha = self.get_hash(repo_path)
         if current_sha is None:
             return False
@@ -502,6 +575,38 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
         self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}.")
         return self.git_checkout(repo_name, target_sha)
+
+    def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
+        """Ensure a repository is cloned and at the correct, clean ref."""
+        self.logger.info(f"Preparing repository {repo_url} at ref {desired_ref}")
+        repo_name = self._derive_repo_name(repo_url)
+
+        repo_path = self._repo_path(repo_url)
+        if not repo_path.exists():
+            return self._clone_if_missing(repo_url, desired_ref)
+        if (repo_path / ".git").exists():
+            self.logger.debug(f"Using existing local clone at {repo_path}")
+            return self._backup_then_reclone(repo_url, repo_name, desired_ref)
+
+        # Existing entry but without a .git marker (unborn HEAD or corrupt): try to recover.
+        recovered = self._reclone_if_unborn(repo_url, repo_name, desired_ref)
+        if not recovered:
+            return False  # An explicit failure short-circuited the re-clone path.
+
+        if self.config.use_dirty_repos:
+            return self.logger.info(
+                f"Using existing repository {repo_name} as-is due to --use-dirty-repos."
+            )
+
+        cleaned = self._auto_clean_if_dirty(repo_name)
+        if not cleaned:  # Failed or aborted by the user.
+            return False
+        # A True result with a still-dirty tree means the user chose "use as-is", which in
+        # the original short-circuited before ref/checkout resolution (lines 523-524).
+        if not self.is_clean(self.repos_dir / repo_name):
+            return True
+
+        return self._checkout_if_needed(repo_name, desired_ref)
 
     def git_stash(self, repo_name: str) -> bool:
         """Stash local changes in the given repository."""
