@@ -23,6 +23,7 @@ from .constants import (
     NOTEBOOK_TEST_JOBS,
     NOTEBOOK_TEST_EXCLUDE,
     VALID_ARCHIVE_FORMATS,
+    NBW_OVERRIDES_MODE,
 )
 
 
@@ -172,17 +173,19 @@ def parse_args():
     dev_mode_group.add_argument(
         "--dev",
         action="store_true",
+        default=NBW_OVERRIDES_MODE,  # either set env var or default to auto-mode=False
         help="Enable development overrides defined in the spec. (Implicit for some workflows).",
     )
     dev_mode_group.add_argument(
         "--prod",
         action="store_true",
+        default=NBW_OVERRIDES_MODE,  # either set env var or default to auto-mode=False
         help="Force production mode, disabling any development overrides.",
     )
     dev_group.add_argument(
-        "--finalize-dev-overrides",
+        "--spec-disable-dev-overrides",
         action="store_true",
-        help="Deactivate the 'dev_overrides' section from the spec file.",
+        help="Deactivate the 'dev_overrides' section from the spec file. Forces --prod mode.",
     )
 
     env_group = parser.add_argument_group(

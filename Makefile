@@ -34,6 +34,7 @@ define TEST_OUTPUTS
 output
 references
 inject-spi-references
+nbw.log
 endef
 export TEST_OUTPUTS
 

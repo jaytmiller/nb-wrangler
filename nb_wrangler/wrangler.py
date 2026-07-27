@@ -401,7 +401,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         flags_and_steps: list[tuple[bool, Callable]] = [
-            (self.config.finalize_dev_overrides, self._finalize_dev_overrides),
+            (self.config.disable_dev_overrides, self._disable_dev_overrides),
             (self.config.clone_repos, self._prepare_all_repositories),
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),
@@ -494,9 +494,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         return self.logger._close_and_remove_logfile()
 
-    def _finalize_dev_overrides(self) -> bool:
+    def _disable_dev_overrides(self) -> bool:
         self.logger.info("Replacing dev overrides with production values.")
-        return self.spec_manager.finalize_dev_overrides()
+        return self.spec_manager.disable_dev_overrides()
 
     def _is_commit_hash(self, ref: str) -> bool:
         """Return True if *ref* looks like a 40‑character hexadecimal commit hash."""
