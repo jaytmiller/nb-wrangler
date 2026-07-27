@@ -173,13 +173,15 @@ def parse_args():
     dev_mode_group.add_argument(
         "--dev",
         action="store_true",
-        default=NBW_OVERRIDES_MODE,  # either set env var or default to auto-mode=False
+        default=NBW_OVERRIDES_MODE
+        == "--dev",  # either set env var or default to auto-mode=False
         help="Enable development overrides defined in the spec. (Implicit for some workflows).",
     )
     dev_mode_group.add_argument(
         "--prod",
         action="store_true",
-        default=NBW_OVERRIDES_MODE,  # either set env var or default to auto-mode=False
+        default=NBW_OVERRIDES_MODE
+        == "--prod",  # either set env var or default to auto-mode=False
         help="Force production mode, disabling any development overrides.",
     )
     env_group = parser.add_argument_group(

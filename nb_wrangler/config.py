@@ -108,7 +108,7 @@ class WranglerConfig:
     spec_validate: bool = False
     spec_ignore_hash: bool = False
     spec_update_hash: bool = False
-    disable_dev_overrides: bool = False
+    spec_disable_dev_overrides: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_print_exports: bool = False
@@ -163,7 +163,7 @@ class WranglerConfig:
             overwrite_local_changes=args.overwrite_local_changes,
             stash_local_changes=args.stash_local_changes,
             use_dirty_repos=args.use_dirty_repos,
-            disable_dev_overrides=args.disable_dev_overrides,
+            spec_disable_dev_overrides=args.spec_disable_dev_overrides,
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,

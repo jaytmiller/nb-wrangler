@@ -531,7 +531,7 @@ class SpecManager(
             return self.logger.error("Spec save to", self._source_file, "failed...")
         return True
 
-    def disable_dev_overrides(self) -> bool:
+    def spec_disable_dev_overrides(self) -> bool:
         """Deactivate the 'dev_overrides' section from the spec file."""
         if "dev_overrides" in self._spec:
             self.logger.info("Deactivating 'dev_overrides' section of spec.")

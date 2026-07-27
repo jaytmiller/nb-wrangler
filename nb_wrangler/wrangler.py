@@ -178,6 +178,17 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         Applies implicit --dev settings based on the active workflow.
         Explicit --dev/--prod flags will always override these defaults.
         """
+        if mode := os.environ.get("NBW_OVERRIDES_MODE"):
+            if mode not in ["--dev", "--prod"]:
+                raise ValueError(
+                    f"NBW_OVERRIDES_MODE should be --dev or --prod bit is '{mode}'."
+                )
+            self.logger.info(f"NBW_OVERRIDES_MODE is set to {mode}.")
+            self.logger.info(
+                f"--dev is set to {self.config.dev}. --prod is set to {self.config.prod}."
+            )
+            return
+
         if self.config.prod:
             self.config.dev = False
             self.logger.info(
@@ -187,7 +198,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Determine if dev_overrides exist in the spec
         dev_overrides_exist = self.spec_manager.dev_overrides_exist()
-
+        self.logger.info("dev_overrides exist,  checking for --dev mode.")
         # Get the explicit --dev setting from CLI
         explicit_dev_cli = (
             self.config.dev
@@ -217,15 +228,25 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 self.config.dev = (
                     False  # Implicitly deactivate --dev for reinstall workflows
                 )
+                self.logger.info(
+                    "--reinstall or --data-reinstall w/o --dev implies --prod."
+                )
             else:  # --dev was explicitly set by CLI
                 if not dev_overrides_exist:
-                    self.logger.error(
-                        "Explicit --dev used for reinstall workflow but no dev_overrides found in spec. This may lead to unexpected behavior."
+                    self.logger.warning(
+                        "Explicit --dev used for reinstall workflow but no dev_overrides found in spec. Defaulting to --prod."
                     )
         else:
-            # For other workflows or isolated steps, default --dev to False unless explicitly set.
+            self.logger.info("For other workflows or isolated steps, default --dev to False unless explicitly set.")
             if not explicit_dev_cli:
                 self.config.dev = False
+                self.config.prod = True
+            else:
+                self.config.dev = True
+                self.config.prod = False
+        self.logger.info(
+            f"Final value --dev is set to {self.config.dev}. --prod is set to {self.config.prod}."
+        )
 
     def run_workflow(
         self, name: str, steps: list, continue_on_failure: bool = False
@@ -401,7 +422,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _run_explicit_steps(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
         flags_and_steps: list[tuple[bool, Callable]] = [
-            (self.config.disable_dev_overrides, self._disable_dev_overrides),
+            (self.config.spec_disable_dev_overrides, self._spec_disable_dev_overrides),
             (self.config.clone_repos, self._prepare_all_repositories),
             (self.config.packages_compile, self._compile_requirements),
             (self.config.env_init, self._initialize_environment),
@@ -494,9 +515,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         )
         return self.logger._close_and_remove_logfile()
 
-    def _disable_dev_overrides(self) -> bool:
-        self.logger.info("Replacing dev overrides with production values.")
-        return self.spec_manager.disable_dev_overrides()
+    def _spec_disable_dev_overrides(self) -> bool:
+        self.logger.info(
+            "Marking dev_overrides section of spec disabled. Edit/remove mark to re-enable."
+        )
+        return self.spec_manager.spec_disable_dev_overrides()
 
     def _is_commit_hash(self, ref: str) -> bool:
         """Return True if *ref* looks like a 40‑character hexadecimal commit hash."""

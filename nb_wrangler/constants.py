@@ -33,7 +33,7 @@ NBW_PIP_CMD = str(os.environ.get("NBW_PIP_CMD", "uv pip"))
 
 # Set to --dev or --prod or leave unset for automatic determination that
 # is not always appropriate, particularly for development.
-NBW_OVERRIDES_MODE = os.environ.get("NBW_OVERRIDES_MODE", False)
+NBW_OVERRIDES_MODE = bool(os.environ.get("NBW_OVERRIDES_MODE", "--prod"))
 
 # Set cache environment variables if not already set, to ensure that tools like pip, npm,
 # and yarn use the designated cache directories which may speed up installations and reduce
