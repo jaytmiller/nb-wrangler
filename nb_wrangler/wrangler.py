@@ -179,26 +179,31 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         Explicit --dev/--prod flags will always override these defaults.
         """
         if mode := os.environ.get("NBW_OVERRIDES_MODE"):
-            if mode not in ["--dev", "--prod"]:
-                raise ValueError(
-                    f"NBW_OVERRIDES_MODE should be --dev or --prod bit is '{mode}'."
-                )
             self.logger.info(f"NBW_OVERRIDES_MODE is set to {mode}.")
-            self.logger.info(
-                f"--dev is set to {self.config.dev}. --prod is set to {self.config.prod}."
-            )
-            return
+            match mode:
+                case "--prod":
+                    self.config.prod = True
+                    self.config.dev = False
+                case "--dev":
+                    self.config.prod = False
+                    self.config.dev = True
+                case None:
+                    pass
+                case _:
+                    raise ValueError(
+                        f"NBW_OVERRIDES_MODE should be --dev or --prod bit is '{mode}'."
+                    )
 
         if self.config.prod:
             self.config.dev = False
             self.logger.info(
-                "Production mode forced by --prod switch. Development overrides disabled."
+                "Production mode forced by --prod switch. Development overrides unused."
             )
             return
 
         # Determine if dev_overrides exist in the spec
         dev_overrides_exist = self.spec_manager.dev_overrides_exist()
-        self.logger.info("dev_overrides exist,  checking for --dev mode.")
+        self.logger.debug("dev_overrides exist,  checking for --dev mode.")
         # Get the explicit --dev setting from CLI
         explicit_dev_cli = (
             self.config.dev
@@ -211,12 +216,12 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if not explicit_dev_cli:  # If --dev was not explicitly set to True
                 if dev_overrides_exist:
                     self.config.dev = True
-                    self.logger.info(
+                    self.logger.debug(
                         "Implicitly activating --dev for curation workflow as dev_overrides exist."
                     )
                 else:
                     self.config.dev = False  # Default behavior if no overrides exist
-                    self.logger.warning(
+                    self.logger.debug(
                         "No dev_overrides found. Curation will proceed without development overrides."
                     )
 
@@ -237,7 +242,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                         "Explicit --dev used for reinstall workflow but no dev_overrides found in spec. Defaulting to --prod."
                     )
         else:
-            self.logger.info("For other workflows or isolated steps, default --dev to False unless explicitly set.")
+            self.logger.info(
+                "For other workflows or isolated steps, default --dev to False unless explicitly set."
+            )
             if not explicit_dev_cli:
                 self.config.dev = False
                 self.config.prod = True
