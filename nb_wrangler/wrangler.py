@@ -245,7 +245,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                     )
         else:
             self.logger.info(
-                "For other workflows or isolated steps, default --dev to False unless explicitly set."
+                "For other workflows or isolated steps, default --dev to False unless explicitly specified."
             )
             if not explicit_dev_cli:
                 self.config.dev = False

@@ -10,8 +10,6 @@ from .constants import (
     NBW_ROOT,
     NBW_MAMBA_CMD,
     NBW_PIP_CMD,
-    MAMBA_CMD_FROM_ENV,
-    PIP_CMD_FROM_ENV,
     NOTEBOOK_TEST_MAX_SECS,
     NOTEBOOK_TEST_JOBS,
     NOTEBOOK_TEST_EXCLUDE,
@@ -158,11 +156,8 @@ class WranglerConfig:
         global args_config
         mamba_val = getattr(args, "mamba_cmd", None)
         pip_val = getattr(args, "pip_command", None)
-        favor_val = (
-            getattr(args, "favor_commands", None)
-            if hasattr(args, "favor_commands")
-            else args.favor
-        )
+        favor_val = getattr(args, "favor_commands", None)
+
         args_config = cls(
             spec_file=args.spec_uri,
             workflows=args.workflows,
@@ -260,9 +255,9 @@ class WranglerConfig:
         when both are defined.
 
         Value precedence per command (mamba/pip separately):
-          1. Spec system.commands.<command> - always wins when set
-          2. CLI switch (--xxx-cmd) - wins over env var when favor='cli' or not set
-          3. Env var NBW_XXX_CMD - wins over CLI only when favor='environment' AND set
+          1. CLI switch -- overrides spec and environment and defaults.
+          2. Spec system.commands.<command> -- wins IFF system.favor is missing or set to 'spec'
+          3. Env var NBW_XXX_CMD - wins IFF system.favor is set to 'environment'
         """
         if not hasattr(spec_manager, "commands"):
             return
@@ -276,36 +271,40 @@ class WranglerConfig:
             config=self,
             field_name="mamba_command",
             cli_key="mamba_command_override_by_cli",
-            env_flag=MAMBA_CMD_FROM_ENV,
+            env_or_default=NBW_MAMBA_CMD,
             spec_val=cmds.get("mamba"),
         )
         _resolve_cmd(
             config=self,
             field_name="pip_command",
             cli_key="pip_command_override_by_cli",
-            env_flag=PIP_CMD_FROM_ENV,
+            env_or_default=NBW_PIP_CMD,
             spec_val=cmds.get("pip"),
         )
 
 
-def _resolve_cmd(config, field_name, cli_key, env_flag, spec_val):
+def _resolve_cmd(config, field_name, cli_key, env_or_default, spec_val):
     """Resolve a single mamba/pip command per the precedence rules."""
-    # Spec value wins (highest precedence)
-    if spec_val is not None:
-        setattr(config, field_name, str(spec_val))
-        return
-
     cli_val = getattr(config, cli_key, None)
-    if cli_val is None:
-        return  # No override; defaults already set at import time
-
-    favor = config.favor_commands if hasattr(config, "favor_commands") else None
-    use_cli = True
-    if favor == "environment":
-        use_cli = not env_flag  # If env var was set, prefer it
-
-    if use_cli:
+    if cli_val is not None:
         setattr(config, field_name, cli_val)
+        return  # CLI overrides all
+
+    match config.favor_commands:
+        case "environment":
+            if env_or_default:
+                setattr(config, field_name, env_or_default)
+            else:
+                setattr(config, field_name, spec_val)
+        case "spec" | None:
+            if spec_val:
+                setattr(config, field_name, spec_val)
+            else:
+                setattr(config, field_name, env_or_default)
+        case _:
+            raise ValueError(
+                f"favor_commands has an invalid value: '{config.favor_commands}'"
+            )
 
 
 class WranglerConfigurable:

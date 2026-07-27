@@ -564,22 +564,22 @@ def parse_args():
         "--mamba-cmd",
         type=str,
         default=None,
-        help="Override the mamba/micromamba executable command.",
+        help="Override the mamba/micromamba executable command regardless of other explicit env var or spec settings.",
     )
     misc_group.add_argument(
         "--pip-cmd",
         type=str,
         default=None,
         dest="pip_command",
-        help="Override the pip executable command.",
+        help="Override the pip executable command regardless of other explicit env var or spec settings.",
     )
     misc_group.add_argument(
         "--favor-commands",
         type=str,
         default=None,
         dest="favor_commands",
-        choices=["environment", "cli"],
-        help="Discriminate between env vars and CLI switches when both are defined for MAMBA_CMD/PIP_CMD. 'cli' prefers CLI, 'environment' prefers environment variables.",
+        choices=["environment", "spec"],
+        help="Discriminate between env vars and spec sttings when both are defined for MAMBA_CMD/PIP_CMD. --mamba-cmd and --pip-cmd override all other settings.",
     )
     misc_group.add_argument(
         "--verbose",
