@@ -561,6 +561,27 @@ def parse_args():
 
     misc_group = parser.add_argument_group("Miscellaneous", "Global wrangler settings.")
     misc_group.add_argument(
+        "--mamba-cmd",
+        type=str,
+        default=None,
+        help="Override the mamba/micromamba executable command.",
+    )
+    misc_group.add_argument(
+        "--pip-cmd",
+        type=str,
+        default=None,
+        dest="pip_command",
+        help="Override the pip executable command.",
+    )
+    misc_group.add_argument(
+        "--favor-commands",
+        type=str,
+        default=None,
+        dest="favor_commands",
+        choices=["environment", "cli"],
+        help="Discriminate between env vars and CLI switches when both are defined for MAMBA_CMD/PIP_CMD. 'cli' prefers CLI, 'environment' prefers environment variables.",
+    )
+    misc_group.add_argument(
         "--verbose",
         action="store_true",
         help="Enable DEBUG log output",

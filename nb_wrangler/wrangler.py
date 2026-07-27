@@ -47,6 +47,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.data_wrangler = DataWrangler(
             self.spec_manager, self.pantry, self.repo_manager, self.env_manager
         )
+        # Resolve mamba/pip commands after spec is loaded so spec system.commands can override.
+        self.config.resolve_commands_from_spec(self.spec_manager)
         # Store compiled artifacts
         self.compiled_kernel_name: str | None = None
         # Create output directories

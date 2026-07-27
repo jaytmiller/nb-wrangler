@@ -264,6 +264,16 @@ class SpecManager(
         return base_nbw
 
     @property
+    def commands(self) -> dict[str, Any]:
+        """Return the system.commands section of the spec."""
+        return self._spec.get("system", {}).get("commands") or {}
+
+    @property
+    def favor(self) -> str | None:
+        """Return the 'favor' value from system.commands (environment or cli)."""
+        return self.commands.get("favor")
+
+    @property
     def primary_repo(self) -> str | None:
         """Get the primary repository for this spec, if defined."""
         base_primary = self.system.get("primary_repo")
@@ -588,6 +598,11 @@ class SpecManager(
             "refdata_dependencies": ["install_files", "other_variables"],
             "override_pip_versions": [],
             "system": {
+                "commands": {
+                    "mamba": None,
+                    "pip": None,
+                    "favor": None,
+                },
                 "spi": {
                     "repo": None,
                     "ref": None,
@@ -605,6 +620,11 @@ class SpecManager(
             "refdata_dependencies": ["install_files", "other_variables"],
             "override_pip_versions": [],
             "system": {
+                "commands": {
+                    "mamba": None,
+                    "pip": None,
+                    "favor": None,
+                },
                 "spi": {
                     "repo": None,
                     "ref": None,
@@ -670,7 +690,13 @@ class SpecManager(
             "package_versions",
             "data",
         ],
+        "commands": ["mamba", "pip", "favor"],
         "system": {
+            "commands": {
+                "mamba": None,
+                "pip": None,
+                "favor": None,
+            },
             "spec_version": None,
             "spec_sha256": None,
             "archive_format": None,
