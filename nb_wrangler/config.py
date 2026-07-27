@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Optional
 import argparse
 
+from .logger import get_configured_logger
 from .constants import (
     NBW_ROOT,
     NBW_MAMBA_CMD,
@@ -267,44 +268,43 @@ class WranglerConfig:
         if not isinstance(cmds, dict):
             return
 
-        _resolve_cmd(
-            config=self,
+        self._resolve_cmd(
             field_name="mamba_command",
             cli_key="mamba_command_override_by_cli",
             env_or_default=NBW_MAMBA_CMD,
             spec_val=cmds.get("mamba"),
         )
-        _resolve_cmd(
-            config=self,
+        self._resolve_cmd(
             field_name="pip_command",
             cli_key="pip_command_override_by_cli",
             env_or_default=NBW_PIP_CMD,
             spec_val=cmds.get("pip"),
         )
 
+    def _resolve_cmd(self, field_name, cli_key, env_or_default, spec_val):
+        """Resolve a single mamba/pip command per the precedence rules."""
+        cli_val = getattr(self, cli_key, None)
+        if cli_val is not None:
+            setattr(self, field_name, cli_val)
+            return  # CLI overrides all
 
-def _resolve_cmd(config, field_name, cli_key, env_or_default, spec_val):
-    """Resolve a single mamba/pip command per the precedence rules."""
-    cli_val = getattr(config, cli_key, None)
-    if cli_val is not None:
-        setattr(config, field_name, cli_val)
-        return  # CLI overrides all
-
-    match config.favor_commands:
-        case "environment":
-            if env_or_default:
-                setattr(config, field_name, env_or_default)
-            else:
-                setattr(config, field_name, spec_val)
-        case "spec" | None:
-            if spec_val:
-                setattr(config, field_name, spec_val)
-            else:
-                setattr(config, field_name, env_or_default)
-        case _:
-            raise ValueError(
-                f"favor_commands has an invalid value: '{config.favor_commands}'"
-            )
+        match self.favor_commands:
+            case "environment":
+                if env_or_default:
+                    setattr(self, field_name, env_or_default)
+                else:
+                    setattr(self, field_name, spec_val)
+            case "spec" | None:
+                if spec_val:
+                    setattr(self, field_name, spec_val)
+                else:
+                    setattr(self, field_name, env_or_default)
+            case _:
+                raise ValueError(
+                    f"favor_commands has an invalid value: '{self.favor_commands}'"
+                )
+        logger = get_configured_logger()
+        logger.debug(f"{field_name} is set to {getattr(self, field_name)}.")
 
 
 class WranglerConfigurable:
