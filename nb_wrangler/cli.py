@@ -182,12 +182,6 @@ def parse_args():
         default=NBW_OVERRIDES_MODE,  # either set env var or default to auto-mode=False
         help="Force production mode, disabling any development overrides.",
     )
-    dev_group.add_argument(
-        "--spec-disable-dev-overrides",
-        action="store_true",
-        help="Deactivate the 'dev_overrides' section from the spec file. Forces --prod mode.",
-    )
-
     env_group = parser.add_argument_group(
         "Environment",
         "Setup and management of spec'ed base environment managed by mamba.",
@@ -539,7 +533,6 @@ def parse_args():
         metavar="SPEC_REGEX",
         help="Select a stored spec by regex to use as the context for this wrangler run.",
     )
-
     spec_group.add_argument(
         "--spec-validate",
         action="store_true",
@@ -557,6 +550,11 @@ def parse_args():
         action="store_true",
         dest="spec_ignore_hash",
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
+    )
+    dev_group.add_argument(
+        "--spec-disable-dev-overrides",
+        action="store_true",
+        help="Deactivate the 'dev_overrides' section from the spec file. Forces --prod mode.",
     )
 
     misc_group = parser.add_argument_group("Miscellaneous", "Global wrangler settings.")
