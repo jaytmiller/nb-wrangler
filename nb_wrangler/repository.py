@@ -600,6 +600,16 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         self.logger.info(f"Updating repository {repo_name} to ref {desired_ref}.")
         return self.git_checkout(repo_name, target_sha)
 
+    def _current_sha_safe(self, repo_path: Path) -> Optional[str]:
+        """Return HEAD SHA without failing on detached-unborn trees."""
+        try:
+            result = self.run("git rev-parse HEAD", check=False, cwd=repo_path)
+            if result.returncode == 0:
+                return result.stdout.strip()
+        except Exception as e:
+            self.logger.debug(f"Unable to read current SHA at {repo_path}: {e}")
+        return None
+
     def prepare_repository(self, repo_url: str, desired_ref: str) -> bool:
         """Ensure a repository is cloned and at the correct, clean ref."""
         self.logger.info(f"Preparing repository {repo_url} at ref {desired_ref}")
@@ -608,25 +618,57 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         repo_path = self._repo_path(repo_url)
         if not repo_path.exists():
             return self._clone_if_missing(repo_url, desired_ref)
+
+        # Existing entry but no .git => corrupted/unborn; recover by re-cloning.
+        if not (repo_path / ".git").exists():
+            recovered = self._reclone_if_unborn(repo_url, repo_name, desired_ref)
+            if not recovered:
+                return False
+
+        # Idempotency check: resolve desired ref to SHA and compare to current HEAD.
+        target_sha = None
+        try:
+            target_sha = self.resolve_ref_to_sha(repo_name, desired_ref)
+        except Exception as e:
+            self.logger.debug(f"Ref resolution lookup failed for {repo_url}: {e}")
+
+        current_sha_safe = self._current_sha_safe(repo_path)
+
+        if (
+            self.is_clean(repo_path)
+            and target_sha is not None
+            and current_sha_safe == target_sha
+        ):
+            sha_info = f" ({target_sha[:7]})" if target_sha else ""
+            self.logger.info(
+                f"Repository {repo_name} already cloned and at desired "
+                f"ref {desired_ref}{sha_info}; reusing existing checkout."
+            )
+            return True
+
+        # Dirty repo handling per config flags BEFORE destructive ops.
+        if not self.is_clean(repo_path):
+            handled = self._handle_dirty_repository(repo_name)
+            if not handled:
+                return False
+
+        # After cleanup, retry idempotency check (may now be clean + correct).
+        current_sha_after = self._current_sha_safe(repo_path)
+        if target_sha is not None and current_sha_after == target_sha:
+            self.logger.info(
+                f"Repository {repo_name} reached desired ref {desired_ref} after "
+                "cleaning; reusing checkout."
+            )
+            return True
+
+        # STILL dirty OR ref mismatch => fall back to backup+re-clone.
         if (repo_path / ".git").exists():
             self.logger.debug(f"Using existing local clone at {repo_path}")
             return self._backup_then_reclone(repo_url, repo_name, desired_ref)
 
-        # Existing entry but without a .git marker (unborn HEAD or corrupt): try to recover.
-        recovered = self._reclone_if_unborn(repo_url, repo_name, desired_ref)
-        if not recovered:
-            return False  # An explicit failure short-circuited the re-clone path.
-
-        if self.config.use_dirty_repos:
-            return self.logger.info(
-                f"Using existing repository {repo_name} as-is due to --use-dirty-repos."
-            )
-
         cleaned = self._auto_clean_if_dirty(repo_name)
-        if not cleaned:  # Failed or aborted by the user.
+        if not cleaned:
             return False
-        # A True result with a still-dirty tree means the user chose "use as-is", which in
-        # the original short-circuited before ref/checkout resolution (lines 523-524).
         if not self.is_clean(self.repos_dir / repo_name):
             return True
 
