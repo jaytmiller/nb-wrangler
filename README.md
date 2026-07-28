@@ -193,6 +193,18 @@ To streamline development with custom branches without altering your core `spec.
 - Use the `--prod` flag to explicitly disable these overrides and force production settings.
 - Use `--spec-disable-dev-overrides` to deactivate the `dev_overrides` section when preparing for production.
 
+By default, nb-wrangler uses `--prod` mode (production, no dev overrides). Set the `NBW_OVERRIDES_MODE` environment variable to change the default behavior:
+
+```bash
+# Default to development mode for all workflows
+export NBW_OVERRIDES_MODE="--dev"
+
+# Explicitly set production mode (same as default)
+export NBW_OVERRIDES_MODE="--prod"
+```
+
+CLI flags (`--dev`, `--prod`) always override the environment variable. For example, even if `NBW_OVERRIDES_MODE=--dev` is set, running with `--prod` will disable dev overrides.
+
 For more details, see the [Spec Format documentation](docs/spec-format.md).
 
 ### SPI Injection
@@ -298,7 +310,6 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spi-branch NAME`: Create a new branch in the SPI repo with this name.
 - `--spi-commit-message MESSAGE...`: Commit message for the new branch.
 - `--spi-prune-docker`: Prune old Docker images before a build.
-- `--spi-inject-reqs`: Copy requirements fields from the wrangler spec into the SPI repo clone.
 - `--spi-build-image`: Trigger a Docker build in the SPI repo.
 - `--spi-push-branch`: Push the new branch to the remote SPI repo.
 - `--spi-pr`: Create a pull request for the new branch in the SPI repo.

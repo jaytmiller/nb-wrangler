@@ -179,13 +179,93 @@ This section contains specifications for the system environment. It is updated b
    - **archive_format**: The format used for archiving environments (e.g., `.tar`).
    - **primary_repo**: The name of the primary repository (must match a key in the `repositories` section). This repository is treated as the "owner" of the spec and is used to drive automated workflows.
    - **nb-wrangler**: A dictionary specifying the `nb-wrangler` repository to use for the curation process.
-     - **repo**: The URL of the git repository.
-     - **ref**: (Optional) The branch, tag, or commit hash to use.
+      - **repo**: The URL of the git repository.
+      - **ref**: (Optional) The branch, tag, or commit hash to use.
    - **spi**: A dictionary specifying the Science Platform Images (SPI) repository to use.
-     - **repo**: The URL of the git repository.
-     - **ref**: (Optional) The branch, tag, or commit hash to use. Defaults to the repository's default branch.
+      - **repo**: The URL of the git repository.
+      - **ref**: (Optional) The branch, tag, or commit hash to use. Defaults to the repository's default branch.
+   - **commands**: A dictionary for overriding Mamba and/or pip executables at the spec level. See [Custom Command Line Tools](#custom-command-line-tools) below. When using SPI injection (`--inject-spi`), these settings influence which `mamba`/`pip` commands are used during curation but are not injected into the SPI repo directly.
    - **spec_sha256**: An sha256 hash of the spec when it was last saved, for integrity checking. It is added by `nbw`.
    - **date_updated**: The timestamp when the spec was last updated.
+
+
+### Custom Command Line Tools
+
+The `system.commands` section in the wrangler spec allows overriding the Mamba and pip executables used during curation. This is useful when working with different mamba/pip implementations across environments or for testing.
+
+```yaml
+system:
+  commands:
+    mamba: /opt/micromamba/bin/micromamba   # Override the mamba executable
+    pip: conda run -n base pip               # Override the pip executable
+    favor: environment                         # See below
+```
+
+The `favor` field controls precedence when both this spec setting and the `NBW_MAMBA_CMD`/`NBW_PIP_CMD` environment variables are set:
+
+- **`favor: spec`** (default): The spec values take priority over environment variables.
+- **`favor: environment`**: The environment variables take priority over spec values.
+
+Note that CLI flags `--mamba-cmd` and `--pip-cmd` always override both the spec and environment variable settings, regardless of `favor`.
+
+For more details on precedence rules, see [Wrangling with Custom Tools](docs/notebooks_and_environment.md#wrangling-with-custom-tools).
+
+### **assets**
+
+The optional `assets` section allows you to bundle static files from git repositories into the Docker image for use during notebook runtime or testing. This is useful for including configuration files, reference data, or other resources that the notebooks need at runtime but cannot be distributed via pip or mamba.
+
+During SPI injection (`--inject-spi`) or standard curation workflows, `nb-wrangler` will:
+1. Clone the specified repository at the given ref
+2. Copy selected source paths to a local staging area
+3. Generate an `install-assets.sh` script that copies the staged assets into their final destination in the Docker image
+
+Two syntaxes are supported:
+
+**Flat syntax (single item):**
+```yaml
+assets:
+  - repo: https://github.com/example/config-repo.git
+    ref: main
+    source: config/production/settings.yaml
+    destination: /opt/app/config/settings.yaml
+```
+
+**Grouped syntax (shared repository, multiple sources):**
+```yaml
+assets:
+  - repo: https://github.com/example/shared-configs.git
+    ref: v1.2.3
+    items:
+      - source: config/prod/
+        destination: /opt/app/config/
+      - source: templates/
+        destination: /opt/app/templates/
+```
+
+The flat syntax copies one file. Grouped syntax clones the repo once and then copies each source item listed under `items` to its respective destination. When using grouped syntax with directory sources (paths ending in `/`), the folder is copied into the destination rather than appended to it. Individual files are placed *inside* the specified destination path.
+
+Each asset entry supports the following fields:
+- **repo**: The URL of a git repository containing the assets. Must match a repo already declared in `repositories`, or can be a new URL cloned just for this purpose.
+- **ref**: (Optional) The git branch, tag, or commit hash. Defaults to `main`.
+- **source**: The path within the repository to copy. Supports glob patterns and directories.
+- **destination**: The destination path inside the Docker image where assets will be installed.
+- **contents_only**: (Optional, directory sources only) When `true`, copies the *contents* of a source directory into the destination rather than the directory itself.
+
+Assets are processed during SPI injection or curation for use within the containerized notebook environment. For example:
+
+```yaml
+assets:
+  - repo: https://github.com/example/data-store.git
+    ref: latest
+    items:
+      - source: models/
+        destination: /opt/app/models/
+        contents_only: true
+      - source: config/model-config.yaml
+        destination: /opt/app/config/model.yaml
+```
+
+This example clones the repository, copies all files under `models/` into `/opt/app/models/`, and places a single configuration file at `/opt/app/config/model.yaml`.
 
 
    
