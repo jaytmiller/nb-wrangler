@@ -1,17 +1,106 @@
-# 0.9.0  02-04-2026  Development Overrides and Enhanced SPI Automation
+**v0.8.2** change notes:
 
-- **Development Overrides (`dev_overrides` and `--dev`, `--finalize-dev-overrides`):**
-  - Introduced an optional `dev_overrides` section in `spec.yaml` to allow temporary overrides of repository references for development purposes.
-  - `--dev` flag (implicitly activated for curation workflows) enables the application of `dev_overrides`.
-  - `--finalize-dev-overrides` flag deactivates the `dev_overrides` section, preparing the spec for production.
+**62 new commits**, **5,947 insertions**, **229 deletions** across 24 files.
 
-- **Enhanced SPI Automation (`--spi-branch`, `--spi-commit-message`, `--spi-build`, `--spi-prune`, `--spi-push`, `--spi-pr`):**
-  - Expanded the `--inject-spi` workflow with flags to automate Git operations (branching, committing, pushing, PR creation) and Docker image management (pruning and building).
-  - `--spi-prune` allows removal of old Docker images to force a complete rebuild.
-  - Improved workflow for injecting spec requirements into the `science-platform-images` repository.
+### Major New Features
 
-- **Spec Management:**
-  - Added `--spec-init FILENAME` to generate a basic default `spec.yaml` template file.
+1. **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)
+   - New `assets:` spec section to bundle static files from git repos into Docker images during SPI injection/curation
+   - Supports flat syntax (single item) and grouped syntax (`items:` sub-list sharing common repo/ref)
+   - `contents_only` flag for copying directory contents rather than the directory itself
+   - Source paths support trailing `/` notation for contents-only mode + glob patterns
+   - Generates `install-assets.sh` script in the environments directory
+
+2. **System Commands Override** (`system.commands.{mamba, pip, favor}`)
+   - New spec-level `system.commands: { mamba: ..., pip: ..., favor: ... }` section to override Mamba/pip executables
+   - `favor` controls precedence when both env vars AND spec define values: `spec` (default) or `environment`
+   - CLI flags (`--mamba-cmd`, `--pip-cmd`) always override both spec and env vars
+
+3. **NBW_OVERRIDES_MODE** Environment Variable
+   - Set to `--dev` or `--prod` to change default override behavior for all workflows (default is `--prod`)
+   - Replaces earlier reliance on implicit heuristic detection of dev/prod mode
+
+4. **Calver Tag Resolution** (repository checkout)
+   - Automatic resolution of abstract tags (branch prefixes like `2026.2`) by listing git tags, sorting descending, and picking highest matching prefix
+   - Falls back to partial SHA when full tag resolution fails
+   - Added `tests/test_tag_prefix_resolution.py`
+
+5. **YAML Type Normalization** (`nb_wrangler/yaml_typed_values.py`)
+   - New module that normalizes YAML values (dates, numbers, booleans) to strings via `yaml_typed_values.normalize_value()`
+   - Prevents type mismatches between YAML-typed and string comparison downstream
+
+6. **Default Image Registry Change**
+   - Default registry changed from generic to `spacetelescope/nb-wrangler-images`
+
+7. **Default Environment Variables Mode Changed**
+   - Default env-vars mode switched from `spec` to `pantry` (no longer creates refdata symlinks)
+
+8. **Bootstrap Script Fixes**
+   - Commented out micromamba self-update (was hanging functional tests)
+   - Added `set +x` to prevent debug output pollution
+   - Updated for NBW_MAMBA_DEFAULT vs NBW_MAMBA_CMD refactoring
+
+9. **Pantry Read-Only Safety** (`tests/test_readonly_pantry.py`)
+   - Pantry on-demand directory creation added to avoid crashes when users/post-start-hook tries to modify read-only pantries
+
+10. **`--quiet`/`-q` Flag**
+    - Suppresses all log output to stderr (stdout still visible for --spec-name, --docker-list etc.)
+
+11. **`--print-repo-tags` Enhancement**
+    - Resolves and outputs `resolved_ref` from the spec's `out.repositories:` section if available
+
+12. **Renamed**: `--finalize-dev-overrides` -> `--spec-disable-dev-overrides`
+
+### Tests Added (3 new files)
+- `tests/test_assets_injection.py` (681 lines) — 15 test cases covering flat/grouped syntax, globs, contents_only, empty items, overrides
+- `tests/test_tag_prefix_resolution.py` (183 lines) — calver tag resolution tests
+- `tests/test_print_repo_tags.py`, `tests/test_readonly_pantry.py`
+
+### Specs Added
+- `specs/roman/RomanNexus-2026.2.yaml` (new baseline 2026.2 Roman spec for tagging dev)
+- `specs/roman/astroquery-mast-test.yaml`
+- `specs/jwebbinar/jwebbinar-50.yaml`
+
+---
+
+**v0.8.1 Change Notes** (62 commits, ~5.9k lines added, ~1.4k lines deleted)
+
+**Core Framework**
+- Workflow resilience: `run_workflow()` now supports a `continue_on_failure` flag, allowing curation and data-reset workflows to complete remaining steps and report warnings instead of failing hard on individual step errors
+- Re-enabled `self._env_compact` in the data-reset curation workflow pipeline (was commented out)
+
+**Spec Handling & Data Manager**
+- Refdata spec parsing now validates allowed keys (`install_files`, `other_variables`) and raises clear errors for unknown keywords
+- `DataSection.data_path` handles None values gracefully (defaults to empty string)
+- Moved spec file `nbw-wrangler-spec.yaml` from repo root into `specs/roman/nbw-wrangler-spec.yaml`
+
+**URI Resolution (`utils.py`)**
+- Rewrote `uri_to_local_path()` with proper scheme detection using `urllib.parse.urlparse()` instead of string prefix checks
+- Improved `file://` URI and local path handling with FileNotFoundError for missing files
+- Better error messages for unsupported URI schemes
+
+**Compiler Changes**
+- `extra_pip_packages.txt` and `common_pip_packages.txt` now written to the output directory via `utils.writelines()` instead of the current working directory (uses `tempfile` internally)
+- Cleanup of pip packages files also respects `config.output_dir` path
+
+**CLI Flags**
+- Re-added `--env-compact` flag (was removed in a prior version)
+- `--reset-curation` and `--data-reset-curation` now issue warnings for each failed step, making cleanup of incomplete curations more resilient
+
+**Version & Dependencies**
+- Version bump to 0.8.1
+- Restored pandas version constraint to latest `3.x.y`
+- Deactivated dev overrides for jwebbinar spec
+
+**Specs**
+- Renamed jwebbinar spec from `jwebbinar.yaml` to `jwebbinar-49.yaml`
+- Created inline data and notebooks path in the updated jwebbinar-49 spec with embedded `refdata_dependencies`
+- Established baseline "classic" image build specs for Jwebbinar and TIKE (targeting migration to wrangler generic builds)
+- Removed `RomanNexus-2026.1.yml` spec from jwebbinar directory
+
+**GitHub Actions / CI**
+- Updated `.github/workflows/curate.yml` workflow
+- Minor updates to `reinstall.yml`, `trigger-curate.yml.disabled`, and `trigger-remote-curate.yml.draft`
 
 # 0.8.0 02-03-2026 Enhanced Testing and Environment Management
 
