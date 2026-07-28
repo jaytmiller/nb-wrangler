@@ -278,7 +278,7 @@ def writelines(lines: list[str], filepath: str | Path, mode="w+") -> str:
     Returns str(filepath)
     """
     filepath = Path(filepath)
-    filepath.parent.mkdir(exist_ok=True)
+    filepath.parent.mkdir(parents=True, exist_ok=True)
     with filepath.open(mode) as f:
         for line in lines:
             f.write(line.rstrip() + "\n")

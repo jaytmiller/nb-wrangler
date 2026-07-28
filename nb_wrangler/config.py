@@ -169,7 +169,9 @@ class WranglerConfig:
             overwrite_local_changes=args.overwrite_local_changes,
             stash_local_changes=args.stash_local_changes,
             use_dirty_repos=args.use_dirty_repos,
-            spec_disable_dev_overrides=args.spec_disable_dev_overrides,
+            spec_disable_dev_overrides=getattr(
+                args, "spec_disable_dev_overrides", False
+            ),
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,
