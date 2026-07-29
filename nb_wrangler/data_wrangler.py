@@ -100,9 +100,21 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
         )
 
         if spec_refdata := self.spec_manager.refdata_dependencies:
+            extra_envs = self.spec_manager.environment_vars or {}
+            if extra_envs:
+                merged_other = {
+                    **dict(spec_refdata.get("other_variables") or {}),
+                    **extra_envs,
+                }
+                entry_to_add = {
+                    "install_files": spec_refdata.get("install_files") or {},
+                    "other_variables": merged_other,
+                }
+            else:
+                entry_to_add = spec_refdata
             data_validator.add_spec(
                 str(self.repo_manager.repos_dir / "nbw-spec/refdata_dependencies.yaml"),
-                spec_refdata,
+                entry_to_add,
             )
 
         spec_exports = data_validator.get_spec_exports()

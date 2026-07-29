@@ -126,6 +126,18 @@ class SpecManager(
         return base_refdata
 
     @property
+    def environment_vars(self) -> dict[str, str] | None:
+        """Return environment_vars, applying dev_overrides if enabled."""
+        base = self._spec.get("environment_vars") or {}
+        if self.config.dev and "dev_overrides" in self._spec:
+            dev_env = (self._spec["dev_overrides"].get("environment_vars")) or {}
+            if dev_env:
+                merged = copy.deepcopy(base)
+                merged.update(dev_env)
+                return merged
+        return base
+
+    @property
     def system(self) -> dict[str, Any]:
         return self._spec["system"]
 
@@ -596,6 +608,7 @@ class SpecManager(
         "dev_overrides": {
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
+            "environment_vars": None,
             "override_pip_versions": [],
             "system": {
                 "commands": {
@@ -618,6 +631,7 @@ class SpecManager(
         "deactivated_dev_overrides": {
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
+            "environment_vars": None,
             "override_pip_versions": [],
             "system": {
                 "commands": {
@@ -665,6 +679,7 @@ class SpecManager(
             }
         ],
         "refdata_dependencies": ["install_files", "other_variables"],
+        "environment_vars": None,
         "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
         "common_mamba_packages": [],

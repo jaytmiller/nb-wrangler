@@ -154,6 +154,22 @@ The format follows the same structure as the repository-level `refdata_dependenc
 
 See [Reference Data Dependencies](refdata_dependencies.md) for more details on the format.
 
+### **environment_vars**
+
+Optional top-level dict of environment variable definitions authored directly in the wrangler spec, decoupled from data installation concerns. These take the same form as entries under `refdata_dependencies` -> `other_variables` — a mapping of `VAR_NAME: value`. Values may include `${VAR}` style resolution references. Variables defined here are merged into the nbw-spec data entry during `--data-curate` and flow through the normal `spec_exports` / `pantry_exports` pipeline, participate in cross-source env-conflict checking, and can be overridden via `dev_overrides.environment_vars`.
+
+Example:
+
+```yaml
+environment_vars:
+  MY_VAR: "hello"
+  OTHER_PATH: "${HOME}/data"
+dev_overrides:
+  environment_vars:
+    MY_VAR: "overridden"
+    NEW_VAR: "new_value"
+```
+
 ### **extra_mamba_packages**
 A list of additional mamba packages required specifically by your curated kernel environment.
 
