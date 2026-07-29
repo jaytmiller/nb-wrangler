@@ -69,8 +69,10 @@ VALID_ARCHIVE_FORMATS = [
 DEFAULT_DATA_ENV_VARS_MODE = "pantry"
 
 # Registry defaults
-DEFAULT_REGISTRY = "ghcr.io"
-DEFAULT_PROJECT = "spacetelescope/nb-wrangler-images"
+DEFAULT_REGISTRY = os.environ.get("NBW_IMAGE_REGISTRY", "ghcr.io")
+DEFAULT_PROJECT = os.environ.get(
+    "NBW_IMAGE_PROJECT", "spacetelescope/nb-wrangler-images"
+)
 
 # Notebook testing constants
 NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 4 * 60 * 60))  # 60 min

@@ -172,7 +172,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         with self.env_manager.test_directory_setup(notebook):
             # Run the notebook
             if notebook.endswith(".ipynb"):
-                cmd = f"papermill --no-progress-bar {os.path.basename(notebook)} -k {environment} test.ipynb"
+                cmd = f"papermill --no-progress-bar {notebook} -k {environment} test.ipynb"
             elif notebook.endswith(".py"):
                 cmd = f"python {os.path.basename(notebook)}"
             else:
