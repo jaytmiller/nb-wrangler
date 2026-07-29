@@ -44,6 +44,7 @@ def _make_spec_manager_from_dict(tmp_path, spec_dict):
 class TestFlattenAssetEntriesIndependence:
     def _get_flat_assets(self):
         from nb_wrangler.spec_manager import SpecManager
+
         return SpecManager.flatten_asset_entries
 
     def test_mutation_of_result_does_not_affect_input(self):
@@ -123,6 +124,101 @@ channels:
 
         assert sm.load_spec(spec_file) is True
         from nb_wrangler.config import WranglerConfig as WC
+
         set_args_config(WC(workflows=[], repos_dir=tmp_path / "repos"))
         assert sm.inline_mamba_spec is not None
         assert "name" in sm.inline_mamba_spec
+
+
+class TestEnvironmentVarsField:
+    def test_environment_vars_in_allowed_keywords(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["environment_vars"] = {"FOO": "bar", "BAZ": "${HOME}/x"}
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        assert sm.environment_vars == {"FOO": "bar", "BAZ": "${HOME}/x"}
+
+    def test_environment_vars_default_empty(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        assert sm.environment_vars == {}
+
+    def test_environment_vars_property_no_env_field(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        result = sm.environment_vars
+        assert isinstance(result, dict)
+
+    def test_environment_vars_dev_override_merges(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=True)
+        )
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["environment_vars"] = {"FOO": "base_value", "KEEP": "unchanged"}
+        spec_dict["dev_overrides"] = {
+            "environment_vars": {"FOO": "dev_value", "NEW": "new_var"}
+        }
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        env_vars = sm.environment_vars
+        assert env_vars["FOO"] == "dev_value"
+        assert env_vars["KEEP"] == "unchanged"
+        assert env_vars["NEW"] == "new_var"
+
+    def test_environment_vars_no_dev_when_dev_disabled(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=False)
+        )
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["environment_vars"] = {"FOO": "base_value"}
+        spec_dict["dev_overrides"] = {"environment_vars": {"FOO": "dev_value"}}
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        env_vars = sm.environment_vars
+        assert env_vars["FOO"] == "base_value"

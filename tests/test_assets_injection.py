@@ -399,14 +399,18 @@ def test_flatten_asset_entries_preserves_flat_syntax():
         # Each key from the original should be present and equal (shallow copy semantics).
         for k, v in orig.items():
             if isinstance(v, list):
-                assert expanded.get(k) is not None  # verify list-valued key exists on same entry
+                assert (
+                    expanded.get(k) is not None
+                )  # verify list-valued key exists on same entry
             else:
                 assert expanded.get(k) == v
 
     # Verify they are independent copies (mutation safety).
     original[0]["source"] = "/mutated/"
     assert original[0] != result[0], "Flattened entries should be shallow-copied"
-    assert result[1]["source"] != "/mutated/", "All flattened entries should be shallow-copied"
+    assert (
+        result[1]["source"] != "/mutated/"
+    ), "All flattened entries should be shallow-copied"
 
 
 def test_flatten_asset_entries_inheritance_override(tmp_path: Path):

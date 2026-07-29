@@ -131,6 +131,7 @@ class TestElapsedTime:
         _, formatted = elapsed_time(start)
         # Should contain colons: HH:MM:SS.mmm pattern
         import re
+
         matches = re.search(r"\d{2}:\d{2}:\d{2}", formatted)
         assert matches is not None
 
@@ -177,9 +178,10 @@ class TestRobustGet:
                 mock_run.return_value = mock_process
                 expected_path = tmp_path / "downloaded_file"
                 with patch("os.path.exists", return_value=False):
-                    with patch.object(Path, 'home', return_value=tmp_path):
+                    with patch.object(Path, "home", return_value=tmp_path):
                         import nb_wrangler.utils as utils_mod
-                        original_wget_dir = getattr(utils_mod, '_cache_dir', None)
+
+                        original_wget_dir = getattr(utils_mod, "_cache_dir", None)
                         utils_mod._CACHE_DIR = str(tmp_path)
                         try:
                             result = robust_get("http://example.com/file.txt")
@@ -188,7 +190,9 @@ class TestRobustGet:
                             # Check that wget was invoked (positional args are tuples)
                             for call in mock_run.call_args_list:
                                 args_tuple = call[0] if call[0] else ()
-                                assert any("wget" in str(a) for a in args_tuple), f"Expected wget call but got {args_tuple}"
+                                assert any(
+                                    "wget" in str(a) for a in args_tuple
+                                ), f"Expected wget call but got {args_tuple}"
                         finally:
                             if original_wget_dir is not None:
                                 utils_mod._CACHE_DIR = original_wget_dir
@@ -218,7 +222,9 @@ class TestUriToLocalPath:
 
 class TestHeadInfo:
     def test_tdict_returns_dict(self):
-        info = HeadInfo(size=100, etag="abc", last_modified="Mon, 01 Jan 2026 00:00:00 GMT")
+        info = HeadInfo(
+            size=100, etag="abc", last_modified="Mon, 01 Jan 2026 00:00:00 GMT"
+        )
         d = info.todict()
         assert isinstance(d, dict)
         assert d["size"] == 100
@@ -304,6 +310,7 @@ class TestClearDirectory:
 
     def test_raises_on_nonexistent_dir(self):
         import tempfile
+
         nonexistent = Path(tempfile.mkdtemp()) / "does_not_exist"
         with pytest.raises(OSError, match="does not exist"):
             clear_directory(str(nonexistent))

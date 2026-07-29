@@ -20,7 +20,13 @@ class TestColorConstants:
         assert "\033[31m" in ANSI_COLORS.values()
 
     def test_level_colors_all_levels_present(self):
-        for level in [logging.DEBUG, logging.INFO, logging.WARNING, logging.ERROR, logging.CRITICAL]:
+        for level in [
+            logging.DEBUG,
+            logging.INFO,
+            logging.WARNING,
+            logging.ERROR,
+            logging.CRITICAL,
+        ]:
             assert level in LEVEL_COLORS
 
 
@@ -45,7 +51,7 @@ class TestColorAndTimeFormatter:
             assert fmt.use_color is True
 
     def test_use_color_off_forces_false(self):
-        with patch.object(sys.stderr, 'isatty', return_value=True):
+        with patch.object(sys.stderr, "isatty", return_value=True):
             fmt = ColorAndTimeFormatter(color="off")
             assert fmt.use_color is False
 
@@ -78,6 +84,7 @@ class TestWranglerLogger:
 
     def test_elapsed_time_returns_string(self):
         import datetime
+
         logger = WranglerLogger(quiet=True, debug_mode=False)
         elapsed = str(logger.elapsed_time)
         # Should contain colon-based time format
@@ -86,13 +93,17 @@ class TestWranglerLogger:
 
 class TestWranglerLoggerFromConfig:
     def test_from_config_creates_logger(self):
-        mock_config = type("MockConfig", (), {
-            "verbose": False,
-            "quiet": True,
-            "debug": False,
-            "log_times": "elapsed",
-            "color": "auto",
-        })()
+        mock_config = type(
+            "MockConfig",
+            (),
+            {
+                "verbose": False,
+                "quiet": True,
+                "debug": False,
+                "log_times": "elapsed",
+                "color": "auto",
+            },
+        )()
         log = WranglerLogger.from_config(mock_config)
         assert isinstance(log, WranglerLogger)
         assert log.quiet is True

@@ -19,12 +19,14 @@ def _make_manager_with_mocks(tmp_path):
 class TestResolveImage:
     def test_empty_string(self):
         from nb_wrangler.registry import RegistryManager
+
         set_args_config(WranglerConfig(workflows=[]))
         rm = RegistryManager()
         assert rm.resolve_image("") == ""
 
     def test_full_uri_passthrough_http(self):
         from nb_wrangler.registry import RegistryManager
+
         set_args_config(WranglerConfig(workflows=[]))
         rm = RegistryManager()
         result = rm.resolve_image("http://localhost:5000/my/image:tag")
@@ -32,6 +34,7 @@ class TestResolveImage:
 
     def test_full_uri_passthrough_https(self):
         from nb_wrangler.registry import RegistryManager
+
         set_args_config(WranglerConfig(workflows=[]))
         rm = RegistryManager()
         result = rm.resolve_image("https://docker.io/myimg:v1")
@@ -51,6 +54,7 @@ class TestResolveImage:
 
     def test_with_colon_project_tag_split(self):
         from nb_wrangler.registry import RegistryManager
+
         set_args_config(WranglerConfig(workflows=[]))
         rm = RegistryManager()
         result = rm.resolve_image("myproject:latest")
@@ -60,6 +64,7 @@ class TestResolveImage:
 class TestListSpecs:
     def test_empty_shortcut(self):
         from nb_wrangler.registry import RegistryManager
+
         set_args_config(WranglerConfig(workflows=[]))
         rm = RegistryManager()
         assert rm.list_specs("") == []

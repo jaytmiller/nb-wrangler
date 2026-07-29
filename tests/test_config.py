@@ -12,7 +12,8 @@ class TestGetArgsConfigBeforeSet:
     def test_raises_assertion_before_set(self):
         # Save the global config and reset it to None for this test
         from nb_wrangler import config as config_mod
-        saved = getattr(config_mod, 'args_config', None)
+
+        saved = getattr(config_mod, "args_config", None)
         try:
             config_mod.args_config = None
             with pytest.raises(AssertionError, match="Premature fetch"):

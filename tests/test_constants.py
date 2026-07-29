@@ -87,6 +87,7 @@ class TestStructuralInvariants:
         assert isinstance(NOTEBOOK_TEST_JOBS, int)
         assert isinstance(NOTEBOOK_TEST_EXCLUDE, str)
 
+
 class TestPackageLists:
     def test_target_packages_non_empty(self):
         assert len(TARGET_PACKAGES) > 0
@@ -96,8 +97,10 @@ class TestPackageLists:
         for pkg in TARGET_PACKAGES:
             assert pkg in CURATOR_PACKAGES
 
+
 class TestPathConstants:
     """Tests that are actually testable at import time."""
+
     def test_repos_dir_is_string(self):
         assert isinstance(REPOS_DIR, str)
 
@@ -125,6 +128,7 @@ class TestOtherConstants:
     def test_default_color_mode_is_auto(self):
         assert DEFAULT_COLOR_MODE == "auto"
 
+
 class TestCleanupPatterns:
     def test_default_cleanup_patterns_non_empty(self):
         assert len(DEFAULT_CLEANUP_PATTERNS) > 0
@@ -132,8 +136,10 @@ class TestCleanupPatterns:
     def test_pattern_contains_pycache(self):
         assert "__pycache__" in DEFAULT_CLEANUP_PATTERNS
 
+
 class TestTypingInvariants:
     """Verify that mutable defaults are lists and not ints/strings."""
+
     def test_collections_are_lists(self):
         assert isinstance(TARGET_PACKAGES, list)
         assert isinstance(CURATOR_PACKAGES, list)
