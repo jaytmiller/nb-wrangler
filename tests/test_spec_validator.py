@@ -132,6 +132,7 @@ class TestEnvironmentSpecValidation:
         assert validator.validate() is False
 
     def test_multiple_methods_defined_error(self, tmp_path):
+        """Test that having both inline_mamba_spec and environment_spec triggers a validation error."""
         spec = {
             "image_spec_header": {"python_version": "3.12"},
             "repositories": {},
@@ -151,7 +152,7 @@ class TestEnvironmentSpecValidation:
         mocker._spec = spec
         mocker.header = spec["image_spec_header"]
         mocker.inline_mamba_spec = MockInline()
-        mocker.environment_spec = None
+        mocker.environment_spec = {"channels": []}  # also defined
         mocker.repositories = {}
         mocker.notebook_selections = {}
         mocker.system = spec["system"]
@@ -160,7 +161,8 @@ class TestEnvironmentSpecValidation:
         mocker.config.dev = False
 
         v = SpecValidator(mocker)
-        assert v.validate() is False
+        result = v.validate()
+        assert result is False
 
 
 class TestSimpleDefinitionValidation:
@@ -189,6 +191,10 @@ class TestExternalSpecValidation:
         mocker.inline_mamba_spec = None
         mocker.environment_spec = {}
         mocker.repositories = spec["repositories"]
+
+        v = SpecValidator(mocker)
+        result = v.validate()
+        assert result is False
 
     def test_uri_cannot_mix_with_repo(self, tmp_path):
         from nb_wrangler.spec_validator import SpecValidator

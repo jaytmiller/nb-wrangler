@@ -55,8 +55,10 @@ class TestDefaults:
 
 
 class TestFromArgs:
-    def test_from_args_sets_spec_file(self):
-        args = argparse.Namespace(
+    """Test that common argparse fields map correctly to config attributes."""
+
+    def _make_args(self):
+        return argparse.Namespace(
             spec_uri="/test/spec.yaml",
             workflows=["workflow1"],
             repos_dir="/tmp/repos",
@@ -139,9 +141,28 @@ class TestFromArgs:
             reset_log=False,
             color="auto",
         )
-        from nb_wrangler import config as config_mod
+
+    def test_spec_file_is_stored(self):
+        args = self._make_args()
         result = WranglerConfig.from_args(args)
         assert result.spec_file == "/test/spec.yaml"
         assert result.workflows == ["workflow1"]
         assert result.repos_dir == "/tmp/repos"
+        assert result.prod is True
+
+    def test_jobs_and_timeout_map(self):
+        args = self._make_args()
+        result = WranglerConfig.from_args(args)
+        assert result.jobs == 4
+        assert result.timeout == 14400
+
+    def test_data_env_vars_mode_maps(self):
+        args = self._make_args()
+        result = WranglerConfig.from_args(args)
+        assert result.data_env_vars_mode == "pantry"
+
+    def test_dev_flag_is_set(self):
+        args = self._make_args()
+        args.dev = True
+        result = WranglerConfig.from_args(args)
         assert result.prod is True

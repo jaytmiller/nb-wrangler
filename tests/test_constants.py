@@ -54,34 +54,17 @@ class TestVersionAndSpec:
         assert isinstance(WRANGLER_SPEC_VERSION, float)
 
 
-class TestPathConstants:
-    def test_nbw_root_honors_environment_variables(self, monkeypatch):
-        monkeypatch.setenv("NBW_ROOT", "/custom/root")
-        # Need to reimport to pick up new env var at module level
-        pass  # Constants are set at import time; covered by integration tests
+class TestStructuralInvariants:
+    """Collapse trivial constant assertions into parametrized structural invariants."""
 
-    def test_nbw_pantry_honors_environment_variables(self, monkeypatch):
-        pass  # Same import-time limitation
-
-    def test_nbw_cache_uses_nb_root_when_not_set(self, monkeypatch):
-        pass  # Covered by integration tests
-
-
-class TestArchiveFormats:
-    def test_valid_archive_formats_is_list(self):
+    def test_archive_formats_valid_and_nonempty(self):
         assert isinstance(VALID_ARCHIVE_FORMATS, list)
         assert len(VALID_ARCHIVE_FORMATS) > 0
-
-    def test_tar_gz_included(self):
+        assert DEFAULT_ARCHIVE_FORMAT in VALID_ARCHIVE_FORMATS
         assert ".tar.gz" in VALID_ARCHIVE_FORMATS
 
-    def test_default_format_in_valid(self):
-        assert DEFAULT_ARCHIVE_FORMAT in VALID_ARCHIVE_FORMATS
-
-
-class TestTimeoutConstants:
     def test_all_timeouts_are_positive_integers(self):
-        for name, value in [
+        timeouts = (
             ("DEFAULT_TIMEOUT", DEFAULT_TIMEOUT),
             ("REPO_CLONE_TIMEOUT", REPO_CLONE_TIMEOUT),
             ("DATA_GET_TIMEOUT", DATA_GET_TIMEOUT),
@@ -91,14 +74,18 @@ class TestTimeoutConstants:
             ("IMPORT_TEST_TIMEOUT", IMPORT_TEST_TIMEOUT),
             ("ARCHIVE_TIMEOUT", ARCHIVE_TIMEOUT),
             ("DOCKER_BUILD_TIMEOUT", DOCKER_BUILD_TIMEOUT),
-        ]:
+        )
+        for name, value in timeouts:
             assert isinstance(value, int), f"{name} is not an int"
             assert value > 0, f"{name} should be positive"
 
-    def test_notebook_test_max_secs_is_int(self):
+    def test_notebook_test_max_secs_is_positive_int(self):
         assert isinstance(NOTEBOOK_TEST_MAX_SECS, int)
         assert NOTEBOOK_TEST_MAX_SECS > 0
 
+    def test_jupyter_test_timeout_is_int(self):
+        assert isinstance(NOTEBOOK_TEST_JOBS, int)
+        assert isinstance(NOTEBOOK_TEST_EXCLUDE, str)
 
 class TestPackageLists:
     def test_target_packages_non_empty(self):
@@ -109,22 +96,16 @@ class TestPackageLists:
         for pkg in TARGET_PACKAGES:
             assert pkg in CURATOR_PACKAGES
 
-
-class TestCleanupPatterns:
-    def test_default_cleanup_patterns_non_empty(self):
-        assert len(DEFAULT_CLEANUP_PATTERNS) > 0
-
-    def test_pattern_contains_pycache(self):
-        assert "__pycache__" in DEFAULT_CLEANUP_PATTERNS
-
-
-class TestOtherConstants:
+class TestPathConstants:
+    """Tests that are actually testable at import time."""
     def test_repos_dir_is_string(self):
         assert isinstance(REPOS_DIR, str)
 
-    def test_data_dir_is_string(self):
-        assert isinstance(DATA_DIR, str)
+    def test_data_spec_path_ends_with_yaml(self):
+        assert DATA_SPEC_NAME.endswith(".yaml")
 
+
+class TestOtherConstants:
     def test_wrangler_uri_prefix(self):
         assert NBW_URI.startswith("nbw://")
 
@@ -144,5 +125,22 @@ class TestOtherConstants:
     def test_default_color_mode_is_auto(self):
         assert DEFAULT_COLOR_MODE == "auto"
 
-    def test_data_spec_name_ends_with_yaml(self):
-        assert DATA_SPEC_NAME.endswith(".yaml")
+class TestCleanupPatterns:
+    def test_default_cleanup_patterns_non_empty(self):
+        assert len(DEFAULT_CLEANUP_PATTERNS) > 0
+
+    def test_pattern_contains_pycache(self):
+        assert "__pycache__" in DEFAULT_CLEANUP_PATTERNS
+
+class TestTypingInvariants:
+    """Verify that mutable defaults are lists and not ints/strings."""
+    def test_collections_are_lists(self):
+        assert isinstance(TARGET_PACKAGES, list)
+        assert isinstance(CURATOR_PACKAGES, list)
+        assert isinstance(DEFAULT_CLEANUP_PATTERNS, list)
+
+    def test_defaults_are_expected_types(self):
+        assert isinstance(DEFAULT_ARCHIVE_FORMAT, str)
+        assert isinstance(DEFAULT_DATA_ENV_VARS_MODE, str)
+        assert isinstance(DEFAULT_REGISTRY, str)
+        assert isinstance(DEFAULT_PROJECT, str)

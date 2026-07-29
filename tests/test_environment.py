@@ -85,10 +85,11 @@ class TestGetExistingEnvs:
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
 
-        mock_result = type("MockResult", (), {"stdout": json.dumps({"envs": ["/path/to/env1", "/path/to/env2"]})})()
+        mock_result = type("MockResult", (), {"stdout": json.dumps({"envs": ["/path/to/env1", "/path/to/env2"]}), "returncode": 0})()
         em.wrangler_run = MagicMock(return_value=mock_result)
         result = em.get_existing_envs()
         assert len(result) == 2
+        assert "/path/to/env1" in result
 
     def test_returns_empty_on_exception(self, tmp_path):
         from nb_wrangler.environment import EnvironmentManager
@@ -171,6 +172,7 @@ class TestConditionCmd:
         result = em._condition_cmd("ls -la /path")
         assert isinstance(result, list)
         assert "ls" in result
+        assert "-la" in result
 
     def test_list_passed_through(self):
         from nb_wrangler.environment import EnvironmentManager
@@ -178,3 +180,4 @@ class TestConditionCmd:
         em = EnvironmentManager()
         result = em._condition_cmd(["ls", "-la"])
         assert isinstance(result, list)
+        assert len(result) == 2

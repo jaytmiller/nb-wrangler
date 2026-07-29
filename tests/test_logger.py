@@ -69,7 +69,7 @@ class TestWranglerLogger:
         result = logger.exception(e, "prefix")
         assert result is False
         assert len(logger.exceptions) >= 1
-        assert len(logger.errors) >= 0  # exception calls error internally
+        assert len(logger.errors) >= 1  # exception logs to errors internally
 
     def test_info_returns_true(self):
         logger = WranglerLogger(quiet=True)

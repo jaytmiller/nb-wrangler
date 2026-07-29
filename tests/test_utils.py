@@ -169,16 +169,29 @@ class TestRobustGet:
             with pytest.raises(RuntimeError, match="wget is not installed"):
                 robust_get("http://example.com/file.txt")
 
-    def test_returns_path_when_wget_available(self):
+    def test_returns_path_when_wget_available(self, tmp_path):
         with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
             with patch("nb_wrangler.utils.subprocess.run") as mock_run:
-                mock_run.returncode = 0
                 mock_process = MagicMock()
                 mock_process.returncode = 0
                 mock_run.return_value = mock_process
+                expected_path = tmp_path / "downloaded_file"
                 with patch("os.path.exists", return_value=False):
-                    result = robust_get("http://example.com/file.txt")
-                    assert isinstance(result, Path)
+                    with patch.object(Path, 'home', return_value=tmp_path):
+                        import nb_wrangler.utils as utils_mod
+                        original_wget_dir = getattr(utils_mod, '_cache_dir', None)
+                        utils_mod._CACHE_DIR = str(tmp_path)
+                        try:
+                            result = robust_get("http://example.com/file.txt")
+                            assert isinstance(result, Path)
+                            assert mock_run.called
+                            # Check that wget was invoked (positional args are tuples)
+                            for call in mock_run.call_args_list:
+                                args_tuple = call[0] if call[0] else ()
+                                assert any("wget" in str(a) for a in args_tuple), f"Expected wget call but got {args_tuple}"
+                        finally:
+                            if original_wget_dir is not None:
+                                utils_mod._CACHE_DIR = original_wget_dir
 
 
 class TestUriToLocalPath:
