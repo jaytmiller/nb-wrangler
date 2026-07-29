@@ -1,4 +1,4 @@
-**v0.8.2** change notes:
+**v0.9.0** change notes:
 
 **62 new commits**, **5,947 insertions**, **229 deletions** across 24 files.
 
@@ -50,6 +50,9 @@
     - Resolves and outputs `resolved_ref` from the spec's `out.repositories:` section if available
 
 12. **Renamed**: `--finalize-dev-overrides` -> `--spec-disable-dev-overrides`
+
+13. **enviroment_vars**: Added *environment_vars* section to spec to enable defining variables similar to those
+    in refdata_dependencies.yaml but specified directly in the wrangler spec.
 
 ### Tests Added (3 new files)
 - `tests/test_assets_injection.py` (681 lines) — 15 test cases covering flat/grouped syntax, globs, contents_only, empty items, overrides
