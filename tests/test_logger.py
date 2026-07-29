@@ -2,7 +2,7 @@
 
 import logging
 import sys
-from unittest.mock import patch, PropertyMock
+from unittest.mock import patch
 
 import pytest
 
@@ -83,9 +83,8 @@ class TestWranglerLogger:
         assert result is True
 
     def test_elapsed_time_returns_string(self):
-        import datetime
-
         logger = WranglerLogger(quiet=True, debug_mode=False)
+        elapsed = str(logger.elapsed_time)
         elapsed = str(logger.elapsed_time)
         # Should contain colon-based time format
         assert ":" in elapsed

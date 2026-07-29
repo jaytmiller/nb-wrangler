@@ -1,15 +1,13 @@
 """Tests for nb_wrangler/utils.py."""
 
 import datetime
-import hashlib
-import os
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch  # noqa: F401,F811
 
 import pytest
 from ruamel.yaml import YAML
 
-from nb_wrangler.utils import (
+from nb_wrangler.utils import (  # noqa: F401
     get_yaml,
     yaml_dumps,
     yaml_block,
@@ -176,7 +174,6 @@ class TestRobustGet:
                 mock_process = MagicMock()
                 mock_process.returncode = 0
                 mock_run.return_value = mock_process
-                expected_path = tmp_path / "downloaded_file"
                 with patch("os.path.exists", return_value=False):
                     with patch.object(Path, "home", return_value=tmp_path):
                         import nb_wrangler.utils as utils_mod

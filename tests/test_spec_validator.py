@@ -1,6 +1,5 @@
 """Tests for nb_wrangler/spec_validator.py."""
 
-from pathlib import Path
 from unittest.mock import MagicMock
 
 from nb_wrangler.config import WranglerConfig, set_args_config

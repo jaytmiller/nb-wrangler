@@ -1,7 +1,6 @@
 """Extended tests for nb_wrangler/spec_manager.py on load, assets, and normalization."""
 
 import yaml
-from pathlib import Path
 
 from nb_wrangler.config import WranglerConfig, set_args_config
 

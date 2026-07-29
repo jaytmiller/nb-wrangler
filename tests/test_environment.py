@@ -2,13 +2,16 @@
 
 import json
 from subprocess import CompletedProcess
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-from nb_wrangler.config import WranglerConfig, set_args_config
+# noqa: F401 - reused as `patch` below for inline test context
+from unittest.mock import patch  # noqa: F401,F811,F821
 
 
 def _make_manager_with_mocks(tmp_path):
-    from nb_wrangler.environment import EnvironmentManager
+    from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+    from nb_wrangler.config import WranglerConfig, set_args_config
 
     set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
     em = EnvironmentManager()
@@ -18,21 +21,27 @@ def _make_manager_with_mocks(tmp_path):
 
 class TestIsBaseEnvAlias:
     def test_base_is_alias(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
         assert em.is_base_env_alias("base") is True
 
     def test_python3_is_alias(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
         assert em.is_base_env_alias("python3") is True
 
     def test_custom_env_not_alias(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
@@ -41,21 +50,26 @@ class TestIsBaseEnvAlias:
 
 class TestEnvironmentExists:
     def test_base_env_exists(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
         assert em.environment_exists("base") is True
 
     def test_name_starts_with_mm_ends_with_env(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
 
         mm_prefix = str(em.nbw_mm_dir)
+        env_path = tmp_path / "test_env"
         em.wrangler_run = MagicMock(
-            return_value=MagicMock(stdout='{"envs": ["/tmp/test_env"]}\n')
+            return_value=MagicMock(stdout=json.dumps({"envs": [str(env_path)]}) + "\n")
         )
 
         em.get_existing_envs = MagicMock(return_value=[f"{mm_prefix}/envs/my_test"])
@@ -64,7 +78,9 @@ class TestEnvironmentExists:
 
 class TestHandleResult:
     def test_success_returns_true(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -74,7 +90,9 @@ class TestHandleResult:
         assert result is True
 
     def test_failure_returns_false(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -86,7 +104,9 @@ class TestHandleResult:
 
 class TestGetExistingEnvs:
     def test_parses_json_environments(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -105,7 +125,9 @@ class TestGetExistingEnvs:
         assert "/path/to/env1" in result
 
     def test_returns_empty_on_exception(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -114,7 +136,9 @@ class TestGetExistingEnvs:
         assert result == []
 
     def test_returns_empty_on_none_result(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -125,7 +149,9 @@ class TestGetExistingEnvs:
 
 class TestGetPackageFile:
     def test_strips_comments(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -135,8 +161,10 @@ class TestGetPackageFile:
         assert count == 2
 
     def test_writes_file(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
         from pathlib import Path
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -149,8 +177,10 @@ class TestGetPackageFile:
 
 class TestRegisterEnvironment:
     def test_command_contains_kernel_install(self, tmp_path):
-        from nb_wrangler.environment import EnvironmentManager
-        from subprocess import CompletedProcess
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+        from subprocess import CompletedProcess  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
@@ -182,7 +212,9 @@ class TestRegisterEnvironment:
 
 class TestConditionCmd:
     def test_string_splitted(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
@@ -192,7 +224,9 @@ class TestConditionCmd:
         assert "-la" in result
 
     def test_list_passed_through(self):
-        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()

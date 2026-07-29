@@ -58,11 +58,11 @@ class TestDefaults:
 class TestFromArgs:
     """Test that common argparse fields map correctly to config attributes."""
 
-    def _make_args(self):
+    def _make_args(self, repo_dir):
         return argparse.Namespace(
             spec_uri="/test/spec.yaml",
             workflows=["workflow1"],
-            repos_dir="/tmp/repos",
+            repos_dir=repo_dir,
             clone_repos=False,
             delete_repos=False,
             repos_clean=None,
@@ -143,27 +143,27 @@ class TestFromArgs:
             color="auto",
         )
 
-    def test_spec_file_is_stored(self):
-        args = self._make_args()
+    def test_spec_file_is_stored(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
         result = WranglerConfig.from_args(args)
         assert result.spec_file == "/test/spec.yaml"
         assert result.workflows == ["workflow1"]
-        assert result.repos_dir == "/tmp/repos"
+        assert result.repos_dir == str(tmp_path / "repos")
         assert result.prod is True
 
-    def test_jobs_and_timeout_map(self):
-        args = self._make_args()
+    def test_jobs_and_timeout_map(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
         result = WranglerConfig.from_args(args)
         assert result.jobs == 4
         assert result.timeout == 14400
 
-    def test_data_env_vars_mode_maps(self):
-        args = self._make_args()
+    def test_data_env_vars_mode_maps(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
         result = WranglerConfig.from_args(args)
         assert result.data_env_vars_mode == "pantry"
 
-    def test_dev_flag_is_set(self):
-        args = self._make_args()
+    def test_dev_flag_is_set(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
         args.dev = True
         result = WranglerConfig.from_args(args)
         assert result.prod is True

@@ -41,8 +41,6 @@ class TestResolveImage:
         assert "docker.io/myimg" in result or result == "https://docker.io/myimg:v1"
 
     def test_hex_suffix_uses_default_project(self, tmp_path):
-        from nb_wrangler.registry import RegistryManager
-
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         rm = _make_manager_with_mocks(tmp_path)
 
@@ -70,8 +68,6 @@ class TestListSpecs:
         assert rm.list_specs("") == []
 
     def test_shorthand_without_colon_adds_nbs_prefix(self, tmp_path):
-        from nb_wrangler.registry import RegistryManager
-
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         rm = _make_manager_with_mocks(tmp_path)
         rm._list_tags = MagicMock(return_value=["nbs_img1", "nbs_img2", "nbw_v1"])
@@ -82,8 +78,6 @@ class TestListSpecs:
             assert t.startswith("nbs_")
 
     def test_shorthand_with_colon(self, tmp_path):
-        from nb_wrangler.registry import RegistryManager
-
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         rm = _make_manager_with_mocks(tmp_path)
         rm._list_tags = MagicMock(return_value=["nbs_img1", "nbs_img2"])
@@ -94,8 +88,6 @@ class TestListSpecs:
 
 class TestCatSpec:
     def test_happy_path(self, tmp_path):
-        from nb_wrangler.registry import RegistryManager
-
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         rm = _make_manager_with_mocks(tmp_path)
 
@@ -113,8 +105,6 @@ class TestCatSpec:
         assert any("rm" in str(c) for c in calls)
 
     def test_create_failure_returns_none(self, tmp_path):
-        from nb_wrangler.registry import RegistryManager
-
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         rm = _make_manager_with_mocks(tmp_path)
 

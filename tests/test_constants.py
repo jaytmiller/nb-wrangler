@@ -1,10 +1,6 @@
 """Tests for nb_wrangler/constants.py."""
 
-import os
-import platform
-from pathlib import Path
-
-from nb_wrangler.constants import (
+from nb_wrangler.constants import (  # noqa: F401
     __version__,
     WRANGLER_SPEC_VERSION,
     HOME,
