@@ -145,8 +145,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
         # Fix: Build args properly to avoid empty arguments
 
-        overrides = f"--overrides {override_pip_versions_file} if override_pip_versions_file else "
-        if overrides.strip():
+        if override_pip_versions_file:
             self.logger.warning(
                 "Pip cannot compile with overrides because no --overrides switch exists."
             )
@@ -161,7 +160,6 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             "install",
             "--quiet",
             "--only-binary=all",
-            overrides,
         ]
         cmd_parts = base_cmd_parts.copy()
         for req_file in requirements_files:
