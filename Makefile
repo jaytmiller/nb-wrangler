@@ -156,14 +156,14 @@ fnc-env-kernel-cleanup: fnc-env-init
 	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-kernel-cleanup
 
 fnc-spi-basic-workflow: fnc-inject-spi
-	echo "--- Running basic SPI workflow test ---"
+	@echo "--- Running basic SPI workflow test ---"
 	# Ensure clean state for git operations and remove previous test branches
 	cd inject-spi-references/science-platform-images && git checkout main && git branch -D test-spi-branch || true
 	# Run inject-spi with branch, commit, prune, build
 	./nb-wrangler specs/samples/fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
 		--spi-commit-message "Test SPI commit" \
 		--spi-branch test-spi-branch
-	echo "--- Verifying basic SPI workflow test results ---"
+	@echo "--- Verifying basic SPI workflow test results ---"
 	# Check if branch was created
 	git -C inject-spi-references/science-platform-images branch | grep "test-spi-branch"
 	# Check if there are committed changes on that branch
@@ -264,25 +264,32 @@ clean-other:
 	rm -f tests/data-functional/common_pip_packages.txt
 
 lint/flake8: ## check style with flake8
+	@echo ================================================================================
 	find ${PROJECT} tests -name '*.py' | xargs flake8  --max-line-length 120 \
 	  --ignore E302,E203,E305,W291,W503,W504,W391,E501,E226 --count  --statistics
 
 lint/black: ## check style with black
+	@echo ================================================================================
 	black --check ${PROJECT} tests
 
 lint/bandit: ## check security with bandit
+	@echo ================================================================================
 	find ${PROJECT} tests -name '*.py' | xargs bandit -v -ll -ii --format txt
 
 lint/mypy:
+	@echo ================================================================================
 	mypy --install-types  --non-interactive  ${PROJECT}
 
 lint/radon-cc:
+	@echo ================================================================================
 	radon cc -nb --total nb_wrangler
 
 lint/radon-mi:
+	@echo ================================================================================
 	radon mi -s nb_wrangler
 
 lint/radon-hal:
+	@echo ================================================================================
 	radon hal nb_wrangler
 
 lint/radon: lint/radon-cc lint/radon-mi
@@ -308,6 +315,7 @@ test-bootstrap-spec:
 	./nb-wrangler bootstrap ./specs/samples/fnc-test-spec.yaml
 
 unit-test:  clean-test   ## run tests quickly with the default Python
+	@echo ================================================================================
 	pytest --pdb --doctest-continue-on-failure -vv --profile tests
 
 coverage: clean-test ## check code coverage quickly with the default Python
