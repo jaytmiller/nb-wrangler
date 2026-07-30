@@ -96,6 +96,7 @@ class WranglerConfig:
     test_imports: str | None = None
     test_all: str | None = None
     test_copy_shared: str = ""
+    test_isolate_notebook: bool = False
 
     jobs: int = NOTEBOOK_TEST_JOBS
     timeout: int = NOTEBOOK_TEST_MAX_SECS
@@ -193,6 +194,7 @@ class WranglerConfig:
             test_imports=args.test_imports,
             test_all=args.test_all,
             test_copy_shared=args.test_copy_shared,
+            test_isolate_notebook=args.test_isolate_notebook,
             jobs=args.jobs,
             timeout=args.timeout,
             inject_spi=args.inject_spi,

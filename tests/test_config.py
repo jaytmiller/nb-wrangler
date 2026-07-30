@@ -91,6 +91,7 @@ class TestFromArgs:
             test_imports=None,
             test_all=None,
             test_copy_shared="",
+            test_isolate_notebook=False,
             jobs=4,
             timeout=14400,
             inject_spi=False,
@@ -167,3 +168,13 @@ class TestFromArgs:
         args.dev = True
         result = WranglerConfig.from_args(args)
         assert result.prod is True
+
+    def test_test_isolate_notebook_default_is_false(self):
+        config = WranglerConfig(workflows=[])
+        assert config.test_isolate_notebook is False
+
+    def test_test_isolate_notebook_maps_from_args(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.test_isolate_notebook = True
+        result = WranglerConfig.from_args(args)
+        assert result.test_isolate_notebook is True

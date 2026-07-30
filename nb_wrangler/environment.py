@@ -446,38 +446,56 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
 
     @contextlib.contextmanager
     def test_directory_setup(self, notebook_path: str | Path):
-        """Context manager to set up an isolated runtime directory for a notebook test.
+        """Context manager to set up a runtime directory for a notebook test.
 
-        It creates a temporary directory, copies the notebook's directory into it,
-        optionally copies shared modules, sets permissions, and changes the
-        current working directory to the new test directory.
+        When config.test_isolate_notebook is True (via CLI flag), creates an
+        isolated temporary copy of the notebook directory. Otherwise, runs in-place
+        using notebook_path's parent as test_dir.
         """
-        with tempfile.TemporaryDirectory() as temp_dir:
-            source_path = os.path.dirname(os.path.abspath(notebook_path))
-            test_dir = Path(temp_dir) / "notebook-test"
-            shutil.copytree(source_path, test_dir)
+        source_path = os.path.dirname(os.path.abspath(notebook_path))
 
-            if self.config.test_copy_shared:
-                shared_path = self.config.test_copy_shared
-                if not os.path.isabs(shared_path):
-                    shared_path = os.path.join(source_path, shared_path)
-
-                self.logger.info(
-                    f"Copying shared modules from {shared_path} to {test_dir}"
-                )
-                utils.copy_shared_modules(shared_path, test_dir)
-
-            # set permissions
-            os.chmod(test_dir, stat.S_IRWXU)
-            for path in test_dir.glob("*"):
-                os.chmod(path, stat.S_IRWXU)
-
+        if self.config.test_isolate_notebook:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                test_dir = Path(temp_dir) / "notebook-test"
+                shutil.copytree(source_path, test_dir)
+                self._prepare_test_directory(source_path, test_dir)
+                here = os.getcwd()
+                os.chdir(test_dir)
+                try:
+                    yield test_dir
+                finally:
+                    os.chdir(here)
+        else:
+            test_dir = Path(source_path)
+            self._prepare_test_directory(source_path, test_dir)
             here = os.getcwd()
             os.chdir(test_dir)
             try:
                 yield test_dir
             finally:
                 os.chdir(here)
+
+    def _prepare_test_directory(
+        self, source_path: str | Path, target_dir: Path
+    ) -> None:
+        """Prepare an existing target directory for testing.
+
+        Resolves and copies shared modules if config.test_copy_shared is set,
+        then chmod's the target directory and its immediate children to S_IRWXU.
+        """
+        if self.config.test_copy_shared:
+            shared_path = self.config.test_copy_shared
+            if not os.path.isabs(shared_path):
+                shared_path = os.path.join(source_path, shared_path)
+
+            self.logger.info(
+                f"Copying shared modules from {shared_path} to {target_dir}"
+            )
+            utils.copy_shared_modules(shared_path, target_dir)
+
+        os.chmod(target_dir, stat.S_IRWXU)
+        for path in target_dir.glob("*"):
+            os.chmod(path, stat.S_IRWXU)
 
     def test_nb_imports(
         self, env_name: str, nb_to_imports: dict[str, list[str]]

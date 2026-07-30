@@ -328,6 +328,13 @@ def parse_args():
         help="Glob Python modules at <path> and copy them to the runtime directory where an individual import test is running with respect to a particular notebook.",
     )
     testing_group.add_argument(
+        "--test-isolate-notebook",
+        action="store_true",
+        default=False,
+        dest="test_isolate_notebook",
+        help="Isolate notebook tests by copying the notebook directory into a temporary directory. When disabled (default), tests run in-place using the notebook's parent directory.",
+    )
+    testing_group.add_argument(
         "--jobs",
         default=NOTEBOOK_TEST_JOBS,
         type=int,
