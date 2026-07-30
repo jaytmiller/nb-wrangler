@@ -351,7 +351,12 @@ def clear_directory(directory_path):
 
 
 def copy_shared_modules(path_pattern: str, target_dir: str | Path):
-    """Glob Python modules at path_pattern and copy them to target_dir."""
+    """Glob Python modules at path_pattern and copy them to target_dir.
+
+    Skips copying a file if the destination already has that file with
+    identical content, or a like-named symlink pointing to a file that
+    shares identical content with the source file.
+    """
     target_dir = Path(target_dir)
     # If path_pattern is a directory, assume we want all potential modules in it
     if os.path.isdir(path_pattern):
@@ -359,8 +364,28 @@ def copy_shared_modules(path_pattern: str, target_dir: str | Path):
     else:
         pattern = path_pattern
 
+    def _same_content(a: str, b: str) -> bool:
+        try:
+            return sha256_file(a) == sha256_file(b)
+        except OSError:
+            return False
+
     for item in glob.glob(pattern):
+        dest_path = target_dir / os.path.basename(item)
+        real_dest = os.path.realpath(str(dest_path))
+
         if os.path.isfile(item) and item.endswith(".py"):
+            if dest_path.exists():
+                # dest is a regular file — compare content
+                if _same_content(item, str(dest_path)):
+                    continue
+            elif os.path.islink(str(dest_path)):
+                # dest is a symlink (possibly like-named symlink to the file)
+                try:
+                    if os.path.isfile(real_dest) and _same_content(item, real_dest):
+                        continue
+                except OSError:
+                    pass
             shutil.copy2(item, target_dir)
         elif os.path.isdir(item) and os.path.exists(os.path.join(item, "__init__.py")):
             # It's a package directory
