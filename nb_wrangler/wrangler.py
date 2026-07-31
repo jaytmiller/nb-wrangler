@@ -905,7 +905,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Inject test-specific environment variables into os.environ."""
         env_vars = self.spec_manager.test_env_vars or {}
         for key, value in env_vars.items():
-            resolved = utils.resolve_var(value, dict(os.environ))
+            resolved = utils.resolve_vars(value, dict(os.environ))
             os.environ[key] = resolved
 
     def _test_imports(self) -> bool:
