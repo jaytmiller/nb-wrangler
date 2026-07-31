@@ -138,6 +138,21 @@ class SpecManager(
         return base
 
     @property
+    def test_env_vars(self) -> dict[str, str] | None:
+        """Return test_environment_vars, applying dev_overrides if enabled.
+
+        Only active during testing. These do not apply in production curation workflows.
+        """
+        base = self._spec.get("test_environment_vars") or {}
+        if self.config.dev and "dev_overrides" in self._spec:
+            dev_env = (self._spec["dev_overrides"].get("test_environment_vars")) or {}
+            if dev_env or base:
+                merged = copy.deepcopy(base)
+                merged.update(dev_env)
+                return merged
+        return base
+
+    @property
     def system(self) -> dict[str, Any]:
         return self._spec["system"]
 
@@ -606,6 +621,7 @@ class SpecManager(
 
     ALLOWED_KEYWORDS: dict[str, Any] = {
         "dev_overrides": {
+            "test_environment_vars": None,
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
             "environment_vars": None,
@@ -629,6 +645,7 @@ class SpecManager(
             },
         },
         "deactivated_dev_overrides": {
+            "test_environment_vars": None,
             "repositories": ["url", "ref"],
             "refdata_dependencies": ["install_files", "other_variables"],
             "environment_vars": None,
@@ -680,6 +697,7 @@ class SpecManager(
         ],
         "refdata_dependencies": ["install_files", "other_variables"],
         "environment_vars": None,
+        "test_environment_vars": None,
         "environment_spec": ["uri", "repo", "path"],
         "extra_mamba_packages": [],
         "common_mamba_packages": [],

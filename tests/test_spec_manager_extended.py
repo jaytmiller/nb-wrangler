@@ -221,3 +221,98 @@ class TestEnvironmentVarsField:
         assert sm.validate() is True
         env_vars = sm.environment_vars
         assert env_vars["FOO"] == "base_value"
+
+
+class TestTestEnvVarsField:
+    def test_test_env_vars_in_allowed_keywords(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["test_environment_vars"] = {"TEST_API_KEY": "mock_secret", "CRDS_PATH": "${HOME}/crds_mock/"}
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        assert sm.test_env_vars == {"TEST_API_KEY": "mock_secret", "CRDS_PATH": "${HOME}/crds_mock/"}
+
+    def test_test_env_vars_default_empty(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        assert sm.test_env_vars == {}
+
+    def test_test_env_vars_property_no_field(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        result = sm.test_env_vars
+        assert isinstance(result, dict)
+        assert len(result) == 0
+
+    def test_test_env_vars_dev_override_merges(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=True)
+        )
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["test_environment_vars"] = {"FOO": "base_value", "KEEP": "unchanged"}
+        spec_dict["dev_overrides"] = {
+            "test_environment_vars": {"FOO": "dev_value", "NEW": "new_var"}
+        }
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        env_vars = sm.test_env_vars
+        assert env_vars["FOO"] == "dev_value"
+        assert env_vars["KEEP"] == "unchanged"
+        assert env_vars["NEW"] == "new_var"
+
+    def test_test_env_vars_no_dev_when_prod_mode(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=False)
+        )
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["test_environment_vars"] = {"FOO": "base_value"}
+        spec_dict["dev_overrides"] = {"test_environment_vars": {"FOO": "dev_value"}}
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        env_vars = sm.test_env_vars
+        assert env_vars["FOO"] == "base_value"

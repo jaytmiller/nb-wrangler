@@ -901,10 +901,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return False
         return self._validate_spec_sha256()
 
+    def _inject_test_env_vars(self) -> None:
+        """Inject test-specific environment variables into os.environ."""
+        env_vars = self.spec_manager.test_env_vars or {}
+        for key, value in env_vars.items():
+            resolved = utils.resolve_var(value, dict(os.environ))
+            os.environ[key] = resolved
+
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to test imports on.")
+        self._inject_test_env_vars()
 
         if nb_to_imports := self.spec_manager.get_outputs("nb_to_imports"):
             return self.env_manager.test_nb_imports(self.resolved_kname, nb_to_imports)
@@ -915,6 +923,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unconditionally test notebooks matching the configured pattern."""
         if not self.resolved_kname:
             return self.logger.error("No kernel name found to test notebooks on.")
+        self._inject_test_env_vars()
         notebook_configs = self.spec_manager.get_outputs("test_notebooks")
         if filtered_notebook_configs := self.tester.filter_notebooks(
             notebook_configs,
