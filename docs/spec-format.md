@@ -170,6 +170,27 @@ dev_overrides:
     NEW_VAR: "new_value"
 ```
 
+
+### **test_environment_vars**
+
+Optional top-level dict of environment variables scoped only to the testing phase (notebook and import tests). These do **not** apply during curation, SPI build, or environment register steps. The format is the same as `environment_vars` — a mapping of `VAR_NAME: value`, where values may include `${VAR}` style resolution references that are resolved against the current `os.environ` at test time.
+
+These variables are injected into `os.environ` just before each test run and can be overridden via `dev_overrides.test_environment_vars` when running with the `--dev` flag.
+
+Example:
+
+```yaml
+environment_vars:
+  DATA_DIR: "/opt/data"          # always available during curation
+test_environment_vars:
+  TEST_API_KEY: "mock_secret"     # only available during tests
+  CRDS_PATH: "${HOME}/crds_mock/"
+dev_overrides:
+  test_environment_vars:
+    TEST_API_KEY: "dev_key"       # overridden in dev mode
+    NEW_TEST_VAR: "extra_value"   # added in dev mode
+```
+
 ### **extra_mamba_packages**
 A list of additional mamba packages required specifically by your curated kernel environment.
 
