@@ -51,15 +51,36 @@
 
 12. **Renamed**: `--finalize-dev-overrides` -> `--spec-disable-dev-overrides`
 
-13. **enviroment_vars**: Added *environment_vars* section to spec to enable defining variables similar to those
-    in refdata_dependencies.yaml but specified directly in the wrangler spec.
+13. **Environment Variables** (`environment_vars`, `test_environment_vars`)
+     - New top-level `environment_vars:` spec section, like variables in refdata_dependencies.yaml but specified directly in the wrangler spec; merged into refdata during data collection
+     - New `test_environment_vars:` spec section to inject test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run
 
-### Tests Added (3 new files)
-- `tests/test_assets_injection.py` (681 lines) — 15 test cases covering flat/grouped syntax, globs, contents_only, empty items, overrides
-- `tests/test_tag_prefix_resolution.py` (183 lines) — calver tag resolution tests
-- `tests/test_print_repo_tags.py`, `tests/test_readonly_pantry.py`
+14. **`--test-isolate-notebook` Flag** (`config.py`, `environment.py`)
+     - Controls whether notebook tests run in an isolated temp copy or in-place (default is now in-place)
 
-### Specs Added
+15. **Default Notebook Behavior Changed to In-Place** (`environment.py`)
+     - Replaced `test_directory_setup()` on-demand temporary tree copy with conditional: isolated only when `--test-isolate-notebook` is set; otherwise uses notebook's parent directory as test_dir
+
+16. **`copy_shared_modules` Idempotency** (`utils.py`)
+     - Skips copying if the file or a like-named symlink already exists in the destination
+
+17. **Bugfix: `override_pip_packages` Undefined Handling** (`compiler.py`)
+     - Fixes erroneous build-arg string when `override_pip_packages` is undefined
+
+18. **Papermill Path Fix** (`notebook_tester.py`)
+     - Changed papermill invocation to pass the full notebook path instead of `os.path.basename()` only
+
+19. **Registry Environment Variables** (`constants.py`)
+     - Added reading of `NBW_IMAGE_REGISTRY` and `NBW_IMAGE_PROJECT` env vars before applying default registry/project values
+
+### Tests Added (9 new/updated files)
+- `tests/test_config.py` (180 lines) — config parsing tests
+- `tests/test_constants.py` (148 lines) — constants validation tests
+- `tests/test_logger.py` (108 lines) — logger tests
+- `tests/test_spec_manager_extended.py` (318 lines) — spec manager extended tests
+- `tests/test_spec_validator.py` (367 lines) — spec validator tests
+- `tests/test_yaml_typed_values.py` (82 lines) — YAML typed value normalization tests
+- `tests/test_utils.py` (368 lines) — utility function tests
 - `specs/roman/RomanNexus-2026.2.yaml` (new baseline 2026.2 Roman spec for tagging dev)
 - `specs/roman/astroquery-mast-test.yaml`
 - `specs/jwebbinar/jwebbinar-50.yaml`
