@@ -108,7 +108,7 @@ fnc-curate:
 	./nb-wrangler  specs/samples/fnc-test-spec.yaml --curate
 
 fnc-reinstall:
-	./nb-wrangler  specs/samples/fnc-test-spec.yaml --reinstall
+	./nb-wrangler  specs/samples/fnc-test-spec.yaml --reinstall --use-dirty-repos
 
 fnc-packages-uninstall: fnc-curate
 	./nb-wrangler  specs/samples/fnc-test-spec.yaml --packages-uninstall
@@ -138,7 +138,7 @@ fnc-packages-compile: fnc-clone-repos
 	./nb-wrangler   specs/samples/fnc-test-spec.yaml --packages-compile
 
 fnc-clone-repos:
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --clone-repos
+	./nb-wrangler   specs/samples/fnc-test-spec.yaml --clone-repos --overwrite-local-changes
 
 fnc-env-init: fnc-packages-compile
 	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-init

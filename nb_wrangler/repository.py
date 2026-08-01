@@ -2,6 +2,7 @@
 
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Optional, Dict
@@ -476,8 +477,20 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
             return self.logger.info(f"Using dirty repository {repo_name} as-is.")
 
         while True:
-            prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, [I]gnore (use as-is), or [A]bort? (S/D/I/A): "
-            choice = input(prompt).upper()
+            try:
+                if sys.stdin.isatty():
+                    prompt = f"Repo '{repo_name}' is dirty. [S]tash changes, [D]iscard changes, [I]gnore (use as-is), or [A]bort? (S/D/I/A): "
+                    choice = input(prompt).upper()
+                else:
+                    self.logger.warning(
+                        f"No interactive terminal; stashing local changes in {repo_name}."
+                    )
+                    return self.git_stash(repo_name)
+            except EOFError:
+                self.logger.warning(
+                    f"EOF reading stdin; stashing local changes in {repo_name}."
+                )
+                return self.git_stash(repo_name)
             if choice == "A":
                 return self.logger.error("Operation aborted by user.")
             elif choice == "S":
