@@ -103,6 +103,8 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 [item[0] for item in notebook_items],
                 [item[1] for item in notebook_items],
                 [environment] * len(notebook_items),
+                range(1, len(notebook_items)+1),
+                [len(notebook_items)] * len(notebook_items),
             )
 
             for failed, notebook, output in results:
@@ -120,7 +122,8 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.logger.info("All notebooks passed tests")
 
     def _test_single_notebook(
-        self, notebook: str, selection_name: str, environment: str
+        self, notebook: str, selection_name: str, environment: str,
+        i: int, total_notebooks: int
     ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
         if notebook.startswith("#"):
@@ -131,7 +134,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         base_nb = os.path.basename(notebook)
         start = datetime.datetime.now()
         output = self._print_divider(
-            f"Testing '{base_nb}' on environment '{environment}'"
+            f"Testing '{base_nb}' on environment '{environment}' ({i}/{total_notebooks})"
         )
         here = os.getcwd()
         err = False
@@ -160,7 +163,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         elapsed = datetime.datetime.now() - start
         status = "OK" if not err else "FAIL"
-        output += self._print_divider(f"Tested {base_nb} {status} {elapsed}")
+        output += self._print_divider(f"Tested {base_nb} {status} {elapsed} ({i}/{total_notebooks})")
 
         return err, notebook, output
 
@@ -185,6 +188,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 env=os.environ,
             )
             err = result.returncode != 0
+            os.remove("test.ipynb")
             return err, result.stdout
 
     def _run_playwright_test(
