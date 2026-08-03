@@ -205,6 +205,14 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
                 self._stage_and_build_asset_command(idx, asset, assets_dir)
             )
 
+        script_lines.extend(
+            [
+                "# Remove staging artifacts after installation",
+                "rm -rf /opt/environments/assets",
+                "rm -f /opt/environments/install-assets.sh",
+                "",
+            ]
+        )
         self._write_assets_script(assets_sh_file, script_lines)
 
     def _clean_asset_injection(self, assets_dir: Path, assets_sh_file: Path) -> None:
