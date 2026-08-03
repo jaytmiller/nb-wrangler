@@ -73,14 +73,39 @@
 19. **Registry Environment Variables** (`constants.py`)
      - Added reading of `NBW_IMAGE_REGISTRY` and `NBW_IMAGE_PROJECT` env vars before applying default registry/project values
 
-### Tests Added (9 new/updated files)
+20. **`--data-clean-symlinks` Flag** (`cli.py`, `config.py`, `wrangler.py`)
+     - Controls cleanup of symlinks from spec locations to pantry installations; relies on `--data-env-vars-mode` to distinguish pantry vs spec modes
+     - Nutshell:  roman_notebooks "refdata" symlink is going away,  look at the environment variables to identify where the data is
+     - Environment variables will track the selected notebook kernel / active environment within notebooks and terminal sessions.
+
+21. **Notebook Progress Counter** (`notebook_tester.py`)
+     - Displays "X/Y notebooks" progress during notebook tester runs
+
+22. **Dockerfile-aux.sh Auto-Cleanup** (`injector.py`)
+     - Added auto-code to `dockerfile-aux.sh` to remove itself after execution completes, preventing leftover build artifacts
+
+23. **Asset/Symlink Cleanup Post-Install** (`injector.py`)
+     - Appends cleanup commands to end of `install-assets.sh`: removes the `/opt/environments/assets` staging directory and `install-assets.sh` itself, eliminating `/opt/environments` clutter
+
+24. **Fix: `resolve_var` Typo** (`utils.py`)
+     - Corrected function name from `resolve_var` to `resolve_vars` in wrangler utils
+
+25. **Fix: `input()` Bugs in Non-TTY Context** (`notebook_tester.py`, `wrangler.py`)
+     - Fixed bugs in notebook location prompting and `input()` calls that crashed in non-tty contexts
+
+### Tests Added (13 new/updated files)
+- `tests/test_assets_injection.py` — asset injection tests
 - `tests/test_config.py` (180 lines) — config parsing tests
 - `tests/test_constants.py` (148 lines) — constants validation tests
+- `tests/test_environment.py` — environment setup and teardown tests
 - `tests/test_logger.py` (108 lines) — logger tests
+- `tests/test_readonly_pantry.py` — read-only pantry safety tests
+- `tests/test_registry.py` — registry function tests
 - `tests/test_spec_manager_extended.py` (318 lines) — spec manager extended tests
 - `tests/test_spec_validator.py` (367 lines) — spec validator tests
-- `tests/test_yaml_typed_values.py` (82 lines) — YAML typed value normalization tests
+- `tests/test_tag_prefix_resolution.py` — calver tag resolution tests
 - `tests/test_utils.py` (368 lines) — utility function tests
+- `tests/test_yaml_typed_values.py` (82 lines) — YAML typed value normalization tests
 - `specs/roman/RomanNexus-2026.2.yaml` (new baseline 2026.2 Roman spec for tagging dev)
 - `specs/roman/astroquery-mast-test.yaml`
 - `specs/jwebbinar/jwebbinar-50.yaml`
