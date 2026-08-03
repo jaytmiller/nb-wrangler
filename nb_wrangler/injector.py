@@ -1,7 +1,7 @@
-from pathlib import Path
 import shutil
 import re
 import glob
+from pathlib import Path
 from typing import Optional
 
 from .logger import WranglerLoggable
@@ -366,11 +366,17 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         self, idx: int, source: str, destination: str, rel_staged: str
     ) -> list[str]:
         """Generate bash lines to install a single file asset."""
+        if source.endswith("/") or destination.endswith("/"):
+            mkdir_target = f'mkdir -p "{destination}"'
+            cp_cmd = f'cp "{rel_staged}" "{destination}/"'
+        else:
+            mkdir_target = f'mkdir -p "$(dirname "{destination}")"'
+            cp_cmd = f'cp "{rel_staged}" "{destination}"'
         return [
             f"# Asset {idx}: file {source} -> {destination}",
             f'echo "Installing asset file {rel_staged} to {destination}..."',
-            f'mkdir -p "$(dirname "{destination}")"',
-            f'cp "{rel_staged}" "{destination}"',
+            mkdir_target,
+            cp_cmd,
             "",
         ]
 
