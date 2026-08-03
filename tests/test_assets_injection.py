@@ -361,6 +361,59 @@ def test_mixed_old_and_new_syntax(tmp_path: Path):
     ), f"Staged file from second item should exist: {group_staged}"
 
 
+def test_asset_file_no_trailing_slash(tmp_path: Path):
+    """Test that file assets produce simple mkdir + cp (no if/else branching).
+
+    The generated install-assets.sh should use `mkdir -p "$(dirname ..."`
+    followed by `cp`, with no conditional checks, since /opt/environments always
+    exists during Docker build.
+    """
+    repo_dir = tmp_path / "repo"
+    repo_dir.mkdir()
+    (repo_dir / "file.txt").write_text("hello file")
+
+    environments_dir = tmp_path / "environments"
+    environments_dir.mkdir()
+
+    assets_spec = [
+        {
+            "repo": "https://github.com/example/repo.git",
+            "ref": "main",
+            "source": "file.txt",
+            "destination": "/opt/app/data/file.txt",
+        }
+    ]
+
+    injector = SpiInjector(
+        repo_manager=DummyRepoManager(repo_dir),
+        spec_manager=DummySpecManager(assets_spec),
+    )
+    injector.environments_path = environments_dir
+
+    injector._inject_assets()
+
+    assets_sh = environments_dir / "install-assets.sh"
+    assert assets_sh.exists()
+    content = assets_sh.read_text()
+
+    # Should contain mkdir -p with dirname and cp (simple, no if/else)
+    assert (
+        'mkdir -p "$(dirname' in content
+    ), "File asset should use mkdir -p with dirname for parent directory"
+    assert 'cp "' in content, "File asset should have a cp command"
+
+    # Should NOT contain any if/elif/fi or -d checks (regression guard)
+    assert "if [" not in content, "File asset should not use if/else branching"
+    assert "elif" not in content, "File asset script should not contain elif"
+    assert "\nfi" not in content, "File asset script should not contain fi"
+    assert "-d " not in content, "File asset script should not check -d (directory)"
+
+    # Verify staging
+    staged_file = environments_dir / "assets" / "asset_0" / "file.txt"
+    assert staged_file.exists(), f"Staged file should exist: {staged_file}"
+    assert staged_file.read_text() == "hello file"
+
+
 def test_flatten_asset_entries_empty_input():
     """Verify that flatten_asset_entries returns an empty list for None or [] input."""
     from nb_wrangler.spec_manager import SpecManager
