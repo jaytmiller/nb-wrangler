@@ -461,6 +461,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.data_pack, self.data_wrangler.pack),
             (self.config.data_print_exports, self.data_wrangler.print_exports),
             (self.config.data_symlinks, self.data_wrangler.symlink_install_data),
+            (
+                self.config.data_clean_symlinks,
+                self.data_wrangler.clean_symlink_install_data,
+            ),
             (self.config.repos_clean is not None, self._clean_repos),
             (self.config.delete_repos, self._delete_repos),
             (self.config.packages_uninstall, self._uninstall_packages),

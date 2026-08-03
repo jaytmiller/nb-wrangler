@@ -103,7 +103,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 [item[0] for item in notebook_items],
                 [item[1] for item in notebook_items],
                 [environment] * len(notebook_items),
-                range(1, len(notebook_items)+1),
+                range(1, len(notebook_items) + 1),
                 [len(notebook_items)] * len(notebook_items),
             )
 
@@ -122,8 +122,12 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.logger.info("All notebooks passed tests")
 
     def _test_single_notebook(
-        self, notebook: str, selection_name: str, environment: str,
-        i: int, total_notebooks: int
+        self,
+        notebook: str,
+        selection_name: str,
+        environment: str,
+        i: int,
+        total_notebooks: int,
     ) -> tuple[bool, str, str]:
         """Test a single notebook in isolation."""
         if notebook.startswith("#"):
@@ -163,7 +167,9 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         elapsed = datetime.datetime.now() - start
         status = "OK" if not err else "FAIL"
-        output += self._print_divider(f"Tested {base_nb} {status} {elapsed} ({i}/{total_notebooks})")
+        output += self._print_divider(
+            f"Tested {base_nb} {status} {elapsed} ({i}/{total_notebooks})"
+        )
 
         return err, notebook, output
 
@@ -172,7 +178,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     ) -> tuple[bool, str]:
         """Test a single notebook in isolation using papermill."""
 
-        with self.env_manager.test_directory_setup(notebook) as test_dir:
+        with self.env_manager.test_directory_setup(notebook):
             # Run the notebook
             if notebook.endswith(".ipynb"):
                 cmd = f"papermill --no-progress-bar {os.path.basename(notebook)} -k {environment} test.ipynb"

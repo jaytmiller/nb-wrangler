@@ -130,6 +130,7 @@ class WranglerConfig:
     data_no_unpack_existing: bool = False
     data_no_symlinks: bool = False
     data_symlinks: bool = False
+    data_clean_symlinks: bool = False
 
     spec_select: str | None = None
     spec_name: bool = False
@@ -222,6 +223,7 @@ class WranglerConfig:
             data_no_unpack_existing=args.data_no_unpack_existing,
             data_no_symlinks=args.data_no_symlinks,
             data_symlinks=args.data_symlinks,
+            data_clean_symlinks=args.data_clean_symlinks,
             spec_select=args.spec_select,
             spec_name=args.spec_name,
             print_wrangler_repo=args.print_wrangler_repo,

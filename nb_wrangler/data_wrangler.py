@@ -296,6 +296,61 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
         except Exception as e:
             return self.logger.error(f"Failed to symlink data: {e}")
 
+    def clean_symlink_install_data(self) -> bool:
+        """Remove stale spec-mode symlinks at install_data paths where the symlink target no longer exists or doesn't point to the current pantry data path."""
+        try:
+            _data, archive_tuples = self._get_url_tuples()
+        except RuntimeError as e:
+            return self.logger.warning(str(e))
+
+        if self.config.data_env_vars_mode == "pantry":
+            valid_target = self.pantry_shelf.data_path
+        else:
+            return self.logger.warning(
+                f"Cannot clean symlinks in --data-env-vars-mode='{self.config.data_env_vars_mode}' mode — symlinks are by design for this mode. "
+                "Switch to pantry mode with --data-env-vars-mode=pantry."
+            )
+
+        cleaned = 0
+        for archive_tuple in archive_tuples:
+            install_data_path_str = utils.resolve_vars(
+                archive_tuple[4], dict(os.environ)
+            )
+            symlink_path = Path(install_data_path_str)
+
+            if not symlink_path.exists() and not symlink_path.is_symlink():
+                continue
+
+            if not symlink_path.is_symlink():
+                self.logger.warning(
+                    f"Skipping '{install_data_path_str}': exists as regular file/directory, "
+                    "not a symlink. Remove manually."
+                )
+                continue
+
+            current_target = os.path.realpath(symlink_path)
+
+            if valid_target is not None and str(current_target) == str(valid_target):
+                self.logger.debug(
+                    f"'{install_data_path_str}': symlink already points to valid target. Skipping."
+                )
+                continue
+
+            try:
+                symlink_path.unlink()
+                self.logger.info(f"Removed stale symlink '{install_data_path_str}'")
+                cleaned += 1
+            except Exception as e:
+                return self.logger.error(
+                    f"Failed to remove symlink at '{install_data_path_str}': {e}"
+                )
+
+        if cleaned == 0:
+            self.logger.info("No stale symlinks found to clean.")
+        else:
+            self.logger.info(f"Cleaned {cleaned} stale symlink(s).")
+        return True
+
     def pack(self) -> bool:
         self.logger.info("Packing downloaded data archives from live locations.")
         try:

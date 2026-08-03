@@ -231,14 +231,20 @@ class TestTestEnvVarsField:
         sm = SpecManager()
 
         spec_dict = _make_valid_spec_dict()
-        spec_dict["test_environment_vars"] = {"TEST_API_KEY": "mock_secret", "CRDS_PATH": "${HOME}/crds_mock/"}
+        spec_dict["test_environment_vars"] = {
+            "TEST_API_KEY": "mock_secret",
+            "CRDS_PATH": "${HOME}/crds_mock/",
+        }
         yaml_content = yaml.dump(spec_dict, default_flow_style=False)
         spec_file = tmp_path / "spec.yaml"
         spec_file.write_text(yaml_content)
 
         assert sm.load_spec(spec_file) is True
         assert sm.validate() is True
-        assert sm.test_env_vars == {"TEST_API_KEY": "mock_secret", "CRDS_PATH": "${HOME}/crds_mock/"}
+        assert sm.test_env_vars == {
+            "TEST_API_KEY": "mock_secret",
+            "CRDS_PATH": "${HOME}/crds_mock/",
+        }
 
     def test_test_env_vars_default_empty(self, tmp_path):
         from nb_wrangler.spec_manager import SpecManager

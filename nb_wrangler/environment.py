@@ -453,27 +453,21 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         using notebook_path's parent as test_dir.
         """
         source_path = os.path.dirname(os.path.abspath(notebook_path))
-
         if self.config.test_isolate_notebook:
             with tempfile.TemporaryDirectory() as temp_dir:
                 test_dir = Path(temp_dir) / "notebook-test"
                 shutil.copytree(source_path, test_dir)
                 self._prepare_test_directory(source_path, test_dir)
-                here = os.getcwd()
-                os.chdir(test_dir)
-                try:
-                    yield test_dir
-                finally:
-                    os.chdir(here)
         else:
             test_dir = Path(source_path)
             self._prepare_test_directory(source_path, test_dir)
-            here = os.getcwd()
-            os.chdir(test_dir)
-            try:
-                yield test_dir
-            finally:
-                os.chdir(here)
+        self.logger.debug(f"Running {notebook_path} at {test_dir}")
+        here = os.getcwd()
+        os.chdir(test_dir)
+        try:
+            yield test_dir
+        finally:
+            os.chdir(here)
 
     def _prepare_test_directory(
         self, source_path: str | Path, target_dir: Path

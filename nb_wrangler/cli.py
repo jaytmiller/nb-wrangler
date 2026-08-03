@@ -441,6 +441,11 @@ def parse_args():
         action="store_true",
         help="""Create symlinks from install_data locations to the pantry data directory for the current spec (standalone action, data not required).""",
     )
+    data_group.add_argument(
+        "--data-clean-symlinks",
+        action="store_true",
+        help="""Remove stale symlinks at install_data locations that no longer point to a valid target. Does not create new symlinks or remove directories/files.""",
+    )
     notebook_group = parser.add_argument_group(
         "Notebook Clones",
         "Setup and management of local clones of spec'ed notebook repos.",
