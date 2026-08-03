@@ -54,6 +54,10 @@ class TestDefaults:
         config = WranglerConfig(workflows=[])
         assert config.data_env_vars_mode == "pantry"
 
+    def test_data_clean_symlinks_default(self):
+        config = WranglerConfig(workflows=[])
+        assert config.data_clean_symlinks is False
+
 
 class TestFromArgs:
     """Test that common argparse fields map correctly to config attributes."""
@@ -118,6 +122,7 @@ class TestFromArgs:
             data_no_unpack_existing=False,
             data_no_symlinks=False,
             data_symlinks=False,
+            data_clean_symlinks=False,
             spec_select=None,
             spec_name=False,
             print_wrangler_repo=False,
@@ -178,3 +183,13 @@ class TestFromArgs:
         args.test_isolate_notebook = True
         result = WranglerConfig.from_args(args)
         assert result.test_isolate_notebook is True
+
+    def test_data_clean_symlinks_default(self):
+        config = WranglerConfig(workflows=[])
+        assert config.data_clean_symlinks is False
+
+    def test_data_clean_symlinks_maps_from_args(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.data_clean_symlinks = True
+        result = WranglerConfig.from_args(args)
+        assert result.data_clean_symlinks is True
