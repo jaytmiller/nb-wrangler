@@ -152,6 +152,10 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
 
         aux_sh_file = self.environments_path / "dockerfile-aux.sh"
         if self.spec_manager.dockerfile_aux_sh:
+            with aux_sh_file.open("a") as aux_append:
+                aux_append.writelines(
+                    ["\n", "rm /opt/environments/dockerfile-aux.sh\n"]
+                )
             self._inject(
                 None,
                 aux_sh_file,
