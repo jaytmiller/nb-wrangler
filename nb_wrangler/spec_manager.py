@@ -12,6 +12,21 @@ from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
+_OVERRIDES_SCHEMA: dict[str, Any] = {
+    "test_environment_vars": None,
+    "repositories": ["url", "ref"],
+    "refdata_dependencies": ["install_files", "other_variables"],
+    "environment_vars": None,
+    "override_pip_versions": [],
+    "system": {
+        "commands": {"mamba": None, "pip": None, "favor": None},
+        "spi": {"repo": None, "ref": None},
+        "nb-wrangler": {"repo": None, "ref": None},
+        "primary_repo": None,
+        "date_updated": None,
+    },
+}
+
 
 class SpecManager(
     WranglerLoggable, WranglerConfigurable
@@ -27,7 +42,29 @@ class SpecManager(
 
         self.validator = SpecValidator(self)
 
-    # ---------------------------- Property-based read/write access to spec data -------------------
+    def _get_dev_value(self, dev_path: list[str]) -> Any:
+        """Walk a path into dev_overrides and return the value, or None."""
+        if not (self.config.dev and "dev_overrides" in self._spec):
+            return None
+        current = self._spec["dev_overrides"]
+        for key in dev_path:
+            if not isinstance(current, dict):
+                return None
+            current = current.get(key)
+            if current is None:
+                return None
+        return current
+
+    def _merge_dev_dict(self, base: dict, dev_path: list[str]) -> dict:
+        """Merge a dict from dev_overrides (accessed via dev_path) into base."""
+        dev = self._get_dev_value(dev_path)
+        if dev:
+            merged = copy.deepcopy(base)
+            merged.update(dev)
+            return merged
+        return base
+
+    # ---------------------------- Image header properties -------------------
     @property
     def header(self):
         return self._spec["image_spec_header"]
@@ -78,6 +115,7 @@ class SpecManager(
             return None
         return self.header.get("python_version")
 
+    # ---------------------------- Repository properties ---------------------
     @property
     def repositories(self) -> dict[str, Any]:
         """Return repositories, applying dev_overrides if enabled."""
@@ -105,10 +143,12 @@ class SpecManager(
         """Return only the repositories that are defined in dev_overrides."""
         return self._spec.get("dev_overrides", {}).get("repositories") or {}
 
+    # ---------------------------- Notebook properties -----------------------
     @property
     def notebook_selections(self) -> dict[str, Any]:
         return self._spec.get("selected_notebooks") or {}
 
+    # ---------------------------- Refdata properties ------------------------
     @property
     def refdata_dependencies(self) -> dict[str, Any] | None:
         """Return refdata_dependencies, applying dev_overrides if enabled."""
@@ -125,17 +165,13 @@ class SpecManager(
                 return merged
         return base_refdata
 
+    # ---------------------------- Environment properties --------------------
     @property
     def environment_vars(self) -> dict[str, str] | None:
         """Return environment_vars, applying dev_overrides if enabled."""
-        base = self._spec.get("environment_vars") or {}
-        if self.config.dev and "dev_overrides" in self._spec:
-            dev_env = (self._spec["dev_overrides"].get("environment_vars")) or {}
-            if dev_env:
-                merged = copy.deepcopy(base)
-                merged.update(dev_env)
-                return merged
-        return base
+        return self._merge_dev_dict(
+            self._spec.get("environment_vars") or {}, ["environment_vars"]
+        )
 
     @property
     def test_env_vars(self) -> dict[str, str] | None:
@@ -143,19 +179,11 @@ class SpecManager(
 
         Only active during testing. These do not apply in production curation workflows.
         """
-        base = self._spec.get("test_environment_vars") or {}
-        if self.config.dev and "dev_overrides" in self._spec:
-            dev_env = (self._spec["dev_overrides"].get("test_environment_vars")) or {}
-            if dev_env or base:
-                merged = copy.deepcopy(base)
-                merged.update(dev_env)
-                return merged
-        return base
+        return self._merge_dev_dict(
+            self._spec.get("test_environment_vars") or {}, ["test_environment_vars"]
+        )
 
-    @property
-    def system(self) -> dict[str, Any]:
-        return self._spec["system"]
-
+    # ---------------------------- Package properties ------------------------
     @property
     def extra_mamba_packages(self) -> list[str]:
         return list(self._spec.get("extra_mamba_packages") or [])
@@ -192,6 +220,7 @@ class SpecManager(
     def environment_spec(self) -> dict[str, Any] | None:
         return self._spec.get("environment_spec")
 
+    # ---------------------------- Asset properties --------------------------
     @staticmethod
     def flatten_asset_entries(assets: list[dict]) -> list[dict[str, Any]]:
         """Normalize asset entries into a flat list of dictionaries.
@@ -266,29 +295,20 @@ class SpecManager(
 
         return self.flatten_asset_entries(raw_assets)
 
+    # ---------------------------- System properties -------------------------
+    @property
+    def system(self) -> dict[str, Any]:
+        return self._spec["system"]
+
     @property
     def spi(self) -> dict[str, str]:
-        base_spi = self.system.get("spi") or {}
-        if self.config.dev and "dev_overrides" in self._spec:
-            if "system" in self._spec["dev_overrides"]:
-                dev_spi = self._spec["dev_overrides"]["system"].get("spi") or {}
-                if dev_spi:
-                    merged_spi = copy.deepcopy(base_spi)
-                    merged_spi.update(dev_spi)
-                    return merged_spi
-        return base_spi
+        return self._merge_dev_dict(self.system.get("spi") or {}, ["system", "spi"])
 
     @property
     def nb_wrangler(self) -> dict[str, str]:
-        base_nbw = self.system.get("nb-wrangler") or {}
-        if self.config.dev and "dev_overrides" in self._spec:
-            if "system" in self._spec["dev_overrides"]:
-                dev_nbw = self._spec["dev_overrides"]["system"].get("nb-wrangler") or {}
-                if dev_nbw:
-                    merged_nbw = copy.deepcopy(base_nbw)
-                    merged_nbw.update(dev_nbw)
-                    return merged_nbw
-        return base_nbw
+        return self._merge_dev_dict(
+            self.system.get("nb-wrangler") or {}, ["system", "nb-wrangler"]
+        )
 
     @property
     def commands(self) -> dict[str, Any]:
@@ -304,13 +324,10 @@ class SpecManager(
     def primary_repo(self) -> str | None:
         """Get the primary repository for this spec, if defined."""
         base_primary = self.system.get("primary_repo")
-        if self.config.dev and "dev_overrides" in self._spec:
-            if "system" in self._spec["dev_overrides"]:
-                dev_primary = self._spec["dev_overrides"]["system"].get("primary_repo")
-                if dev_primary:
-                    return dev_primary
-        return base_primary
+        dev_primary = self._get_dev_value(["system", "primary_repo"])
+        return dev_primary if dev_primary else base_primary
 
+    # ---------------------------- Naming properties -------------------------
     @property
     def moniker(self) -> str:
         """Get a filesystem-safe version of the image name."""
@@ -386,9 +403,19 @@ class SpecManager(
         """Get data from the output section of the spec."""
         return self._spec.get("out", {}).get(key, default)
 
-    def get_outputs(self, *output_names) -> list[Any] | Any:
-        """Get the named fields from the spec output section and
-        return a tuple in order of `output_names`.
+    def get_outputs(self, *output_names: str) -> list[Any] | Any:
+        """Get the named fields from the spec output section.
+
+        Args:
+            output_names: Names of output fields to retrieve from the 'out' section.
+
+        Returns:
+            A single value if one name is provided, otherwise a list of values
+            in the order requested.
+
+        Raises:
+            RuntimeError: If the output section is missing or a requested field
+                is not found.
         """
         self.logger.debug("Retrieving prior outputs from spec:", output_names)
         if "out" not in self._spec:
@@ -538,35 +565,33 @@ class SpecManager(
         except Exception as e:
             return self.logger.exception(e, f"Error revising spec file: {e}")
 
+    def _reset_and_save(self, pop_out_data: bool = False) -> bool:
+        """Helper: clear spec data, remove sha256, validate, and save to source."""
+        self.logger.debug("Resetting spec file.")
+        if pop_out_data:
+            out = self._spec.pop("out", None)
+            if out:
+                data = out.pop("data", None)
+                if data:
+                    self._spec["out"] = dict(data=data)
+        else:
+            self._spec.get("out", {}).pop("data", None)
+
+        self.system.pop("spec_sha256", None)
+
+        if not self.validate():
+            return self.logger.error("Spec did not validate following reset.")
+        if not self.save_spec_as(self._source_file):
+            return self.logger.error("Spec save to %s failed...", self._source_file)
+        return True
+
     def reset_spec(self) -> bool:
         """Delete the output field of the spec and make sure the source file reflects it."""
-        self.logger.debug("Resetting spec file.")
-        out = self._spec.pop("out", None)
-        if not out:
-            return True
-        data = out.pop("data", None)
-        if data:
-            self._spec["out"] = dict(data=data)
-        self.system.pop("spec_sha256", None)
-        if not self.validate():
-            return self.logger.error("Spec did not validate follwing reset.")
-        if not self.save_spec_as(self._source_file):
-            return self.logger.error("Spec save to", self._source_file, "failed...")
-        return True
+        return self._reset_and_save(pop_out_data=True)
 
     def data_reset_spec(self) -> bool:
         """Delete only the 'data' output field of the spec and make sure the source file reflects it."""
-        self.logger.debug("Resetting data section spec file.")
-        out = self._spec.get("out", None)
-        if not out:
-            return True
-        out.pop("data", None)
-        self.system.pop("spec_sha256", None)
-        if not self.validate():
-            return self.logger.error("Spec did not validate follwing data reset.")
-        if not self.save_spec_as(self._source_file):
-            return self.logger.error("Spec save to", self._source_file, "failed...")
-        return True
+        return self._reset_and_save(pop_out_data=False)
 
     def spec_disable_dev_overrides(self) -> bool:
         """Deactivate the 'dev_overrides' section from the spec file."""
@@ -620,54 +645,8 @@ class SpecManager(
     # ---------------------------- validation ----------------------------------
 
     ALLOWED_KEYWORDS: dict[str, Any] = {
-        "dev_overrides": {
-            "test_environment_vars": None,
-            "repositories": ["url", "ref"],
-            "refdata_dependencies": ["install_files", "other_variables"],
-            "environment_vars": None,
-            "override_pip_versions": [],
-            "system": {
-                "commands": {
-                    "mamba": None,
-                    "pip": None,
-                    "favor": None,
-                },
-                "spi": {
-                    "repo": None,
-                    "ref": None,
-                },
-                "nb-wrangler": {
-                    "repo": None,
-                    "ref": None,
-                },
-                "primary_repo": None,
-                "date_updated": None,
-            },
-        },
-        "deactivated_dev_overrides": {
-            "test_environment_vars": None,
-            "repositories": ["url", "ref"],
-            "refdata_dependencies": ["install_files", "other_variables"],
-            "environment_vars": None,
-            "override_pip_versions": [],
-            "system": {
-                "commands": {
-                    "mamba": None,
-                    "pip": None,
-                    "favor": None,
-                },
-                "spi": {
-                    "repo": None,
-                    "ref": None,
-                },
-                "nb-wrangler": {
-                    "repo": None,
-                    "ref": None,
-                },
-                "primary_repo": None,
-                "date_updated": None,
-            },
-        },
+        "dev_overrides": _OVERRIDES_SCHEMA,
+        "deactivated_dev_overrides": _OVERRIDES_SCHEMA,
         "image_spec_header": [
             "image_name",
             "description",
@@ -851,7 +830,17 @@ class SpecManager(
     def _process_directory_entry(
         self, entry: dict, repo_dir: Path, root_directory: str
     ) -> set[str]:
-        """Process a directory entry from the spec file."""
+        """Process a notebook selection entry, applying include/exclude subdirectory filters.
+
+        Args:
+            entry: A notebook selection dict with keys like 'repo', 'root_directory',
+                'include_subdirs', and 'exclude_subdirs'.
+            repo_dir: The path to the cloned repository directory.
+            root_directory: Optional subdirectory within the repo to search from.
+
+        Returns:
+            Set of notebook paths (strings) matching the include/exclude criteria.
+        """
         base_path = repo_dir
         if root_directory:
             base_path = base_path / root_directory
@@ -879,6 +868,17 @@ class SpecManager(
     def _matching_files(
         self, verb: str, possible_notebooks: list[str], regexes: list[str]
     ) -> set[str]:
+        """Filter notebook paths by matching against a list of regex patterns.
+
+        Args:
+            verb: Log action verb (e.g., 'Including', 'Excluding') for log messages.
+            possible_notebooks: List of notebook file paths to filter.
+            regexes: List of regex patterns. A notebook is matched if any pattern
+                matches its path.
+
+        Returns:
+            Set of notebook paths that matched at least one regex pattern.
+        """
         self.logger.debug(
             f"{verb} notebooks {list(possible_notebooks)} against regexes {regexes}"
         )
