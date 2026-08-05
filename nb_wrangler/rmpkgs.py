@@ -1,34 +1,38 @@
 #!/usr/bin/env python3
+"""Cleanup utility for GitHub Packages versions."""
+
 import argparse
 import fnmatch
 import json
 import os
 import subprocess
 import sys
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from typing import Optional
 
 import requests
 
-# from requests.auth import HTTPBasicAuth
-
-# --- Config & Session Setup ---------------------------
-
-# GitHub API v2026-03-10 style (omit trailing slash)
 GITHUB_BASE = "https://api.github.com"
-
-# Output file for your cleanup logic
-CLEANUP_FILE = Path("cleanup.versions")
+DEFAULT_CLEANUP_FILE = Path("cleanup.versions")
 
 
-def get_auth_token():
-    """Retrieve GitHub token from environment or gh CLI."""
-    # Priority 1: Environment Variable
+def get_scope(owner: str) -> str:
+    """Return the GitHub API scope for the given owner."""
+    return "orgs" if owner == "spacetelescope" else "users"
+
+
+def get_github_token() -> Optional[str]:
+    """Retrieve GitHub token from environment variable or gh CLI.
+
+    Priority 1: GITHUB_TOKEN environment variable.
+    Priority 2: Output of 'gh auth token'.
+    """
     token = os.getenv("GITHUB_TOKEN")
     if token:
         return token
 
-    # Priority 2: GitHub CLI
     try:
         result = subprocess.run(
             ["gh", "auth", "token"], capture_output=True, text=True, check=True
@@ -38,94 +42,214 @@ def get_auth_token():
         return None
 
 
-session = requests.Session()
-# Either use:
-#   - Personal Access Token (recommended)
-#   - or basic auth: OWNER + password (less secure)
-AUTH_TOKEN = get_auth_token()
-if AUTH_TOKEN:
-    session.headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
-else:
-    print(
-        "Warning: No GITHUB_TOKEN found and 'gh auth token' failed. "
-        "Requests may fail if authentication is required.",
-        file=sys.stderr,
-    )
+@dataclass
+class GitHubSession:
+    """Configured requests.Session for GitHub API access."""
 
-session.headers["Accept"] = "application/vnd.github+json"
-session.headers["X-GitHub-Api-Version"] = "2026-03-10"
+    session: requests.Session = field(default_factory=requests.Session, init=False)
+
+    def __post_init__(self) -> None:
+        token = get_github_token()
+        if token:
+            self.session.headers["Authorization"] = f"Bearer {token}"
+        else:
+            print(
+                "Warning: No GITHUB_TOKEN found and 'gh auth token' failed. "
+                "Requests may fail if authentication is required.",
+                file=sys.stderr,
+            )
+        self.session.headers["Accept"] = "application/vnd.github+json"
+        self.session.headers["X-GitHub-Api-Version"] = "2026-03-10"
+
+    def get(self, url: str) -> requests.Response:
+        resp = self.session.get(url)
+        resp.raise_for_status()
+        return resp
 
 
-def fetch_packages(owner, scope, package_type):
-    packages = []
-    url = f"{GITHUB_BASE}/{scope}/{owner}/packages?package_type={package_type}"
+def fetch_paginated(session: GitHubSession, url: str) -> list:
+    """Fetch all pages from a paginated GitHub API endpoint."""
+    items = []
     while url:
         resp = session.get(url)
-        resp.raise_for_status()
-        packages.extend(resp.json())
+        items.extend(resp.json())
         if "next" in resp.links:
             url = resp.links["next"]["url"]
         else:
-            url = None
-    return packages
+            url = ""
+    return items
 
 
-def fetch_versions(owner, scope, package_type, package_name):
-    versions = []
+def fetch_packages(
+    session: GitHubSession, owner: str, scope: str, package_type: str
+) -> list:
+    """Fetch all packages for an owner/scope."""
+    url = f"{GITHUB_BASE}/{scope}/{owner}/packages?package_type={package_type}"
+    return fetch_paginated(session, url)
+
+
+def fetch_versions(
+    session: GitHubSession, owner: str, scope: str, package_type: str, package_name: str
+) -> list:
+    """Fetch all versions for a package."""
     url = (
         f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}/versions"
     )
-    while url:
-        resp = session.get(url)
-        resp.raise_for_status()
-        versions.extend(resp.json())
-        if "next" in resp.links:
-            url = resp.links["next"]["url"]
-        else:
-            url = None
-    return versions
+    return fetch_paginated(session, url)
 
 
-def write_cleanup_lines(versions):
-    with CLEANUP_FILE.open("w") as f:
+def write_cleanup_lines(versions: list, cleanup_file: Path) -> None:
+    """Write version data to a JSONL cleanup file."""
+    with cleanup_file.open("w") as f:
         for ver in versions:
-            # No extra escaping; just one JSON object per line
             f.write(json.dumps(ver, ensure_ascii=False))
             f.write("\n")
-    print(f"Wrote {len(versions)} versions to {CLEANUP_FILE}", file=sys.stderr)
+    print(f"Wrote {len(versions)} versions to {cleanup_file}", file=sys.stderr)
 
 
-def delete_version(owner, scope, package_type, package_name, version_id):
-    # Example: delete single version
+def delete_version(
+    session: GitHubSession,
+    owner: str,
+    scope: str,
+    package_type: str,
+    package_name: str,
+    version_id: str,
+) -> bool:
+    """Delete a package version. Returns True on success."""
     url = (
         f"{GITHUB_BASE}/{scope}/{owner}/packages/{package_type}/{package_name}"
         f"/versions/{version_id}"
     )
-    resp = session.delete(url)
+    resp = session.session.delete(url)
     if resp.status_code in (204, 202):
         print(f"Successfully deleted version {version_id}", file=sys.stderr)
-    else:
-        print(
-            f"Failed to delete version {version_id}: {resp.status_code}",
-            file=sys.stderr,
-        )
+        return True
+    print(
+        f"Failed to delete version {version_id}: {resp.status_code}",
+        file=sys.stderr,
+    )
+    return False
 
 
-def parse_line(line):
+@dataclass
+class ParsedVersion:
+    """Parsed version data from a cleanup file line."""
+
+    version_id: str
+    created_at: datetime
+    created_epoch: int
+    tags: list
+
+
+def parse_created_at(created_at_str: str) -> datetime:
+    """Parse an ISO-8601 timestamp string into a timezone-aware datetime."""
+    return datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+
+
+def parse_line(line: str) -> Optional[ParsedVersion]:
+    """Parse a JSONL line from a cleanup file into ParsedVersion."""
     try:
         obj = json.loads(line.strip())
         version_id = obj["id"]
-        created_at_str = obj["created_at"]  # keep original string
-        created_at = datetime.fromisoformat(created_at_str.replace("Z", "+00:00"))
+        created_at_str = obj["created_at"]
+        created_at = parse_created_at(created_at_str)
         created_epoch = int(created_at.timestamp())
         tags = obj.get("metadata", {}).get("container", {}).get("tags", [])
-        return version_id, created_at, created_epoch, tags  # no format change
+        return ParsedVersion(version_id, created_at, created_epoch, tags)
     except Exception as e:
         print(f"WARNING: failed to parse line: {line!r} -> {e}", file=sys.stderr)
         return None
 
 
-def main():
+def matches_tag_pattern(tags: list, tag_pattern: Optional[str]) -> bool:
+    """Return True if no tag pattern is set or any tag matches the pattern."""
+    if not tag_pattern:
+        return True
+    return any(fnmatch.fnmatch(t, tag_pattern) for t in tags)
+
+
+def is_expired(created_epoch: int, cutoff_epoch: int) -> bool:
+    """Return True if the version was created before the cutoff epoch."""
+    return created_epoch < cutoff_epoch
+
+
+def process_versions(
+    session: GitHubSession,
+    owner: str,
+    scope: str,
+    package_type: str,
+    package_name: str,
+    cutoff_epoch: int,
+    tag_pattern: Optional[str],
+    dry_run: bool,
+    interactive: bool,
+    cleanup_file: Path,
+) -> tuple[int, int]:
+    """Process versions for a single package, returning (deleted, kept) counts."""
+    print(f"\n--- Processing package: {package_name} ---", file=sys.stderr)
+    try:
+        versions = fetch_versions(session, owner, scope, package_type, package_name)
+        write_cleanup_lines(versions, cleanup_file)
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching versions for {package_name}: {e}", file=sys.stderr)
+        return 0, 0
+
+    deleted = 0
+    kept = 0
+
+    if not cleanup_file.exists():
+        return deleted, kept
+
+    for line in cleanup_file.read_text().splitlines():
+        parsed = parse_line(line)
+        if not parsed:
+            continue
+
+        if not matches_tag_pattern(parsed.tags, tag_pattern):
+            continue
+
+        if is_expired(parsed.created_epoch, cutoff_epoch):
+            print(
+                f"Candidate for deletion: tags={parsed.tags} version id={parsed.version_id} "
+                f"created_at={parsed.created_at}"
+            )
+
+            if dry_run:
+                print(f"  [DRY RUN] Would delete version {parsed.version_id}")
+                deleted += 1
+                continue
+
+            if interactive:
+                choice = input(
+                    f"Delete version {parsed.version_id} (tags={parsed.tags})? [y/N] "
+                ).lower()
+                if choice not in ("y", "yes"):
+                    print(f"Skipping version {parsed.version_id}")
+                    kept += 1
+                    print(f"Current package status: Deleted={deleted}, kept={kept}")
+                    continue
+
+            if delete_version(
+                session, owner, scope, package_type, package_name, parsed.version_id
+            ):
+                deleted += 1
+            else:
+                kept += 1
+        else:
+            print(
+                f"Keeping tags={parsed.tags} version id={parsed.version_id} "
+                f"created_at={parsed.created_at} (within cutoff)"
+            )
+            kept += 1
+
+        print(f"Current package status: Deleted={deleted}, kept={kept}")
+
+    print(f"Finished package {package_name}. Deleted={deleted}, kept={kept}")
+    return deleted, kept
+
+
+def build_parser() -> argparse.ArgumentParser:
+    """Build and return the argument parser."""
     parser = argparse.ArgumentParser(description="Cleanup GitHub Packages versions.")
     parser.add_argument(
         "name",
@@ -168,8 +292,22 @@ def main():
         "--tag",
         help="Tag pattern to match (glob).",
     )
-    args = parser.parse_args()
+    return parser
 
+
+def main(cleanup_file: Optional[Path] = None) -> int:
+    """Main entry point for the cleanup utility.
+
+    Args:
+        cleanup_file: Path to the cleanup versions file. Defaults to cleanup.versions.
+
+    Returns:
+        Exit code (0 for success).
+    """
+    if cleanup_file is None:
+        cleanup_file = DEFAULT_CLEANUP_FILE
+
+    args = build_parser().parse_args()
     owner = args.owner
     package_type = args.type
     pattern = args.name
@@ -178,16 +316,16 @@ def main():
     dry_run = args.dry_run
     tag_pattern = args.tag
 
-    # SCOPE logic from original script
-    scope = "users" if owner != "spacetelescope" else "orgs"
+    scope = get_scope(owner)
 
-    # Determine packages to process
+    # Resolve target packages
     if any(c in pattern for c in "*?[]"):
         print(
             f"Searching for packages matching pattern '{pattern}' in {owner} ({scope})..."
         )
+        session = GitHubSession()
         try:
-            all_packages = fetch_packages(owner, scope, package_type)
+            all_packages = fetch_packages(session, owner, scope, package_type)
             target_packages = [
                 p["name"] for p in all_packages if fnmatch.fnmatch(p["name"], pattern)
             ]
@@ -200,13 +338,13 @@ def main():
                 tag_pattern = pattern
         except requests.exceptions.RequestException as e:
             print(f"Error fetching packages: {e}", file=sys.stderr)
-            sys.exit(1)
+            return 1
     else:
         target_packages = [pattern]
 
     if not target_packages:
         print(f"No packages found matching pattern: {pattern}")
-        return
+        return 0
 
     print(f"Target packages: {', '.join(target_packages)}")
     if tag_pattern:
@@ -219,65 +357,24 @@ def main():
     total_kept = 0
 
     for package_name in target_packages:
-        print(f"\n--- Processing package: {package_name} ---", file=sys.stderr)
-        try:
-            versions = fetch_versions(owner, scope, package_type, package_name)
-            write_cleanup_lines(versions)
-        except requests.exceptions.RequestException as e:
-            print(f"Error fetching versions for {package_name}: {e}", file=sys.stderr)
-            continue
-
-        deleted = kept = 0
-        if CLEANUP_FILE.exists():
-            for line in CLEANUP_FILE.read_text().splitlines():
-                parsed = parse_line(line)
-                if not parsed:
-                    continue
-
-                version_id, created_at, created_epoch, tags = parsed
-
-                if tag_pattern:
-                    if not any(fnmatch.fnmatch(t, tag_pattern) for t in tags):
-                        continue
-
-                if created_epoch < cutoff_epoch:
-                    print(
-                        f"Candidate for deletion: tags={tags} version id={version_id} created_at={created_at}"
-                    )
-
-                    if dry_run:
-                        print(f"  [DRY RUN] Would delete version {version_id}")
-                        deleted += 1
-                        continue
-
-                    do_delete = True
-                    if interactive:
-                        choice = input(
-                            f"Delete version {version_id} (tags={tags})? [y/N] "
-                        ).lower()
-                        if choice not in ("y", "yes"):
-                            do_delete = False
-
-                    if do_delete:
-                        delete_version(
-                            owner, scope, package_type, package_name, version_id
-                        )
-                        deleted += 1
-                    else:
-                        print(f"Skipping version {version_id}")
-                        kept += 1
-                else:
-                    print(
-                        f"Keeping tags={tags} version id={version_id} created_at={created_at} (within cutoff)"
-                    )
-                    kept += 1
-                print(f"Current package status: Deleted={deleted}, kept={kept}")
-
-        print(f"Finished package {package_name}. Deleted={deleted}, kept={kept}")
+        session = GitHubSession()
+        deleted, kept = process_versions(
+            session,
+            owner,
+            scope,
+            package_type,
+            package_name,
+            cutoff_epoch,
+            tag_pattern,
+            dry_run,
+            interactive,
+            cleanup_file,
+        )
         total_deleted += deleted
         total_kept += kept
 
     print(f"\nAll done. Total Deleted={total_deleted}, Total Kept={total_kept}")
+    return 0
 
 
 if __name__ == "__main__":
