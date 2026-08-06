@@ -19,7 +19,7 @@ setup_env() {
     export PIP_CACHE_DIR="${NBW_CACHE}/pip"
     export NBW_URL="https://github.com/spacetelescope/nb-wrangler"
     export NBW_REF="main"
-    export NBW_DEV=${NBW_DEV:-"0"}
+    export NBW_OVERRIDES_MODE=${NBW_OVERRIDES_MODE:-"--dev"}
     export PATH="${NBW_MM}/bin:${PATH}"
 
     # Detect current shell for micromamba hook
@@ -62,7 +62,7 @@ resolve_spec_wrangler() {
     local ref=$($YQ_CMD -r '.system."nb-wrangler".ref // empty' "$spec" 2>/dev/null)
 
     # Dev overrides
-    if [ "$NBW_DEV" = "1" ]; then
+    if [[ "$NBW_OVERRIDES_MODE" == "--dev" ]]; then
         local dev_repo=$($YQ_CMD -r '.dev_overrides.system."nb-wrangler".repo // empty' "$spec" 2>/dev/null)
         local dev_ref=$($YQ_CMD -r '.dev_overrides.system."nb-wrangler".ref // empty' "$spec" 2>/dev/null)
         repo=${dev_repo:-$repo}

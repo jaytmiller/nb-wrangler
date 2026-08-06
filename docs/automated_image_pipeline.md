@@ -34,7 +34,7 @@ A critical feature of this pipeline is its ability to self-bootstrap the correct
     *   Installs a minimal environment (micromamba, yq).
     *   Reads `my-spec.yaml`.
     *   Extracts the `system.nb-wrangler` repo and ref.
-    *   **Checks for Overrides:** If `NBW_DEV=1`, it looks for `dev_overrides.system.nb-wrangler`.
+     *   **Checks for Overrides:** If `$NBW_OVERRIDES_MODE` is set to `"--dev"` (the default), it looks for `dev_overrides.system.nb-wrangler`.
 3.  **Self-Installation:** The script then clones *that specific version* of `nb-wrangler` and installs it.
 
 ### `dev_overrides`
