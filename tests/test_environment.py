@@ -175,19 +175,79 @@ class TestGetPackageFile:
         assert Path(path).exists()
 
 
-class TestRegisterEnvironment:
-    def test_command_contains_kernel_install(self, tmp_path):
+class TestJupyterKernelExists:
+    def _proc(self, stdout="", rc=0):
+        return CompletedProcess(
+            ["jupyter", "kernelspec", "list"], returncode=rc, stdout=stdout, stderr=""
+        )
+
+    def test_present_returns_true(self, tmp_path):
         from nb_wrangler.environment import EnvironmentManager  # noqa: F401
-        from subprocess import CompletedProcess  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        listing = json.dumps({"kernelspecs": {"RomanNexus-2026.2": {}}})
+        em.wrangler_run = MagicMock(return_value=self._proc(listing))
+        assert em._jupyter_kernel_exists("RomanNexus-2026.2") is True
+
+    def test_absent_returns_false(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        listing = json.dumps({"kernelspecs": {"other-env": {}}})
+        em.wrangler_run = MagicMock(return_value=self._proc(listing))
+        assert em._jupyter_kernel_exists("RomanNexus-2026.2") is False
+
+    def test_empty_specs_returns_false(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        em.wrangler_run = MagicMock(return_value=self._proc(json.dumps({})))
+        assert em._jupyter_kernel_exists("RomanNexus-2026.2") is False
+
+    def test_nonzero_returncode_returns_false(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        em.wrangler_run = MagicMock(return_value=self._proc(rc=1))
+        assert em._jupyter_kernel_exists("RomanNexus-2026.2") is False
+
+    def test_unparseable_output_returns_false(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        em.wrangler_run = MagicMock(return_value=self._proc(stdout="not json <<</"))
+        assert em._jupyter_kernel_exists("RomanNexus-2026.2") is False
+
+
+class TestRegisterEnvironment:
+    """Tests for EnvironmentManager.register_environment / unregister_environment."""
+
+    def test_register_emits_ipykernel_install(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+        from unittest.mock import MagicMock as _MagicMock  # noqa: F811
 
         from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
 
-        mock_result = MagicMock()
+        mock_result = _MagicMock()
         em.env_run = MagicMock(return_value=mock_result)
-        # Patch handle_result to return True, since real CompletedProcess won't match
         original_handle = type(em).handle_result
 
         def fake_handle(self, result, fail, success="", error_func=None):
@@ -196,18 +256,108 @@ class TestRegisterEnvironment:
         import nb_wrangler.environment as env_mod
 
         env_mod.EnvironmentManager.handle_result = fake_handle
-
         try:
-            result = em.register_environment("myenv", "My Env", {"KEY": "val"})
+            assert em.register_environment("myenv", "My Env", {"KEY": "val"}) is True
         finally:
             env_mod.EnvironmentManager.handle_result = original_handle
 
-        assert result is True
+        cmd = em.env_run.call_args[0][1] if em.env_run.call_args else ""
+        joined = " ".join(cmd) if isinstance(cmd, list) else str(cmd)
+        assert "ipykernel" in joined and "install" in joined
 
-        # Verify the command contains ipykernel install
-        call_args = em.env_run.call_args
-        cmd = call_args[0][1] if call_args else ""
-        assert "ipykernel" in cmd or "install" in cmd
+    def test_unregister_when_spec_missing_is_tolerant(self, tmp_path):
+        """Reset scenarios: missing kernel spec must not error. Regression for
+        the 'Couldn't find kernel spec(s)' ERROR+WARNING escalation."""
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        listing = json.dumps({"kernelspecs": {}})
+
+        # _jupyter_kernel_exists should consult this; uninstall must NOT be invoked.
+        calls = []
+
+        def fake_wrangler_run(cmd, **keys):
+            calls.append(str(cmd))
+            return CompletedProcess(["jupyter"], 0, stdout=listing)
+
+        em.wrangler_run = MagicMock(side_effect=fake_wrangler_run)
+        result = em.unregister_environment("RomanNexus-2026.2")
+
+        # The kernelspec list probe ran exactly once (no uninstall issued), and the
+        # call was flagged via logger.warning even with a mocked logger. Behavioural
+        # contract is what matters here, not the boolean (logger is mocked).
+        assert result  # truthy under real logger; warning() path taken
+        em.logger.warning.assert_called_once()
+        assert all("uninstall" not in c for c in calls)
+
+    def test_unregister_when_spec_present_runs_uninstall(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        listing = json.dumps({"kernelspecs": {"RomanNexus-2026.2": {}}})
+
+        calls = []
+
+        def fake_wrangler_run(cmd, **keys):
+            calls.append(cmd)
+            # First call: kernelspec list ; second: uninstall (return success).
+            if "list" in cmd:
+                return CompletedProcess(
+                    ["jupyter"], 0, stdout=listing
+                )
+            return CompletedProcess(["jupyter"], 0, stdout="Uninstalled.")
+
+        em.wrangler_run = MagicMock(side_effect=fake_wrangler_run)
+        original_handle = type(em).handle_result
+        seen = {"called": False}
+
+        def fake_handle(self, result, fail, success="", error_func=None):
+            seen["called"] = True
+            return True
+
+        import nb_wrangler.environment as env_mod
+
+        env_mod.EnvironmentManager.handle_result = fake_handle
+        try:
+            assert em.unregister_environment("RomanNexus-2026.2") is True
+        finally:
+            env_mod.EnvironmentManager.handle_result = original_handle
+
+        assert seen["called"]  # handle_result was used for uninstall path
+        # The list probe must have run before the uninstall command.
+        list_idx = next(i for i, c in enumerate(calls) if "list" in str(c))
+        unreg_idx = next(i for i, c in enumerate(calls) if "uninstall" in str(c))
+        assert list_idx < unreg_idx
+
+    def test_unregister_propagates_failure_when_uninstall_fails(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F811,F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+        listing = json.dumps({"kernelspecs": {"RomanNexus-2026.2": {}}})
+
+        calls = []
+
+        def fake_wrangler_run(cmd, **keys):
+            calls.append(cmd)
+            if "list" in cmd:
+                return CompletedProcess(["jupyter"], 0, stdout=listing)
+            # Uninstall fails (e.g. permission error).
+            return CompletedProcess(
+                ["jupyter"], 1, stdout="", stderr="permission denied"
+            )
+
+        em.wrangler_run = MagicMock(side_effect=fake_wrangler_run)
+        result = em.unregister_environment("RomanNexus-2026.2")
+        assert result is False   # genuine failure still surfaces
 
 
 class TestConditionCmd:

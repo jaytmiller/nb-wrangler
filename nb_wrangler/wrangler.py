@@ -968,6 +968,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not self.resolved_kname:
             return self.logger.warning("No kernel name found to delete. Skipping.")
 
+        # unregister_environment is tolerant of a missing kernel spec (it warns and
+        # returns True on "not found"), so this branch now only fires for genuine
+        # uninstall failures rather than benign reset/cleanup cases.
         if not self.env_manager.unregister_environment(self.resolved_kname):
             self.logger.warning(
                 f"Failed to unregister environment {self.resolved_kname}. This can be normal if it was never registered."

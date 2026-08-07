@@ -371,20 +371,63 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             f"Registered environment {env_name} as a jupyter kernel making it visible to JupyterLab as '{display_name}'.",
         )
 
+    def _jupyter_kernel_exists(self, env_name: str) -> bool:
+        """Return True IFF a Jupyter kernel spec named ``env_name`` is registered.
+
+        This asks Jupyter directly via ``jupyter kernelspec list --json``. It must be
+        used instead of ``environment_exists`` for kernel unregister decisions because
+        that method only checks whether the *conda environment* exists and says nothing
+        about whether its kernel spec was ever installed (or in which data dir). The two
+        lookups can disagree, e.g. during --reset-curation where the conda env still
+        physically exists but no user-level kernel spec is present to uninstall.
+        """
+        cmd = "jupyter kernelspec list --json"
+        result = self.wrangler_run(cmd, check=False)
+        if not isinstance(result, CompletedProcess):
+            return False
+        if getattr(result, "returncode", 0) != 0:
+            return False
+        stdout = getattr(result, "stdout", None) or ""
+        try:
+            specs = json.loads(stdout).get("kernelspecs", {}) if stdout else {}
+        except (ValueError, TypeError):
+            self.logger.debug(
+                f"Could not parse 'jupyter kernelspec list' output for {env_name}."
+            )
+            return False
+        exists = env_name in specs
+        self.logger.debug(
+            f"Kernel spec existence check for {env_name}: {exists} "
+            f"(known={list(specs)})."
+        )
+        return exists
+
     def unregister_environment(self, env_name: str) -> bool:
-        """Unregister Jupyter environment for the environment."""
-        if self.environment_exists(env_name):
-            cmd = f"jupyter kernelspec uninstall -y {env_name}"
-            result = self.wrangler_run(cmd, check=False)
-            return self.handle_result(
-                result,
-                f"Failed to unregister Jupyter kernel {env_name}: ",
-                f"Unregistered Jupyter kernel {env_name}. Environment {env_name} still exists but is no longer offered by JupyterLab.",
-            )
-        else:
+        """Unregister Jupyter kernel spec named ``env_name`` if present.
+
+        Reset/cleanup workflows should be tolerant of a missing kernel spec rather than
+        failing hard: an environment can legitimately exist without having been
+        registered (and can even have failed to register in an earlier run). Previously
+        this guarded on whether the *conda env* existed and then unconditionally ran
+        ``jupyter kernelspec uninstall``, which fails with "Couldn't find kernel spec(s)"
+        whenever registration lived elsewhere or never happened, escalating to a bogus
+        ERROR. Now we probe for the actual kernel spec first and skip quietly (as a
+        warning) when there is nothing to remove.
+        """
+        if not self._jupyter_kernel_exists(env_name):
             return self.logger.warning(
-                f"Skipping --env-unregister for {env_name} that wrangler does not believe exists."
+                f"Skipping kernel spec uninstall for {env_name} "
+                f"(no registered Jupyter kernel with that name). This can be normal "
+                f"during --reset-curation when the environment was never registered."
             )
+        cmd = self._condition_cmd(f"jupyter kernelspec uninstall -y {env_name}")
+        result = self.wrangler_run(cmd, check=False)
+        return self.handle_result(
+            result,
+            f"Failed to unregister Jupyter kernel {env_name}: ",
+            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} "
+            f"is no longer offered by JupyterLab.",
+        )
 
     def environment_exists(self, env_name: str) -> bool:
         """Return True IFF `env_name` exists."""
