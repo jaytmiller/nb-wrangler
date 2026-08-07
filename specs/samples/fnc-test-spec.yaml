@@ -6,17 +6,17 @@ image_spec_header:
   display_name: TESS
   description: |
     This is a beta test of the latest TIKE packages. Use at your own risk!
-  valid_on: 2025-07-02
-  expires_on: 2025-10-02
+  valid_on: '2025-07-02'
+  expires_on: '2025-10-02'
   python_version: 3.11.13
 
 repositories:
   tike_content:
     url: https://github.com/spacetelescope/tike_content
     ref: main
-  mast_notebooks:
-    url: https://github.com/spacetelescope/mast_notebooks
-    ref: main
+  # ----- mast_notebooks:
+  # -----   url: https://github.com/spacetelescope/mast_notebooks
+  # -----   ref: main
 
 selected_notebooks:
   tike_lcviz_tutorial:
@@ -25,7 +25,7 @@ selected_notebooks:
     include_subdirs:
       - .
     tests:
-      papermill: false
+      papermill: 'False'
   tike_data_access:
     repo: tike_content
     root_directory: content/notebooks/data-access/
@@ -43,18 +43,18 @@ selected_notebooks:
     root_directory: content/notebooks/zooniverse_view_lightcurve/
     include_subdirs:
       - .
-  mast_tess_beginner:
-    repo: mast_notebooks
-    root_directory: notebooks/TESS
-    include_subdirs:
-      - beginner_how_to_use_lc
-      - beginner_tour_lc_tp
-  mast_kepler_identifying:
-    repo: mast_notebooks
-    root_directory: notebooks/Kepler
-    include_subdirs:
-      - identifying_transiting_planet_signals
-      - instrumental_noise_4_electronic_noise
+  # ----- mast_tess_beginner:
+  # -----   repo: mast_notebooks
+  # -----   root_directory: notebooks/TESS
+  # -----   include_subdirs:
+  # -----     - beginner_how_to_use_lc
+  # -----     - beginner_tour_lc_tp
+  # ----- mast_kepler_identifying:
+  # -----   repo: mast_notebooks
+  # -----   root_directory: notebooks/Kepler
+  # -----   include_subdirs:
+  # -----     - identifying_transiting_planet_signals
+  # -----     - instrumental_noise_4_electronic_noise
 
 extra_mamba_packages:
   - pip
@@ -62,7 +62,7 @@ extra_pip_packages:
   - boto3
 
 system:
-  spec_version: 2.0
+  spec_version: '2.0'
   archive_format: .tar
   primary_repo: spacetelescope/mast_notebooks
   spi:
@@ -71,8 +71,8 @@ system:
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-  spec_sha256: a55818aacb7b9e7ac426bde4cf8d615bbc8e7982223eef625a64dcaef68b4c14
-  date_updated: '2026-05-15T15:26:47.928533'
+  spec_sha256: d9a01105fb185a42a08ee4d24734e5d1be29d3542bf404a36f25c66126864484
+  date_updated: '2026-08-07T15:45:45.796304'
 
 refdata_dependencies:
   install_files:
