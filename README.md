@@ -67,8 +67,14 @@ To get started, bootstrap `nb-wrangler` to create the necessary environments and
 ```bash
 curl https://raw.githubusercontent.com/spacetelescope/nb-wrangler/refs/heads/main/nb-wrangler >nb-wrangler
 chmod +x nb-wrangler
-./nb-wrangler bootstrap
+./nb-wrangler bootstrap [<wrangler-spec>.yaml]
 ```
+
+**Advanced**: If you specify the optional wrangler spec then the bootstrap will
+use the wrangler source code from the repository and/or ref specified in the
+spec, whether it is the production version or a dev version specified under
+*dev_overrides*.  This is important when doing wrangler development to enable
+you to work off your own fork or a branch.
 
 After bootstrapping, you can activate and/or reactivate the `nbwrangler` environment with:
 
