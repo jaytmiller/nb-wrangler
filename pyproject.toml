@@ -57,4 +57,3 @@ include = [
 
 [project.scripts]
 nbw = "nb_wrangler.cli:main"
-nb-wrangler = "nb_wrangler.cli:main"
