@@ -345,6 +345,33 @@ class TestSystemValidation:
         validator, mock_sm = _make_bad_validator(tmp_path, spec)
         assert validator.validate() is False
 
+    def test_newer_spec_version_warns(self, tmp_path):
+        # A spec version greater than WRANGLER_SPEC_VERSION should produce a warning.
+        from nb_wrangler.constants import WRANGLER_SPEC_VERSION
+
+        newer = int(WRANGLER_SPEC_VERSION) + 1
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": newer,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+        }
+
+        validator, mock_sm = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is True
+        # The warning should be captured in the logger's warnings list.
+        warn_msgs = [str(w) for w in validator.logger.warnings]
+        assert any("newer than supported" in m for m in warn_msgs)
+
 
 class TestSpiSectionValidation:
     def test_missing_spi_section(self, tmp_path):

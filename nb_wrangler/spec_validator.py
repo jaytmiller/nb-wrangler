@@ -289,6 +289,11 @@ class SpecValidator(WranglerLoggable):
                     self.logger.warning(
                         f"Spec version {version} is deprecated. Consider updating to {WRANGLER_SPEC_VERSION}."
                     )
+                elif version > WRANGLER_SPEC_VERSION:
+                    self.logger.warning(
+                        f"Spec version {version} is newer than supported "
+                        f"{WRANGLER_SPEC_VERSION}. Some features may not be recognized."
+                    )
             except (ValueError, TypeError):
                 no_errors = self.logger.error("spec_version must be a float or number.")
 
