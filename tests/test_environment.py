@@ -308,9 +308,7 @@ class TestRegisterEnvironment:
             calls.append(cmd)
             # First call: kernelspec list ; second: uninstall (return success).
             if "list" in cmd:
-                return CompletedProcess(
-                    ["jupyter"], 0, stdout=listing
-                )
+                return CompletedProcess(["jupyter"], 0, stdout=listing)
             return CompletedProcess(["jupyter"], 0, stdout="Uninstalled.")
 
         em.wrangler_run = MagicMock(side_effect=fake_wrangler_run)
@@ -357,7 +355,7 @@ class TestRegisterEnvironment:
 
         em.wrangler_run = MagicMock(side_effect=fake_wrangler_run)
         result = em.unregister_environment("RomanNexus-2026.2")
-        assert result is False   # genuine failure still surfaces
+        assert result is False  # genuine failure still surfaces
 
 
 class TestConditionCmd:

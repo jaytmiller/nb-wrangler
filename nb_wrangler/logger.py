@@ -11,8 +11,10 @@ from pprint import pformat
 # from typing import Optional
 from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:  # avoid circular import at module load; only resolved for type-checkers
-    from . import config
+if (
+    TYPE_CHECKING
+):  # avoid circular import at module load; only resolved for type-checkers
+    from . import config  # noqa: F401
 
 
 from . import utils
@@ -265,21 +267,21 @@ class WranglerLogger:
         return pformat(*args, **keys)
 
     @classmethod
-    def from_config(cls, config) -> "WranglerLogger":
+    def from_config(cls, cfg) -> "WranglerLogger":
         """Create a WranglerLogger from a WranglerConfig.
 
         Args:
-            config: WranglerConfig instance
+            cfg: WranglerConfig instance
 
         Returns:
-            WranglerLogger instance configured from the config
+            WranglerLogger instance configured from the cfg
         """
         return cls(
-            verbose=config.verbose,
-            quiet=config.quiet,
-            debug_mode=config.debug,
-            log_times=config.log_times,
-            color=config.color,
+            verbose=cfg.verbose,
+            quiet=cfg.quiet,
+            debug_mode=cfg.debug,
+            log_times=cfg.log_times,
+            color=cfg.color,
         )
 
 
@@ -297,7 +299,8 @@ def get_configured_logger():
     """
     global _LOGGER
     if _LOGGER is None:
-        from . import config  # deferred to avoid circular import at module load time
+        # deferred to avoid circular import at module load time
+        from . import config  # noqa: 811
 
         _LOGGER = WranglerLogger.from_config(config.get_args_config())
     return _LOGGER

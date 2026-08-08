@@ -9,8 +9,7 @@ import argparse
 if (
     TYPE_CHECKING
 ):  # avoid circular import at module load; only resolved for type-checkers
-    from .logger import get_configured_logger  # noqa: F401
-
+    from .logger import get_configured_logger
 from .constants import (
     NBW_ROOT,
     NBW_MAMBA_CMD,
@@ -313,7 +312,7 @@ class WranglerConfig:
                 raise ValueError(
                     f"favor_commands has an invalid value: '{self.favor_commands}'"
                 )
-        from .logger import (  # noqa: F811
+        from .logger import (
             get_configured_logger,
         )  # deferred to avoid circular import at load time
 
