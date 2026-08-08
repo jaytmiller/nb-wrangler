@@ -110,6 +110,28 @@
 - `specs/roman/astroquery-mast-test.yaml`
 - `specs/jwebbinar/jwebbinar-50.yaml`
 
+**Spec Validation & Version Awareness**
+- Added warning when a spec's `system.spec_version` is greater than `WRANGLER_SPEC_VERSION`, signaling that the wrangler version may not recognize all features in the newer spec format — a prompt to upgrade nb-wrangler. A deprecation warning (existing behavior) still fires for older versions. Current supported version: `2.3`.
+- Added `_validate_dev_overrides_section()` allow-list validation: enforces that keywords under `dev_overrides` and `deactivated_dev_overrides` mirror the top-level spec schema, catching typos/unsupported keys early. Reuses `_check_allowed_keywords()` for recursive checking against `ALLOWED_KEYWORDS`.
+
+**Package-List Dev Overrides (full-replacement semantics)**
+- Added `extra_mamba_packages`, `common_mamba_packages`, `extra_pip_packages`, `common_pip_packages`, and `apt_packages` to the `_OVERRIDES_SCHEMA` whitelist. When present under `dev_overrides` in `--dev` mode, these lists **replace** (rather than append to) their top-level counterparts via new `_overridden_list()` helper on `SpecManager`. In `--prod` mode overrides are never consulted. Empty override list clears the base entirely.
+- Added validation tests and extended property-behavior tests (`TestPackageListDevOverrides`, `TestDevOverridesValidation`) in spec_manager/spec_validator test suites.
+
+**Sample Spec Updates**
+- Updated `specs/samples/RomanNexus-2026.2.yaml` to illustrate latest spec format (version 2.3) extensions, including new package-list override support and cleaned dev_overrides sections.
+- Added the same spec initially in a prior commit as the baseline 2026.2 Roman spec for tagging dev.
+
+**Asset Injection / Injector Refinements**
+- Simplified `install-assets.sh` generated code by removing unnecessary if/else branching that checked whether `/opt/environments` is a directory; simplified to just `mkdir -p "$(dirname ...)" + cp`. Destination construction distinguishes directory vs file destinations using `destination.endswith('/')` instead of runtime `os.path.isdir`/`endswith('/)` checks.
+- Added auto-cleanup code appended to end of generated `install-assets.sh`: removes the `/opt/environments/assets` staging directory and `install-assets.sh` itself after execution, eliminating build artifacts clutter.
+
+**Environment & Reset Curation Fixes**
+- Fixed issue with deleting environments during `--reset-curation`; environment teardown now handles edge cases more gracefully (additional tests added to `test_environment.py`).
+
+**Test Infrastructure**
+- Added/updated tests for config (`--data-clean-symlinks`), utilities, constants, logger, environment handling.
+
 ---
 
 **v0.8.1 Change Notes** (62 commits, ~5.9k lines added, ~1.4k lines deleted)

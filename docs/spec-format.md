@@ -212,7 +212,10 @@ A block of text that will be written to `environments/dockerfile-aux.sh` as-is d
 ### **system**
 This section contains specifications for the system environment. It is updated by `nbw` automatically and should rarely need curator updates.
 
-   - **spec_version**: The version of the specification being used (e.g., `1.0`).
+   - **spec_version**: The version of the specification being used (e.g., `2.3`). nb-wrangler validates this against its supported `WRANGLER_SPEC_VERSION`:
+      - A spec version equal to `WRANGLER_SPEC_VERSION` is fully supported.
+      - An older version triggers a deprecation warning suggesting an update.
+      - A newer version triggers a warning that some features may not be recognized and nb-wrangler should be upgraded. See [Spec Validation](#spec-validation).
    - **archive_format**: The format used for archiving environments (e.g., `.tar`).
    - **primary_repo**: The name of the primary repository (must match a key in the `repositories` section). This repository is treated as the "owner" of the spec and is used to drive automated workflows.
    - **nb-wrangler**: A dictionary specifying the `nb-wrangler` repository to use for the curation process.
@@ -304,5 +307,23 @@ assets:
 
 This example clones the repository, copies all files under `models/` into `/opt/app/models/`, and places a single configuration file at `/opt/app/config/model.yaml`.
 
+### **Package-List Dev Overrides**
 
-   
+In addition to overriding scalar/section values (repositories, data definitions, SPI refs), `dev_overrides` also supports full-replacement overrides for the five top-level package-list fields: `extra_mamba_packages`, `common_mamba_packages`, `extra_pip_packages`, `common_pip_packages`, and `apt_packages`.
+
+When a package list appears under `dev_overrides` **and** `--dev` mode is active, it **replaces** (rather than appends to) the top-level value. An empty override list clears the base list entirely. In `--prod` mode these overrides are ignored and the top-level lists are used as-is.
+
+```yaml
+# Production spec: base package set
+extra_pip_packages:
+  - boto3
+common_pip_packages:
+  - bqplot>=0.12.47,<0.13
+
+dev_overrides:
+  extra_pip_packages:          # replaces top-level list in --dev mode only
+    - my-dev-fork-pkg @ git+https://github.com/myorg/boto3.git@feature-branch
+  common_pip_packages: []       # clears all common pip packages for dev testing
+```
+
+These keys are validated against the spec's keyword allow-list, so unknown keywords inside a `dev_overrides` block (e.g. typos like `extra_mamba_package`) will produce an error during validation.

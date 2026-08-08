@@ -343,7 +343,7 @@ For a full list of options, run `nbw --help`.
 `nb-wrangler` uses several input formats to define the environment:
 
 - **Notebook (`.ipynb`):** Jupyter notebooks.
-- **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md) for details on the new format, which uses a `repositories` dictionary and named `selected_notebooks` blocks.
+- **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md) for details on the current spec format (version 2.3), which uses a `repositories` dictionary, named `selected_notebooks` blocks, top-level package lists, optional `assets`, `environment_vars`, `test_environment_vars`, and nested `system.commands` overrides.
 - **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks)
 - **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).

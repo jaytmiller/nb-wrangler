@@ -30,7 +30,7 @@ make lint/mypy
 ## Architecture
 - `nb_wrangler/` and sub-packages contains application packages
 - `tests/` uses fakes; integration tests must not call external services by default.
-- sample-specs contains sample nb-wrangler specs
+- sample-specs contains sample nb-wrangler specs (e.g. `specs/samples/RomanNexus-2026.2.yaml`)
 - the nbw alias script supports running nb_wrangler.main
 - the nb-wrangler script optionally supports bootstrapping an nb-wrangler environment
 - the nb-wrangler script optionally supports configuring the shell environment for nb-wrangler
