@@ -18,6 +18,14 @@ _OVERRIDES_SCHEMA: dict[str, Any] = {
     "refdata_dependencies": ["install_files", "other_variables"],
     "environment_vars": None,
     "override_pip_versions": [],
+    # Package-list overrides: when present under dev_overrides these *replace* the
+    # top-level list entirely (full-replacement semantics). Whitelisted here so
+    # validation accepts them and runtime properties read them via _overridden_list.
+    "extra_mamba_packages": None,
+    "common_mamba_packages": None,
+    "extra_pip_packages": None,
+    "common_pip_packages": None,
+    "apt_packages": None,
     "system": {
         "commands": {"mamba": None, "pip": None, "favor": None},
         "spi": {"repo": None, "ref": None},
@@ -63,6 +71,17 @@ class SpecManager(
             merged.update(dev)
             return merged
         return base
+
+    def _overridden_list(self, spec_key: str) -> list[str]:
+        """Return a top-level package-list value replaced by its dev override.
+
+        Full-replacement semantics: when in --dev mode and ``dev_overrides.<spec_key>``
+        exists and is a list/tuple it **replaces** the base value entirely; otherwise
+        falls through to the base spec value. No append/dedupe performed.
+        """
+        if (dev := self._get_dev_value([spec_key])) is not None:
+            return list(dev)
+        return list(self._spec.get(spec_key) or [])
 
     # ---------------------------- Image header properties -------------------
     @property
@@ -186,23 +205,23 @@ class SpecManager(
     # ---------------------------- Package properties ------------------------
     @property
     def extra_mamba_packages(self) -> list[str]:
-        return list(self._spec.get("extra_mamba_packages") or [])
+        return self._overridden_list("extra_mamba_packages")
 
     @property
     def common_mamba_packages(self) -> list[str]:
-        return list(self._spec.get("common_mamba_packages") or [])
+        return self._overridden_list("common_mamba_packages")
 
     @property
     def extra_pip_packages(self) -> list[str]:
-        return list(self._spec.get("extra_pip_packages") or [])
+        return self._overridden_list("extra_pip_packages")
 
     @property
     def common_pip_packages(self) -> list[str]:
-        return list(self._spec.get("common_pip_packages") or [])
+        return self._overridden_list("common_pip_packages")
 
     @property
     def apt_packages(self) -> list[str]:
-        return list(self._spec.get("apt_packages") or [])
+        return self._overridden_list("apt_packages")
 
     @property
     def has_apt_packages(self) -> bool:

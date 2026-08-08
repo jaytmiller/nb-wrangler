@@ -223,6 +223,88 @@ class TestEnvironmentVarsField:
         assert env_vars["FOO"] == "base_value"
 
 
+class TestPackageListDevOverrides:
+    """Verify the five package-list properties honor dev_overrides as full replacements."""
+
+    _PROPS = (
+        "extra_mamba_packages",
+        "common_mamba_packages",
+        "extra_pip_packages",
+        "common_pip_packages",
+        "apt_packages",
+    )
+
+    def test_override_replaces_base_in_dev_mode(self, tmp_path):
+        # base [a] + dev_override [b] -> property yields [b]; base dropped.
+        for prop in self._PROPS:
+            sm = self._build_sm(
+                tmp_path,
+                spec_overrides={prop: ["base_pkg"]},
+                dev=True,
+                dev_overrides={prop: ["dev_pkg"]},
+            )
+            result = getattr(sm, prop)
+            assert result == ["dev_pkg"], f"{prop}: expected override-only list"
+
+    def test_no_override_resolves_to_base(self, tmp_path):
+        # Without a same-named dev override the base value is returned verbatim.
+        for prop in self._PROPS:
+            sm = self._build_sm(
+                tmp_path,
+                spec_overrides={prop: ["base_pkg"]},
+                dev=True,
+                dev_overrides={"environment_vars": {"FOO": "bar"}},
+            )
+            result = getattr(sm, prop)
+            assert result == ["base_pkg"], f"{prop}: expected base list"
+
+    def test_prod_mode_ignores_override(self, tmp_path):
+        # In prod mode the override is never consulted, even when present.
+        for prop in self._PROPS:
+            sm = self._build_sm(
+                tmp_path,
+                spec_overrides={prop: ["base_pkg"]},
+                dev=False,
+                dev_overrides={prop: ["dev_pkg"]},
+            )
+            result = getattr(sm, prop)
+            assert result == ["base_pkg"], f"{prop}: prod must use base list"
+
+    def test_override_empty_list_replaces_base(self, tmp_path):
+        # A full override semantics means an empty dev list clears the base.
+        for prop in self._PROPS:
+            sm = self._build_sm(
+                tmp_path,
+                spec_overrides={prop: ["base_pkg"]},
+                dev=True,
+                dev_overrides={prop: []},
+            )
+            result = getattr(sm, prop)
+            assert result == [], f"{prop}: empty override should clear base"
+
+    def _build_sm(self, tmp_path, spec_overrides=None, dev=False, dev_overrides=None):
+        spec_dict = _make_valid_spec_dict()
+        if spec_overrides:
+            for k, v in spec_overrides.items():
+                # Ensure the key sits at top level where properties read it.
+                spec_dict[k] = v
+        if dev_overrides is not None:
+            spec_dict["dev_overrides"] = dev_overrides
+
+        from nb_wrangler.spec_manager import SpecManager
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=dev)
+        )
+        sm = SpecManager()
+
+        spec_file = tmp_path / f"spec-{id(spec_dict)}.yaml"
+        spec_file.write_text(yaml.dump(spec_dict, default_flow_style=False))
+        assert sm.load_spec(spec_file) is True
+        return sm
+
+
 class TestTestEnvVarsField:
     def test_test_env_vars_in_allowed_keywords(self, tmp_path):
         from nb_wrangler.spec_manager import SpecManager

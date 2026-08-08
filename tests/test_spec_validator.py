@@ -365,3 +365,150 @@ class TestSpiSectionValidation:
 
         validator, mock_sm = _make_bad_validator(tmp_path, spec)
         assert validator.validate() is False
+
+
+class TestDevOverridesValidation:
+    """Tests for the dev_overrides / deactivated_dev_overrides allow-list validation."""
+
+    def test_clean_dev_overrides_section_is_valid(self, tmp_path):
+        # Regression for the happy dev path: known keys only -> validate True.
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "dev_overrides": {
+                "repositories": {"rom": {"url": "u", "ref": "dev"}},
+                "system": {"spi": {"ref": "dev"}, "primary_repo": "rom"},
+                # Legit list-package override (per Task 1 extended schema)
+                "common_pip_packages": ["git+https://example.com/nbw.git@dev"],
+            },
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is True
+
+    def test_unknown_override_key_rejected(self, tmp_path):
+        # The exact reported bug: "common_pip" typo must now fail loudly.
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "dev_overrides": {"common_pip": ["git+https://example.com/x@dev"]},  # typo!
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is False
+
+    def test_list_package_override_accepted_not_rejected(self, tmp_path):
+        # Guards against over-tightening: a known extended list key must validate.
+        for prop in (
+            "extra_mamba_packages",
+            "common_mamba_packages",
+            "extra_pip_packages",
+            "common_pip_packages",
+            "apt_packages",
+        ):
+            spec = {
+                "image_spec_header": {
+                    "image_name": "t",
+                    "kernel_name": "k",
+                    "deployment_name": "w",
+                    "python_version": "3.12",
+                },
+                "repositories": {},
+                "system": {
+                    "spec_version": 2.3,
+                    "spi": {"repo": "r"},
+                    "nb-wrangler": {"repo": "r"},
+                    "date_updated": "x",
+                },
+                "dev_overrides": {prop: ["pkg"]},
+            }
+            validator, _ = _make_bad_validator(tmp_path, spec)
+            assert validator.validate() is True, f"{prop} override should validate"
+
+    def test_unknown_nested_override_key_rejected(self, tmp_path):
+        # Recurse into system -> commands and reject unknown sub-key.
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "dev_overrides": {
+                "system": {
+                    "commands": {"mamba": None, "bogus_cmd": None}
+                }  # bad sub-key
+            },
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is False
+
+    def test_deactivated_dev_overrides_validated_identically(self, tmp_path):
+        # The second override section must be checked just like dev_overrides.
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "deactivated_dev_overrides": {
+                "common_pip": ["git+https://example.com/x@dev"]
+            },
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is False
+
+    def test_no_override_section_is_valid(self, tmp_path):
+        # Absence of both override sections must remain valid (no false positives).
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is True

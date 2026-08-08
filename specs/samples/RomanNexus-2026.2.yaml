@@ -126,24 +126,26 @@ test_environment_vars:
 # If defined, these replace defaults while in --dev development mode.
 # --dev mode is the default for --curate and enables these
 # --prod mode is the default for --reinstall and disables these.
+# NOTE: dev_overrides mirrors top-level sections; list overrides (e.g.
+# common_pip_packages) REPLACE the base value entirely in --dev mode. Use the
+# exact key name from the top level (common_pip_packages, not "common_pip").
 dev_overrides:
-  commands:
+  system:
     # default is "uv pip".  SPI had to use pip.  pip not picky about pyproject.toml version;  uv crashes
-    pip: pip
+    commands: {pip: pip}
     # choose this over any env var setting but not CLI
     favor: spec
-  repositories:
-    roman_notebooks:
-      url: https://github.com/spacetelescope/roman_notebooks.git
-      ref: main  # not 2026.2
-  system:
     spi:
       repo: https://github.com/jaytmiller/science-platform-images.git
       ref: dev
     nb-wrangler:
       repo: https://github.com/jaytmiller/nb-wrangler.git
       ref: dev
-  common_pip:
+  repositories:
+    roman_notebooks:
+      url: https://github.com/spacetelescope/roman_notebooks.git
+      ref: main  # not 2026.2
+  common_pip_packages:
     - git+https://github/jaytmiller/nb-wrangler.git@dev
 
 # ----------------------------------------------------------------------------------

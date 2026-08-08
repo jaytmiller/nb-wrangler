@@ -18,6 +18,7 @@ class SpecValidator(WranglerLoggable):
 
         validated = (
             self._validate_top_level_structure()
+            and self._validate_dev_overrides_section()
             and self._validate_environment_spec()
             and self._validate_repositories_section()
             and self._validate_refdata_dependencies_section()
@@ -343,4 +344,47 @@ class SpecValidator(WranglerLoggable):
                 no_errors = self.logger.error(
                     f"Missing required field in nb-wrangler section: {field}"
                 )
+        return no_errors
+
+    def _check_allowed_keywords(self, value, allowed, path_desc) -> bool:
+        """Recursively check dict keys against an allow-list schema.
+
+        ``allowed`` mirrors the shape of :data:`spec_manager._OVERRIDES_SCHEMA`: each key is a known
+        keyword; the corresponding value is either ``None``/[] (scalar/list leaf — key membership only), or
+        a dict describing permitted sub-keys (which are checked recursively). Only **key names** are validated
+        here; override values themselves are intentionally not content-validated since overrides may be partial
+        (e.g. overriding just `ref` for a repo is legitimate).
+
+        Returns True if no unknown keywords were found beneath ``value``.
+        """
+        no_errors = True
+        if not isinstance(value, dict) or allowed is None:
+            # Leaf value (list/scalar override like extra_mamba_packages: [...]) — nothing to recurse.
+            return no_errors
+        for key in value:
+            child_allowed = allowed.get(key)
+            if key not in allowed:
+                no_errors = self.logger.error(
+                    f"Unknown keyword '{key}' under overrides section '{path_desc}'."
+                )
+            elif isinstance(child_allowed, dict):
+                # Recurse into nested sub-block (e.g. system -> commands / spi / nb-wrangler).
+                child_path = f"{path_desc}.{key}" if path_desc else key
+                no_errors &= self._check_allowed_keywords(
+                    value[key], child_allowed, child_path
+                )
+        return no_errors
+
+    def _validate_dev_overrides_section(self) -> bool:
+        """Validate keyword allow-listing within dev override sections (partial merges)."""
+        no_errors = True
+        for section_name in ("dev_overrides", "deactivated_dev_overrides"):
+            # Direct access is fine: _validate_top_level_structure already ensured these are known keys.
+            spec_section = getattr(self.sm, "_spec", {}).get(section_name)
+            if not isinstance(spec_section, dict):
+                continue  # section absent or empty -> nothing to validate (allowed for either override set).
+            schema = self.sm.ALLOWED_KEYWORDS.get(section_name, {}) or {}
+            no_errors &= self._check_allowed_keywords(
+                spec_section, schema, f"{section_name}"
+            )
         return no_errors
