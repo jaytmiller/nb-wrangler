@@ -3,10 +3,11 @@
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 import argparse
 
-from .logger import get_configured_logger
+if TYPE_CHECKING:  # avoid circular import at module load; only resolved for type-checkers
+    from .logger import get_configured_logger
 from .constants import (
     NBW_ROOT,
     NBW_MAMBA_CMD,
@@ -309,6 +310,7 @@ class WranglerConfig:
                 raise ValueError(
                     f"favor_commands has an invalid value: '{self.favor_commands}'"
                 )
+        from .logger import get_configured_logger  # deferred to avoid circular import at load time
         logger = get_configured_logger()
         logger.debug(f"{field_name} is set to {getattr(self, field_name)}.")
 

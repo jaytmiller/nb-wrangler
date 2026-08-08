@@ -9,7 +9,10 @@ import datetime
 from pprint import pformat
 
 # from typing import Optional
-from . import config
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # avoid circular import at module load; only resolved for type-checkers
+    from . import config
 
 
 from . import utils
@@ -286,9 +289,16 @@ _LOGGER = None
 def get_configured_logger():
     """Return a logger associated with the current command line arguments
     which define things like debugging, verbosity, colorization, and log times.
+
+    Imports `config` here (rather than at module top) to break the circular
+    dependency between ``nb_wrangler.logger`` and ``nb_wrangler.config``. The
+    import is deferred until first use, by which point both modules are fully
+    initialized regardless of load order. A singleton is cached in ``_LOGGER``.
     """
     global _LOGGER
     if _LOGGER is None:
+        from . import config  # deferred to avoid circular import at module load time
+
         _LOGGER = WranglerLogger.from_config(config.get_args_config())
     return _LOGGER
 
