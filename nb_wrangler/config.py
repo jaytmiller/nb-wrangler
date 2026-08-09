@@ -152,6 +152,7 @@ class WranglerConfig:
     spi_push_branch: bool = False
     spi_pr: bool = False
     spi_image_name: bool = False
+    spi_run_lab: bool = False
 
     docker_pull: Optional[str] = None
     docker_cat: Optional[str] = None
@@ -243,6 +244,7 @@ class WranglerConfig:
             spi_push_branch=args.spi_push_branch,
             spi_pr=args.spi_pr,
             spi_image_name=args.spi_image_name,
+            spi_run_lab=getattr(args, "spi_run_lab", False),
             docker_pull=args.docker_pull,
             docker_cat=args.docker_cat,
             docker_list=args.docker_list,

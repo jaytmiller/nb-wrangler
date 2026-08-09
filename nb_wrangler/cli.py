@@ -141,6 +141,13 @@ def parse_args():
         action="store_true",
         help="Print the image name corresponding to the current spec to stdout and exit.",
     )
+    spi_group.add_argument(
+        "--spi-run-lab",
+        action="store_true",
+        default=False,
+        dest="spi_run_lab",
+        help="Run jupyter lab in a Docker container for the SPI deployment based on the current spec.",
+    )
 
     registry_group = parser.add_argument_group(
         "Registry / Docker",

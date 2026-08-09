@@ -479,6 +479,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spi_inject_reqs, self._spi_inject_reqs),
             (self.config.spi_prune_docker, self.injector.prune),
             (self.config.spi_build_image, self.injector.build),
+            (self.config.spi_run_lab, self.injector.run_lab),
             (self.config.docker_pull is not None, self._docker_pull),
             (self.config.docker_cat is not None, self._docker_cat),
             (self.config.docker_list is not None, self._docker_list),

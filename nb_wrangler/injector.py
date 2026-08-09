@@ -9,7 +9,7 @@ from .repository import RepositoryManager
 from .spec_manager import SpecManager
 from .environment import WranglerEnvable
 from . import utils
-from .constants import DOCKER_BUILD_TIMEOUT
+from .constants import DOCKER_BUILD_TIMEOUT, IMPORT_TEST_TIMEOUT, NOTEBOOK_TEST_MAX_SECS
 
 
 def get_injector(
@@ -466,7 +466,7 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             f"Building Docker image for {self.deployment_name} in {self.spi_path} with wrangler-build script."
         )
         result = self.repo_manager.run(
-            f"scripts/wrangler-build {self.deployment_name}",
+            f"scripts/wrangler-run {self.deployment_name} image-build",
             check=False,
             cwd=self.spi_path,
             timeout=DOCKER_BUILD_TIMEOUT,
@@ -476,6 +476,40 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             result,
             f"Failed to build Docker image for {self.deployment_name} under {self.spi_path}.",
             f"Built Docker image for {self.deployment_name} under {self.spi_path}.",
+        )
+
+    def run_lab(self) -> bool:
+        self.logger.info(
+            f"Running lab for {self.deployment_name} in {self.spi_path} with run-lab script."
+        )
+        result = self.repo_manager.run(
+            f"scripts/wrangler-run {self.deployment_name} run-lab",
+            check=False,
+            cwd=self.spi_path,
+            timeout=DOCKER_BUILD_TIMEOUT,
+            output_mode="uncaught",
+        )
+        return self.env_manager.handle_result(
+            result,
+            f"Failed to run jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
+            f"Ran jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
+        )
+
+    def image_test(self) -> bool:
+        self.logger.info(
+            f"Testing {self.deployment_name} in {self.spi_path} with image-test script."
+        )
+        result = self.repo_manager.run(
+            f"scripts/wrangler-run {self.deployment_name} image-test",
+            check=False,
+            cwd=self.spi_path,
+            timeout=IMPORT_TEST_TIMEOUT + NOTEBOOK_TEST_MAX_SECS,
+            output_mode="uncaught",
+        )
+        return self.env_manager.handle_result(
+            result,
+            f"Failed to run jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
+            f"Ran jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
         )
 
     def get_spi_requirements(self, kind, glob_patterns: list[Path]) -> list[Path]:
