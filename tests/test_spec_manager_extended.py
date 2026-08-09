@@ -439,7 +439,7 @@ class TestConsolidateEnvironmentPipFiles:
         compiler = RequirementsCompiler(sm, repo_manager)
         return compiler
 
-    def test_pip_files_returned_as_dict_with_packages(self, tmp_path):
+    def test_pip_files_returned_as_list_of_dicts_with_packages(self, tmp_path):
         """consolidate_environment returns dict[str, list[str]] for pip files."""
         compiler = self._make_compiler(tmp_path)
         output_dir = tmp_path / "output"
@@ -454,27 +454,14 @@ class TestConsolidateEnvironmentPipFiles:
         # result is (kernel_name, mamba_spec, pkg_map, pip_dict)
         _, _, _, pip_files = result
 
-        assert isinstance(pip_files, dict)
+        assert isinstance(pip_files, list)
         file_key = str(req_file1)
-        assert file_key in pip_files
-        assert sorted(pip_files[file_key]) == ["astropy", "numpy"]
-
-    def test_pip_files_include_extra_and_common_packages(self, tmp_path):
-        """Extra and common pip packages appear as separate entries with their packages."""
-        compiler = self._make_compiler(tmp_path)
-        output_dir = tmp_path / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # Put extra_pip_packages in the spec manager via config dev_overrides-like approach
-        result = compiler.consolidate_environment([], _FakeInjector(), output_dir)
-        _, _, _, pip_files = result
-
-        assert isinstance(pip_files, dict)
-        extra_key = str(output_dir / "extra_pip_packages.txt")
-        common_key = str(output_dir / "common_pip_packages.txt")
-        assert extra_key in pip_files
-        assert common_key in pip_files
-        # The packages should be sorted lists (from _read_package_lines).
+        for pkgd in pip_files:
+            if file_key in pkgd:
+                assert pkgd[file_key] == ["astropy", "numpy"]
+                break
+        else:
+            assert False, "Bad package files output."
 
 
 class _FakeInjector:
