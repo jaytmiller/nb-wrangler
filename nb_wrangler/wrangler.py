@@ -783,16 +783,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _compile_pip_requirements(self) -> bool:
 
-        non_mamba_pip_pkg_files = self.spec_manager.get_output_data(
+        non_mamba_pip_package_files = self.spec_manager.get_output_data(
             "non_mamba_pip_package_files", []
         )
 
-        # The output is a dict mapping file paths to their expanded package lists.
-        pip_file_paths = (
-            list(non_mamba_pip_pkg_files.keys())
-            if isinstance(non_mamba_pip_pkg_files, dict)
-            else non_mamba_pip_pkg_files
-        )
+        pip_file_paths = []
+        for item in non_mamba_pip_package_files:
+            if isinstance(item, str):
+                pip_file_paths.append(item)  # original format,  filepath only
+            elif isinstance(item, dict):
+                pip_file_paths.append(list(item.keys())[0])  # with package lists
+            else:
+                raise RuntimeError("Unexpected out format for non_mamba_pip_package_files")
 
         if not self.compiler.compile_requirements(
             pip_file_paths,

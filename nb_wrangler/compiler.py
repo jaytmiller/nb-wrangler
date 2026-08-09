@@ -265,7 +265,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             - Resolved kernel_name
             - final_mamba_spec
             - dict[mamba pkg kind, packages]
-            - dict[non-mamba-pip-package-file-path, [packages]]
+            - list[dict[non-mamba-pip-package-file-path, [packages]]]
         """
         try:
             base_mamba_spec = self._get_base_mamba_spec()
@@ -316,7 +316,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 output_dir / "common_pip_packages.txt",
             )
             # Build a mapping of each pip package file to its expanded list of packages.
-            non_mamba_pip_req_dict: dict[str, list[str]] = {}
+            non_mamba_pip_req_list: list[dict[str, list[str]]] = []
             all_pip_files: list[Path] = []
             for req_file in notebook_req_files:
                 if req_file not in all_pip_files:
@@ -330,15 +330,14 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 all_pip_files.append(Path(common_pip_packages_file))
 
             for req_path in all_pip_files:
-                non_mamba_pip_req_dict[str(req_path)] = self._read_package_lines(
-                    req_path
-                )
+                non_mamba_pip_req_list.append(
+                    {str(req_path) : self._read_package_lines(req_path)})
 
             return (
                 kernel_name,
                 final_mamba_spec,
                 all_mamba_pkg_map,
-                non_mamba_pip_req_dict,
+                non_mamba_pip_req_list,
             )
         except Exception as e:
             return self.logger.exception(
