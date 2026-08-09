@@ -313,15 +313,24 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--color [MODE]`: Colorize log output.
 
 ### SPI Automation
-- `--spi-branch NAME`: Create a new branch in the SPI repo with this name.
-- `--spi-commit-message MESSAGE...`: Commit message for the new branch.
-- `--spi-prune-docker`: Prune old Docker images before a build.
-- `--spi-build-image`: Trigger a Docker build in the SPI repo.
+These flags automate Docker builds, testing, security scanning, and git operations during an `--inject-spi` workflow. See the [SPI Injection documentation](docs/inject-spi.md) for examples.
+
+- `--spi-branch NAME`: Create a new branch in the SPI repo with this name (auto-generated if omitted).
+- `--spi-commit-message MESSAGE...`: Commit message for the new branch. If not provided, a default message is used.
+- `--spi-image-name`: Print the image name corresponding to the current spec to stdout and exit.
+- `--spi-inject-reqs`: Copy the appropriate requirements fields from the wrangler spec into locations in the SPI repo clone.
 - `--spi-push-branch`: Push the new branch to the remote SPI repo.
 - `--spi-pr`: Create a pull request for the new branch in the SPI repo.
-- `--spi-image-name`: Print the image name corresponding to the current spec to stdout and exit.
+- `--spi-prune-docker`: Prune old Docker images before a build to free space.  Only removes SPI images.
+- `--spi-image-build`: Trigger a Docker build in the SPI repo.  REQUIRED prior to the switches below.
+- `--spi-run-lab`: Run Jupyter Lab in a Docker container for the SPI deployment based on the current spec. Choose "Shutdown Jupyter Lab" from the lab File menu to exit cleanly when you're done.
+- `--spi-image-test [PARAMS]`: Run the image-test script for the SPI deployment. `PARAMS` is an optional single string of parameters passed to the nested image-test invocation; it is split on whitespace into individual arguments (quote each parameter and any attached value, e.g. `"\"--test-notebooks --dev\""`). If present without a value, an empty parameter list is used. You must specify either no parameters (`--test-imports`) or one of `--test-imports`, `--test-notebooks`, `--test-all` as your first parameter in the string. Use the form `--spi-image-test='parameters...'` for it to parse correctly with parameters.
+- `--spi-image-scan`: Run the image-scan script for the SPI deployment, scanning the built Docker image for security vulnerabilities.
 
 ### Docker Registry
+
+These parameters are used to interact with the public image repo, currently spacetelescope GHCR nb-wrangler-images.
+
 - `--docker-pull IMAGE`: Pull a Docker image from a registry.
 - `--docker-cat IMAGE`: Extract and print /spec.yaml from a Docker image to stdout.
 - `--docker-list SPEC_GLOB`: List all spec names matching the spec-glob from the registry.

@@ -1,7 +1,5 @@
 **v0.9.0** change notes:
 
-**62 new commits**, **5,947 insertions**, **229 deletions** across 24 files.
-
 ### Major New Features
 
 1. **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)

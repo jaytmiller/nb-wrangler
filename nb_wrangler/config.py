@@ -147,7 +147,7 @@ class WranglerConfig:
     spi_branch: str = ""
     spi_commit_message: str = ""
     spi_inject_reqs: bool = False
-    spi_build_image: bool = False
+    spi_image_build: bool = False
     spi_prune_docker: bool = False
     spi_push_branch: bool = False
     spi_pr: bool = False
@@ -258,7 +258,7 @@ class WranglerConfig:
             spi_branch=args.spi_branch,
             spi_commit_message=" ".join(args.spi_commit_message),
             spi_inject_reqs=args.spi_inject_reqs,
-            spi_build_image=args.spi_build_image,
+            spi_image_build=args.spi_image_build,
             spi_prune_docker=args.spi_prune_docker,
             spi_push_branch=args.spi_push_branch,
             spi_pr=args.spi_pr,

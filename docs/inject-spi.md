@@ -1,160 +1,140 @@
 # Science Platform Images (SPI) Injection
 
-> **Note:** SPI Injection is a manual fallback or debugging mechanism. The standard workflow is the fully [Automated Image Pipeline](automated_image_pipeline.md), which handles injection as part of its execution.
+> **Note:** SPI Injection is an advanced topic related to building Docker images that contain a wrangler defined environment.
+            It is relevant to both GitHub Actions that build science platform images,  and for local Docker builds to use for
+            various kinds of standard or ad hoc testing.  If all you need is to run the GitHub Curate or Reinstall actions,
+            this section may not be useful to you.  If you're doing wrangler or SPI framework or hardcore spec development,
+            you may find it more convenient to work locally than to run GitHub workflows that require committed specs,
+            committed repos, and leave behind persistent GHCR artifacts you don't want.
 
 ## Overview
 
-Science Platform Images (SPI) Injection is a semi-automated workflow that enables extracting portions of a wrangler spec and applying them to the appropriate locations within the science platform images repository to define a corresponding image build.
-
-Unlike traditional "wrangler" image builds, which are fully automated and managed by a pipeline, SPI Injection stops once `nb-wrangler` has completed a source code update. In essence, SPI Injection mirrors the process of transferring package and notebook requirements from Jira to an SPI repository checkout, allowing for the initiation of an image PR. From this point forward, an SPI Injection build functions as a standard SPI build. Therefore, SPI Injection serves as a fallback mechanism and offers a minor time-saving advantage and reliability boost compared to fully manual Jira based builds. Also, because the procedural aspects of the build process are unchanged,  and because very little or no other code needs to change, using SPI injection and classic builds significantly lowers risk compared to new wrangler builds.
+Science Platform Images (SPI) Injection (`--inject-spi`) is a wrangler workflow that extracts portions of a wrangler spec and applies them to the appropriate locations within the science platform images repository to define a corresponding image build.  SPI Injection proper stops once `nb-wrangler` has completed a source code update. In essence, SPI Injection mirrors the process of transferring package and notebook requirements from Jira to an SPI repository checkout, allowing for the initiation of an image PR. From this point forward, an SPI Injection build functions as a standard SPI build.  These SPI functions (or their equivalent) are used to implement both GitHub workflows and local test/debug builds. In it's current incarnation, the artifacts injected into the repo clone are generally not saved, but the spec from which they originate is added to the built image at `/opt/environments/nbw-wrangler-spec.yaml`.
 
 ## Prerequisites
 
 To perform SPI Injection, you will need:
 
-1. An installation of `nb-wrangler`.
-2. A complete `nb-wrangler` spec for the desired SPI image.
+- An installation of `nb-wrangler`.
 
-Additionally, for practical application, you will need:
+- A complete `nb-wrangler` spec for the desired SPI image.
 
-3. Familiarity with Docker and GitHub workflows, including installations of both Docker and Git.
-4. Knowledge of how to configure and perform a standard SPI build.
-5. Access to an image repository (typically ECR) to push the final built image.
-6. Access to the `science-platform-images` repository on GitHub to create pull requests for your build changes.
+For image building and testing tasks you will need:
+
+- Familiarity with Docker and git, and a ready-to-go Docker installation
+   available at your terminal command line.  The command "docker" must be
+   fully functional.
+
+- Knowledge of how to configure and perform a standard SPI build.
 
 ## Example SPI Injection Workflow
 
 The base injection command is straightforward:
 
 ```bash
-$ nbw --clone --repos-dir spi-references --inject-spi specs/samples/tike-2025-07-beta.yaml
-INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler/specs/samples/tike-2025-07-beta.yaml
-INFO: 00:00:00.035 Running explicitly selected steps, if any.
-INFO: 00:00:00.000 Running step _clone_repos
-INFO: 00:00:00.000 Setting up repository clones.
-INFO: 00:00:00.000 Cloning repository https://github.com/jaytmiller/science-platform-images.git to spi-references/science-platform-images.
-INFO: 00:00:01.435 Successfully cloned repository to spi-references/science-platform-images.
-INFO: 00:00:00.000 Cloning --single-branch repository https://github.com/spacetelescope/mast_notebooks to spi-references/mast_notebooks.
-INFO: 00:00:04.199 Successfully cloned repository to spi-references/mast_notebooks.
-INFO: 00:00:00.000 Cloning --single-branch repository https://github.com/spacetelescope/tike_content to spi-references/tike_content.
-INFO: 00:00:01.493 Successfully cloned repository to spi-references/tike_content.
-INFO: 00:00:00.003 Found 8 notebooks in all notebook repositories.
-INFO: 00:00:00.000 Processing 8 unique notebooks for imports.
-INFO: 00:00:00.001 Extracted 7 package imports from 8 notebooks.
-INFO: 00:00:00.000 Revising spec file /home/ai/nb-wrangler/specs/samples/tike-2025-07-beta.yaml.
-INFO: 00:00:00.000 Saving spec file to /home/ai/.nbw-live/temps/tike-2025-07-beta.yaml.
-INFO: 00:00:00.057 Running step inject
-INFO: 00:00:00.000 Initiating SPI injection into spi-references/science-platform-images for tike kernel tess...
-INFO: 00:00:00.000 Injecting field test_imports to spi-references/science-platform-images/deployments/tike/environments/tess/tests/imports
-INFO: 00:00:00.000 Injecting field mamba_spec to spi-references/science-platform-images/deployments/tike/environments/tess/tess.yml
-INFO: 00:00:00.000 Injecting field pip_compiler_output to spi-references/science-platform-images/deployments/tike/environments/tess/tess.pip
-INFO: 00:00:00.000 Injecting field None to spi-references/science-platform-images/deployments/tike/environments/common-hints.mamba
-INFO: 00:00:00.000 Injecting field None to spi-references/science-platform-images/deployments/tike/environments/common-hints.pip
-INFO: 00:00:00.000 Saving spec file to spi-references/science-platform-images/deployments/tike/environments/nbw-wrangler-spec.yaml.
-INFO: 00:00:00.055 SPI injection complete.
+$ nbw --clone --repos-dir spi-references --inject-spi specs/roman/RomanNexus-2026.2.yaml
+INFO: 00:00:00.000 Using spec defined by NBW_SPEC = /home/ai/nb-wrangler-images/specs/roman/RomanNexus-2026.2.yaml
+INFO: 00:00:00.000 Loading and validating spec /home/ai/nb-wrangler-images/specs/roman/RomanNexus-2026.2.yaml
+INFO: 00:00:00.036 NBW_OVERRIDES_MODE is set to --dev.
+INFO: 00:00:00.000 For other workflows or isolated steps, default --dev to False unless explicitly specified.
+INFO: 00:00:00.000 Final value --dev is set to True. --prod is set to False.
+INFO: 00:00:00.000 Running any explicitly selected steps.
+INFO: 00:00:00.000 Explicit Step _spi_inject_reqs
+INFO: 00:00:00.000 Initiating SPI injection into references/science-platform-images for wrangler kernel RomanNexus-2026.2...
+INFO: 00:00:00.000 Injecting references/science-platform-images/deployments/wrangler/MISSION_VERSION
+INFO: 00:00:00.000 Injecting references/science-platform-images/deployments/wrangler/environments/nbw-exports.sh
+INFO: 00:00:00.000 Injecting references/science-platform-images/deployments/wrangler/environments/common-hints.mamba
+INFO: 00:00:00.000 Injecting references/science-platform-images/deployments/wrangler/environments/common-hints.pip
+INFO: 00:00:00.000 Injecting references/science-platform-images/deployments/wrangler/environments/dockerfile-aux.sh
+INFO: 00:00:00.000 Injecting 7 assets into references/science-platform-images/deployments/wrangler/environments...
+INFO: 00:00:00.000 Processing asset 1: assets/generic/catalog-schema-browser.ipynb -> /opt/environments from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.775 Processing asset 2: assets/roman/cost-dashboard.ipynb -> /opt/environments from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.655 Processing asset 3: assets/generic/stop_server_ext.json -> /etc/jupyter/jupyter_server_config.d/ from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.628 Processing asset 4: assets/generic/stop_server_ext.json -> /srv/jupyter/ from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.604 Processing asset 5: assets/generic/jp_app_launcher.yaml -> $HOME/.local/share/jupyter/jupyter_app_launcher/ from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.619 Processing asset 6: assets/generic/post-start-hook -> /opt/environments from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.632 Processing asset 7: assets/generic/test -> /opt/environments from https://github.com/spacetelescope/nb-wrangler-images.git
+INFO: 00:00:00.680 SPI injection complete.
 INFO: 00:00:00.000 Exceptions: 0
 INFO: 00:00:00.000 Errors: 0
 INFO: 00:00:00.000 Warnings: 0
-INFO: 00:00:00.000 Elapsed: 00:00:07
+INFO: 00:00:00.000 Elapsed: 00:00:04
 ```
 
-**Automated SPI Injection Workflow**
+Note that all --inject-spi does is copy various aspects of the spec and other web assets into the local clone of science-platform-images (SPI). In the above case the SPI source code clone is now ready for a wrangler image build. In principle developer can "cd" to the SPI clone root directory and go about a normal SPI image-build.  However, to make development a little more coherent, the wrangler has thin wrappers that can do that for you for all of the classic image-xxx scripts.
 
-To fully automate the SPI injection process, including pushing changes and creating a Pull Request on GitHub, you can use the `--spi-push` and `--spi-pr` flags:
+
+**Expert Tip**
+
+If you're iterating a lot and in the examples below, two environment variables can come in handy:
+
+- `NBW_SPEC` can be set to the path of the wrangler spec so you can stop typing it.
+- `NBW_OVERRIDES_MODE` can be set to `--dev` or `--prod` so you don't have to remember to type it in contexts where the value is implied or needs to be overriden.
+
+For brevity,  the examples blow assume they are set.
+
+### Updating SPI Source Code
+
+Perform the standard SPI injection with `--inject-spi` to add the appropriate details from the spec to the spi-references/science-platform-images clone.  That updated clone is the focal point for follow-on tasks below such as building an image.
 
 ```bash
-$ nbw --clone --repos-dir spi-references --inject-spi specs/samples/tike-2025-07-beta.yaml --spi-push --spi-pr
+$ nbw --inject-spi
 ```
 
-This command will:
-1.  Perform the standard SPI injection (as described above).
-2.  Create a new Git branch in your local `science-platform-images` repository clone (with an automatically generated name based on the spec moniker).
-3.  Commit the injected changes to this new branch (with a default commit message).
-4.  Push this new branch to your remote `science-platform-images` repository.
-5.  Create a Pull Request on GitHub from this new branch to `origin/main`.
+### Build a Local Docker image
 
-**GitHub Authentication (`gh auth login`)**
+Build an image with the `--spi-image-build` command running the original SPI image-build script on your local Docker as a subprocess.
+
+```bash
+$ nbw --spi-image-build
+```
+
+### Run Wrangler Tests in the Image Container
+
+Run SPI's `image-test` (actually test in the container) script using `--spi-image-test`.  This runs the wrangler `--test-imports` and/or `--test-notebooks` tests inside the resulting Docker container.
+
+```bash
+$ nbw --spi-image-test
+
+$ nbw --spi-image-test='--test-notebooks --verbose --dev'
+
+$ nbw --spi-image-test='--test-all --verbose --prod'
+```
+
+It's possible to pass parameters into the underlying image-test but they must be specified as
+a single string starting with `--test-all`, `--test-imports`, or `--test-notebooks`. If you do not specify any parameters the image-test defaults are used which currently mean `--test-imports`.
+
+This is similar to and built upon wrangler's `--test-imports` and `--test-notebooks` commands but the difference is that the --spi version is running inside the Docker container instead of in the local environment.
+
+### Scan the Image for Vulnerabilities
+
+Run SPI's `image-scan` on locally on the Docker image using `--spi-image-scan`.
+
+```bash
+$ nbw --spi-image-scan
+```
+
+**WARNING** SPI's `image-scan` automatically installs the scanner packages in your current environment if they are not already installed.  Currently they're just `mamba` packages but it might be surprising if you're not ready for it.  The current scanner is also fairly resource intensive so you'll need the required memory and disk space to run it adequately.
+
+### Running Jupyter Lab Locally
+
+Once the image has been built locally, you can launch Jupyter Lab in a Docker container for interactive development and testing against the actual environment defined by your spec:
+
+```bash
+$ nbw --spi-run-lab
+```
+
+This runs `jupyter lab` in an ephemeral container with port forwarding enabled. Choose "Shutdown Jupyter Lab" from the JupyterLab File menu to exit cleanly when you're done.
+
+### GitHub Authentication (`gh auth login`)
 
 To enable `nbw` to push branches and create Pull Requests on GitHub, you must first authenticate the GitHub CLI (`gh`). You can do this by running:
 
 ```bash
+gh auth status
+
 gh auth login
 ```
 
-Follow the prompts to authenticate using your GitHub account. A standard GitHub CLI token will work.
+Follow the prompts to authenticate using your GitHub account. A standard GitHub CLI token will work.  This capability was a feature of the first generation build process but is now seldom used.
 
-**NOTE:** Because `nbw` aggressively deletes repository clones, we set `--repos-dir spi-references` to a private, writable path to accommodate the SPI injection updates. Using a custom directory name prevents `nbw` from attempting to delete it when you perform other unrelated activities.  The default `--repos-dir` is `references` located relative to
-whereever you run `nbw`.
-
-The final result of the injection is available in the subdirectory `spi-references/science-platform-images`, as demonstrated by the following `git status` output:
-
-```bash
-$ cd spi-references/science-platform-images
-$ git status
-On branch main
-Your branch is up to date with 'origin/main'.
-
-Changes not staged for commit:
-  modified:  deployments/tike/environments/tess/tess.pip
-  modified:  deployments/tike/environments/tess/tess.yml
-  modified:  deployments/tike/environments/tess/tests/imports
-
-Untracked files:
-  deployments/tike/environments/nbw-wrangler-spec.yaml
-  deployments/tike/environments/nbw-exports.sh
-  deployments/tike/environments/common-hints.mamba
-  deployments/tike/environments/common-hints.pip
-  deployments/tike/environments/apt-packages.txt
-  deployments/tike/environments/dockerfile-aux.sh
-
-no changes added to commit (use "git add" and/or "git commit -a")
-```
-
-As shown in the `git status`, the `mamba` (tess.yml) and `pip` (tess.pip) package requirements, the system-level `apt_packages` (apt-packages.txt), the `dockerfile_aux_sh` (dockerfile-aux.sh) script, and the import tests, have been extracted from the input spec and injected into the declarative section of the TIKE deployment within our science-platform-images clone.
-
-Additionally, the spec itself has been added to the environments directory under the generic name `nbw-wrangler-spec.yaml`. This file can be used later for wrangler functions such as testing or data installation. In the fully built image, the spec will be located at `/opt/environments/nbw-wrangler-spec.yaml`.
-
-Before proceeding, it's recommended to add and commit all changes under `spi-references/science-platform-images/deployments`:
-
-```bash
-$ git checkout -b my-spi-branch
-$ git add deployments
-$ git commit
-```
-
-If you have Docker installed, you can proceed directly to a standard local SPI image build:
-
-```bash
-$ scripts/image-configure tike
-$ source setup-env
-$ image-build
-```
-
-Like all classic builds, while obtaining a fully built image and environment is the primary task, the specific details of the `post-start-hook` and/or deployment `test` function may require adjustments to accommodate the current set of notebooks, etc. In principle, the wrangler can automate both of these aspects even for classic builds, but this would require incorporating too many common changes from `nb-wrangler`, which would add unnecessary development effort and risk.
-
-## Experimental Features
-
-The following flags are available for advanced users or for testing experimental functionalities. They are not part of the primary SPI injection workflow and their behavior may change in future releases.
-
-*   `--spi-branch <branch-name>`: Allows you to specify the name of the Git branch to create in the `science-platform-images` repository. By default, a branch name is automatically generated.
-*   `--spi-commit-message <message>`: Provides a custom commit message for the changes. If not provided, a default message is used.
-*   `--spi-build`: Triggers a Docker build in the `science-platform-images` repository after injection and before committing changes. This can be useful for local validation of the generated environment.
-*   `--spi-prune`: Prunes old Docker images before a build. This ensures a clean rebuild and can free up disk space.
-
-## Key Differences from True Wrangler Builds
-
-True wrangler builds all share a common `wrangler` deployment and have a very generic Dockerfile.  As-of this writing they have
-few customizations other than mamba and pip package selections, notebooks, data, and environment variables. Consequently,  the
-same wrangler deployment can serve many different projects.
-
-### SPI Injection
-
-`SPI Injection`-based builds possess these fundamental characteristics:
-
-1. **Primitive Automation:** The only real automation beyond the original build scripts is limited to populating package requirements and tests defined by a wrangler spec.
-2. **Original Dockerfiles:** Images are built using the original mission Dockerfiles, which execute arbitrary actions, including custom library or package builds not readily available from `mamba` or `pip`.
-3. **Classic Build Scripts:** Package installation and cleanup are performed using standard build scripts such as `env-conda`, `env-compile`, and `env-sync`.
-4. **Manual Configuration:** Manual configuration of `post-start-hook` and tests is required to manage tasks like Git synchronization and notebook test setup.
-5. **Manual Image Management:** Manual image build, scanning, tagging, and pushing are necessary.
-6. **3+ Kernel Support:** While image size typically prohibits this,  the classic framework was designed to support both base an N-different mission-specific mamba environments.  Even adding it manually, a 3rd kernel will be much easier to do using classic builds than using standard wrangler builds.
-7. **Low Risk:** Since these builds are closely aligned with what we've done for years, they are lower risk.

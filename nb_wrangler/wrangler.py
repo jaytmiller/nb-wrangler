@@ -320,7 +320,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return False
         requires_branch_name = (
             self.config.spi_prune_docker
-            or self.config.spi_build_image
+            or self.config.spi_image_build
             or self.config.spi_commit_message
             or self.config.spi_push_branch
             or self.config.spi_pr
@@ -341,7 +341,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return False
         if self.config.spi_prune_docker and not self.injector.prune():
             return False
-        if self.config.spi_build_image and not self.injector.build():
+        if self.config.spi_image_build and not self.injector.build():
             return False
         return True
 
@@ -478,7 +478,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spi_image_name, self._spi_image_name),
             (self.config.spi_inject_reqs, self._spi_inject_reqs),
             (self.config.spi_prune_docker, self.injector.prune),
-            (self.config.spi_build_image, self.injector.build),
+            (self.config.spi_image_build, self.injector.build),
             (self.config.spi_run_lab, self.injector.run_lab),
             (self.config.spi_image_test is not None, self._spi_image_test),
             (self.config.spi_image_scan, self._spi_image_scan),

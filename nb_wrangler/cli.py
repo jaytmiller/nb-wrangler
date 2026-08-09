@@ -122,7 +122,7 @@ def parse_args():
         help="Copy the apppropriate requirements fields from the wrangler spec into locations in the SPI repo clone.",
     )
     spi_group.add_argument(
-        "--spi-build-image",
+        "--spi-image-build",
         action="store_true",
         help="Trigger a Docker build in the SPI repo.",
     )
