@@ -480,6 +480,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             (self.config.spi_prune_docker, self.injector.prune),
             (self.config.spi_build_image, self.injector.build),
             (self.config.spi_run_lab, self.injector.run_lab),
+            (self.config.spi_image_test is not None, self._spi_image_test),
             (self.config.docker_pull is not None, self._docker_pull),
             (self.config.docker_cat is not None, self._docker_cat),
             (self.config.docker_list is not None, self._docker_list),
@@ -1052,6 +1053,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.error("No kernel name found for SPI injection.")
         exports_str = self.data_wrangler.get_exports()
         return self.injector.inject(self.resolved_kname, exports_str)
+
+    def _spi_image_test(self) -> bool:
+        """Run the image-test script for the current SPI deployment."""
+        if not self.deployment_name:
+            return self.logger.error("No deployment name resolved from spec.")
+        params = self.config.spi_image_test or []
+        self.logger.debug(f"image-test parameters: {params}")
+        return self.injector.image_test(params)
 
     def _spi_image_name(self) -> bool:
         """Print the image name corresponding to the current spec to stdout."""

@@ -495,12 +495,15 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             f"Ran jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
         )
 
-    def image_test(self) -> bool:
+    def image_test(self, params: Optional[list[str]] = None) -> bool:
         self.logger.info(
             f"Testing {self.deployment_name} in {self.spi_path} with image-test script."
         )
+        cmd = ["scripts/wrangler-run", self.deployment_name, "image-test"]
+        if params:
+            cmd.extend(str(p) for p in params)
         result = self.repo_manager.run(
-            f"scripts/wrangler-run {self.deployment_name} image-test",
+            cmd,
             check=False,
             cwd=self.spi_path,
             timeout=IMPORT_TEST_TIMEOUT + NOTEBOOK_TEST_MAX_SECS,

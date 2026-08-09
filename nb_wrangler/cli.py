@@ -148,6 +148,19 @@ def parse_args():
         dest="spi_run_lab",
         help="Run jupyter lab in a Docker container for the SPI deployment based on the current spec.",
     )
+    spi_group.add_argument(
+        "--spi-image-test",
+        nargs="*",
+        type=str,
+        default=None,
+        dest="spi_image_test",
+        metavar="PARAM",
+        help=(
+            "Run the image-test script for the SPI deployment. If specified "
+            "without parameters an empty parameter list is used; otherwise the "
+            "given parameters are passed to the image-test invocation."
+        ),
+    )
 
     registry_group = parser.add_argument_group(
         "Registry / Docker",
