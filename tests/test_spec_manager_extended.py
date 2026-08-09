@@ -5,6 +5,11 @@ import yaml
 from nb_wrangler.config import WranglerConfig, set_args_config
 
 
+def _make_requirements_file(path, packages):
+    """Write a requirements file with the given package lines."""
+    path.write_text("\n".join(packages) + "\n")
+
+
 def _make_valid_spec_dict():
     """Create a minimal valid wrangler spec dict (in-memory)."""
     return {
@@ -292,7 +297,6 @@ class TestPackageListDevOverrides:
             spec_dict["dev_overrides"] = dev_overrides
 
         from nb_wrangler.spec_manager import SpecManager
-        from nb_wrangler.config import WranglerConfig, set_args_config
 
         set_args_config(
             WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=dev)
@@ -404,3 +408,80 @@ class TestTestEnvVarsField:
         assert sm.validate() is True
         env_vars = sm.test_env_vars
         assert env_vars["FOO"] == "base_value"
+
+
+class TestConsolidateEnvironmentPipFiles:
+    """Tests that consolidate_environment returns non_mamba_pip_package_files as a dict
+    mapping file paths to expanded package lists."""
+
+    def _make_compiler(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+        from nb_wrangler.repository import RepositoryManager
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+        spec_dict = _make_valid_spec_dict()
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        sm = SpecManager()
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        repo_manager = RepositoryManager(tmp_path / "repos")
+        compiler = RequirementsCompiler(sm, repo_manager)
+        return compiler
+
+    def test_pip_files_returned_as_dict_with_packages(self, tmp_path):
+        """consolidate_environment returns dict[str, list[str]] for pip files."""
+        compiler = self._make_compiler(tmp_path)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        req_file1 = output_dir / "requirements.txt"
+        _make_requirements_file(req_file1, ["numpy", "astropy"])
+
+        result = compiler.consolidate_environment(
+            [str(req_file1)], _FakeInjector(), output_dir
+        )
+        # result is (kernel_name, mamba_spec, pkg_map, pip_dict)
+        _, _, _, pip_files = result
+
+        assert isinstance(pip_files, dict)
+        file_key = str(req_file1)
+        assert file_key in pip_files
+        assert sorted(pip_files[file_key]) == ["astropy", "numpy"]
+
+    def test_pip_files_include_extra_and_common_packages(self, tmp_path):
+        """Extra and common pip packages appear as separate entries with their packages."""
+        compiler = self._make_compiler(tmp_path)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Put extra_pip_packages in the spec manager via config dev_overrides-like approach
+        result = compiler.consolidate_environment([], _FakeInjector(), output_dir)
+        _, _, _, pip_files = result
+
+        assert isinstance(pip_files, dict)
+        extra_key = str(output_dir / "extra_pip_packages.txt")
+        common_key = str(output_dir / "common_pip_packages.txt")
+        assert extra_key in pip_files
+        assert common_key in pip_files
+        # The packages should be sorted lists (from _read_package_lines).
+
+
+class _FakeInjector:
+    """Minimal injector stub returning no SPI files."""
+
+    def find_spi_mamba_files(self):
+        return []
+
+    def find_spi_pip_files(self):
+        return []

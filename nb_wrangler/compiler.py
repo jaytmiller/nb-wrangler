@@ -254,7 +254,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         Any,
         dict[Any, Any],
         dict[str, Any],
-        list[str],
+        dict[str, list[str]],
     ]:
         """
         Orchestrates the compilation of the entire environment, including fetching external specs
@@ -265,7 +265,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             - Resolved kernel_name
             - final_mamba_spec
             - dict[mamba pkg kind, packages]
-            - list[non-mamba-package-files]
+            - dict[non-mamba-pip-package-file-path, [packages]]
         """
         try:
             base_mamba_spec = self._get_base_mamba_spec()
@@ -315,18 +315,30 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 self.spec_manager.common_pip_packages,
                 output_dir / "common_pip_packages.txt",
             )
-            # These paths should make self-identify where they came from, hence
-            # no dictionary needed here.
-            non_mamba_pip_req_files = list(notebook_req_files)
-            non_mamba_pip_req_files.extend(spi_pip_files)
-            non_mamba_pip_req_files.append(Path(extra_pip_packages_file))
-            non_mamba_pip_req_files.append(Path(common_pip_packages_file))
+            # Build a mapping of each pip package file to its expanded list of packages.
+            non_mamba_pip_req_dict: dict[str, list[str]] = {}
+            all_pip_files: list[Path] = []
+            for req_file in notebook_req_files:
+                if req_file not in all_pip_files:
+                    all_pip_files.append(req_file)
+            for spi_file in spi_pip_files:
+                if spi_file not in all_pip_files:
+                    all_pip_files.append(spi_file)
+            if extra_pip_packages_file not in all_pip_files:
+                all_pip_files.append(Path(extra_pip_packages_file))
+            if Path(common_pip_packages_file) not in all_pip_files:
+                all_pip_files.append(Path(common_pip_packages_file))
+
+            for req_path in all_pip_files:
+                non_mamba_pip_req_dict[str(req_path)] = self._read_package_lines(
+                    req_path
+                )
 
             return (
                 kernel_name,
                 final_mamba_spec,
                 all_mamba_pkg_map,
-                [str(path) for path in non_mamba_pip_req_files],
+                non_mamba_pip_req_dict,
             )
         except Exception as e:
             return self.logger.exception(

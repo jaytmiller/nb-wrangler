@@ -787,8 +787,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             "non_mamba_pip_package_files", []
         )
 
+        # The output is a dict mapping file paths to their expanded package lists.
+        pip_file_paths = (
+            list(non_mamba_pip_pkg_files.keys())
+            if isinstance(non_mamba_pip_pkg_files, dict)
+            else non_mamba_pip_pkg_files
+        )
+
         if not self.compiler.compile_requirements(
-            non_mamba_pip_pkg_files,
+            pip_file_paths,
             self.pip_output_file,
             self.override_pip_versions_file,
         ):
