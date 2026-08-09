@@ -794,7 +794,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             elif isinstance(item, dict):
                 pip_file_paths.append(list(item.keys())[0])  # with package lists
             else:
-                raise RuntimeError("Unexpected out format for non_mamba_pip_package_files")
+                raise RuntimeError(
+                    "Unexpected out format for non_mamba_pip_package_files"
+                )
 
         if not self.compiler.compile_requirements(
             pip_file_paths,

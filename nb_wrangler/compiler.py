@@ -254,7 +254,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         Any,
         dict[Any, Any],
         dict[str, Any],
-        dict[str, list[str]],
+        list[dict[str, list[str]]],
     ]:
         """
         Orchestrates the compilation of the entire environment, including fetching external specs
@@ -331,7 +331,8 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
             for req_path in all_pip_files:
                 non_mamba_pip_req_list.append(
-                    {str(req_path) : self._read_package_lines(req_path)})
+                    {str(req_path): self._read_package_lines(req_path)}
+                )
 
             return (
                 kernel_name,
