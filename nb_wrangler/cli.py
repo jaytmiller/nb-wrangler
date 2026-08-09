@@ -146,19 +146,25 @@ def parse_args():
         action="store_true",
         default=False,
         dest="spi_run_lab",
-        help="Run jupyter lab in a Docker container for the SPI deployment based on the current spec.",
+        help=("Run jupyter lab in a Docker container for the SPI deployment based on the current spec.\n"
+              "Choose 'Shutdown Jupyter Lab" from the lab File menu to exit cleanly when you're done."
+        ),
     )
     spi_group.add_argument(
         "--spi-image-test",
-        nargs="*",
+        nargs="?",
         type=str,
         default=None,
+        const="",
         dest="spi_image_test",
-        metavar="PARAM",
+        metavar="PARAMS",
         help=(
-            "Run the image-test script for the SPI deployment. If specified "
-            "without parameters an empty parameter list is used; otherwise the "
-            "given parameters are passed to the image-test invocation."
+            "Run the image-test script for the SPI deployment. PARAMS is a single string of parameters passed to\n"
+            "the nested image-test invocation; it is split on whitespace into individual arguments (quote each\n"
+            "parameter and any attached value, e.g. '\"--test-notebooks --dev --verbose\"'). If present without\n"
+            "a value an empty parameter list is used.  You must specify: no parameters (--test-imports) or one of"
+            "--test-imports, --test-notebooks, --test-all as your first parameter in the string.  You must use\n"
+            "the form --spi-image-test='parameters...' for it to parse correctly with parameters."
         ),
     )
 

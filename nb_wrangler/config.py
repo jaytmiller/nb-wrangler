@@ -159,6 +159,23 @@ class WranglerConfig:
     docker_cat: Optional[str] = None
     docker_list: Optional[str] = None
 
+    @staticmethod
+    def _split_spi_image_test(value):
+        """Convert the --spi-image-test CLI value into a list or None.
+
+        - Absent (None) -> None so downstream treats it as "step skipped".
+        - Present but empty/blank string -> [] so an empty param list is used.
+        - Non-empty string -> split on whitespace into individual parameters,
+          which are then forwarded to the image-test invocation unchanged.
+        """
+        if value is None:
+            return None
+        if isinstance(value, str):
+            stripped = value.strip()
+            return [] if not stripped else stripped.split()
+        # Backwards-compatible fallthrough for a pre-split list of parameters.
+        return [str(p) for p in value]
+
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> "WranglerConfig":
         """Create WranglerConfig from argparse Namespace and spec file."""
@@ -246,7 +263,9 @@ class WranglerConfig:
             spi_pr=args.spi_pr,
             spi_image_name=args.spi_image_name,
             spi_run_lab=getattr(args, "spi_run_lab", False),
-            spi_image_test=getattr(args, "spi_image_test", None),
+            spi_image_test=cls._split_spi_image_test(
+                getattr(args, "spi_image_test", None)
+            ),
             docker_pull=args.docker_pull,
             docker_cat=args.docker_cat,
             docker_list=args.docker_list,

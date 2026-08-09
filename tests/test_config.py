@@ -138,6 +138,8 @@ class TestFromArgs:
             spi_push_branch=False,
             spi_pr=False,
             spi_image_name=False,
+            spi_run_lab=False,
+            spi_image_test=None,
             docker_pull=None,
             docker_cat=None,
             docker_list=None,
@@ -193,3 +195,43 @@ class TestFromArgs:
         args.data_clean_symlinks = True
         result = WranglerConfig.from_args(args)
         assert result.data_clean_symlinks is True
+
+    def test_spi_image_test_defaults_to_none(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        assert (
+            not hasattr(args, "spi_image_test")
+            or getattr(args, "spi_image_test") is None
+        )
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test is None
+
+    def test_spi_image_test_empty_string_preserved(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.spi_image_test = ""
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test == []
+
+    def test_spi_image_test_blank_string_preserved(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.spi_image_test = "   "
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test == []
+
+    def test_spi_image_test_params_split_on_whitespace(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.spi_image_test = "--verbose --limit=5"
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test == ["--verbose", "--limit=5"]
+
+    def test_spi_image_test_params_strip_and_split(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.spi_image_test = "  --model=x   --flag value  "
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test == ["--model=x", "--flag", "value"]
+
+    def test_spi_image_test_list_fallthrough(self, tmp_path):
+        # Backwards-compatible handling of an already-split list.
+        args = self._make_args(str(tmp_path / "repos"))
+        args.spi_image_test = ["--verbose", "--limit=5"]
+        result = WranglerConfig.from_args(args)
+        assert result.spi_image_test == ["--verbose", "--limit=5"]
