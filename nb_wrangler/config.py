@@ -154,6 +154,7 @@ class WranglerConfig:
     spi_image_name: bool = False
     spi_run_lab: bool = False
     spi_image_test: list[str] | None = None
+    spi_image_scan: bool = False
 
     docker_pull: Optional[str] = None
     docker_cat: Optional[str] = None
@@ -266,6 +267,7 @@ class WranglerConfig:
             spi_image_test=cls._split_spi_image_test(
                 getattr(args, "spi_image_test", None)
             ),
+            spi_image_scan=getattr(args, "spi_image_scan", False),
             docker_pull=args.docker_pull,
             docker_cat=args.docker_cat,
             docker_list=args.docker_list,

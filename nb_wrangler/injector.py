@@ -495,6 +495,23 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
             f"Ran jupyter lab on Docker image for {self.deployment_name} under {self.spi_path}.",
         )
 
+    def image_scan(self) -> bool:
+        self.logger.info(
+            f"Scanning Docker image for {self.deployment_name} in {self.spi_path} with image-scan script."
+        )
+        result = self.repo_manager.run(
+            f"scripts/wrangler-run {self.deployment_name} image-scan",
+            check=False,
+            cwd=self.spi_path,
+            timeout=DOCKER_BUILD_TIMEOUT,
+            output_mode="uncaught",
+        )
+        return self.env_manager.handle_result(
+            result,
+            f"Failed to scan Docker image for {self.deployment_name} under {self.spi_path}.",
+            f"Scanned Docker image for {self.deployment_name} under {self.spi_path}.",
+        )
+
     def image_test(self, params: Optional[list[str]] = None) -> bool:
         self.logger.info(
             f"Testing {self.deployment_name} in {self.spi_path} with image-test script."

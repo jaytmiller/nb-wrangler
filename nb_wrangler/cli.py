@@ -146,8 +146,9 @@ def parse_args():
         action="store_true",
         default=False,
         dest="spi_run_lab",
-        help=("Run jupyter lab in a Docker container for the SPI deployment based on the current spec.\n"
-              "Choose 'Shutdown Jupyter Lab" from the lab File menu to exit cleanly when you're done."
+        help=(
+            "Run jupyter lab in a Docker container for the SPI deployment based on the current spec.\n"
+            "Choose 'Shutdown Jupyter Lab' from the lab File menu to exit cleanly when you're done."
         ),
     )
     spi_group.add_argument(
@@ -165,6 +166,16 @@ def parse_args():
             "a value an empty parameter list is used.  You must specify: no parameters (--test-imports) or one of"
             "--test-imports, --test-notebooks, --test-all as your first parameter in the string.  You must use\n"
             "the form --spi-image-test='parameters...' for it to parse correctly with parameters."
+        ),
+    )
+    spi_group.add_argument(
+        "--spi-image-scan",
+        action="store_true",
+        default=False,
+        dest="spi_image_scan",
+        help=(
+            "Run the image-scan script for the SPI deployment based on the current spec.\n"
+            "Scans the built Docker image for security vulnerabilities."
         ),
     )
 
