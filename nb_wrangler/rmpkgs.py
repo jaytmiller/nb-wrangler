@@ -42,6 +42,19 @@ def get_github_token() -> Optional[str]:
         return None
 
 
+def confirm_action(message: str, assume_yes: bool = False) -> bool:
+    """Ask the user for a y/N confirmation.
+
+    Returns True if --yes/-y was passed (assume_yes), otherwise prompts on
+    stdin so that destructive batch operations don't proceed without an
+    explicit go-ahead by default.
+    """
+    if assume_yes:
+        return True
+    answer = input(f"{message} [y/N] ").strip().lower()
+    return answer in ("y", "yes")
+
+
 @dataclass
 class GitHubSession:
     """Configured requests.Session for GitHub API access."""
@@ -184,6 +197,7 @@ def process_versions(
     dry_run: bool,
     interactive: bool,
     cleanup_file: Path,
+    assume_yes: bool = False,
 ) -> tuple[int, int]:
     """Process versions for a single package, returning (deleted, kept) counts."""
     print(f"\n--- Processing package: {package_name} ---", file=sys.stderr)
@@ -219,7 +233,8 @@ def process_versions(
                 deleted += 1
                 continue
 
-            if interactive:
+            # --yes was confirmed up-front in main(); skip the per-version prompt.
+            if interactive and not assume_yes:
                 choice = input(
                     f"Delete version {parsed.version_id} (tags={parsed.tags})? [y/N] "
                 ).lower()
@@ -292,6 +307,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--tag",
         help="Tag pattern to match (glob).",
     )
+    parser.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        dest="assume_yes",
+        help="Skip the confirmation prompt before deleting versions. "
+        "Intended for non-interactive/CI use; use with care.",
+    )
     return parser
 
 
@@ -353,6 +376,31 @@ def main(cleanup_file: Optional[Path] = None) -> int:
     cutoff_dt = datetime.now(timezone.utc) - timedelta(days=cutoff_days)
     cutoff_epoch = int(cutoff_dt.timestamp())
 
+    # Require an explicit go-ahead before deleting old versions across all
+    # target packages, so the default case can't silently wipe out a whole list.
+    if not dry_run and target_packages:
+        what = f"{len(target_packages)} package(s): {', '.join(target_packages)}"
+        verb = "Listed" if interactive else "Will delete"
+        summary = (
+            f"This will delete GitHub Package versions older than {cutoff_days} day(s)"
+            f" for the following target packages ({what})."
+        )
+        print(f"\n{verb} operation pending.", file=sys.stderr)
+        print(summary, file=sys.stderr)
+        if interactive:
+            per_version_note = (
+                "You will be asked to confirm each candidate deletion individually."
+            )
+            print(per_version_note, file=sys.stderr)
+        else:
+            print(
+                "Run with -i/--interactive for per-version confirmation instead.",
+                file=sys.stderr,
+            )
+        if not confirm_action("Proceed?", assume_yes=args.assume_yes):
+            print("Aborted by user; no versions were deleted.", file=sys.stderr)
+            return 1
+
     total_deleted = 0
     total_kept = 0
 
@@ -369,6 +417,7 @@ def main(cleanup_file: Optional[Path] = None) -> int:
             dry_run,
             interactive,
             cleanup_file,
+            assume_yes=args.assume_yes,
         )
         total_deleted += deleted
         total_kept += kept
