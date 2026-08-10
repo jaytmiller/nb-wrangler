@@ -47,7 +47,7 @@ if "YARN_CACHE_FOLDER" not in os.environ:
     os.environ["YARN_CACHE_FOLDER"] = str(NBW_CACHE / "yarn")
 
 
-REPOS_DIR = "references"
+REPOS_DIR = os.environ.get("NBW_REPOS_DIR", "references")
 DATA_DIR = "data"
 NBW_URI = "nbw://"
 
