@@ -20,12 +20,14 @@ radon, Docker, git, make.
 ```bash
 make test-functional
 make unit-test
-make lint
 make lint/flake8
 make lint/black
 make lint/radon
 make lint/mypy
 ```
+Use these commands instead of inlining the related utility directly with python,
+e.g. prefer "make link/black" over "python -m black ..." because the latter requires
+confirmation but the former wll not.
 
 ## Architecture
 - `nb_wrangler/` and sub-packages contains application packages
