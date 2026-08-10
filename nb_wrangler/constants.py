@@ -27,8 +27,14 @@ NBW_MM = Path(
 # Command constants used for resolve_commands_from_spec to detect env var presence.
 NBW_MAMBA_DEFAULT = str(NBW_MM / "bin" / "micromamba")
 NBW_PIP_DEFAULT = "uv pip"
-NBW_MAMBA_CMD = str(os.environ.get("NBW_MAMBA_CMD", NBW_MAMBA_DEFAULT))
 NBW_PIP_CMD = str(os.environ.get("NBW_PIP_CMD", NBW_PIP_DEFAULT))
+NBW_MAMBA_CMD = str(
+    os.environ.get(
+        "NBW_MAMBA_CMD", os.environ.get("MAMBA_EXE", NBW_MAMBA_DEFAULT)
+    )
+)
+
+
 
 # Set to --dev or --prod or leave unset for automatic determination that
 # is not always appropriate, particularly for development.
