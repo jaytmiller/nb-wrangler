@@ -395,9 +395,9 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"Could not parse 'jupyter kernelspec list' output for {env_name}."
             )
             return False
-        exists = env_name in specs
+        exists = env_name.lower() in specs
         self.logger.debug(
-            f"Kernel spec existence check for {env_name}: {exists} "
+            f"Kernel spec existence check for {env_name.lower()}: {exists} "
             f"(known={list(specs)})."
         )
         return exists
@@ -420,12 +420,12 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"(no registered Jupyter kernel with that name). This can be normal "
                 f"during --reset-curation when the environment was never registered."
             )
-        cmd = self._condition_cmd(f"jupyter kernelspec uninstall -y {env_name}")
+        cmd = self._condition_cmd(f"jupyter kernelspec uninstall -y {env_name.lower()}")
         result = self.wrangler_run(cmd, check=False)
         return self.handle_result(
             result,
-            f"Failed to unregister Jupyter kernel {env_name}: ",
-            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} "
+            f"Failed to unregister Jupyter kernel {env_name.lower()}: ",
+            f"Unregistered Jupyter kernel {env_name.lower()}. Environment {env_name} "
             f"is no longer offered by JupyterLab.",
         )
 
