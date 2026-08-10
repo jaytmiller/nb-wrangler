@@ -316,7 +316,11 @@ test-bootstrap-spec:
 
 unit-test:  clean-test   ## run tests quickly with the default Python
 	@echo ================================================================================
-	pytest --pdb --doctest-continue-on-failure -vv --profile tests
+	pytest --doctest-continue-on-failure -vv tests
+
+unit-test-dev:  clean-test   ## run tests quickly with the default Python
+	@echo ================================================================================
+	pytest --doctest-continue-on-failure -vv --pdb --profile tests
 
 coverage: clean-test ## check code coverage quickly with the default Python
 	coverage run --source nb_wrangler -m pytests tests
