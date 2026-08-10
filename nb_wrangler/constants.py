@@ -75,7 +75,9 @@ DEFAULT_PROJECT = os.environ.get(
 )
 
 # Notebook testing constants
-NOTEBOOK_TEST_MAX_SECS = int(os.environ.get("NBW_TEST_MAX_SECS", 4 * 60 * 60))  # 4 hours
+NOTEBOOK_TEST_MAX_SECS = int(
+    os.environ.get("NBW_TEST_MAX_SECS", 4 * 60 * 60)
+)  # 4 hours
 NOTEBOOK_TEST_JOBS = int(os.environ.get("NBW_TEST_JOBS", 4))
 NOTEBOOK_TEST_EXCLUDE = "$^"  # nothing?
 
