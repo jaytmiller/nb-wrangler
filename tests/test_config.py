@@ -133,7 +133,7 @@ class TestFromArgs:
             spi_branch="",
             spi_commit_message=[""],
             spi_inject_reqs=False,
-            spi_build_image=False,
+            spi_image_build=False,
             spi_prune_docker=False,
             spi_push_branch=False,
             spi_pr=False,
