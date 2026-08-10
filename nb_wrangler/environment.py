@@ -395,7 +395,8 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"Could not parse 'jupyter kernelspec list' output for {env_name}."
             )
             return False
-        exists = env_name.lower() in specs
+        spec_names = {k.lower() for k in specs}
+        exists = env_name.lower() in spec_names
         self.logger.debug(
             f"Kernel spec existence check for {env_name.lower()}: {exists} "
             f"(known={list(specs)})."
