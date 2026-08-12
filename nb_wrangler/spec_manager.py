@@ -843,7 +843,25 @@ class SpecManager(
         )
 
     def get_requirements_files(self) -> list[dict[str, list[str]]]:
-        return self._collected_paths("**/requirements.txt")
+        result = self._collected_paths("**/requirements.txt")
+        not_found = True
+        for path in self.flatten_req_data(result):
+            if not Path(path).parent.glob("*.ipynb"):
+                self.logger.debug("Found orphan requirements file:", path)
+                not_found = False
+        if not_found:
+            self.logger.debug("Did not find orphan requirements.")
+        return result
+
+    def flatten_req_data(self, req_data: list[dict[str, list[str]]]) -> list[str]:
+        """Flatten `req_data` from it's selector to contributed files mapping
+        into a simple list of package files.
+        """
+        combined_files = []
+        for contribution in req_data:
+            _, file_list = list(contribution.items())[0]
+            combined_files.extend(file_list)
+        return sorted(list(set(file_list)))
 
     def _collected_paths(
         self, file_glob: str, extra_excludes=None

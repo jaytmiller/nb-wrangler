@@ -160,68 +160,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             )
         return True
 
-    def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
-        """Read package versions from a list of requirements files omitting blank
-        and comment lines.
-        """
-        package_versions = []
-        for req_file in sorted(requirements_files):
-            lines = self._read_package_lines(req_file)
-            package_versions.extend(lines)
-        return sorted(list(set(package_versions)))
-
-    def _read_package_lines(self, requirements_file: Path) -> list[str]:
-        """Read package lines from requirements file omitting blank and comment lines.
-        Should work with most forms of requirements.txt file,
-        input or compiled,  and reduce it to a pure list of package versions.
-        """
-        lines = []
-        with open(requirements_file, "r") as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith(("#", "--hash")):
-                    lines.append(line)
-        return sorted(lines)
-
-    def _strip_versions_from_requirements(
-        self, req_data: list[dict[str, list[str]]], output_dir: Path
-    ) -> list[str]:
-        """Strip version constraints from requirements files and write to temporary files."""
-        stripped_files = []
-        stripped_content = []
-        output_dir.mkdir(parents=True, exist_ok=True)
-        for selection in req_data:
-            name, paths = list(selection.items())[0]
-            for req_file in paths:
-                with Path(req_file).open("r") as f:
-                    for line in f:
-                        line = line.strip()
-                        if not line or line.startswith(("#", "--hash")):
-                            stripped_content.append(line)
-                            continue
-                        # Strip version constraints: ==, >=, <=, >, <, ~=
-                        # Also handle multiple constraints like package>=1.0,<=2.0
-                        package_name = re.split(r"[=<>~!]", line)[0].strip()
-                        stripped_content.append(package_name)
-
-            stripped_file = (
-                output_dir
-                / f"stripped_{name}_{req_file}_{utils.sha256_str(str(req_file))[:8]}.txt"
-            )
-            with stripped_file.open("w") as f:
-                f.write("\n".join(stripped_content) + "\n")
-            stripped_files.append(str(stripped_file))
-            self.logger.debug(f"Created stripped requirements file: {stripped_file}")
-
-        return stripped_files
-
-    def consolidate_environment(
-        self, notebook_paths: list[str], injector: SpiInjector, output_dir: Path
-    ) -> tuple[
+    def consolidate_environment(self, injector: SpiInjector, output_dir: Path) -> tuple[
         Any,
         dict[Any, Any],
         dict[str, Any],
-        list[dict[str, list[str]]],
     ]:
         """
         Orchestrates the compilation of the entire environment, including fetching external specs
@@ -232,7 +174,6 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             - Resolved kernel_name
             - final_mamba_spec
             - dict[mamba pkg kind, packages]
-            - list[dict[non-mamba-pip-package-file-path, [packages]]]
         """
         try:
             base_mamba_spec = self._get_base_mamba_spec()
@@ -261,22 +202,88 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 final_mamba_spec["channels"] = ["conda-forge"]
             final_mamba_spec["name"] = kernel_name
 
+            return (kernel_name, final_mamba_spec, all_mamba_pkg_map)
+        except Exception as e:
+            return self.logger.exception(
+                e, "Failed to consolidate environment definition."
+            )
+
+    def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
+        """Read package versions from a list of requirements files omitting blank
+        and comment lines.
+        """
+        package_versions = []
+        for req_file in sorted(requirements_files):
+            lines = self._read_package_lines(req_file)
+            package_versions.extend(lines)
+        return sorted(list(set(package_versions)))
+
+    def _read_package_lines(self, requirements_file: Path) -> list[str]:
+        """Read package lines from requirements file omitting blank and comment lines.
+        Should work with most forms of requirements.txt file,
+        input or compiled,  and reduce it to a pure list of package versions.
+        """
+        lines = []
+        with open(requirements_file, "r") as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith(("#", "--hash")):
+                    lines.append(line)
+        return sorted(lines)
+
+    def _get_stripped_packages(self, req_file: str) -> list[str]:
+        """Given a package file,  load the package constraints and return
+        them as a list of bare constraint-less packages
+        """
+        stripped_packages = []
+        with Path(req_file).open("r") as f:
+            for line in f:
+                line = line.strip()
+                # Strip constraints, pass blank and comment lines
+                if not (not line or line.startswith(("#", "--hash"))):
+                    package_name = re.split(r"[=<>~!]", line)[0].strip()
+                stripped_packages.append(package_name)
+        return stripped_packages
+
+    def _strip_versions_from_requirements(
+        self, req_data: list[dict[str, list[str]]], output_dir: Path
+    ) -> list[str]:
+        """Strip version constraints from requirements files and write to temporary files."""
+        stripped_files = []
+        output_dir.mkdir(parents=True, exist_ok=True)
+        for req_file in self.spec_manager.flatten_req_data(req_data):
+            stripped_packages = self._get_stripped_packages(req_file)
+            stripped_file = (
+                output_dir
+                / f"stripped_{req_file}_{utils.sha256_str(str(req_file))[:8]}.txt"
+            )
+            with stripped_file.open("w") as f:
+                f.write("\n".join(stripped_packages) + "\n")
+            stripped_files.append(str(stripped_file))
+            self.logger.debug(f"Created stripped requirements file: {stripped_file}")
+
+        return stripped_files
+
+    def consolidate_packages(self, injector: SpiInjector, output_dir: Path):
+        try:
             # requirements.txt files found in selected repo directories
             notebook_req_data = self.spec_manager.get_requirements_files()
             if self.config.packages_ignore_versions:
-                self.logger.info(
-                    "Ignoring version constraints in notebook requirements.txt files."
-                )
                 notebook_req_files = self._strip_versions_from_requirements(
                     notebook_req_data, output_dir
                 )
+                self.logger.debug(
+                    "Stripped versions from pip package requirements:",
+                    notebook_req_files,
+                )
             else:
-                notebook_req_files = []
-                for selector in notebook_req_data:
-                    _, paths = list(selector.items())[0]
-                    for path in paths:
-                        notebook_req_files.append(path)
-                notebook_req_files = list(set(notebook_req_files))
+                notebook_req_files = self.spec_manager.flatten_req_data(
+                    notebook_req_data
+                )
+                self.logger.debug(
+                    "Using requirements constraints to resolve dependencies:",
+                    notebook_req_files,
+                )
 
             spi_pip_files = injector.find_spi_pip_files()
             extra_pip_packages_file = utils.writelines(
@@ -287,17 +294,14 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 self.spec_manager.common_pip_packages,
                 output_dir / "common_pip_packages.txt",
             )
-
-            # Build a mapping of each pip package file to its expanded list of packages.
-            all_pip_files: set[str] = set()
-            for req_file in notebook_req_files:
-                all_pip_files.add(req_file)
-            for spi_file in spi_pip_files:
-                all_pip_files.add(str(spi_file))
-            if Path(extra_pip_packages_file) not in all_pip_files:
-                all_pip_files.add(extra_pip_packages_file)
-            if Path(common_pip_packages_file) not in all_pip_files:
-                all_pip_files.add(common_pip_packages_file)
+            all_pip_files = sorted(
+                list(
+                    set(notebook_req_files)
+                    | set(spi_pip_files)
+                    | set([extra_pip_packages_file])
+                    | set([common_pip_packages_file])
+                )
+            )
 
             non_mamba_pip_req_list: list[dict[str, list[str]]] = []
             for req_path in all_pip_files:
@@ -305,15 +309,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     {str(req_path): self._read_package_lines(Path(req_path))}
                 )
 
-            return (
-                kernel_name,
-                final_mamba_spec,
-                all_mamba_pkg_map,
-                non_mamba_pip_req_list,
-            )
+            return non_mamba_pip_req_list
+
         except Exception as e:
             return self.logger.exception(
-                e, "Failed to consolidate environment definition."
+                e, "Failed to consolidate pip packages definition."
             )
 
     def _get_base_mamba_spec(self) -> dict:

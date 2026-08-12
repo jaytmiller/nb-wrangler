@@ -587,7 +587,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             repositories=copy.deepcopy(output_repos_for_spec),
             spi=spi_output,
             test_notebooks=notebook_paths,
-            test_imports=test_imports,
             nb_to_imports=nb_to_imports,
         )
 
@@ -755,15 +754,11 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _compile_mamba_requirements(self) -> bool:
         self.logger.info("Compiling full environment definition.")
-        notebook_paths_dict = self.spec_manager.get_outputs("test_notebooks") or {}
         (
             self.compiled_kernel_name,
             final_mamba_spec_dict,
             mamba_package_map,
-            non_mamba_pip_pkg_files,
-        ) = self.compiler.consolidate_environment(
-            list(notebook_paths_dict.keys()), self.injector, self.config.output_dir
-        )
+        ) = self.compiler.consolidate_environment(self.injector, self.config.output_dir)
         self.logger.debug("Consolidated environment definition.")
 
         compiled_mamba_spec_str = utils.yaml_block(
@@ -778,7 +773,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 kernel_name=self.resolved_kname,
                 mamba_spec=compiled_mamba_spec_str,
                 mamba_package_map=mamba_package_map,
-                non_mamba_pip_package_files=non_mamba_pip_pkg_files,
             )
         except Exception as e:
             return self.logger.error(f"Failed to save compiled mamba spec: {e}")
@@ -786,8 +780,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _compile_pip_requirements(self) -> bool:
 
-        non_mamba_pip_package_files = self.spec_manager.get_output_data(
-            "non_mamba_pip_package_files", []
+        non_mamba_pip_package_files = self.compiler.consolidate_packages(
+            self.injector, self.config.output_dir
         )
 
         pip_file_paths = []
@@ -821,6 +815,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             pip_compiler_output=compiled_pip_packages_str,
+            non_mamba_pip_package_files=non_mamba_pip_package_files,
         )
 
     def _initialize_environment(self) -> bool:

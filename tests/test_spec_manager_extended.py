@@ -411,8 +411,19 @@ class TestTestEnvVarsField:
 
 
 class TestConsolidateEnvironmentPipFiles:
-    """Tests that consolidate_environment returns non_mamba_pip_package_files as a dict
-    mapping file paths to expanded package lists."""
+    """Tests that consolidate_environment returns non_mamba_pip_package_files as a list of
+    dicts mapping file paths to expanded (sorted) package lists.
+
+    After the no-notebook requirements.txt gathering refactor, pip requirement files are
+    discovered through configured notebook selections (selected_notebooks -> repo -> on-disk
+    cloned repo dir), not directly from the consolidate_environment `notebook_paths` arg. So
+    these tests lay out a real selection whose repo directory lives under config.repos_dir and
+    contains an actual requirements.txt, mirroring how production curations compile pip packages.
+    """
+
+    REPO_URL = "https://github.com/test-org/notebook_repo.git"
+    # RepositoryManager clones to repos_dir/<basename-of-url>.git-stripped.
+    REPO_DIR_NAME = "notebook_repo"
 
     def _make_compiler(self, tmp_path):
         from nb_wrangler.config import WranglerConfig
@@ -428,9 +439,26 @@ class TestConsolidateEnvironmentPipFiles:
             )
         )
         spec_dict = _make_valid_spec_dict()
+        # Configure a single repository and selection so get_requirements_files() has an
+        # on-disk repo directory to glob under config.repos_dir/<REPO_DIR_NAME>.
+        spec_dict["repositories"] = {
+            "notebook_repo": {"url": self.REPO_URL},
+        }
+        spec_dict["selected_notebooks"] = {
+            "sel_all": {
+                "repo": "notebook_repo",
+                "root_directory": ".",
+                "include_subdirs": ["\\."],
+            },
+        }
         yaml_content = yaml.dump(spec_dict, default_flow_style=False)
         spec_file = tmp_path / "spec.yaml"
         spec_file.write_text(yaml_content)
+
+        # RepositoryManager would normally clone into this directory; for unit testing we only
+        # need the on-disk path to exist so SpecManager's get_requirements_files() can glob it.
+        repo_dir = tmp_path / "repos" / self.REPO_DIR_NAME
+        repo_dir.mkdir(parents=True, exist_ok=True)
 
         sm = SpecManager()
         assert sm.load_spec(spec_file) is True
@@ -439,29 +467,98 @@ class TestConsolidateEnvironmentPipFiles:
         compiler = RequirementsCompiler(sm, repo_manager)
         return compiler
 
-    def test_pip_files_returned_as_list_of_dicts_with_packages(self, tmp_path):
-        """consolidate_environment returns dict[str, list[str]] for pip files."""
-        compiler = self._make_compiler(tmp_path)
+    def _output_dir(self, tmp_path):
         output_dir = tmp_path / "output"
         output_dir.mkdir(parents=True, exist_ok=True)
+        return output_dir
 
-        req_file1 = output_dir / "requirements.txt"
+    def test_pip_files_returned_as_list_of_dicts_with_packages(self, tmp_path):
+        """consolidate_environment returns list[dict[path, [packages]]] for pip files."""
+        compiler = self._make_compiler(tmp_path)
+        self._output_dir(tmp_path)
+
+        # Requirements are discovered via the configured selection -> repo dir on disk.
+        repo_dir = tmp_path / "repos" / self.REPO_DIR_NAME
+        req_file1 = repo_dir / "requirements.txt"
         _make_requirements_file(req_file1, ["numpy", "astropy"])
 
-        result = compiler.consolidate_environment(
-            [str(req_file1)], _FakeInjector(), output_dir
+        pip_files = compiler.consolidate_packages(
+            _FakeInjector(), self._output_dir(tmp_path)
         )
-        # result is (kernel_name, mamba_spec, pkg_map, pip_dict)
-        _, _, _, pip_files = result
+        #  is list[dict[selector_name, list[package_files]]]
 
         assert isinstance(pip_files, list)
         file_key = str(req_file1)
         for pkgd in pip_files:
             if file_key in pkgd:
+                # _read_package_lines returns a sorted list of non-comment lines.
                 assert pkgd[file_key] == ["astropy", "numpy"]
                 break
         else:
-            assert False, "Bad package files output."
+            assert False, f"Bad package files output; expected {file_key}."
+
+    def _make_compiler_with_pip_packages(self, tmp_path, extra=None, common=None):
+        """Build a compiler whose spec declares configured extra/common pip packages."""
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+        from nb_wrangler.repository import RepositoryManager
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["repositories"] = {
+            "notebook_repo": {"url": self.REPO_URL},
+        }
+        spec_dict["selected_notebooks"] = {
+            "sel_all": {
+                "repo": "notebook_repo",
+                "root_directory": ".",
+                "include_subdirs": ["\\."],
+            },
+        }
+        spec_dict["extra_pip_packages"] = list(extra or [])
+        spec_dict["common_pip_packages"] = list(common or [])
+        spec_file = tmp_path / "spec_with_pip.yaml"
+        spec_file.write_text(yaml.dump(spec_dict, default_flow_style=False))
+
+        # Mirror the on-disk repo directory RepositoryManager would clone into.
+        (tmp_path / "repos" / self.REPO_DIR_NAME).mkdir(parents=True, exist_ok=True)
+        sm = SpecManager()
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        repo_manager = RepositoryManager(tmp_path / "repos")
+        return RequirementsCompiler(sm, repo_manager)
+
+    def test_pip_files_include_extra_and_common_packages(self, tmp_path):
+        """Non-empty extra/common pip packages appear as separate entries."""
+        compiler = self._make_compiler_with_pip_packages(
+            tmp_path, extra=["requests>=2.31,<3", "packaging"], common=["six"]
+        )
+        output_dir = self._output_dir(tmp_path)
+
+        pip_files = compiler.consolidate_environment(_FakeInjector(), output_dir)
+
+        assert isinstance(pip_files, tuple)
+        keys = {next(iter(pkgd.keys())) for pkgd in pip_files}
+        extra_key = str(output_dir / "extra_pip_packages.txt")
+        common_key = str(output_dir / "common_pip_packages.txt")
+        assert extra_key in keys
+        assert common_key in keys
+
+        # Validate package contents. _read_package_lines preserves version specs
+        # (it only drops blank/comment lines) and returns a sorted list, so verify the
+        # raw lines round-trip in sorted order rather than version-stripped names.
+        for pkgd in pip_files:
+            if next(iter(pkgd.keys())) == extra_key:
+                assert pkgd[extra_key] == ["packaging", "requests>=2.31,<3"]
+            elif next(iter(pkgd.keys())) == common_key:
+                assert pkgd[common_key] == ["six"]
 
 
 class _FakeInjector:
