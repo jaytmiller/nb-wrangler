@@ -803,114 +803,135 @@ class SpecManager(
             if repo_info
         }
 
-    def collect_notebook_paths(self, repos_dir: Path) -> dict[str, str]:
-        """Collect paths to all notebooks specified by the spec."""
+    def collect_notebook_paths(self) -> dict[str, str]:
+        """Collect paths to all notebooks specified by the spec.  This is
+        a legacy API which is kinda backwards, the raw _get_notebooks()
+        result is more rationally organized with less duplication of the
+        selection name.
+
+        Returns { notebook_path: selection_name } where notebook_path is
+                might potentially be selected twice or more by different
+                overlapping selectors.
+        """
         self._ensure_validated()
         notebook_paths: dict[str, str] = {}
-        for name, selection in self.notebook_selections.items():
-            repo_name = selection["repo"]
-            if repo_name not in self.repositories:
-                raise RuntimeError(
-                    f"Unknown repository '{repo_name}' in selection block '{name}'"
-                )
-            repo_url = self.repositories[repo_name]["url"]
-            clone_dir = self._get_repo_dir(repos_dir, repo_url)
-            if not clone_dir.exists():
-                self.logger.error(
-                    f"Repository '{repo_name}' not set up at: {clone_dir}"
-                )
-                continue
-            root_dir = selection.get("root_directory", "")
-            found_notebooks = self._process_directory_entry(
-                selection, clone_dir, root_dir
-            )
-
-            for notebook_path in found_notebooks:
-                if notebook_path in notebook_paths:
+        organized_paths = self.get_notebooks()
+        for path_dict in organized_paths:
+            name, path_list = list(path_dict.items())[0]
+            for path in path_list:
+                if path in notebook_paths:
                     self.logger.warning(
-                        f"Notebook {notebook_path} included in multiple selections. Using first one found: '{notebook_paths[notebook_path]}'."
+                        f"Notebook {path} is selected twice, attributed selection name is first seen only."
                     )
-                else:
-                    notebook_paths[notebook_path] = name
-
-        if notebook_paths:
-            self.logger.info(
-                f"Found {len(notebook_paths)} notebooks in all notebook repositories."
-            )
-        else:
-            self.logger.debug("No notebooks found in any selection.")
+                notebook_paths[str(path)] = name
         return dict(sorted(notebook_paths.items()))
 
-    def _get_repo_dir(self, repos_dir: Path, repo_url: str) -> Path:
+    def _get_repo_dir(self, name: str, selection: dict[str, Any]) -> Path:
         """Get the path to the repository directory."""
+        repo_name = selection["repo"]
+        if repo_name not in self.repositories:
+            raise RuntimeError(
+                f"Unknown repository '{repo_name}' in selection block '{name}'"
+            )
+        repo_url = self.repositories[repo_name]["url"]
         basename = os.path.basename(repo_url).replace(".git", "")
-        return repos_dir / basename
+        return self.config.repos_dir / basename
 
-    def _process_directory_entry(
-        self, entry: dict, repo_dir: Path, root_directory: str
-    ) -> set[str]:
+    def get_notebooks(self) -> list[dict[str, list[str]]]:
+        return self._collected_paths(
+            "**/*.ipynb", r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)"
+        )
+
+    def get_requirements_files(self) -> list[dict[str, list[str]]]:
+        return self._collected_paths("**/requirements.txt")
+
+    def _collected_paths(
+        self, file_glob: str, extra_excludes=None
+    ) -> list[dict[str, list[str]]]:
         """Process a notebook selection entry, applying include/exclude subdirectory filters.
 
         Args:
+            file_glob: A glob pattern to pick candidate files under repo_dir/root_directory.
             entry: A notebook selection dict with keys like 'repo', 'root_directory',
                 'include_subdirs', and 'exclude_subdirs'.
             repo_dir: The path to the cloned repository directory.
             root_directory: Optional subdirectory within the repo to search from.
 
         Returns:
-            Set of notebook paths (strings) matching the include/exclude criteria.
+            Set of notebook paths (strings) matching the include/exclude criteria,
+            possibly including bare parent-directory paths for package-only dirs.
         """
-        base_path = repo_dir
-        if root_directory:
-            base_path = base_path / root_directory
+        results = []
+        for name, entry in self.notebook_selections.items():
+            base_path = self._get_repo_dir(name, entry)
+            root_directory = entry.get("root_directory", ".")
+            if root_directory:
+                base_path = base_path / root_directory
+            include_subdirs = list(entry.get("include_subdirs", [r"."]))
+            exclude_subdirs = list(entry.get("exclude_subdirs", []))
+            if extra_excludes:
+                exclude_subdirs.append(extra_excludes)
+            paths = self._collect_paths(
+                file_glob, base_path, include_subdirs, exclude_subdirs
+            )
+            results.append(dict(name=sorted([str(path) for path in paths])))
+        return results
 
-        possible_notebooks = [str(path) for path in base_path.glob("**/*.ipynb")]
-
-        include_subdirs = list(entry.get("include_subdirs", [r"."]))
-        included_notebooks = self._matching_files(
-            "Including", possible_notebooks, include_subdirs
-        )
-
-        exclude_subdirs = list(entry.get("exclude_subdirs", []))
-        exclude_subdirs.append(r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)")
-        excluded_notebooks = self._matching_files(
-            "Excluding", possible_notebooks, exclude_subdirs
-        )
-
-        remaining_notebooks = included_notebooks - excluded_notebooks
-        self.logger.info(
-            f"Selected {len(remaining_notebooks)} notebooks under {base_path} for selection block."
-        )
-
-        return remaining_notebooks
-
-    def _matching_files(
-        self, verb: str, possible_notebooks: list[str], regexes: list[str]
+    def _collect_paths(
+        self,
+        file_glob: str,
+        base_path: Path,
+        include_subdirs: list[str],
+        exclude_subdirs: list[str],  # noqa: E501 - signature readability
     ) -> set[str]:
-        """Filter notebook paths by matching against a list of regex patterns.
+        """Find filepaths under `base_path` that match `file_glob` and
+        a regex from `include_dirs` but do not match any regexes in
+        exclude_subdirs.
+
+        Args:
+            base_path: Root directory to scan for files.
+            file_glob: Glob expression to search under base_path for matching files.
+            include_subdirs: Regex patterns (as in selection blocks) that a dir path
+                must match.
+            exclude_subdirs: Regex patterns that cause a directory to be skipped.
+
+        Returns:
+            Set of filepaths,  nominally for notebook.ipynb or requirements.txt files.
+        """
+        possible_files = set(str(p) for p in list(base_path.glob(file_glob)))
+        included = self._match_paths("Including", possible_files, include_subdirs)
+        excluded = self._match_paths("Excluding", included, exclude_subdirs)
+        included = included - excluded
+        return included
+
+    def _match_paths(
+        self,
+        verb: str,
+        possible_paths: set[str],
+        regexes: list[str],
+    ) -> set[str]:
+        """Filter path strings by matching against a list of regex patterns.
 
         Args:
             verb: Log action verb (e.g., 'Including', 'Excluding') for log messages.
-            possible_notebooks: List of notebook file paths to filter.
-            regexes: List of regex patterns. A notebook is matched if any pattern
-                matches its path.
+            possible_paths: List of path strings to filter; these may be notebook
+                files or bare directory paths depending on the caller.
+            regexes: List of regex patterns. A path is matched if any pattern
+                matches it.
 
         Returns:
-            Set of notebook paths that matched at least one regex pattern.
+            Set of path strings that matched at least one regex pattern.
         """
         self.logger.debug(
-            f"{verb} notebooks {list(possible_notebooks)} against regexes {regexes}"
+            f"{verb} paths {list(possible_paths)} against regexes {regexes}"
         )
-        notebooks = set()
-        for nb_path in possible_notebooks:
-            if not Path(nb_path).is_file():
-                self.logger.debug(f"Skipping {verb} non-file: {nb_path}")
-                continue
+        matched = set()
+        for path_str in possible_paths:
             for regex in regexes:
-                if re.search(regex, str(nb_path)):
+                if re.search(regex, str(path_str)):
                     self.logger.debug(
-                        f"{verb} notebook {nb_path} based on regex: '{regex}'"
+                        f"{verb} path {path_str} based on regex: '{regex}'"
                     )
-                    notebooks.add(str(nb_path))
+                    matched.add(str(path_str))
                     break
-        return notebooks
+        return matched

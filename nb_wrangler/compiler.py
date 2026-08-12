@@ -31,41 +31,6 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.repo_manager = repo_manager
         self.python_path = python_path
 
-    def find_requirements_files(
-        self, notebook_paths: list[str]
-    ) -> list[tuple[Path, str]]:
-        """Find requirements.txt files in notebook directories.
-        Returns a list of (requirements_file, contributor_name) tuples.
-        """
-        requirements_data = []
-        # Group notebooks by their parent directory
-        dir_to_notebooks: dict[Path, list[str]] = {}
-        for nb_path in notebook_paths:
-            nb_path_obj = Path(nb_path)
-            parent = nb_path_obj.parent
-            if parent not in dir_to_notebooks:
-                dir_to_notebooks[parent] = []
-            dir_to_notebooks[parent].append(nb_path_obj.stem)
-
-        # For each directory, check if requirements.txt exists
-        for dir_path, nb_stems in sorted(dir_to_notebooks.items()):
-            req_file = dir_path / "requirements.txt"
-            if req_file.exists():
-                # Sort stems for deterministic naming
-                contributor = "_".join(sorted(nb_stems))
-                # Truncate if too long to avoid OS filename limits
-                if len(contributor) > 100:
-                    contributor = contributor[:100] + "_etc"
-                requirements_data.append((req_file, contributor))
-                self.logger.debug(
-                    f"Found requirements file: {req_file} (from {contributor})"
-                )
-
-        self.logger.info(
-            f"Found {len(requirements_data)} notebook requirements.txt files."
-        )
-        return requirements_data
-
     def compile_requirements(
         self,
         package_files: list[str],
@@ -219,31 +184,33 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         return sorted(lines)
 
     def _strip_versions_from_requirements(
-        self, req_data: list[tuple[Path, str]], output_dir: Path
-    ) -> list[Path]:
+        self, req_data: list[dict[str, list[str]]], output_dir: Path
+    ) -> list[str]:
         """Strip version constraints from requirements files and write to temporary files."""
         stripped_files = []
+        stripped_content = []
         output_dir.mkdir(parents=True, exist_ok=True)
-        for req_file, contributor in req_data:
-            stripped_content = []
-            with req_file.open("r") as f:
-                for line in f:
-                    line = line.strip()
-                    if not line or line.startswith(("#", "--hash")):
-                        stripped_content.append(line)
-                        continue
-                    # Strip version constraints: ==, >=, <=, >, <, ~=
-                    # Also handle multiple constraints like package>=1.0,<=2.0
-                    package_name = re.split(r"[=<>~!]", line)[0].strip()
-                    stripped_content.append(package_name)
+        for selection in req_data:
+            name, paths = list(selection.items())[0]
+            for req_file in paths:
+                with Path(req_file).open("r") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line or line.startswith(("#", "--hash")):
+                            stripped_content.append(line)
+                            continue
+                        # Strip version constraints: ==, >=, <=, >, <, ~=
+                        # Also handle multiple constraints like package>=1.0,<=2.0
+                        package_name = re.split(r"[=<>~!]", line)[0].strip()
+                        stripped_content.append(package_name)
 
             stripped_file = (
                 output_dir
-                / f"stripped_{contributor}_{req_file.name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+                / f"stripped_{name}_{req_file}_{utils.sha256_str(str(req_file))[:8]}.txt"
             )
             with stripped_file.open("w") as f:
                 f.write("\n".join(stripped_content) + "\n")
-            stripped_files.append(stripped_file)
+            stripped_files.append(str(stripped_file))
             self.logger.debug(f"Created stripped requirements file: {stripped_file}")
 
         return stripped_files
@@ -294,8 +261,8 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 final_mamba_spec["channels"] = ["conda-forge"]
             final_mamba_spec["name"] = kernel_name
 
-            # Pip
-            notebook_req_data = self.find_requirements_files(notebook_paths)
+            # requirements.txt files found in selected repo directories
+            notebook_req_data = self.spec_manager.get_requirements_files()
             if self.config.packages_ignore_versions:
                 self.logger.info(
                     "Ignoring version constraints in notebook requirements.txt files."
@@ -304,7 +271,12 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     notebook_req_data, output_dir
                 )
             else:
-                notebook_req_files = [req_file for req_file, _ in notebook_req_data]
+                notebook_req_files = []
+                for selector in notebook_req_data:
+                    _, paths = list(selector.items())[0]
+                    for path in paths:
+                        notebook_req_files.append(path)
+                notebook_req_files = list(set(notebook_req_files))
 
             spi_pip_files = injector.find_spi_pip_files()
             extra_pip_packages_file = utils.writelines(
@@ -315,23 +287,22 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 self.spec_manager.common_pip_packages,
                 output_dir / "common_pip_packages.txt",
             )
-            # Build a mapping of each pip package file to its expanded list of packages.
-            non_mamba_pip_req_list: list[dict[str, list[str]]] = []
-            all_pip_files: list[Path] = []
-            for req_file in notebook_req_files:
-                if req_file not in all_pip_files:
-                    all_pip_files.append(req_file)
-            for spi_file in spi_pip_files:
-                if spi_file not in all_pip_files:
-                    all_pip_files.append(spi_file)
-            if extra_pip_packages_file not in all_pip_files:
-                all_pip_files.append(Path(extra_pip_packages_file))
-            if Path(common_pip_packages_file) not in all_pip_files:
-                all_pip_files.append(Path(common_pip_packages_file))
 
+            # Build a mapping of each pip package file to its expanded list of packages.
+            all_pip_files: set[str] = set()
+            for req_file in notebook_req_files:
+                all_pip_files.add(req_file)
+            for spi_file in spi_pip_files:
+                all_pip_files.add(str(spi_file))
+            if Path(extra_pip_packages_file) not in all_pip_files:
+                all_pip_files.add(extra_pip_packages_file)
+            if Path(common_pip_packages_file) not in all_pip_files:
+                all_pip_files.add(common_pip_packages_file)
+
+            non_mamba_pip_req_list: list[dict[str, list[str]]] = []
             for req_path in all_pip_files:
                 non_mamba_pip_req_list.append(
-                    {str(req_path): self._read_package_lines(req_path)}
+                    {str(req_path): self._read_package_lines(Path(req_path))}
                 )
 
             return (
@@ -415,19 +386,4 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         except Exception as e:
             return self.logger.exception(e, f"Failed writing mamba spec {filepath}")
         self.logger.debug(f"Wrote mamba spec to '{filepath}'")
-        return True
-
-    def write_pip_requirements_file(
-        self, filepath: str, package_versions: list
-    ) -> bool:
-        """Write package versions to pip requirements file."""
-        try:
-            with Path(filepath).open("w+") as f:
-                for package_version in package_versions:
-                    f.write(f"{package_version}\n")
-        except Exception as e:
-            return self.logger.exception(
-                e, f"Failed writing pip requirements to '{filepath}'."
-            )
-        self.logger.debug(f"Wrote pip target env package versions to '{filepath}'")
         return True
