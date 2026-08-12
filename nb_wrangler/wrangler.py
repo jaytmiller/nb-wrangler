@@ -562,7 +562,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.error(f"Failed to prepare repositories: {e}")
 
         # Collect notebook paths and imports
-        notebook_paths = self.spec_manager.collect_notebook_paths(self.config.repos_dir)
+        notebook_paths = self.spec_manager.collect_notebook_paths()
         test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
             list(notebook_paths.keys())
         )
@@ -784,11 +784,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.injector, self.config.output_dir
         )
 
+        self.logger.debug("Compiling pip requirements from constraints:", non_mamba_pip_package_files)
+
         pip_file_paths = []
         for item in non_mamba_pip_package_files:
             if isinstance(item, str):
+                # self.logger.debug(f"Appending from old style {item}.")
                 pip_file_paths.append(item)  # original format,  filepath only
             elif isinstance(item, dict):
+                # self.logger.debug(f"Appending from new style {item}.")
                 pip_file_paths.append(list(item.keys())[0])  # with package lists
             else:
                 raise RuntimeError(

@@ -569,3 +569,85 @@ class _FakeInjector:
 
     def find_spi_pip_files(self):
         return []
+
+
+class TestFlattenReqDataAndMultiSelection:
+    """Regression tests for flatten_req_data and multi-selection requirements gathering.
+
+    These cover the bug where ``flatten_req_data`` returned a leftover loop variable
+    (``file_list``) instead of the accumulated ``combined_files``, causing requirements.txt
+    files contributed by earlier notebook selections to be silently dropped — which is why
+    nb-wrangler failed to discover req files in package-only directories (no notebooks).
+    """
+
+    def _get_sm(self, tmp_path):
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(
+                workflows=[], repos_dir=tmp_path / "repos", output_dir=tmp_path / "out"
+            )
+        )
+        return SpecManager()
+
+    def test_flatten_req_data_returns_all_files_across_selections(self, tmp_path):
+        sm = self._get_sm(tmp_path)
+        sample = [
+            {"notebooks": ["/a/notebooks/sub/requirements.txt"]},
+            {"activities": ["/b/activities/x/r1.txt", "/b/activities/y/r2.txt"]},
+        ]
+        result = sm.flatten_req_data(sample)
+        assert sorted(result) == [
+            "/a/notebooks/sub/requirements.txt",
+            "/b/activities/x/r1.txt",
+            "/b/activities/y/r2.txt",
+        ]
+
+    def test_flatten_req_data_empty_input_does_not_raise(self, tmp_path):
+        sm = self._get_sm(tmp_path)
+        assert sm.flatten_req_data([]) == []
+
+    def test_get_requirements_files_discovers_orphan_dir_only_reqs(self, tmp_path):
+        """End-to-end: a requirements.txt in a directory with NO notebook files must still be found when it appears under two selections.
+        Reproduces the RST_commissioning scenario where `notebooks/.*` and `activities/.*` overlap package-only dirs.
+        """
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(
+                workflows=[], repos_dir=tmp_path / "repos", output_dir=tmp_path / "out"
+            )
+        )
+        repo_url = "https://github.com/test-org/RST_commissioning.git"
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["repositories"] = {"repo_a": {"url": repo_url}}
+        # Two selections spanning overlapping package-only dirs (no notebooks in the orphan dir).
+        spec_dict["selected_notebooks"] = {
+            "notebooks_sel": {
+                "repo": "repo_a",
+                "root_directory": ".",
+                "include_subdirs": [r"notebooks/.*"],
+            },
+            "activities_sel": {
+                "repo": "repo_a",
+                "root_directory": ".",
+                "include_subdirs": [r"activities/.*"],
+            },
+        }
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        repo_dir = tmp_path / "repos" / "RST_commissioning"
+        (repo_dir / "activities/car-138/CAR138_goals5and6").mkdir(parents=True)
+        # requirements.txt in a directory with NO notebook sibling under this exact path.
+        req_file = repo_dir / "activities/car-138/CAR138_goals5and6/requirements.txt"
+        _make_requirements_file(req_file, ["numpy", "astropy"])
+
+        sm = SpecManager()
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        req_data = sm.get_requirements_files()
+        flat = sm.flatten_req_data(req_data)
+        # The orphan (notebook-less) requirements file must be present exactly once.
+        assert str(req_file) in flat, f"Orphan requirements.txt missing: {flat}"
