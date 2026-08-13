@@ -816,6 +816,8 @@ class SpecManager(
         self._ensure_validated()
         notebook_paths: dict[str, str] = {}
         organized_paths = self.get_notebooks()
+        return organized_paths
+    
         for path_dict in organized_paths:
             name, path_list = list(path_dict.items())[0]
             for path in path_list:
@@ -857,7 +859,7 @@ class SpecManager(
 
     def _collected_paths(
         self, file_glob: str, extra_excludes=None
-    ) -> list[dict[str, list[str]]]:
+    ) -> list[dict[str, list[dict[str, list[str]]]]]:
         """Process a notebook selection entry, applying include/exclude subdirectory filters.
 
         Args:
@@ -870,6 +872,8 @@ class SpecManager(
         Returns:
             Set of notebook paths (strings) matching the include/exclude criteria,
             possibly including bare parent-directory paths for package-only dirs.
+
+            [ selector : [ { file }]]
         """
         results = []
         for name, entry in self.notebook_selections.items():
@@ -884,7 +888,7 @@ class SpecManager(
             paths = self._collect_paths(
                 file_glob, base_path, include_subdirs, exclude_subdirs
             )
-            results.append(dict(name=sorted([str(path) for path in paths])))
+            results.append({ name: sorted([str(path) for path in paths])})
         return results
 
     def _collect_paths(
@@ -932,21 +936,19 @@ class SpecManager(
         Returns:
             Set of path strings that matched at least one regex pattern.
         """
-        self.logger.debug(
-            f"{verb} paths {list(possible_paths)} against regexes {regexes}"
-        )
         matched = set()
         for path_str in possible_paths:
+            path = Path(path_str)
             for regex in regexes:
-                if re.search(regex, str(path_str)):
-                    # self.logger.debug(
-                    #     f"{verb} path {path_str} based on regex: '{regex}'"
-                    # )
-                    matched.add(str(path_str))
+                if re.search(regex, path_str):
+                    notebook_glob = list(path.parent.glob(r"*.ipynb"))
+                    if path.name.endswith(".txt") and not notebook_glob:
+                        orphan = "(orphan) "
+                    else:
+                        orphan = ""
+                    self.logger.debug(
+                        f"{verb} {orphan}path {path_str} based on regex: '{regex}'.")
+                    matched.add(path_str)
                     break
-            #     else:
-            #         # self.logger.debug(f"No match for  {verb} path {path_str}.")
-            # else:
-            #     self.logger.debug(f"FAILED {verb} path {path_str}.")
 
         return matched

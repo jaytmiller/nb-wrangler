@@ -563,9 +563,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Collect notebook paths and imports
         notebook_paths = self.spec_manager.collect_notebook_paths()
-        test_imports, nb_to_imports = self.notebook_import_processor.extract_imports(
-            list(notebook_paths.keys())
-        )
+        nb_to_imports = self.notebook_import_processor.extract_imports(notebook_paths)
 
         # Update spec with resolved repository states
         output_repos_for_spec = copy.deepcopy(self.spec_manager.repositories)
@@ -784,7 +782,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.injector, self.config.output_dir
         )
 
-        self.logger.debug("Compiling pip requirements from constraints:", non_mamba_pip_package_files)
+        self.logger.debug(
+            "Compiling pip requirements from constraints:", non_mamba_pip_package_files
+        )
 
         pip_file_paths = []
         for item in non_mamba_pip_package_files:
@@ -798,6 +798,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
                 raise RuntimeError(
                     "Unexpected out format for non_mamba_pip_package_files"
                 )
+
+        if not self.spec_manager.revise_and_save(
+            self.config.output_dir,
+            add_sha256=not self.config.spec_ignore_hash,
+            non_mamba_pip_package_files=non_mamba_pip_package_files,
+        ):
+            return False
+        if not self._save_final_spec():
+            return False
 
         if not self.compiler.compile_requirements(
             pip_file_paths,
@@ -819,7 +828,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.config.output_dir,
             add_sha256=not self.config.spec_ignore_hash,
             pip_compiler_output=compiled_pip_packages_str,
-            non_mamba_pip_package_files=non_mamba_pip_package_files,
         )
 
     def _initialize_environment(self) -> bool:

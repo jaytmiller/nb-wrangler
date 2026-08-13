@@ -123,7 +123,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             str(self.config.pip_command),
             # f"--python {self.python_path}",
             "install",
-            "--quiet",
+            # "--quiet",
             "--only-binary=all",
         ]
         cmd_parts = base_cmd_parts.copy()
@@ -285,7 +285,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                     notebook_req_files,
                 )
 
-            spi_pip_files = [str(filepath) for filepath in injector.find_spi_pip_files()]
+            spi_pip_files = [
+                str(filepath) for filepath in injector.find_spi_pip_files()
+            ]
             extra_pip_packages_file = utils.writelines(
                 self.spec_manager.extra_pip_packages,
                 output_dir / "extra_pip_packages.txt",

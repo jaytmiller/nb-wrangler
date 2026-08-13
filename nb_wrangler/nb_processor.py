@@ -17,16 +17,20 @@ class NotebookImportProcessor(WranglerLoggable):
             r"^(?:import\s+([a-zA-Z0-9_\.]+))|(?:from\s+([a-zA-Z0-9_\.]+)\s+import)"
         )
 
-    def extract_imports(self, notebook_paths) -> tuple[list[str], dict[str, list[str]]]:
+    def extract_imports(self, notebook_paths: list[dict[str, list[str]]]) -> dict[str, list[str]]:
         """Extract import statements from notebooks."""
         nb_to_imports: dict[str, list[str]] = {}
-        unique_notebooks: set[str] = set(notebook_paths)
+        all_notebooks: list[str] = []
+        for contribution in notebook_paths:
+            _contributor, notebooks = list(contribution.items())[0]
+            all_notebooks.extend(notebooks)
+        unique_notebooks: list[str] = sorted(list(set(all_notebooks)))
         total_imports: set[str] = set()
         if unique_notebooks:
             self.logger.info(
                 f"Processing {len(unique_notebooks)} unique notebooks for imports."
             )
-        for nb_path_str in sorted(list(unique_notebooks)):
+        for nb_path_str in unique_notebooks:
             nb_dict = self._read_notebook_json(nb_path_str)
             if nb_dict:
                 imports = self._extract_imports_from_notebook(nb_dict)
@@ -40,7 +44,7 @@ class NotebookImportProcessor(WranglerLoggable):
             self.logger.info(
                 f"Extracted {len(total_imports)} package imports from {len(unique_notebooks)} notebooks."
             )
-        return sorted(list(total_imports)), nb_to_imports
+        return nb_to_imports
 
     def _read_notebook_json(self, nb_path: str) -> Optional[dict]:
         """Read and parse a notebook file as JSON."""
