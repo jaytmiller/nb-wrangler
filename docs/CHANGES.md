@@ -1,5 +1,9 @@
 **v0.9.0** change notes:
 
+### Migration Overview
+
+`nb-wrangler` is in the process of factoring production specs and image building out to a sister repository `nb-wrangler-images` which is coming online *now* but with straggling  clean-up work to do removing dead functionality and documentation from `nb-wrangler` and updating it as needed at `nb-wrangler-images.`  Going forward all production specs will be CM'ed on GitHub's [spacetelescope/nb-wrangler-images](https://github.com/spacetelescope/nb-wrangler-images.git) and images will now be located under spacetelescopes [nb-wrangler-images public GHCR](https://github.com/spacetelescope/nb-wrangler-images/pkgs/container/nb-wrangler-images).
+
 ### New Features
 
 - **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)
