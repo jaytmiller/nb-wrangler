@@ -142,6 +142,20 @@ The combination of `root_directory`, `include_subdirs`, and `exclude_subdirs` is
 2. To keep things simple, leave `root_directory` as an empty string and just include the full path from the root of the repo to the notebook directory in `include_subdirs`.
 3. Use regular expressions in `include_subdirs` and `exclude_subdirs` to select notebooks based on patterns. For example, `include_subdirs: [".*"]` will include all notebooks under the `root_directory`.
 
+> **Note on orphan `requirements.txt` files:** In addition to notebooks, `requirements.txt` files are discovered by globbing under `selected_notebooks` selections — including directories that contain only a `requirements.txt` and no notebooks. Such files are logged with an "(orphan)" prefix in the debug output. This allows package-only directories to contribute dependencies to the environment even when no notebooks are selected from them.
+
+### **out**
+
+This section is written to the spec by `nbw` during curation and contains the results of the curation process (found notebooks, resolved imports, compiled environment, etc.). Curators typically do not write to this section manually.
+
+Known output fields include:
+
+- **`data`**: Data dependencies collected from notebook repositories' `refdata_dependencies.yaml` files and the top-level `refdata_dependencies` section.
+- **`repositories`**: Resolved repository information including `resolved_ref` for each repository.
+- **`non_mamba_pip_package_files`**: A mapping of `requirements.txt` file paths to their expanded (sorted, version-pinned) package lists. This field is written during `--packages-compile` / `--curate` and reflects the pip requirements discovered via `SpecManager.get_requirements_files()` globbing, including orphan `requirements.txt` files in directories with no notebooks.
+- **`spec_sha256`**: An sha256 hash of the spec when it was last saved, for integrity checking.
+- **`date_updated`**: The timestamp when the spec was last updated.
+
 ### **refdata_dependencies**
 
 This optional section allows for image-wide data dependencies defined directly in the wrangler spec. These dependencies are merged with any `refdata_dependencies.yaml` files discovered at the root of the notebook repositories.

@@ -1,5 +1,25 @@
 **v0.9.0** change notes:
 
+### Requirements.txt Discovery & Selector-Based Path Refactor
+
+- **Requirements.txt discovery refactor**: `requirements.txt` files are now discovered via `SpecManager.get_requirements_files()` (globbing configured `selected_notebooks` selections), not from `collect_notebook_paths()` results. This fixes discovery of orphan `requirements.txt` files in package-only directories (no notebooks).
+- **Selector-based path data structures**: `collect_notebook_paths()`, `NotebookImportProcessor.extract_imports()`, and `NotebookTester.filter_notebooks()` now use `list[dict[str, list[str]]]` format (selector_name → [paths]) instead of flat dictionaries.
+- **`SpecManager.collect_notebook_paths()`** signature changed: removed `repos_dir` parameter; now reads `self.config.repos_dir` internally.
+- **`SpecManager.get_requirements_files()`** (new method): discovers `requirements.txt` files by globbing under configured selections in `self.config.repos_dir/<repo_name>`. Returns `list[dict[str, list[str]]]`.
+- **`SpecManager.flatten_req_data()`** / **`flatten_req_files()`** (new methods): flatten the selector→files mapping into a flat list or dict.
+- **`NotebookImportProcessor.extract_imports()`** signature changed: now takes `notebook_paths: list[dict[str, list[str]]]` (selector→files format), returns only `dict[str, list[str]]` (removed the `list[str]` unique imports return value).
+- **`NotebookTester.filter_notebooks()`** signature changed: now takes `notebook_configs: list[dict[str, list[str]]]` (selector→files format).
+- **Consolidate environment split**: `RequirementsCompiler.consolidate_environment()` no longer takes `notebook_paths` and no longer returns `non_mamba_pip_req_list` (now a 3-tuple instead of 4-tuple). The pip-file-gathering portion previously inside `consolidate_environment` is now handled by the new **`RequirementsCompiler.consolidate_packages()`** method, which calls `spec_manager.get_requirements_files()`.
+- **Orphan requirements.txt handling**: `requirements.txt` files in directories with no notebooks are now discovered via `get_requirements_files()` globbing rather than being tied to notebook discovery. `_match_paths` logs "(orphan)" for `.txt` files whose parent directory has no `.ipynb` files.
+- **Timeout increases**: All timeout constants increased:
+  - `REPO_CLONE_TIMEOUT`: 300 → 7200
+  - `INSTALL_PACKAGES_TIMEOUT`: 1800 → 3600
+  - `PIP_COMPILE_TIMEOUT`: 600 → 1200
+  - `IMPORT_TEST_TIMEOUT`: 60 → 120
+  - `ARCHIVE_TIMEOUT`: 1200 → 3600
+- **`NBW_REPOS_DIR` support**: Repository directory default now configurable via `NBW_REPOS_DIR` env var (defaults to `references`).
+- **`--quiet`/`-q` flag**: Suppresses all log output to stderr (stdout still visible for `--spec-name`, `--docker-list`, etc.).
+
 ### Major New Features
 
 1. **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)
