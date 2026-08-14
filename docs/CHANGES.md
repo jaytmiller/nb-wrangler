@@ -1,154 +1,113 @@
 **v0.9.0** change notes:
 
-### Requirements.txt Discovery & Selector-Based Path Refactor
+### New Features
 
-- **Requirements.txt discovery refactor**: `requirements.txt` files are now discovered via `SpecManager.get_requirements_files()` (globbing configured `selected_notebooks` selections), not from `collect_notebook_paths()` results. This fixes discovery of orphan `requirements.txt` files in package-only directories (no notebooks).
-- **Selector-based path data structures**: `collect_notebook_paths()`, `NotebookImportProcessor.extract_imports()`, and `NotebookTester.filter_notebooks()` now use `list[dict[str, list[str]]]` format (selector_name → [paths]) instead of flat dictionaries.
-- **`SpecManager.collect_notebook_paths()`** signature changed: removed `repos_dir` parameter; now reads `self.config.repos_dir` internally.
-- **`SpecManager.get_requirements_files()`** (new method): discovers `requirements.txt` files by globbing under configured selections in `self.config.repos_dir/<repo_name>`. Returns `list[dict[str, list[str]]]`.
-- **`SpecManager.flatten_req_data()`** / **`flatten_req_files()`** (new methods): flatten the selector→files mapping into a flat list or dict.
-- **`NotebookImportProcessor.extract_imports()`** signature changed: now takes `notebook_paths: list[dict[str, list[str]]]` (selector→files format), returns only `dict[str, list[str]]` (removed the `list[str]` unique imports return value).
-- **`NotebookTester.filter_notebooks()`** signature changed: now takes `notebook_configs: list[dict[str, list[str]]]` (selector→files format).
-- **Consolidate environment split**: `RequirementsCompiler.consolidate_environment()` no longer takes `notebook_paths` and no longer returns `non_mamba_pip_req_list` (now a 3-tuple instead of 4-tuple). The pip-file-gathering portion previously inside `consolidate_environment` is now handled by the new **`RequirementsCompiler.consolidate_packages()`** method, which calls `spec_manager.get_requirements_files()`.
-- **Orphan requirements.txt handling**: `requirements.txt` files in directories with no notebooks are now discovered via `get_requirements_files()` globbing rather than being tied to notebook discovery. `_match_paths` logs "(orphan)" for `.txt` files whose parent directory has no `.ipynb` files.
-- **Timeout increases**: All timeout constants increased:
+- **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)
+  - New `assets:` spec section bundles static files from git repos into Docker images during SPI injection/curation.
+  - Supports flat syntax (single item) and grouped syntax (`items:` sub-list sharing common repo/ref).
+  - `contents_only` flag copies directory contents rather than the directory itself.
+  - Source paths support trailing `/` notation for contents-only mode plus glob patterns.
+  - Generates `install-assets.sh` script in the environments directory.
+
+- **System Commands Override** (`system.commands.{mamba, pip, favor}`)
+  - New spec-level `system.commands: { mamba: ..., pip: ..., favor: ... }` section overrides Mamba/pip executables.
+  - `favor` controls precedence when both env vars and spec define values: `spec` (default) or `environment`.
+  - CLI flags (`--mamba-cmd`, `--pip-cmd`) always override both spec and env vars.
+
+- **NBW_OVERRIDES_MODE** Environment Variable
+  - Set to `--dev` or `--prod` to change default override behavior for all workflows (default is `--prod`).
+  - Replaces earlier reliance on implicit heuristic detection of dev/prod mode.
+
+- **Calver Tag Resolution** (repository checkout)
+  - Automatic resolution of abstract tags (branch prefixes like `2026.2`) by listing git tags, sorting descending, and picking the highest matching prefix.
+  - Falls back to partial SHA when full tag resolution fails.
+
+- **YAML Type Normalization** (`nb_wrangler/yaml_typed_values.py`)
+  - New module normalizes YAML values (dates, numbers, booleans) to strings via `yaml_typed_values.normalize_value()`, preventing type mismatches downstream.
+
+- **Environment Variables in Spec** (`environment_vars`, `test_environment_vars`)
+  - New top-level `environment_vars:` spec section, like variables in `refdata_dependencies.yaml` but specified directly in the wrangler spec; merged into refdata during data collection.
+  - New `test_environment_vars:` spec section injects test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run.
+
+- **`--print-repo-tags` Enhancement**
+  - Resolves and outputs `resolved_ref` from the spec's `out.repositories:` section if available.
+
+### Spec & Validation
+
+- **Spec Validation & Version Awareness**
+  - Added warning when a spec's `system.spec_version` is greater than `WRANGLER_SPEC_VERSION`, signaling that the wrangler version may not recognize all features in the newer spec format — a prompt to upgrade nb-wrangler. A deprecation warning (existing behavior) still fires for older versions. Current supported version: `2.3`.
+  - Added `_validate_dev_overrides_section()` allow-list validation: enforces that keywords under `dev_overrides` and `deactivated_dev_overrides` mirror the top-level spec schema, catching typos/unsupported keys early. Reuses `_check_allowed_keywords()` for recursive checking against `ALLOWED_KEYWORDS`.
+
+- **Package-List Dev Overrides (full-replacement semantics)**
+  - Added `extra_mamba_packages`, `common_mamba_packages`, `extra_pip_packages`, `common_pip_packages`, and `apt_packages` to the `_OVERRIDES_SCHEMA` whitelist. When present under `dev_overrides` in `--dev` mode, these lists **replace** (rather than append to) their top-level counterparts via the new `_overridden_list()` helper on `SpecManager`. In `--prod` mode overrides are never consulted. An empty override list clears the base entirely.
+
+### Refactoring & API Changes
+
+- **Selector-Based Path Data Structures**: `collect_notebook_paths()`, `NotebookImportProcessor.extract_imports()`, and `NotebookTester.filter_notebooks()` now use `list[dict[str, list[str]]]` format (selector_name → [paths]) instead of flat dictionaries.
+  - `SpecManager.collect_notebook_paths()` signature changed: removed `repos_dir` parameter; now reads `self.config.repos_dir` internally.
+  - `NotebookImportProcessor.extract_imports()` signature changed: takes `notebook_paths: list[dict[str, list[str]]]` (selector→files format); returns only `dict[str, list[str]]` (removed the `list[str]` unique imports return value).
+  - `NotebookTester.filter_notebooks()` signature changed: takes `notebook_configs: list[dict[str, list[str]]]` (selector→files format).
+
+- **Requirements.txt Discovery** (`SpecManager.get_requirements_files()`, new)
+  - `requirements.txt` files are now discovered via `get_requirements_files()` (globbing configured `selected_notebooks` selections) under `self.config.repos_dir/<repo_name>`, not from `collect_notebook_paths()` results. Fixes discovery of orphan `requirements.txt` files in package-only directories (no notebooks). Returns `list[dict[str, list[str]]]`.
+  - `SpecManager.flatten_req_data()` / `flatten_req_files()` (new methods) flatten the selector→files mapping into a flat list or dict.
+  - Orphan handling: `_match_paths` logs "(orphan)" for `.txt` files whose parent directory has no `.ipynb` files.
+
+- **Consolidate Environment Split**
+  - `RequirementsCompiler.consolidate_environment()` no longer takes `notebook_paths` and no longer returns `non_mamba_pip_req_list` (now a 3-tuple instead of 4-tuple). The pip-file-gathering portion previously inside `consolidate_environment` is now handled by the new `RequirementsCompiler.consolidate_packages()` method, which calls `spec_manager.get_requirements_files()`.
+
+### Configuration & CLI
+
+- **`NBW_REPOS_DIR` support**: Repository directory default now configurable via `NBW_REPOS_DIR` env var (defaults to `references`).
+- **`--quiet`/`-q` flag**: Suppresses all log output to stderr (stdout still visible for `--spec-name`, `--docker-list`, etc.).
+- **Renamed**: `--finalize-dev-overrides` → `--spec-disable-dev-overrides`.
+- **`--test-isolate-notebook` flag** (`config.py`, `environment.py`): Controls whether notebook tests run in an isolated temp copy or in-place (default is now in-place).
+- **`--data-clean-symlinks` flag** (`cli.py`, `config.py`, `wrangler.py`): Controls cleanup of symlinks from spec locations to pantry installations; relies on `--data-env-vars-mode` to distinguish pantry vs spec modes. Environment variables track the selected notebook kernel/active environment within notebooks and terminal sessions.
+
+### Behavior Changes
+
+- **Default Image Registry**: Changed from generic to `spacetelescope/nb-wrangler-images`.
+- **Default Environment Variables Mode**: Switched from `spec` to `pantry` (no longer creates refdata symlinks).
+- **Default Notebook Testing**: Now in-place; replaced `test_directory_setup()` on-demand temporary tree copy with a conditional: isolated only when `--test-isolate-notebook` is set, otherwise uses the notebook's parent directory as `test_dir`.
+- **`copy_shared_modules` Idempotency** (`utils.py`): Skips copying if the file or a like-named symlink already exists in the destination.
+- **Registry Environment Variables** (`constants.py`): Reads `NBW_IMAGE_REGISTRY` and `NBW_IMAGE_PROJECT` env vars before applying default registry/project values.
+
+### Infrastructure & Tooling
+
+- **Timeout Increases** (all constants doubled or more):
   - `REPO_CLONE_TIMEOUT`: 300 → 7200
   - `INSTALL_PACKAGES_TIMEOUT`: 1800 → 3600
   - `PIP_COMPILE_TIMEOUT`: 600 → 1200
   - `IMPORT_TEST_TIMEOUT`: 60 → 120
   - `ARCHIVE_TIMEOUT`: 1200 → 3600
-- **`NBW_REPOS_DIR` support**: Repository directory default now configurable via `NBW_REPOS_DIR` env var (defaults to `references`).
-- **`--quiet`/`-q` flag**: Suppresses all log output to stderr (stdout still visible for `--spec-name`, `--docker-list`, etc.).
+- **Bootstrap Script Fixes**: Commented out micromamba self-update (was hanging functional tests); added `set +x` to prevent debug output pollution; updated for `NBW_MAMBA_DEFAULT` vs `NBW_MAMBA_CMD` refactoring.
+- **Pantry Read-Only Safety** (`tests/test_readonly_pantry.py`): Pantry on-demand directory creation avoids crashes when users/post-start-hook try to modify read-only pantries.
+- **Dockerfile-aux.sh Auto-Cleanup** (`injector.py`): Added auto-code to `dockerfile-aux.sh` to remove itself after execution completes.
+- **Asset/Symlink Cleanup Post-Install** (`injector.py`): Appends cleanup commands to end of `install-assets.sh`: removes the `/opt/environments/assets` staging directory and `install-assets.sh` itself after execution. Also simplified generated `install-assets.sh` code (removed unnecessary if/else branching; distinguished directory vs file destinations via `destination.endswith('/')` instead of runtime `os.path.isdir`).
+- **Papermill Path Fix** (`notebook_tester.py`): Changed papermill invocation to pass the full notebook path instead of `os.path.basename()` only.
+- **`resolve_var` Typo Fix** (`utils.py`): Corrected function name from `resolve_var` to `resolve_vars`.
+- **`input()` Bug Fixes** (`notebook_tester.py`, `wrangler.py`): Fixed bugs in notebook location prompting and `input()` calls that crashed in non-tty contexts.
+- **Notebook Progress Counter** (`notebook_tester.py`): Displays "X/Y notebooks" progress during notebook tester runs.
+- **Bugfix: `override_pip_packages` Undefined Handling** (`compiler.py`): Fixes erroneous build-arg string when `override_pip_packages` is undefined.
+- **Environment & Reset Curation Fix**: Fixed issue with deleting environments during `--reset-curation`; environment teardown now handles edge cases more gracefully (additional tests added to `test_environment.py`).
 
-### Major New Features
+### Sample Specs & Tests
 
-1. **Assets Injection** (`nb_wrangler/injector.py` + 207 lines, `tests/test_assets_injection.py`)
-   - New `assets:` spec section to bundle static files from git repos into Docker images during SPI injection/curation
-   - Supports flat syntax (single item) and grouped syntax (`items:` sub-list sharing common repo/ref)
-   - `contents_only` flag for copying directory contents rather than the directory itself
-   - Source paths support trailing `/` notation for contents-only mode + glob patterns
-   - Generates `install-assets.sh` script in the environments directory
+- **Sample Spec Updates**: Updated `specs/samples/RomanNexus-2026.2.yaml` to illustrate latest spec format (version 2.3) extensions, including new package-list override support and cleaned `dev_overrides` sections. Added baseline 2026.2 Roman spec for tagging dev. Added `specs/roman/astroquery-mast-test.yaml` and `specs/jwebbinar/jwebbinar-50.yaml`.
 
-2. **System Commands Override** (`system.commands.{mamba, pip, favor}`)
-   - New spec-level `system.commands: { mamba: ..., pip: ..., favor: ... }` section to override Mamba/pip executables
-   - `favor` controls precedence when both env vars AND spec define values: `spec` (default) or `environment`
-   - CLI flags (`--mamba-cmd`, `--pip-cmd`) always override both spec and env vars
-
-3. **NBW_OVERRIDES_MODE** Environment Variable
-   - Set to `--dev` or `--prod` to change default override behavior for all workflows (default is `--prod`)
-   - Replaces earlier reliance on implicit heuristic detection of dev/prod mode
-
-4. **Calver Tag Resolution** (repository checkout)
-   - Automatic resolution of abstract tags (branch prefixes like `2026.2`) by listing git tags, sorting descending, and picking highest matching prefix
-   - Falls back to partial SHA when full tag resolution fails
-   - Added `tests/test_tag_prefix_resolution.py`
-
-5. **YAML Type Normalization** (`nb_wrangler/yaml_typed_values.py`)
-   - New module that normalizes YAML values (dates, numbers, booleans) to strings via `yaml_typed_values.normalize_value()`
-   - Prevents type mismatches between YAML-typed and string comparison downstream
-
-6. **Default Image Registry Change**
-   - Default registry changed from generic to `spacetelescope/nb-wrangler-images`
-
-7. **Default Environment Variables Mode Changed**
-   - Default env-vars mode switched from `spec` to `pantry` (no longer creates refdata symlinks)
-
-8. **Bootstrap Script Fixes**
-   - Commented out micromamba self-update (was hanging functional tests)
-   - Added `set +x` to prevent debug output pollution
-   - Updated for NBW_MAMBA_DEFAULT vs NBW_MAMBA_CMD refactoring
-
-9. **Pantry Read-Only Safety** (`tests/test_readonly_pantry.py`)
-   - Pantry on-demand directory creation added to avoid crashes when users/post-start-hook tries to modify read-only pantries
-
-10. **`--quiet`/`-q` Flag**
-    - Suppresses all log output to stderr (stdout still visible for --spec-name, --docker-list etc.)
-
-11. **`--print-repo-tags` Enhancement**
-    - Resolves and outputs `resolved_ref` from the spec's `out.repositories:` section if available
-
-12. **Renamed**: `--finalize-dev-overrides` -> `--spec-disable-dev-overrides`
-
-13. **Environment Variables** (`environment_vars`, `test_environment_vars`)
-     - New top-level `environment_vars:` spec section, like variables in refdata_dependencies.yaml but specified directly in the wrangler spec; merged into refdata during data collection
-     - New `test_environment_vars:` spec section to inject test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run
-
-14. **`--test-isolate-notebook` Flag** (`config.py`, `environment.py`)
-     - Controls whether notebook tests run in an isolated temp copy or in-place (default is now in-place)
-
-15. **Default Notebook Behavior Changed to In-Place** (`environment.py`)
-     - Replaced `test_directory_setup()` on-demand temporary tree copy with conditional: isolated only when `--test-isolate-notebook` is set; otherwise uses notebook's parent directory as test_dir
-
-16. **`copy_shared_modules` Idempotency** (`utils.py`)
-     - Skips copying if the file or a like-named symlink already exists in the destination
-
-17. **Bugfix: `override_pip_packages` Undefined Handling** (`compiler.py`)
-     - Fixes erroneous build-arg string when `override_pip_packages` is undefined
-
-18. **Papermill Path Fix** (`notebook_tester.py`)
-     - Changed papermill invocation to pass the full notebook path instead of `os.path.basename()` only
-
-19. **Registry Environment Variables** (`constants.py`)
-     - Added reading of `NBW_IMAGE_REGISTRY` and `NBW_IMAGE_PROJECT` env vars before applying default registry/project values
-
-20. **`--data-clean-symlinks` Flag** (`cli.py`, `config.py`, `wrangler.py`)
-     - Controls cleanup of symlinks from spec locations to pantry installations; relies on `--data-env-vars-mode` to distinguish pantry vs spec modes
-     - Nutshell:  roman_notebooks "refdata" symlink is going away,  look at the environment variables to identify where the data is
-     - Environment variables will track the selected notebook kernel / active environment within notebooks and terminal sessions.
-
-21. **Notebook Progress Counter** (`notebook_tester.py`)
-     - Displays "X/Y notebooks" progress during notebook tester runs
-
-22. **Dockerfile-aux.sh Auto-Cleanup** (`injector.py`)
-     - Added auto-code to `dockerfile-aux.sh` to remove itself after execution completes, preventing leftover build artifacts
-
-23. **Asset/Symlink Cleanup Post-Install** (`injector.py`)
-     - Appends cleanup commands to end of `install-assets.sh`: removes the `/opt/environments/assets` staging directory and `install-assets.sh` itself, eliminating `/opt/environments` clutter
-
-24. **Fix: `resolve_var` Typo** (`utils.py`)
-     - Corrected function name from `resolve_var` to `resolve_vars` in wrangler utils
-
-25. **Fix: `input()` Bugs in Non-TTY Context** (`notebook_tester.py`, `wrangler.py`)
-     - Fixed bugs in notebook location prompting and `input()` calls that crashed in non-tty contexts
-
-### Tests Added (13 new/updated files)
-- `tests/test_assets_injection.py` — asset injection tests
-- `tests/test_config.py` (180 lines) — config parsing tests
-- `tests/test_constants.py` (148 lines) — constants validation tests
-- `tests/test_environment.py` — environment setup and teardown tests
-- `tests/test_logger.py` (108 lines) — logger tests
-- `tests/test_readonly_pantry.py` — read-only pantry safety tests
-- `tests/test_registry.py` — registry function tests
-- `tests/test_spec_manager_extended.py` (318 lines) — spec manager extended tests
-- `tests/test_spec_validator.py` (367 lines) — spec validator tests
-- `tests/test_tag_prefix_resolution.py` — calver tag resolution tests
-- `tests/test_utils.py` (368 lines) — utility function tests
-- `tests/test_yaml_typed_values.py` (82 lines) — YAML typed value normalization tests
-- `specs/roman/RomanNexus-2026.2.yaml` (new baseline 2026.2 Roman spec for tagging dev)
-- `specs/roman/astroquery-mast-test.yaml`
-- `specs/jwebbinar/jwebbinar-50.yaml`
-
-**Spec Validation & Version Awareness**
-- Added warning when a spec's `system.spec_version` is greater than `WRANGLER_SPEC_VERSION`, signaling that the wrangler version may not recognize all features in the newer spec format — a prompt to upgrade nb-wrangler. A deprecation warning (existing behavior) still fires for older versions. Current supported version: `2.3`.
-- Added `_validate_dev_overrides_section()` allow-list validation: enforces that keywords under `dev_overrides` and `deactivated_dev_overrides` mirror the top-level spec schema, catching typos/unsupported keys early. Reuses `_check_allowed_keywords()` for recursive checking against `ALLOWED_KEYWORDS`.
-
-**Package-List Dev Overrides (full-replacement semantics)**
-- Added `extra_mamba_packages`, `common_mamba_packages`, `extra_pip_packages`, `common_pip_packages`, and `apt_packages` to the `_OVERRIDES_SCHEMA` whitelist. When present under `dev_overrides` in `--dev` mode, these lists **replace** (rather than append to) their top-level counterparts via new `_overridden_list()` helper on `SpecManager`. In `--prod` mode overrides are never consulted. Empty override list clears the base entirely.
-- Added validation tests and extended property-behavior tests (`TestPackageListDevOverrides`, `TestDevOverridesValidation`) in spec_manager/spec_validator test suites.
-
-**Sample Spec Updates**
-- Updated `specs/samples/RomanNexus-2026.2.yaml` to illustrate latest spec format (version 2.3) extensions, including new package-list override support and cleaned dev_overrides sections.
-- Added the same spec initially in a prior commit as the baseline 2026.2 Roman spec for tagging dev.
-
-**Asset Injection / Injector Refinements**
-- Simplified `install-assets.sh` generated code by removing unnecessary if/else branching that checked whether `/opt/environments` is a directory; simplified to just `mkdir -p "$(dirname ...)" + cp`. Destination construction distinguishes directory vs file destinations using `destination.endswith('/')` instead of runtime `os.path.isdir`/`endswith('/)` checks.
-- Added auto-cleanup code appended to end of generated `install-assets.sh`: removes the `/opt/environments/assets` staging directory and `install-assets.sh` itself after execution, eliminating build artifacts clutter.
-
-**Environment & Reset Curation Fixes**
-- Fixed issue with deleting environments during `--reset-curation`; environment teardown now handles edge cases more gracefully (additional tests added to `test_environment.py`).
-
-**Test Infrastructure**
-- Added/updated tests for config (`--data-clean-symlinks`), utilities, constants, logger, environment handling.
+- **Tests Added (13 new/updated files)**:
+  - `tests/test_assets_injection.py` — asset injection tests
+  - `tests/test_config.py` (180 lines) — config parsing tests
+  - `tests/test_constants.py` (148 lines) — constants validation tests
+  - `tests/test_environment.py` — environment setup and teardown tests
+  - `tests/test_logger.py` (108 lines) — logger tests
+  - `tests/test_readonly_pantry.py` — read-only pantry safety tests
+  - `tests/test_registry.py` — registry function tests
+  - `tests/test_spec_manager_extended.py` (318 lines) — spec manager extended tests
+  - `tests/test_spec_validator.py` (367 lines) — spec validator tests, including `TestPackageListDevOverrides` and `TestDevOverrideValidation`
+  - `tests/test_tag_prefix_resolution.py` — calver tag resolution tests
+  - `tests/test_utils.py` (368 lines) — utility function tests
+  - `tests/test_yaml_typed_values.py` (82 lines) — YAML typed value normalization tests
 
 ---
 
