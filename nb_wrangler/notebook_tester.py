@@ -49,7 +49,7 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def filter_notebooks(
         self,
-        notebook_configs: dict[str, str],
+        notebook_configs: list[dict[str, list[str]]],
         include_patterns: str,
         exclude_patterns: str,
     ) -> dict[str, str]:
@@ -67,15 +67,15 @@ class NotebookTester(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         exclude_regexes = [re.compile(p) for p in exclude_list]
 
-        filtered_paths = []
+        filtered_configs = {}
 
-        for nb_path in sorted(notebook_configs.keys()):
-            if self._is_notebook_eligible_for_inclusion(
-                nb_path, include_regexes, exclude_regexes
-            ):
-                filtered_paths.append(nb_path)
-
-        filtered_configs = {path: notebook_configs[path] for path in filtered_paths}
+        for contribution in notebook_configs:
+            name, notebook_list = list(contribution.items())[0]
+            for nb_path in sorted(notebook_list):
+                if self._is_notebook_eligible_for_inclusion(
+                    nb_path, include_regexes, exclude_regexes
+                ):
+                    filtered_configs[nb_path] = name
 
         self.logger.info(f"Filtered notebook list to {len(filtered_configs)} entries:")
 

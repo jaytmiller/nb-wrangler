@@ -542,23 +542,23 @@ class TestConsolidateEnvironmentPipFiles:
         )
         output_dir = self._output_dir(tmp_path)
 
-        pip_files = compiler.consolidate_environment(_FakeInjector(), output_dir)
+        contributions = compiler.consolidate_packages(_FakeInjector(), output_dir)
+        all_requirements = compiler.spec_manager.flatten_req_files(contributions)
 
-        assert isinstance(pip_files, tuple)
-        keys = {next(iter(pkgd.keys())) for pkgd in pip_files}
         extra_key = str(output_dir / "extra_pip_packages.txt")
         common_key = str(output_dir / "common_pip_packages.txt")
-        assert extra_key in keys
-        assert common_key in keys
+        assert extra_key in iter(all_requirements.keys())
+        assert common_key in iter(all_requirements.keys())
 
         # Validate package contents. _read_package_lines preserves version specs
         # (it only drops blank/comment lines) and returns a sorted list, so verify the
         # raw lines round-trip in sorted order rather than version-stripped names.
-        for pkgd in pip_files:
-            if next(iter(pkgd.keys())) == extra_key:
-                assert pkgd[extra_key] == ["packaging", "requests>=2.31,<3"]
-            elif next(iter(pkgd.keys())) == common_key:
-                assert pkgd[common_key] == ["six"]
+
+        for req_file in all_requirements:
+            if req_file == extra_key:
+                assert all_requirements[extra_key] == ["packaging", "requests>=2.31,<3"]
+            elif req_file == common_key:
+                assert all_requirements[common_key] == ["six"]
 
 
 class _FakeInjector:

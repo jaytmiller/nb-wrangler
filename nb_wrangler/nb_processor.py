@@ -17,7 +17,9 @@ class NotebookImportProcessor(WranglerLoggable):
             r"^(?:import\s+([a-zA-Z0-9_\.]+))|(?:from\s+([a-zA-Z0-9_\.]+)\s+import)"
         )
 
-    def extract_imports(self, notebook_paths: list[dict[str, list[str]]]) -> dict[str, list[str]]:
+    def extract_imports(
+        self, notebook_paths: list[dict[str, list[str]]]
+    ) -> dict[str, list[str]]:
         """Extract import statements from notebooks."""
         nb_to_imports: dict[str, list[str]] = {}
         all_notebooks: list[str] = []

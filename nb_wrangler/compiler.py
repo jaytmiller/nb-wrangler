@@ -161,9 +161,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         return True
 
     def consolidate_environment(self, injector: SpiInjector, output_dir: Path) -> tuple[
-        Any,
-        dict[Any, Any],
+        str,
         dict[str, Any],
+        dict[str, list[str]],
     ]:
         """
         Orchestrates the compilation of the entire environment, including fetching external specs
@@ -202,11 +202,11 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 final_mamba_spec["channels"] = ["conda-forge"]
             final_mamba_spec["name"] = kernel_name
 
-            return (kernel_name, final_mamba_spec, all_mamba_pkg_map)
         except Exception as e:
             return self.logger.exception(
                 e, "Failed to consolidate environment definition."
             )
+        return (kernel_name, final_mamba_spec, all_mamba_pkg_map)
 
     def read_package_versions(self, requirements_files: list[Path]) -> list[str]:
         """Read package versions from a list of requirements files omitting blank
@@ -264,7 +264,9 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
         return stripped_files
 
-    def consolidate_packages(self, injector: SpiInjector, output_dir: Path):
+    def consolidate_packages(
+        self, injector: SpiInjector, output_dir: Path
+    ) -> list[dict[str, list[str]]]:
         try:
             # requirements.txt files found in selected repo directories
             notebook_req_data = self.spec_manager.get_requirements_files()

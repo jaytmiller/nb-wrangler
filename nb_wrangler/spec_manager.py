@@ -803,31 +803,6 @@ class SpecManager(
             if repo_info
         }
 
-    def collect_notebook_paths(self) -> dict[str, str]:
-        """Collect paths to all notebooks specified by the spec.  This is
-        a legacy API which is kinda backwards, the raw _get_notebooks()
-        result is more rationally organized with less duplication of the
-        selection name.
-
-        Returns { notebook_path: selection_name } where notebook_path is
-                might potentially be selected twice or more by different
-                overlapping selectors.
-        """
-        self._ensure_validated()
-        notebook_paths: dict[str, str] = {}
-        organized_paths = self.get_notebooks()
-        return organized_paths
-    
-        for path_dict in organized_paths:
-            name, path_list = list(path_dict.items())[0]
-            for path in path_list:
-                if path in notebook_paths:
-                    self.logger.warning(
-                        f"Notebook {path} is selected twice, attributed selection name is first seen only."
-                    )
-                notebook_paths[str(path)] = name
-        return dict(sorted(notebook_paths.items()))
-
     def _get_repo_dir(self, name: str, selection: dict[str, Any]) -> Path:
         """Get the path to the repository directory."""
         repo_name = selection["repo"]
@@ -839,12 +814,14 @@ class SpecManager(
         basename = os.path.basename(repo_url).replace(".git", "")
         return self.config.repos_dir / basename
 
-    def get_notebooks(self) -> list[dict[str, list[str]]]:
+    def collect_notebook_paths(self) -> list[dict[str, list[str]]]:
+        self._ensure_validated()
         return self._collected_paths(
             "**/*.ipynb", r"(^|/)\.ipynb_checkpoints(/|/.*-checkpoint\.ipynb$)"
         )
 
     def get_requirements_files(self) -> list[dict[str, list[str]]]:
+        self._ensure_validated()
         return self._collected_paths("**/requirements.txt")
 
     def flatten_req_data(self, req_data: list[dict[str, list[str]]]) -> list[str]:
@@ -857,9 +834,21 @@ class SpecManager(
             combined_files.extend(file_list)
         return sorted(list(set(combined_files)))
 
+    def flatten_req_files(
+        self, req_data: list[dict[str, list[str]]]
+    ) -> dict[str, list[str]]:
+        """Flatten `req_data` from it's selector to contributed files mapping
+        into a simple list of package files.
+        """
+        combined_file_map = {}
+        for contribution in req_data:
+            file, data_list = next(iter(contribution.items()))
+            combined_file_map[file] = data_list
+        return combined_file_map
+
     def _collected_paths(
         self, file_glob: str, extra_excludes=None
-    ) -> list[dict[str, list[dict[str, list[str]]]]]:
+    ) -> list[dict[str, list[str]]]:
         """Process a notebook selection entry, applying include/exclude subdirectory filters.
 
         Args:
@@ -888,7 +877,7 @@ class SpecManager(
             paths = self._collect_paths(
                 file_glob, base_path, include_subdirs, exclude_subdirs
             )
-            results.append({ name: sorted([str(path) for path in paths])})
+            results.append({name: sorted([str(path) for path in paths])})
         return results
 
     def _collect_paths(
@@ -947,7 +936,8 @@ class SpecManager(
                     else:
                         orphan = ""
                     self.logger.debug(
-                        f"{verb} {orphan}path {path_str} based on regex: '{regex}'.")
+                        f"{verb} {orphan}path {path_str} based on regex: '{regex}'."
+                    )
                     matched.add(path_str)
                     break
 
