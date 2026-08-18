@@ -24,6 +24,7 @@ from .constants import (
     NOTEBOOK_TEST_EXCLUDE,
     VALID_ARCHIVE_FORMATS,
     NBW_OVERRIDES_MODE,
+    __version__
 )
 
 
@@ -691,8 +692,9 @@ def main() -> int:
         return 0
     if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)
+    log = logger.WranglerLogger()
+    log.info("Wrangler version:", constants.__version__)
     if args.spec_uri is None:
-        log = logger.WranglerLogger()
         if os.environ.get("NBW_SPEC") is None:
             if not args.docker_pull:
                 log.error("No wrangler spec given and NBW_SPEC is not set, quitting...")
