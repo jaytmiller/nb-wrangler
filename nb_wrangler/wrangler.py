@@ -380,7 +380,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.run_workflow(
             "--reinstall",
             [
-                self._reinstall_prepare_from_spec,
                 self._validate_spec,
                 self._spec_add,
                 self._initialize_environment,
@@ -663,40 +662,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _prepare_all_repositories_locked(self) -> bool:
         return self._prepare_all_repositories(floating_mode=False)
-
-    def _reinstall_prepare_from_spec(self) -> bool:
-        """Prepare repository state for reinstall by reading from spec output.
-
-        In the --reinstall workflow, all required information (resolved repo
-        SHAs, notebook paths, notebook imports) is already stored in the spec's
-        output section from a prior --curate run.  This method reads those
-        values back from the spec instead of cloning source repositories, and
-        re-saves them so the spec is current.
-        """
-        self.logger.info("Preparing repositories from spec output (no cloning).")
-
-        # Read resolved repository states and SPI info from the spec output.
-        output_repos = self.spec_manager.get_output_data("repositories", {})
-        if not output_repos:
-            return self.logger.error(
-                "No repository output data found in spec. "
-                "Run --curate before --reinstall."
-            )
-
-        # Read already-collected notebook paths and imports from spec output.
-        notebook_paths = self.spec_manager.get_output_data("test_notebooks", [])
-        nb_to_imports = self.spec_manager.get_output_data("nb_to_imports", {})
-
-        # Re-save the spec with the values already present in the output
-        # section, ensuring the spec is current.
-        return self.spec_manager.revise_and_save(
-            self.config.output_dir,
-            add_sha256=not self.config.spec_ignore_hash,
-            repositories=copy.deepcopy(output_repos),
-            spi=self.spec_manager.get_output_data("spi", {}),
-            test_notebooks=notebook_paths,
-            nb_to_imports=nb_to_imports,
-        )
 
     def _spec_add(self) -> bool:
         """Add a new spec to the pantry."""

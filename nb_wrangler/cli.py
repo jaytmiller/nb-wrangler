@@ -24,7 +24,6 @@ from .constants import (
     NOTEBOOK_TEST_EXCLUDE,
     VALID_ARCHIVE_FORMATS,
     NBW_OVERRIDES_MODE,
-    __version__
 )
 
 
