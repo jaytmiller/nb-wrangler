@@ -1,3 +1,16 @@
+**v0.9.1** change notes (since v0.9.0):
+
+### Version & Logging
+
+- **Unconditional version output** in wrangler log messages (`nb_wrangler/cli.py`). The wrangler now logs `Wrangler version:` at startup for every run, distinct from `--version` (which prints solely the version string and exits). This makes version identification easier when reviewing log output.
+- **Migration Overview** comment added to the top of `docs/CHANGES.md`, documenting the ongoing factoring of production specs and image building out to the sister repository at [spacetelescope/nb-wrangler-images](https://github.com/spacetelescope/nb-wrangler-images.git); images are under [nb-wrangler-images public GHCR](https://github.com/spacetelescope/nb-wrangler-images/pkgs/container/nb-wrangler-images)).
+
+### `--reinstall` Workflow
+
+- **Dropped repo cloning from `--reinstall`**. The reinstall workflow no longer invokes `_prepare_all_repositories_locked`; since a prior `--curate` run already wrote resolved repository SHAs, notebook paths, and imports into the spec output, repos are not re-cloned during reinstall.
+
+---
+
 **v0.9.0** change notes:
 
 ### Migration Overview
