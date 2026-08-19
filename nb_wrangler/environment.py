@@ -575,7 +575,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         self.logger.info(f"Testing {len(imports)} imports")
         failed_imports = []
         for i, import_ in enumerate(imports):
-            self.logger.info(f"Testing import {i} / {len(imports)}  : {import_}")
+            self.logger.info(f"Testing import {i+1} / {len(imports)}  : {import_}")
             result = self.env_run(
                 env_name,
                 f"python -c 'import {import_}'",
