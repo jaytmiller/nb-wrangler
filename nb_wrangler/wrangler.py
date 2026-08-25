@@ -735,11 +735,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             if url:
                 ref = repo_data.get("ref", "main") or "main"
                 repos[url] = ref
-        # SPI repo.
-        spi_info = self.spec_manager.spi
-        if spi_url := spi_info.get("repo"):
-            spi_ref = spi_info.get("ref") or "main"
-            repos[spi_url] = spi_ref
         return repos
 
     def _resolve_ref_via_ls_remote(self, url: str, ref: str) -> str:
@@ -751,10 +746,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """
         if self._is_commit_hash(ref):
             return ref
-        ls_tags_cmd = ["git", "ls-remote", "--tags", "origin", url]
+        ls_tags_cmd = ["git", "ls-remote", "--tags", url]
         result = self.env_manager.wrangler_run(ls_tags_cmd, check=False)
+        self.logger.debug("ls-remote --tags output:", result.stdout)
         tags = _parse_ls_remote_tags(result)
+        self.logger.debug("Parsed tags:", tags)
         selected = self._select_highest_patch_tag(tags, ref)
+        self.logger.debug("Highest tag:", selected)
         return selected if selected else ref
 
     def _select_highest_patch_tag(self, tags: list[str], ref: str) -> Optional[str]:

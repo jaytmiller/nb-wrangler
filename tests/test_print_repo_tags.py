@@ -158,7 +158,3 @@ def test_print_repo_tags_no_matching_tags(tmp_path, capsys):
 
     # roman_notebooks has ref "2026.2" in the spec; no x.y.z tags found, so "2026.2" is returned as-is.
     assert "https://github.com/spacetelescope/roman_notebooks.git 2026.2" in stdout
-    # SPI repo has ref "main"; no x.z.y tags found, so "main" is returned as-is.
-    assert (
-        "https://github.com/spacetelescope/science-platform-images.git main" in stdout
-    )
