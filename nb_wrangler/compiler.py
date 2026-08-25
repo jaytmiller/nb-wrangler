@@ -253,10 +253,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         output_dir.mkdir(parents=True, exist_ok=True)
         for req_file in self.spec_manager.flatten_req_data(req_data):
             stripped_packages = self._get_stripped_packages(req_file)
-            base_name = Path(req_file).name
+            path_sig = str(req_file).replace("/", "+")
             stripped_file = (
                 output_dir
-                / f"stripped_{base_name}_{utils.sha256_str(str(req_file))[:8]}.txt"
+                / f"stripped_{path_sig}_{utils.sha256_str(str(req_file))[:8]}.txt"
             )
             with stripped_file.open("w") as f:
                 f.write("\n".join(stripped_packages) + "\n")
