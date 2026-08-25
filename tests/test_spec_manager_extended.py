@@ -1,5 +1,7 @@
 """Extended tests for nb_wrangler/spec_manager.py on load, assets, and normalization."""
 
+from pathlib import Path
+
 import yaml
 
 from nb_wrangler.config import WranglerConfig, set_args_config
@@ -651,3 +653,119 @@ class TestFlattenReqDataAndMultiSelection:
         flat = sm.flatten_req_data(req_data)
         # The orphan (notebook-less) requirements file must be present exactly once.
         assert str(req_file) in flat, f"Orphan requirements.txt missing: {flat}"
+
+
+class TestStripVersionsFromRequirements:
+    """Tests for _strip_versions_from_requirements which strips version constraints
+    from requirements files and writes them to flat temporary files in output_dir.
+
+    Regression: the stripped filename previously embedded the full path of the original
+    requirements file (e.g. stripped_/home/.../aperture_photometry/requirements.txt_abc123.txt).
+    Because the path separators were interpreted as directory separators, the output file
+    was never actually created at the expected flat location, causing a downstream
+    FileNotFoundError during pip compilation.
+    """
+
+    REPO_URL = "https://github.com/test-org/notebook_repo.git"
+    REPO_DIR_NAME = "notebook_repo"
+
+    def _make_compiler(self, tmp_path):
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+        from nb_wrangler.repository import RepositoryManager
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["repositories"] = {
+            "notebook_repo": {"url": self.REPO_URL},
+        }
+        spec_dict["selected_notebooks"] = {
+            "sel_all": {
+                "repo": "notebook_repo",
+                "root_directory": ".",
+                "include_subdirs": ["\\."],
+            },
+        }
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml.dump(spec_dict, default_flow_style=False))
+
+        repo_dir = tmp_path / "repos" / self.REPO_DIR_NAME
+        repo_dir.mkdir(parents=True, exist_ok=True)
+
+        sm = SpecManager()
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        repo_manager = RepositoryManager(tmp_path / "repos")
+        compiler = RequirementsCompiler(sm, repo_manager)
+        return compiler
+
+    def test_stripped_file_uses_basename_only(self, tmp_path):
+        """The output stripped filename must contain only the basename of the
+        original requirements file, not its full path."""
+        compiler = self._make_compiler(tmp_path)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        # Create a requirements file in a deeply nested directory.
+        repo_dir = tmp_path / "repos" / self.REPO_DIR_NAME
+        req_file = repo_dir / "notebooks" / "aperture_photometry" / "requirements.txt"
+        req_file.parent.mkdir(parents=True, exist_ok=True)
+        _make_requirements_file(req_file, ["numpy>=1.20", "astropy==5.3"])
+
+        req_data = compiler.spec_manager.get_requirements_files()
+        stripped_files = compiler._strip_versions_from_requirements(
+            req_data, output_dir
+        )
+
+        assert len(stripped_files) == 1
+        stripped_path = stripped_files[0]
+
+        # The stripped file must live directly in output_dir, not in a nested
+        # directory that mirrors the original path.
+        assert Path(stripped_path).parent == output_dir
+
+        # The filename should contain "requirements.txt" (the basename), not
+        # any path separators from the original location.
+        filename = Path(stripped_path).name
+        assert "requirements.txt" in filename
+        assert "/" not in filename
+
+        # The stripped file should exist and contain version-less package names.
+        assert Path(stripped_path).exists()
+        content = Path(stripped_path).read_text().strip().splitlines()
+        assert "numpy" in content
+        assert "astropy" in content
+        assert all("=" not in pkg for pkg in content)
+
+    def test_stripped_file_for_duplicate_basenames_does_not_collide(self, tmp_path):
+        """Two requirements files with the same basename in different directories
+        must both produce distinct stripped files (disambiguated by the sha hash)."""
+        compiler = self._make_compiler(tmp_path)
+        output_dir = tmp_path / "output"
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+        repo_dir = tmp_path / "repos" / self.REPO_DIR_NAME
+        req1 = repo_dir / "notebooks" / "aperture_photometry" / "requirements.txt"
+        req2 = repo_dir / "notebooks" / "image_processing" / "requirements.txt"
+        for req in [req1, req2]:
+            req.parent.mkdir(parents=True, exist_ok=True)
+            _make_requirements_file(req, ["numpy>=1.20"])
+
+        req_data = compiler.spec_manager.get_requirements_files()
+        stripped_files = compiler._strip_versions_from_requirements(
+            req_data, output_dir
+        )
+
+        assert len(stripped_files) == 2
+        # Both should be in the flat output_dir.
+        for sf in stripped_files:
+            assert Path(sf).parent == output_dir
+        # They should be distinct files.
+        assert len(set(stripped_files)) == 2
