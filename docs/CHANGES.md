@@ -1,3 +1,11 @@
+**v0.9.2** change notes (since v0.9.1):
+
+### Bug Fixes
+
+- **Fixed `--packages-ignore-versions` path bug** (`nb_wrangler/compiler.py`). `_strip_versions_from_requirements` previously embedded the *full filesystem path* of each requirements file into the stripped output filename (e.g. `stripped_/home/.../aperture_photometry/requirements.txt_abc123.txt`). Path separators were interpreted as directory separators, so the stripped file was written to a nested path that never matched what the compiler subsequently looked for, causing a `FileNotFoundError`. The filename now uses only `Path(req_file).name`, keeping stripped files flat in the output directory while the sha256 hash continues to disambiguate duplicate basenames.
+
+---
+
 **v0.9.1** change notes (since v0.9.0):
 
 ### Version & Logging
@@ -8,10 +16,6 @@
 ### `--reinstall` Workflow
 
 - **Dropped repo cloning from `--reinstall`**. The reinstall workflow no longer invokes `_prepare_all_repositories_locked`; since a prior `--curate` run already wrote resolved repository SHAs, notebook paths, and imports into the spec output, repos are not re-cloned during reinstall.
-
-### Bug Fixes
-
-- **Fixed `--packages-ignore-versions` path bug** (`nb_wrangler/compiler.py`). `_strip_versions_from_requirements` previously embedded the *full filesystem path* of each requirements file into the stripped output filename (e.g. `stripped_/home/.../aperture_photometry/requirements.txt_abc123.txt`). Path separators were interpreted as directory separators, so the stripped file was written to a nested path that never matched what the compiler subsequently looked for, causing a `FileNotFoundError`. The filename now uses only `Path(req_file).name`, keeping stripped files flat in the output directory while the sha256 hash continues to disambiguate duplicate basenames.
 
 ---
 
