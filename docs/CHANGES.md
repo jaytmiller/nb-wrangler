@@ -47,7 +47,9 @@
   - New `test_environment_vars:` spec section injects test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run.
 
 - **`--print-repo-tags` Enhancement**
-  - Resolves and outputs `resolved_ref` from the spec's `out.repositories:` section if available.
+  - Now uses `git ls-remote --tags` (no clone required) to enumerate tags for each repo URL.
+  - Version-prefix refs (e.g. `2026.2`) are resolved to the highest `x.y.z` tag with the greatest numeric `z`.
+  - Non-version refs (e.g. `main`) are returned as-is when no matching tags are found.
 
 ### Spec & Validation
 

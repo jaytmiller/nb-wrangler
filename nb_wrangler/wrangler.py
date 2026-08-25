@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 from collections.abc import Callable
+from typing import Optional
 import copy
 
 from .constants import NBW_URI, LOG_FILE
@@ -19,6 +20,33 @@ from .registry import RegistryManager
 from .pantry import NbwPantry
 from .data_wrangler import DataWrangler
 from . import utils
+
+
+def _parse_ls_remote_tags(result: object) -> list[str]:
+    """Parse tag names from ``git ls-remote --tags`` output.
+
+    Each output line looks like ``abc123...\\trefs/tags/2026.2.0``.
+    The short tag name is extracted, stripping the ``refs/tags/`` prefix
+    and the ``^{}`` suffix used for annotated tag dereferences.
+    """
+    stdout = ""
+    if hasattr(result, "stdout") and result.stdout:
+        stdout = result.stdout  # type: ignore[attr-defined]
+    elif isinstance(result, str):
+        stdout = result
+    tags: list[str] = []
+    for line in stdout.splitlines():
+        parts = line.split("\t", 1)
+        if len(parts) != 2:
+            continue
+        ref_name = parts[1]
+        if not ref_name.startswith("refs/tags/"):
+            continue
+        tag = ref_name[len("refs/tags/") :]
+        if tag.endswith("^{}"):
+            tag = tag[:-3]
+        tags.append(tag)
+    return tags
 
 
 class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
@@ -684,32 +712,73 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return True
 
     def _print_repo_tags(self) -> bool:
-        """Print repository URLs with resolved references.
+        """Print repository URLs with resolved references using ``git ls-remote``.
 
-        Preference order:
-        1. Use the *output* ``repositories`` section (produced after preparation). If a
-           ``resolved_ref`` field exists for a repo, print that; otherwise fall back to its
-           ``ref`` value or ``"main"``.
-        2. If no output repositories are present, use the original input spec
-           ``self.spec_manager.repositories`` following the same resolution logic.
+        For each repo defined in the spec (notebook repos + SPI repo):
+        1. Fetch tags via ``git ls-remote --tags origin <url>`` (no clone needed).
+        2. If the spec's ``ref`` is a version-prefix (e.g. ``2026.2``, looks like
+           ``x.y``), return the tag ``x.y.z`` with the greatest ``z`` from the
+           remote tags. Otherwise return the spec's ``ref`` as-is (e.g. ``main``).
         """
-        # Try output section first – it contains resolved reference information.
-        output_repos = self.spec_manager.get_output_data("repositories", {})
-        repo_dicts = (
-            list(output_repos.values()) if isinstance(output_repos, dict) else []
-        )
-
-        if not repo_dicts:
-            # Fallback to input spec repositories (the original definitions).
-            repo_dicts = [repo for repo in self.spec_manager.repositories.values()]
-
-        for repo_data in repo_dicts:
-            url = repo_data.get("url")
-            if not url:
-                continue
-            ref = repo_data.get("resolved_ref") or repo_data.get("ref") or "main"
-            print(f"{url} {ref}")
+        repos = self._collect_repos_for_print()
+        for url, ref in repos.items():
+            resolved = self._resolve_ref_via_ls_remote(url, ref)
+            print(f"{url} {resolved}")
         return True
+
+    def _collect_repos_for_print(self) -> dict[str, str]:
+        """Gather ``{url: ref}`` from spec repositories and SPI repo."""
+        repos: dict[str, str] = {}
+        # Notebook repos: spec_manager.repositories applies dev_overrides in --dev mode.
+        for repo_data in self.spec_manager.repositories.values():
+            url = repo_data.get("url")
+            if url:
+                ref = repo_data.get("ref", "main") or "main"
+                repos[url] = ref
+        # SPI repo.
+        spi_info = self.spec_manager.spi
+        if spi_url := spi_info.get("repo"):
+            spi_ref = spi_info.get("ref") or "main"
+            repos[spi_url] = spi_ref
+        return repos
+
+    def _resolve_ref_via_ls_remote(self, url: str, ref: str) -> str:
+        """Resolve *ref* for *url* using ``git ls-remote --tags``.
+
+        Commit hashes are returned as-is. Version prefixes (e.g. ``2026.2``)
+        are resolved to the highest ``x.y.z`` tag. Other refs fall back to
+        the original value.
+        """
+        if self._is_commit_hash(ref):
+            return ref
+        ls_tags_cmd = ["git", "ls-remote", "--tags", "origin", url]
+        result = self.env_manager.wrangler_run(ls_tags_cmd, check=False)
+        tags = _parse_ls_remote_tags(result)
+        selected = self._select_highest_patch_tag(tags, ref)
+        return selected if selected else ref
+
+    def _select_highest_patch_tag(self, tags: list[str], ref: str) -> Optional[str]:
+        """Return the tag ``x.y.z`` with the greatest numeric ``z`` for *ref*.
+
+        Tags are filtered to those starting with ``ref + "."`` (e.g. ``2026.2.``).
+        The suffix after ``ref + "."`` is parsed as an integer for sorting;
+        ties or non-numeric suffixes fall back to lexicographic comparison.
+        Returns ``None`` when no matching tags exist.
+        """
+        prefix = ref + "."
+        matching = [t for t in tags if t.startswith(prefix)]
+        if not matching:
+            return None
+
+        def _sort_key(tag: str) -> tuple:
+            z_part = tag[len(prefix) :]
+            try:
+                return (0, int(z_part))
+            except ValueError:
+                return (1, z_part)
+
+        matching.sort(key=_sort_key, reverse=True)
+        return matching[0]
 
     def _spec_list(self) -> bool:
         """List the available shelves/specs in the pantry."""

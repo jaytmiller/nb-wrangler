@@ -300,7 +300,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-add-pip-hashes`: Record PyPI hashes for packages during compilation.
 - `--print-wrangler-repo`: Print the nb-wrangler repository URL associated with this spec.
 - `--print-wrangler-ref`: Print the nb-wrangler repository ref associated with this spec.
-- `--print-repo-tags`: Print out the repositories sections of the spec with one URL and reference per line.
+- `--print-repo-tags`: Print out the repositories sections of the spec with one URL and reference per line, using `git ls-remote --tags` to resolve version-prefix refs (e.g. `2026.2` → highest `2026.2.z` tag) without cloning.
 - `--spec-name`: Generate a name suitable for referring to this image/spec/build and print to stdout.
 
 ### Miscellaneous
