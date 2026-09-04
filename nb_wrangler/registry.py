@@ -9,7 +9,7 @@ import requests
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
-from .constants import DEFAULT_REGISTRY, DEFAULT_PROJECT
+from .constants import DEFAULT_REGISTRY, DEFAULT_PROJECT, PULL_TIMEOUT
 
 
 class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
@@ -23,7 +23,10 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         image = self.resolve_image(image, preferred_prefix="nbw_")
         self.logger.info(f"Pulling Docker image: {image}")
         result = self.env_manager.wrangler_run(
-            ["docker", "pull", image], check=False, output_mode="uncaught"
+            ["docker", "pull", image],
+            check=False,
+            output_mode="uncaught",
+            timeout=PULL_TIMEOUT,
         )
         return self.env_manager.handle_result(
             result,
