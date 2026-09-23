@@ -1,0 +1,23 @@
+flowchart TD
+    A[Define image specification: names, Python version] --> B[Define notebook repos, selections, packages, assets]
+    B --> C[Curate notebooks and packages using nbw tool]
+    C --> D{Curation succeeds?}
+    D -- No --> E[Resolve curation issues]
+    E --> A
+    D -- Yes --> F[Optionally build image locally from spec]
+    F --> G[Test imports and notebooks locally]
+    G --> H{Local tests pass?}
+    H -- No --> I[Loop back to spec definition to resolve issues]
+    I --> A
+    H -- Yes --> J[Commit and push spec to spacetelescope/nb-wrangler-images]
+    J --> K[Run curation or re-installation pipeline to build image, test imports, test notebooks, scan-image on GitHub]
+    K --> L{GitHub build and tests pass?}
+    L -- No --> M[Loop back to spec definition to resolve issues, redo all subsequent steps]
+    M --> A
+    L -- Yes --> N[Use dynamic ECR to spawn with new test image in test environment]
+    N --> O[Verify image on platform: test imports, test notebooks, run notebooks]
+    O --> P{Platform tests pass?}
+    P -- No --> Q[Loop back to spec definition to resolve issues, redo all subsequent steps]
+    Q --> A
+    P -- Yes --> R[Download vetted image from GHCR and push to ECR]
+    R --> S[Tag image for OPS and update OPS profile, PR and merge profile update]
