@@ -1,0 +1,9 @@
+flowchart TD
+    subgraph curation[Persistent Environment Curation]
+        A[Define Wrangler Specification] --> B[Define Notebook Repos and Selections]
+        B --> C[Curate Notebooks and Packages using nbw tool]
+        C --> D{Curation Successful?}
+        D -->|No| E[Loop back to spec definition]
+        E --> A
+        D -->|Yes| F[Archive Environment for Future Re-installation]
+    end
