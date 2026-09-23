@@ -1,0 +1,28 @@
+graph TD
+    subgraph Pantry Lookups
+        subgraph Multi-Team Scenario
+            direction LR
+            A[export NBW_PANTRY] --> B[Personal Pantry:]
+            A1["$HOME/.nbw-pantry"] -.-> B
+            B --> C[Team-1 Pantry:]
+            B1["/teams/team-1/nbw-pantry"] -.-> C
+            C --> D[Team-2 Pantry:]
+            C1["/teams/team-1/nbw-pantry"] -.-> D
+            D --> E[System Pantry:]
+            D1["/teams/admin/nbw-pantry"] -.-> E
+        end
+
+        subgraph Personal Scenario
+            direction LR
+            F[export NBW_PANTRY] --> G[Personal Pantry:]
+            F1["$HOME/.nbw-pantry"] -.-> G
+            G --> H[System Pantry:]
+            G1["/teams/admin/nbw-pantry"] -.-> H
+        end
+
+        subgraph Default For Shared Image Data
+            direction LR
+            I[export NBW_PANTRY] --> J[System Pantry:]
+            I1["/teams/admin/nbw-pantry"] -.-> J
+        end
+    end
