@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from nb_wrangler.config import WranglerConfig, set_args_config
 from nb_wrangler.wrangler import NotebookWrangler
-from nb_wrangler.pantry import NbwPantry
+from nb_wrangler.pantry import NbwPantrySet
 
 
 def test_readonly_pantry_no_crash(tmp_path):
@@ -28,7 +28,7 @@ def test_readonly_pantry_no_crash(tmp_path):
         # Patch NBW_PANTRY_DIRS module constant (now a list)
         with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [pantry_dir]):
             # Test NbwPantry initialization - should not crash
-            pantry = NbwPantry()
+            pantry = NbwPantrySet()
             assert pantry.path == pantry_dir
             assert pantry.paths == [pantry_dir]
 
@@ -91,7 +91,7 @@ def test_get_shelf_returns_first_match(tmp_path):
     _make_shelf(secondary, "my-shelf")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         shelf = pantry.get_shelf("my-shelf")
         assert shelf.path == primary / "shelves" / "my-shelf"
         assert shelf.pantry_path == primary
@@ -107,7 +107,7 @@ def test_get_shelf_falls_through_to_secondary(tmp_path):
     _make_shelf(secondary, "only-here")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         shelf = pantry.get_shelf("only-here")
         assert shelf.path == secondary / "shelves" / "only-here"
         assert shelf.pantry_path == secondary
@@ -121,7 +121,7 @@ def test_get_shelf_defaults_to_primary_for_new_shelf(tmp_path):
     secondary.mkdir()
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         shelf = pantry.get_shelf("brand-new")
         assert shelf.path == primary / "shelves" / "brand-new"
         assert shelf.pantry_path == primary
@@ -139,7 +139,7 @@ def test_list_shelves_across_pantries(tmp_path):
     _make_shelf(secondary, "unique-to-secondary")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         # list_shelves prints to stdout; capture via capsys
         pantry.list_shelves()
         # We can't easily capture print output without capsys fixture;
@@ -160,7 +160,7 @@ def test_select_shelves_glob_across_pantries(tmp_path):
     _make_shelf(secondary, "shelf-ccc")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         results = pantry.select_shelves("shelf-a*")
         assert results == ["shelf-aaa"]
 
@@ -176,7 +176,7 @@ def test_delete_shelf_from_first_match(tmp_path):
     _make_shelf(secondary, "my-shelf")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         result = pantry.delete_shelf("my-shelf")
         assert result is True
         assert not (primary / "shelves" / "my-shelf").exists()
@@ -192,7 +192,7 @@ def test_delete_shelf_not_found(tmp_path):
     secondary.mkdir()
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         result = pantry.delete_shelf("nonexistent")
         assert result is False
 
@@ -205,7 +205,7 @@ def test_single_pantry_backward_compat(tmp_path):
     _make_shelf(pantry_dir, "test-shelf")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [pantry_dir]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         assert pantry.path == pantry_dir
         assert pantry.shelves == pantry_dir / "shelves"
         shelf = pantry.get_shelf("test-shelf")
@@ -240,7 +240,7 @@ def test_abstract_data_path_uses_correct_pantry(tmp_path):
     _make_shelf(secondary, "from-secondary")
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
-        pantry = NbwPantry()
+        pantry = NbwPantrySet()
         shelf = pantry.get_shelf("from-secondary")
         assert shelf.pantry_path == secondary
         assert shelf.abstract_data_path == secondary / "shelves" / "from-secondary" / "data"
