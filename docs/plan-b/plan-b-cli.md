@@ -91,10 +91,37 @@ source ppe activate [env-name]
 This results in the output from `mamba activate env-name`, PPE env vars, etc.
 Mamba activate also works(?) but does not include PPE env vars.
 
+#### Deactivate Environment
+
+In a terminal, to deactivate the current environment, do:
+
+```/bin/sh
+source ppe deactivate
+```
+
+This is here for symmetry with `ppe activate` to avoid the surprise and confusion
+for some folks that `ppe deactivate` does not work and some undefined equivalent
+must be used instead.
+
+`mamba deactivate` should work equally well since this is independent of
+uninstalling the environment from live storage or removing the environment
+variables defined by the current environment.
+
 #### Update Environment
 
-There is no planned `ppe` command for this.
-Use normal mamba, pip, or uv installs and uninstalls then `ppe save`.
+Trivial wrappers `ppe install` and `ppe uninstall` can be added targeting the current environment and qualified by:
+
+```/bin/sh
+ppe install --using-mamba packages...
+ppe install --using-pip packages...
+ppe install --using-uv packages...
+```
+
+The key reason for these is to automatically update the implied wrangler spec and re-curate
+to resolve dependencies and update the lock files.
+
+Being active implies that the current pantry@environment pair already exists in either live or archived forms. In the case of archived environments, the default is the first found version of
+pantry@environment. If no pantry shelf exists for a particular pantry@environment, one is created.
 
 #### Archive environment
 
@@ -104,8 +131,8 @@ Creates an archive of the specified environment defaulting to the first pantry i
 ppe save [env-name]
 ```
 
-`unique-e-glob` is a pantry/environment glob that resolves to a single environment.
-The default pantry:environment is current environment.
+`unique-e-glob` is a pantry@environment glob that resolves to a single environment.
+The default pantry@environment is current pantry@environment.
 
 #### Restore environment
 
@@ -124,10 +151,10 @@ ppe restore [env-name]
 Deletes matching environments, either from live storage, archive storage, or both.
 
 ```/bin/sh
-ppe rm [env-name...] [--live | --archived | --both] [--yes]
+ppe rm [env-names...] [--live | --archived | --both] [--yes]
 ```
 
-`e-globs...` is a pantry/environment glob that resolves to a list of pantry:environment pairs.
+`env-names...` is a pantry@environment glob that resolves to a list of pantry@environment pairs.
 Delete matching environments interactively unless `--yes`.
 
 #### List environments
@@ -135,10 +162,10 @@ Delete matching environments interactively unless `--yes`.
 List environments found in any pantry and/or live under NBW_ROOT.
 
 ```/bin/sh
-ppe ls [e-globs...]
+ppe ls [env-names...]
 ```
 
-Identifies pantry/environment pairs found anywhere on the NBW_PANTRY path mathing and of e-globs.
+Identifies pantry@environment pairs found anywhere on the NBW_PANTRY path mathing and of `env-names...`
 Identify live environments.
 Identify r/w vs. r/o pantries.
 
