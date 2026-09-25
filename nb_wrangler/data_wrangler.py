@@ -9,7 +9,7 @@ from .logger import WranglerLoggable
 from .spec_manager import SpecManager
 from .repository import RepositoryManager
 from .data_manager import RefdataValidator
-from .pantry import NbwPantry
+from .pantry import NbwPantrySet
 from .environment import EnvironmentManager
 from . import utils
 
@@ -20,7 +20,7 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
     def __init__(
         self,
         spec_manager: SpecManager,
-        pantry: NbwPantry,
+        pantry: NbwPantrySet,
         repo_manager: RepositoryManager,
         env_manager: EnvironmentManager,
     ):

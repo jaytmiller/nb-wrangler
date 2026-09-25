@@ -95,6 +95,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
 
     @property
     def nbw_pantry_dir(self) -> Path:
+        """Path to the primary pantry directory (first entry in NBW_PANTRY)."""
         return NBW_PANTRY
 
     @property

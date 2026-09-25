@@ -17,7 +17,7 @@ from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
 from .registry import RegistryManager
-from .pantry import NbwPantry
+from .pantry import NbwPantrySet
 from .data_wrangler import DataWrangler
 from . import utils
 
@@ -58,7 +58,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.spec_manager = SpecManager.load_and_validate(self.config.spec_file)
         if self.spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
-        self.pantry = NbwPantry()
+        self.pantry = NbwPantrySet.from_env()
         self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
         if self.config.repos_dir == NBW_URI:
             self.config.repos_dir = self.pantry_shelf.notebook_repos_path
