@@ -1,4 +1,4 @@
-# Persistent Platform Environments CLI (net)
+# Persistent Platform Environments CLI (ppe)
 
 ## Scope
 
@@ -22,10 +22,13 @@ This describes the proposed CLI for users and admins managing PPE's.
   2. Easy data downloads for personal or shared use
   3. Automatic version pinning
 
-#### Configure archive and live storage
+#### Configure Storage
 
-`NBW_ROOT` defines the location of live Wrangler environments. This defaults
-to container storage on the platform.
+##### Live
+
+`NBW_ROOT` defines the location of live Wrangler environments. This defaults to container storage on the platform.  Using container storage makes installing or running
+
+##### Archive
 
 `NBW_PANTRY` defines a lcolon seperated ist of Wrangler `pantry` directories used to archive persistent environments.  Each pantry can store multiple environments, each environment gets its own `shelf`.  These are nominally located on persistent EFS.
 
@@ -49,57 +52,67 @@ Unpacked data and data archives also live in environment archive `shelves`.
 
 ### Commands
 
-To provide a simple intuitive CLI dedicated to PPE management, we add a new tool `net` which works in familiar terms while maintaining an implicit wrangler spec in the background.  This tool should have a simplified and intuitive command set.
+To provide a simple intuitive CLI dedicated to PPE management, we add a new tool `ppe` which works in familiar terms while maintaining an implicit wrangler spec in the background.  This tool should have a simplified and intuitive command set.
 
 For each individual command below, the full syntax is e.g.:
 
 ```/bin/sh
-net create --from-requirements requirements.txt
+ppe create --from-requirements requirements.txt
 ```
 
 or more abstractly
 
 ```/bin/bash
-net <verb> [<adverbs>] [<parameters...>] <--switches and parameters>
+ppe <verb> <--switches and parameters>
 ```
 
-#### Create from Specs (create)
+#### Create Environment
 
 Seed implicit wrangler spec using familiar spec formats:
 
 ```/bin/sh
-net create --from-empty
-net create --from-requirements <requirements.txt...>
-net create --from-mamba-spec <mamba-spec.yaml>
-net create --from-wrangler-spec <wrangler-spec.yaml>
-net create --from-notebooks <http-ipynb's or local-ipynb's...>
+ppe create [env-name] --from-empty
+ppe create [env-name] --from-requirements <requirements.txt...>
+ppe create [env-name] --from-mamba-spec <mamba-spec.yaml>
+ppe create [env-name] --from-wrangler-spec <wrangler-spec.yaml>
+ppe create [env-name] --from-notebooks <http-ipynb's or local-ipynb's...>
 
 global switches: [--python-version p] [--env-name e] [--display-name d]
 ```
 
-#### Update Environment (no net command)
+#### Activate Environment
 
-Use normal mamba, pip, or uv installs and uninstalls then `net save`.
-This is a goal not a certainty since it makes implicit spec maintenance trickier.
+In a terminal, to switch to an environment, do:
+
+```/bin/sh
+source ppe activate [env-name]
+```
+
+This results in the output from `mamba activate env-name`, PPE env vars, etc.
+Mamba activate also works(?) but does not include PPE env vars.
+
+#### Update Environment
+
+There is no planned `ppe` command for this.
+Use normal mamba, pip, or uv installs and uninstalls then `ppe save`.
 
 #### Archive environment
 
-Creates an archive file (`can`) of the specified environment defaulting to the first pantry in `NBW_PATH` or the pantry specified by `NBW_SAVE`.
+Creates an archive of the specified environment defaulting to the first pantry in `NBW_PATH`.
 
 ```/bin/sh
-net save [unique-e-glob]
+ppe save [env-name]
 ```
 
 `unique-e-glob` is a pantry/environment glob that resolves to a single environment.
-`e-glob` is a pantry/environment glob that resolves to a list of pantry:environment pairs.
-The default env is current environment.
+The default pantry:environment is current environment.
 
 #### Restore environment
 
 Thaws out an archived environment so it can be used. Registers with Jupyter.
 
 ```/bin/sh
-net restore [unique-e-glob]
+ppe restore [env-name]
 ```
 
 - Restores from the first pantry with a matching environment.
@@ -108,58 +121,61 @@ net restore [unique-e-glob]
 
 #### Delete environments
 
-Deletes an environment, either from live storage, archive storage, or both.
+Deletes matching environments, either from live storage, archive storage, or both.
 
 ```/bin/sh
-net rm [e-glob] [--live | --archived | --both] [--yes]
+ppe rm [env-name...] [--live | --archived | --both] [--yes]
 ```
 
-Delete matching environments interactively unless `--yes`
+`e-globs...` is a pantry/environment glob that resolves to a list of pantry:environment pairs.
+Delete matching environments interactively unless `--yes`.
 
-#### List available environments
+#### List environments
 
 List environments found in any pantry and/or live under NBW_ROOT.
 
 ```/bin/sh
-net ls [e-glob]
+ppe ls [e-globs...]
 ```
 
-Identifies pantry/environment pairs found anywhere on the NBW_PANTRY path mathing e-glob.
-Identifies live environments with *
+Identifies pantry/environment pairs found anywhere on the NBW_PANTRY path mathing and of e-globs.
+Identify live environments.
+Identify r/w vs. r/o pantries.
 
 #### Add env vars
 
-Adds an environment variable to for terminals and notebooks when this net env is active.
+Adds an environment variable to for terminals and notebooks when this ppe env is active.
 
 ```/bin/bash
-net evar-add [unique-e-glob] [VAR=VALUE...]`)
+ppe var --add [VAR=VALUE...]`)
 ```
 
 #### Remove env vars
 
-Removes from evars from implicit wrangler spec and kernel definition.
+Removes vars from implicit wrangler spec, kernel definition, var exports rc.
 
 ```/bin/bash
-net evar-rm [unique-e-glob] [VAR=VALUE...]`)
+ppe var --rm [var-globs...]`)
 ```
 
 #### List env vars
 
-Lists the environment variables that this environment defines for the jupyter kernel.
+Lists the environment variables that this environment defines for the terminal or jupyter kernel (making them available in notebooks). This is a very limited subset of the variabled reported by `printenv`.
 
 ```/bin/bash
-net evar-ls [unique-e-glob] [VAR=VALUE...]`)
+ppe var --ls [var-globs...]
+
+--as-exports    prints env vars as shell export commands
+--tabular       prints env vars in two columnd tabular form
 ```
 
-#### Export (export)
+#### Export spec (export)
 
-Extracts the specified information and format from the implicit wrangler spec.
+Extracts the implicit wrangler spec for this PPE.
 A destination file of `-` specifies stdout.
 
 ```/bin/bash
-net export --to-mamba-spec [mamba-spec.yaml | -]
-net export --to-requirements-list [requirements.txt | -]
-net export --to-wrangler-spec [wrangler-spec.yaml | -]
+ppe export [nbw-wrangler-spec.yaml|-]
 ```
 
-
+Mamba and pip specs can be generated normally using mamba or pip while the environment is activated.
