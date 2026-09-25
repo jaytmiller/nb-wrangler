@@ -6,6 +6,7 @@ from nb_wrangler.constants import (  # noqa: F401
     HOME,
     NBW_ROOT,
     NBW_PANTRY,
+    NBW_PANTRY_DIRS,
     NBW_CACHE,
     NBW_MM,
     NBW_MAMBA_CMD,
@@ -102,6 +103,22 @@ class TestPathConstants:
 
     def test_data_spec_path_ends_with_yaml(self):
         assert DATA_SPEC_NAME.endswith(".yaml")
+
+    def test_nbw_pantry_is_path(self):
+        from pathlib import Path as PathType
+
+        assert isinstance(NBW_PANTRY, PathType)
+
+    def test_nbw_pantry_dirs_is_list_of_paths(self):
+        from pathlib import Path as PathType
+
+        assert isinstance(NBW_PANTRY_DIRS, list)
+        assert len(NBW_PANTRY_DIRS) > 0
+        assert all(isinstance(p, PathType) for p in NBW_PANTRY_DIRS)
+
+    def test_nbw_pantry_matches_first_dir(self):
+        """NBW_PANTRY should be the first element of NBW_PANTRY_DIRS."""
+        assert NBW_PANTRY_DIRS[0] == NBW_PANTRY
 
 
 class TestOtherConstants:

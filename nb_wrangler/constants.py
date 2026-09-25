@@ -10,12 +10,20 @@ WRANGLER_SPEC_VERSION = 2.3
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
+
 # NBW_ROOT and NBW_MM must not inherit MAMBA_ROOT_PREFIX or CONDA_ROOT_PREFIX
 # as fallbacks, because those variables are typically set by a system-level
 # micromamba/conda shell init and would point nb-wrangler to the wrong
 # installation directory, causing environment lookups to fail.
 NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
-NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
+
+# NBW_PANTRY may be a colon-separated list of pantry directories (like PATH),
+# allowing a priority-ordered search across multiple pantry locations.
+_nbw_pantry_env = os.environ.get("NBW_PANTRY", str(HOME / ".nbw-pantry"))
+_nbw_pantry_dir_list = [Path(p) for p in _nbw_pantry_env.split(os.pathsep) if p]
+NBW_PANTRY = _nbw_pantry_dir_list[0]  # First/primary pantry — backward compatible
+NBW_PANTRY_DIRS = _nbw_pantry_dir_list  # Full list for multi-pantry search
+
 NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
 NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 

@@ -2,7 +2,9 @@
 This module manages the central nb-wrangler persistent environtment store which has
 a directory organization something like:
 
-${NBW_PANTRY}/
+A single pantry (NBW_PANTRY may be a colon-separated list like PATH):
+
+${NBW_PANTRY}/  (or first entry in the colon-separated list)
   pantry.yaml
   shelves/
     spec-1-shelf/
@@ -21,6 +23,10 @@ ${NBW_PANTRY}/
     spec-2-shelf
         ...
     ...
+
+NBW_PANTRY supports a colon-separated list of directories (like UNIX PATH).
+Operations search pantries in priority order — the first matching shelf wins.
+New shelves are created in the first (primary) pantry.
 
 A related live installation may or may not be located on persistent storage but is
 kept separate to enable locating it on highly performant but ephemeral storage:
@@ -54,45 +60,94 @@ from . import utils
 # from .utils import DataDownloadError
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
-from .constants import NBW_PANTRY, DATA_GET_TIMEOUT, ARCHIVE_TIMEOUT
+from .constants import NBW_PANTRY, NBW_PANTRY_DIRS, DATA_GET_TIMEOUT, ARCHIVE_TIMEOUT
 
 
 class NbwPantry(WranglerLoggable):
-    def __init__(self, path: Optional[Path] = None):
+    def __init__(self, path: Optional[Path | list[Path]] = None):
         """
         Initialize the NbwPantry with a logger, a spec manager, and an environment manager.
 
         The pantry is responsible for managing shelves, cans, and the overall environment store.
+
+        If *path* is None, the pantry directories are read from NBW_PANTRY_DIRS
+        (a colon-separated env var, like PATH).  If *path* is a single Path, it
+        is treated as a one-element list.  If *path* is a list of Paths, all
+        are used in priority order — earlier entries shadow later ones.
         """
         super().__init__()
-        self.path = path if path is not None else NBW_PANTRY
+        if path is None:
+            self.paths = list(NBW_PANTRY_DIRS)
+        elif isinstance(path, list):
+            self.paths = list(path)
+        else:
+            self.paths = [Path(path)]
+        # Filter out empty/falsy paths (e.g. from trailing colons in env var)
+        self.paths = [p for p in self.paths if str(p)]
+        # Backward-compatible attributes: first/primary pantry
+        self.path = self.paths[0]
         self.shelves = self.path / "shelves"
 
     def get_shelf(self, shelf_name: str) -> "NbwShelf":
         """
-        Create the central environment store directory structure.
-        This includes metadata, specs, shelves, and archives directories.
-        Returns the path to the created pantry.
+        Return the NbwShelf for *shelf_name*, searching pantries in priority
+        order (first match wins, like PATH lookup).
+
+        If the shelf does not exist in any pantry, the first (primary) pantry
+        is used so that new shelves are created there.
         """
-        return NbwShelf(self.shelves / shelf_name)
+        for pantry_path in self.paths:
+            shelf_path = pantry_path / "shelves" / shelf_name
+            if shelf_path.exists():
+                return NbwShelf(shelf_path, pantry_path=pantry_path)
+        # Default to primary pantry for new shelf creation
+        return NbwShelf(self.paths[0] / "shelves" / shelf_name, pantry_path=self.paths[0])
 
     def list_shelves(self) -> bool:
-        """Print out the root path of each shelf, one per line."""
-        for shelf in self.shelves.glob("*"):
-            print(shelf.name)
+        """Print out the name of each shelf across all pantries, one per line.
+
+        Shelves are deduplicated by name; the first (highest-priority) pantry's
+        version of a name is the one that counts.
+        """
+        seen: set[str] = set()
+        for pantry_path in self.paths:
+            shelves_dir = pantry_path / "shelves"
+            if shelves_dir.exists():
+                for shelf in shelves_dir.glob("*"):
+                    if shelf.name not in seen:
+                        seen.add(shelf.name)
+                        print(shelf.name)
         return True
 
     def select_shelves(self, glob_expr: str) -> list[str]:
-        return [str(shelf.name) for shelf in self.shelves.glob(glob_expr)]
+        """Return names of shelves matching *glob_expr* across all pantries.
+
+        Results are deduplicated by name (first/highest-priority match wins).
+        """
+        matched: list[str] = []
+        seen: set[str] = set()
+        for pantry_path in self.paths:
+            shelves_dir = pantry_path / "shelves"
+            if shelves_dir.exists():
+                for shelf in shelves_dir.glob(glob_expr):
+                    if shelf.name not in seen:
+                        seen.add(shelf.name)
+                        matched.append(str(shelf.name))
+        return matched
 
     def delete_shelf(self, shelf_name: str | Path) -> bool:
         """
-        Delete an existing shelf.
+        Delete an existing shelf from the first pantry that contains it.
         This operation should be cautious and may require confirmation.
-        Returns True if deletion was successful, False otherwise.
+        Returns True if deletion was successful, False if no matching shelf
+        was found.
         """
-        shutil.rmtree(str(self.shelves / shelf_name))
-        return True
+        for pantry_path in self.paths:
+            shelf_path = pantry_path / "shelves" / shelf_name
+            if shelf_path.exists():
+                shutil.rmtree(str(shelf_path))
+                return True
+        return False
 
     def install_shelf(self, spec_path: str | Path) -> bool:
         """
@@ -137,9 +192,10 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         ...
     """
 
-    def __init__(self, shelf_path: Path):
+    def __init__(self, shelf_path: Path, pantry_path: Optional[Path] = None):
         super().__init__()
         self.path = shelf_path
+        self.pantry_path = pantry_path if pantry_path is not None else NBW_PANTRY
 
     @property
     def name(self):
@@ -165,7 +221,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
 
     @property
     def abstract_data_path(self):
-        return Path("${NBW_PANTRY}/shelves") / self.name / "data"
+        return self.pantry_path / "shelves" / self.name / "data"
 
     @property
     def spec_path(self) -> Path:
