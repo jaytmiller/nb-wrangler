@@ -17,7 +17,7 @@ on container storage or archived on EFS for reinstallation later.
 Wrangler handling of PPE's has 3 immediate areas of application: personal custom
 environments, team custom environments, and global system environments.
 
-This proposal arose from these factors:
+This comcept arose from these factors:
 
 - Vastly simpler workflow
 - Eliminates need for public image registry
@@ -35,21 +35,35 @@ dedicated to it as `ppe` for Persistent Environment Tool.
 
 The benefits of User Installed Environments using `ppe`:
 
-### Vastly simpler workflow, Lower cost deployment
+### Vastly simpler workflow and process
 
-PPE determination and installation nominally reduces to the Wrangler spec curation and/or reinstallation workflows.  Since this eliminates base image updates and pipelines, there is a dramatic reduction in complexity. Since PPE's can be fully locked, paired with an independent image binary base environment there should be improvements in stability and cross-platform consistency.
+PPE determination and installation nominally reduces to the Wrangler spec curation and/or reinstallation workflows.  Since this eliminates base image updates and pipelines, there is a dramatic reduction in complexity. Since PPE's can be fully locked, paired with a simpler base environment there should be improvements in stability and cross-platform consistency.
+
+The following diagrams illustrate the difference in complexity for the end-to-end system.
+
+#### Complex Image Workflow
+
+The end-to-end process of building a complex image has 3-4 phases: defining the spec, building/testing/scanning locally, PR'ing the spec and building/testing/scanning on GitHub as an image, Distributing the image to a TEST server, testing in TEST and loop back as needed, promoting to OPS, simple spawn with no archive unpack.
+
+![Complex Image](../plan-a/plan-a-flow.svg)
+
+#### Platform Persistent Environment (PPE) Workflow
+
+The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme that supports the extra Wrangler features and uses uv and careful storage management to dramatically improve speed. As such, relative to defining and curating the wrangler spec, which also installs the environment ephemerally as a side effect, there is only one immediate extra step: archive the installed environment for faster future use by unpacking vs. repeat package installation requiring several minutes.
+
+![Peristent Environment Workflow](./PersistentEnvironmentCreation.svg)
 
 ### Faster than kernel-xxx scripts
 
-- Provides a fast replacement for the current *kernel-xxx* scripts that interoperate with the `nbw` tool used for notebook-driven image building.
+- Provides a fast replacement for the current *kernel-xxx* scripts that also interoperate with the `nbw` tool used for notebook-driven image building.
 
 ### Enables smaller, simpler base images, faster spawning
 
-- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. This image would also be simpler and with fewer "concerns" and simpler Dockerfile if we can partition correctly, potentially reducing the frequency at which we rebuild this funtionality.
+- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. This image would also be simpler and with fewer "concerns" and simpler Dockerfile if we can partition correctly, potentially reducing the frequency at which we rebuild this funtionality. Rolling our own base image or deriving it from another astro-project would also enable a consistent usage of uv to install all pip packages and environments.
 
 ### Fast archiving and restoration
 
-- Measured kernel "unpack" times of 20-30 seconds are probably < ECR transfer times for 2-3G of environment binaries.  Archiving times are likewise fast: 40-60 seconds.
+- Measured kernel "unpack" times of 20-30 seconds are probably < ECR transfer times for 2-3G of environment binaries.  Archiving times are likewise fast: 40-60 seconds, once.  If faster storage than EFS is used, these times would likely further improve...  where as ECR transfer times would remain constant.
 
 ### Eliminates requirement for public registry
 
@@ -83,25 +97,17 @@ One very significant thing which is nominally lost is Docker's ability to build 
 
 ## Required Features
 
-### CLI Commands
+### CLI Command (ppe)
 
-   Key to making this user-friendly will be providing a CLI tool that works in terms
-   people are familiar with such as mamba .yaml specs and pip requirements.txt specs
-   in addition to wrangler specs. A third candidate is uv specs but current wrangler
-   support/usage of `uv` is limited to pip package management.  For operating
-   on archived environments, referring to the environment MUST support lookups by
-   kernel name but may include other beneficial mechanisms.
+   Key to making this user-friendly will be providing a CLI tool `ppe` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. A third candidate is uv specs but current wrangler support/usage of `uv` is limited to pip package management.  For operating on archived environments, referring to the environment MUST support lookups by kernel name but may include other beneficial mechanisms.
 
-   **NOTE:** command examples given below are based on the current relatively
-   complex nbw CLI used for curation and image building.  As such they are primarily
-   technical notes on how the user CLI maps onto `nbw` features.  The user CLI will
-   be a thin wrapper heavily dependent on existing functionality.
+   **NOTE:** command examples given below are based on the current relatively complex nbw CLI used for curation and image building.  As such they are primarily technical notes on how the user CLI maps onto `nbw` features.  The user CLI will be a thin wrapper heavily dependent on existing functionality.
 
 ### Investigate official env archive formats
 
-   The POC environment archiving is based on simple .tar files for environments always stored under /opt/conda.  This makes them trivially archivable and restorable.
+   The POC environment archiving is based on simple .tar files for environments always stored under /opt/conda.  This makes them trivially archivable and restorable,  but they are not portable to other installation locations.
 
-  Investigate mamba/micromamba environment bundling commands as a more correct solution that can potentially unarchive to other paths.  Another consideration is speed, if there is a major compromise support both.
+  Investigate built-in mamba/micromamba environment bundling commands as a more correct solution that can potentially unarchive to other paths or other points of correction.  Another consideration is speed, if there is a major compromise support both.
 
 ### Notation for referring to specs
 
@@ -120,21 +126,21 @@ One very significant thing which is nominally lost is Docker's ability to build 
 
 ### Ability to support readonly persistent archives
 
+## CLI Tool Requirements (ppe)
 
 ### 1. Configure Storage
 ### 1. Create Environment
 ### 1. Activate Environment
 ### 1. Deactivate Environment
 ### 1. Update Environment
-### 1. Archive environment
-### 1. Restore environment
-### 1. Delete environments
-### 1. List environments
+### 1. Archive Environment
+### 1. Restore Environment
+### 1. Delete Environments
+### 1. List Environments
 ### 1. Add env vars
 ### 1. Remove env vars
 ### 1. List env vars
 ### 1. Export spec (export)
-
 
 ## More exotic directions
 
