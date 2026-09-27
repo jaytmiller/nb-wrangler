@@ -75,3 +75,54 @@ class PpeConfig(WranglerLoggable):
     def restore_hash_path(self, name: str) -> Path:
         """Return the path to the live restore-hash marker for *name*."""
         return self.nbw_root / ".ppe-restore" / f"{name}.sha256"
+
+    def list_shelves(
+        self, glob_expr: Optional[str] = None, pantry: Optional[Path] = None
+    ) -> list[dict]:
+        """Return metadata for shelves across pantries.
+
+        Each entry: ``{pantry, name, path, writable, save_hash}``.
+        If *glob_expr* is given, filter by matching shelf name.
+        If *pantry* is given, restrict to that single pantry directory.
+        """
+        import fnmatch
+
+        results: list[dict] = []
+        search_pantries = [pantry] if pantry else self.pantry_dirs
+        for p in search_pantries:
+            shelves_dir = p / "shelves"
+            if not shelves_dir.exists():
+                continue
+            for shelf_path in sorted(shelves_dir.iterdir()):
+                if not shelf_path.is_dir():
+                    continue
+                if glob_expr and not fnmatch.fnmatch(shelf_path.name, glob_expr):
+                    continue
+                hash_file = shelf_path / "archives" / "last-save.sha256"
+                save_hash = (
+                    hash_file.read_text().strip() if hash_file.exists() else None
+                )
+                results.append(
+                    {
+                        "pantry": p,
+                        "name": shelf_path.name,
+                        "path": shelf_path,
+                        "writable": self.is_writable(p),
+                        "save_hash": save_hash,
+                    }
+                )
+        return results
+
+    def list_live_envs(self) -> list[dict]:
+        """Return metadata for live environments under ``NBW_ROOT/envs``.
+
+        Each entry: ``{name, path}``.
+        """
+        envs_dir = self.nbw_root / "envs"
+        if not envs_dir.exists():
+            return []
+        results: list[dict] = []
+        for env_path in sorted(envs_dir.iterdir()):
+            if env_path.is_dir():
+                results.append({"name": env_path.name, "path": env_path})
+        return results
