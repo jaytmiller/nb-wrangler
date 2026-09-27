@@ -35,11 +35,9 @@ _ENV_SAVE = "save"
 _ENV_RESTORE = "restore"
 _ENV_LS = "ls"
 _ENV_INFO = "info"
-_ENV_NOT_IMPLEMENTED = [
-    "ensure",
-    "register",
-    "unregister",
-]
+_ENV_ENSURE = "ensure"
+_ENV_REGISTER = "register"
+_ENV_UNREGISTER = "unregister"
 
 # top-level groups (only env has real subcommands in Phases 1-4)
 _TOP_LEVEL_STUBS = ["var", "data", "export", "status", "doctor"]
@@ -127,8 +125,20 @@ def _add_env_subcommands(subparsers) -> None:
     rm = env_sub.add_parser("rm", help="Delete environments from live and/or archive")
     _add_rm_args(rm)
 
-    for cmd in _ENV_NOT_IMPLEMENTED:
-        env_sub.add_parser(cmd, help=f"({cmd} -- not yet implemented)")
+    ensure = env_sub.add_parser(
+        _ENV_ENSURE, help="Idempotently ensure an env is available (live or restored)"
+    )
+    _add_ensure_args(ensure)
+
+    register = env_sub.add_parser(
+        _ENV_REGISTER, help="Register Jupyter kernel for an environment"
+    )
+    _add_register_args(register)
+
+    unregister = env_sub.add_parser(
+        _ENV_UNREGISTER, help="Unregister Jupyter kernel for an environment"
+    )
+    _add_unregister_args(unregister)
 
 
 def _add_stub_groups(subparsers) -> None:
@@ -364,6 +374,51 @@ def _add_rm_args(p) -> None:
     )
 
 
+def _add_ensure_args(p) -> None:
+    """Add ``env ensure`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to ensure")
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Source pantry directory (default: search all pantries)",
+    )
+    p.add_argument(
+        "--display-name",
+        default=None,
+        help="Jupyter kernel display name (default: same as env name)",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned action without executing",
+    )
+
+
+def _add_register_args(p) -> None:
+    """Add ``env register`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to register")
+    p.add_argument(
+        "--display-name",
+        default=None,
+        help="Jupyter kernel display name (default: same as env name)",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned action without executing",
+    )
+
+
+def _add_unregister_args(p) -> None:
+    """Add ``env unregister`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to unregister")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned action without executing",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -375,8 +430,17 @@ def _dispatch_env(args, parser) -> int:
         print(
             "ppe env: sub-command required. Use one of: "
             + ", ".join(
-                [_ENV_CREATE, _ENV_SAVE, _ENV_RESTORE, _ENV_LS, _ENV_INFO, "rm"]
-                + _ENV_NOT_IMPLEMENTED
+                [
+                    _ENV_CREATE,
+                    _ENV_SAVE,
+                    _ENV_RESTORE,
+                    _ENV_LS,
+                    _ENV_INFO,
+                    "rm",
+                    _ENV_ENSURE,
+                    _ENV_REGISTER,
+                    _ENV_UNREGISTER,
+                ]
             )
         )
         return 0
@@ -398,6 +462,12 @@ def _dispatch_env(args, parser) -> int:
         return _cmd_env_relock(args)
     if args.env_command == "rm":
         return _cmd_env_rm(args)
+    if args.env_command == _ENV_ENSURE:
+        return _cmd_env_ensure(args)
+    if args.env_command == _ENV_REGISTER:
+        return _cmd_env_register(args)
+    if args.env_command == _ENV_UNREGISTER:
+        return _cmd_env_unregister(args)
     return _cmd_not_implemented(args.env_command)
 
 
@@ -1335,6 +1405,92 @@ def _cleanup_empty_shelf_dirs(targets):
                     shutil.rmtree(shelves_dir)
             except OSError:
                 pass
+
+
+# ---------------------------------------------------------------------------
+# env ensure / register / unregister  (Phase 7)
+# ---------------------------------------------------------------------------
+
+
+class _EnsureArgs:
+    """Minimal args namespace for delegating to _cmd_env_restore."""
+
+    def __init__(self, name: str, pantry: Optional[str] = None):
+        self.name = name
+        self.pantry = pantry
+        self.force = False
+        self.at_boot = False
+
+
+def _cmd_env_ensure(args) -> int:
+    """Handle ``ppe env ensure`` — idempotent ensure an env is available.
+
+    1. If a live env exists → no-op.
+    2. Else if an archive shelf exists → restore it (reuse Phase 3 restore).
+    3. Else → error with create-suggestion, exit non-zero.
+    """
+    _ensure_config()
+    config = PpeConfig()
+    em = EnvironmentManager()
+
+    # 1. Live env exists → no-op
+    if em.environment_exists(args.name):
+        print(f"Environment '{args.name}' is already live (idempotent skip).")
+        _print_exports(args.name, config)
+        return 0
+
+    # 2. Look for a shelf to restore
+    matches = _find_restore_shelf(config, _EnsureArgs(args.name, args.pantry))
+    if matches is None:
+        return 1
+    if not matches:
+        print(
+            f"Error: no live environment and no archive shelf for '{args.name}'. "
+            f"Run `ppe env create ... --name {args.name}` first.",
+            file=sys.stderr,
+        )
+        return 1
+
+    # Delegate to restore for unpacking + kernel registration
+    if args.dry_run:
+        print(f"Dry-run: would restore '{args.name}' from {matches[0][1]}")
+        return 0
+
+    restore_args = _EnsureArgs(args.name, args.pantry)
+    return _cmd_env_restore(restore_args)
+
+
+def _cmd_env_register(args) -> int:
+    """Handle ``ppe env register`` — (re)register the Jupyter kernel."""
+    _ensure_config()
+    em = EnvironmentManager()
+
+    display_name = args.display_name or args.name
+
+    if args.dry_run:
+        print(f"Dry-run: would register kernel '{args.name}' as '{display_name}'")
+        return 0
+
+    success = em.register_environment(args.name, display_name, {})
+    if success:
+        print(f"Registered environment '{args.name}' as kernel '{display_name}'.")
+        _print_exports(args.name, PpeConfig())
+        return 0
+    return 1
+
+
+def _cmd_env_unregister(args) -> int:
+    """Handle ``ppe env unregister`` — remove the Jupyter kernel spec."""
+    _ensure_config()
+    em = EnvironmentManager()
+
+    if args.dry_run:
+        print(f"Dry-run: would unregister kernel '{args.name}'")
+        return 0
+
+    em.unregister_environment(args.name)
+    print(f"Unregistered Jupyter kernel '{args.name}' (if it existed).")
+    return 0
 
 
 if __name__ == "__main__":
