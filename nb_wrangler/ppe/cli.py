@@ -11,7 +11,11 @@ from pathlib import Path
 from typing import Optional
 
 from nb_wrangler.config import WranglerConfig, set_args_config, get_args_config
-from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
+from nb_wrangler.constants import (
+    DEFAULT_ARCHIVE_FORMAT,
+    NBW_MAMBA_CMD,
+    NBW_PIP_CMD,
+)
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.logger import WranglerLogger
 from nb_wrangler.pantry import NbwShelf
@@ -23,7 +27,7 @@ from nb_wrangler.ppe.seeds import (
     seed_from_requirements,
     seed_from_wrangler_spec,
 )
-from nb_wrangler.utils import yaml_dumps, sha256_file
+from nb_wrangler.utils import yaml_dumps, sha256_file, get_yaml, writelines
 
 # env subcommands implemented vs. stubbed for later phases
 _ENV_CREATE = "create"
@@ -33,9 +37,6 @@ _ENV_LS = "ls"
 _ENV_INFO = "info"
 _ENV_NOT_IMPLEMENTED = [
     "rm",
-    "install",
-    "uninstall",
-    "relock",
     "ensure",
     "register",
     "unregister",
@@ -108,6 +109,21 @@ def _add_env_subcommands(subparsers) -> None:
 
     info = env_sub.add_parser("info", help="Show detailed info for an environment")
     _add_info_args(info)
+
+    install = env_sub.add_parser(
+        "install", help="Install packages into a live environment"
+    )
+    _add_install_args(install)
+
+    uninstall = env_sub.add_parser(
+        "uninstall", help="Uninstall packages from a live environment"
+    )
+    _add_uninstall_args(uninstall)
+
+    relock = env_sub.add_parser(
+        "relock", help="Re-curate locks and validate the implicit spec"
+    )
+    _add_relock_args(relock)
 
     for cmd in _ENV_NOT_IMPLEMENTED:
         env_sub.add_parser(cmd, help=f"({cmd} -- not yet implemented)")
@@ -242,6 +258,62 @@ def _add_info_args(p) -> None:
     )
 
 
+def _add_install_args(p) -> None:
+    """Add ``env install`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument("packages", nargs="+", metavar="PACKAGE", help="Packages to install")
+    p.add_argument(
+        "--using",
+        choices=["mamba", "pip", "uv"],
+        default=None,
+        help="Installer to use (default: pip via NBW_PIP_CMD)",
+    )
+    p.add_argument(
+        "--no-relock",
+        action="store_true",
+        help="Suppress the relock suggestion message",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned action without executing",
+    )
+
+
+def _add_uninstall_args(p) -> None:
+    """Add ``env uninstall`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "packages", nargs="+", metavar="PACKAGE", help="Packages to uninstall"
+    )
+    p.add_argument(
+        "--using",
+        choices=["mamba", "pip", "uv"],
+        default=None,
+        help="Installer to use (default: pip via NBW_PIP_CMD)",
+    )
+    p.add_argument(
+        "--no-relock",
+        action="store_true",
+        help="Suppress the relock suggestion message",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned action without executing",
+    )
+
+
+def _add_relock_args(p) -> None:
+    """Add ``env relock`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Show resolved plan without writing",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -268,6 +340,12 @@ def _dispatch_env(args, parser) -> int:
         return _cmd_env_ls(args)
     if args.env_command == _ENV_INFO:
         return _cmd_env_info(args)
+    if args.env_command == "install":
+        return _cmd_env_install(args)
+    if args.env_command == "uninstall":
+        return _cmd_env_uninstall(args)
+    if args.env_command == "relock":
+        return _cmd_env_relock(args)
     return _cmd_not_implemented(args.env_command)
 
 
@@ -733,6 +811,301 @@ def _print_info_json(name: str, shelves: list[dict], live_envs: list[dict]) -> N
         ),
     }
     print(json.dumps(result, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# env install / uninstall / relock  (Phase 5)
+# ---------------------------------------------------------------------------
+
+
+def _cmd_env_install(args) -> int:
+    """Handle ``ppe env install``."""
+    return _cmd_env_pkg_action(args, "install")
+
+
+def _cmd_env_uninstall(args) -> int:
+    """Handle ``ppe env uninstall``."""
+    return _cmd_env_pkg_action(args, "uninstall")
+
+
+def _cmd_env_pkg_action(args, action: str) -> int:
+    """Shared install/uninstall handler."""
+    _ensure_config()
+    config = PpeConfig()
+    em = EnvironmentManager()
+
+    if not em.environment_exists(args.name):
+        print(f"Error: live environment '{args.name}' not found.", file=sys.stderr)
+        return 1
+
+    if args.dry_run:
+        return _pkg_dry_run(args, action)
+
+    return _do_pkg_action(em, config, args, action)
+
+
+def _do_pkg_action(em, config, args, action) -> int:
+    """Execute the install/uninstall and update the implicit spec."""
+    using = args.using
+    if not _run_pkg_action(em, args.name, using, action, args.packages):
+        return 1
+    _update_and_save_spec(config, args.name, args.packages, action, using)
+    _print_relock_suggestion(args.name, args.no_relock)
+    return 0
+
+
+def _run_pkg_action(em, name, using, action, packages) -> bool:
+    """Run the installer command in the live env."""
+    if using == "mamba":
+        return _run_mamba_action(em, name, action, packages)
+    return _run_pip_action(em, name, using, action, packages)
+
+
+def _run_mamba_action(em, name, action, packages) -> bool:
+    """Run a mamba install/remove action."""
+    verb = "install" if action == "install" else "remove"
+    cmd = f"{NBW_MAMBA_CMD} {verb} -n {name} -y {' '.join(packages)}"
+    result = em.wrangler_run(cmd, check=False)
+    return em.handle_result(result, f"Failed to {action} packages in '{name}': ")
+
+
+def _run_pip_action(em, name, using, action, packages) -> bool:
+    """Run a pip/uv install/uninstall action."""
+    installer = _build_installer_str(using)
+    verb = "install" if action == "install" else "uninstall"
+    cmd = f"{installer} {verb} {' '.join(packages)}"
+    result = em.env_run(name, cmd, check=False)
+    return em.handle_result(result, f"Failed to {action} packages in '{name}': ")
+
+
+def _build_installer_str(using) -> str:
+    """Build the installer command prefix string for pip/uv operations."""
+    if using == "uv":
+        return "uv pip"
+    if using == "pip":
+        return "pip"
+    return str(NBW_PIP_CMD)  # default (None)
+
+
+# -- dry-run helpers ---------------------------------------------------------
+
+
+def _pkg_dry_run(args, action) -> int:
+    """Print dry-run output for install/uninstall."""
+    cmd = _build_pkg_cmd(args, action)
+    delta = _format_spec_delta(args.packages, action)
+    print(f"Dry-run: would run: {cmd}")
+    print(f"Spec delta: {delta}")
+    return 0
+
+
+def _build_pkg_cmd(args, action) -> str:
+    """Build the planned installer command string."""
+    verb = "install" if action == "install" else "uninstall"
+    using = args.using
+    if using == "mamba":
+        return f"{NBW_MAMBA_CMD} {verb} -n {args.name} -y {' '.join(args.packages)}"
+    installer = _build_installer_str(using)
+    return f"{installer} {verb} {' '.join(args.packages)}"
+
+
+def _format_spec_delta(packages, action) -> str:
+    """Format the package delta for display."""
+    sign = "+" if action == "install" else "-"
+    return ", ".join(f"{sign} {p}" for p in packages)
+
+
+def _print_relock_suggestion(name, no_relock) -> None:
+    """Print the relock suggestion unless suppressed."""
+    if not no_relock:
+        print(
+            f"Spec updated. Run `ppe env relock {name}` "
+            f"to re-curate locks and validate."
+        )
+
+
+# -- implicit spec persistence -----------------------------------------------
+
+
+def _load_ppe_spec(config, name) -> dict:
+    """Load the implicit spec, or create a base spec if none exists."""
+    spec_path = config.ppe_spec_path(name)
+    if spec_path.exists():
+        yaml = get_yaml()
+        with open(spec_path) as f:
+            return yaml.load(f)
+    return seed_from_empty(name, None)
+
+
+def _save_ppe_spec(config, name, spec) -> None:
+    """Persist the implicit spec to disk."""
+    spec_path = config.ppe_spec_path(name)
+    spec_path.parent.mkdir(parents=True, exist_ok=True)
+    spec_path.write_text(yaml_dumps(spec))
+
+
+def _update_and_save_spec(config, name, packages, action, using) -> None:
+    """Load, update, and persist the implicit spec."""
+    spec = _load_ppe_spec(config, name)
+    _update_spec_packages(spec, packages, action, using)
+    _save_ppe_spec(config, name, spec)
+
+
+# -- spec package list manipulation ------------------------------------------
+
+
+def _update_spec_packages(spec, packages, action, using) -> None:
+    """Update the spec's package list for the given action and installer."""
+    deps = spec.setdefault("dependencies", [])
+    if using != "mamba":
+        pip_list = _get_or_create_pip_section(deps)
+        if action == "install":
+            _add_to_list(pip_list, packages)
+        else:
+            _remove_from_list(pip_list, packages)
+    else:
+        if action == "install":
+            _add_conda_packages(deps, packages)
+        else:
+            _remove_conda_packages(deps, packages)
+
+
+def _get_or_create_pip_section(deps) -> list:
+    """Get or create the pip section list in dependencies."""
+    for dep in deps:
+        if isinstance(dep, dict) and "pip" in dep:
+            return dep["pip"]
+    pip_section: dict = {"pip": []}
+    deps.append(pip_section)
+    return pip_section["pip"]
+
+
+def _add_to_list(lst, items) -> None:
+    """Add items to a list if not already present."""
+    for item in items:
+        if item not in lst:
+            lst.append(item)
+
+
+def _remove_from_list(lst, items) -> None:
+    """Remove items from a list by base name."""
+    to_remove = {i.strip().lower() for i in items}
+    lst[:] = [x for x in lst if _pkg_base_name(x) not in to_remove]
+
+
+def _pkg_base_name(pkg: str) -> str:
+    """Extract the base package name (without version constraints)."""
+    for sep in ("=", "<", ">", "!", "~"):
+        pkg = pkg.split(sep)[0]
+    return pkg.strip().lower()
+
+
+def _add_conda_packages(deps, packages) -> None:
+    """Add conda packages to dependencies, before any pip section."""
+    for pkg in packages:
+        if pkg not in deps:
+            idx = _pip_section_index(deps)
+            deps.insert(idx, pkg)
+
+
+def _pip_section_index(deps) -> int:
+    """Return the index of the first dict in deps, or len(deps)."""
+    for i, d in enumerate(deps):
+        if isinstance(d, dict):
+            return i
+    return len(deps)
+
+
+def _remove_conda_packages(deps, packages) -> None:
+    """Remove conda packages from dependencies by base name."""
+    to_remove = {p.strip().lower() for p in packages}
+    deps[:] = [
+        d for d in deps if not (isinstance(d, str) and _pkg_base_name(d) in to_remove)
+    ]
+
+
+# -- relock ------------------------------------------------------------------
+
+
+def _cmd_env_relock(args) -> int:
+    """Handle ``ppe env relock``."""
+    _ensure_config()
+    config = PpeConfig()
+    em = EnvironmentManager()
+
+    if not em.environment_exists(args.name):
+        print(f"Error: live environment '{args.name}' not found.", file=sys.stderr)
+        return 1
+
+    return _do_relock(config, em, args.name, args.dry_run)
+
+
+def _do_relock(config, em, name, dry_run) -> int:
+    """Perform the relock operation."""
+    spec = _load_ppe_spec(config, name)
+    pip_list = _get_or_create_pip_section(spec.get("dependencies", []))
+
+    if not pip_list:
+        print(f"No pip packages to relock in '{name}'.")
+        return 0
+
+    compiled = _compile_pip_packages(em, name, pip_list)
+    if compiled is None:
+        return 1
+
+    if dry_run:
+        _print_relock_dry_run(name, compiled)
+        return 0
+
+    _apply_relock(config, name, spec, compiled)
+    return 0
+
+
+def _compile_pip_packages(em, name, packages):
+    """Compile pip packages using uv pip compile. Returns resolved versions."""
+    req_path = writelines(packages, em.nbw_temp_dir / f"relock_reqs_{name}.txt")
+    output_path = em.nbw_temp_dir / f"relock_compiled_{name}.txt"
+
+    cmd = (
+        f"uv pip compile --output-file {output_path} "
+        f"--python {sys.executable} --no-header --annotate {req_path}"
+    )
+    result = em.wrangler_run(cmd, check=False)
+
+    if not em.handle_result(
+        result, f"Failed to compile packages for relock of '{name}': "
+    ):
+        return None
+
+    return _read_compiled_versions(output_path)
+
+
+def _read_compiled_versions(filepath) -> list[str]:
+    """Read compiled package versions from a requirements file."""
+    if not filepath.exists():
+        return []
+    packages = []
+    with open(filepath) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith(("#", "--")):
+                packages.append(line)
+    return packages
+
+
+def _print_relock_dry_run(name, compiled) -> None:
+    """Print dry-run output for relock."""
+    print(f"Dry-run: would re-curate {len(compiled)} packages for '{name}':")
+    for pkg in compiled:
+        print(f"  {pkg}")
+
+
+def _apply_relock(config, name, spec, compiled) -> None:
+    """Persist the relocked spec."""
+    pip_section = _get_or_create_pip_section(spec.get("dependencies", []))
+    pip_section[:] = compiled
+    _save_ppe_spec(config, name, spec)
+    print(f"Relocked {len(compiled)} packages for '{name}'.")
 
 
 if __name__ == "__main__":

@@ -126,3 +126,11 @@ class PpeConfig(WranglerLoggable):
             if env_path.is_dir():
                 results.append({"name": env_path.name, "path": env_path})
         return results
+
+    def ppe_spec_path(self, name: str) -> Path:
+        """Return the path to the implicit spec file for *name*.
+
+        The spec lives at ``NBW_ROOT/envs/<NAME>/.ppe-spec.yaml`` and stores
+        the seed spec + package delta so ``install``/``relock`` have state.
+        """
+        return self.nbw_root / "envs" / name / ".ppe-spec.yaml"
