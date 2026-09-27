@@ -58,3 +58,20 @@ class PpeConfig(WranglerLoggable):
                 return None
             return p
         return self.first_writable_pantry()
+
+    def find_shelves(self, name: str) -> list[tuple[Path, Path]]:
+        """Return all ``(pantry_path, shelf_path)`` pairs where a shelf named
+        *name* exists across ``NBW_PANTRY_DIRS``.
+
+        Used by ``ppe env restore`` to detect multi-match shadowing.
+        """
+        matches: list[tuple[Path, Path]] = []
+        for pantry in self.pantry_dirs:
+            shelf_path = pantry / "shelves" / name
+            if shelf_path.exists():
+                matches.append((pantry, shelf_path))
+        return matches
+
+    def restore_hash_path(self, name: str) -> Path:
+        """Return the path to the live restore-hash marker for *name*."""
+        return self.nbw_root / ".ppe-restore" / f"{name}.sha256"

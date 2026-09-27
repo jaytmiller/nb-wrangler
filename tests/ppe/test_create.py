@@ -1,12 +1,5 @@
 """Tests for ppe CLI scaffold and env create (Phase 1)."""
 
-import os
-from pathlib import Path
-from unittest.mock import MagicMock, patch
-
-from nb_wrangler.config import WranglerConfig, set_args_config
-
-
 # ---------------------------------------------------------------------------
 # CLI scaffold tests
 # ---------------------------------------------------------------------------
@@ -57,8 +50,15 @@ class TestParser:
         parser = build_parser()
         try:
             parser.parse_args(
-                ["env", "create", "--from-empty",
-                 "--from-requirements", "req.txt", "--name", "x"]
+                [
+                    "env",
+                    "create",
+                    "--from-empty",
+                    "--from-requirements",
+                    "req.txt",
+                    "--name",
+                    "x",
+                ]
             )
         except SystemExit:
             return
@@ -82,14 +82,6 @@ class TestParser:
 
 class TestNotImplemented:
     """All non-create subcommands should exit 2 cleanly."""
-
-    def test_save_not_implemented(self, capsys):
-        from nb_wrangler.ppe.cli import main
-
-        rc = main(["env", "save", "demo"])
-        assert rc == 2
-        err = capsys.readouterr().err
-        assert "not yet implemented" in err
 
     def test_ls_not_implemented(self, capsys):
         from nb_wrangler.ppe.cli import main

@@ -1,8 +1,5 @@
 """Tests for ppe env create --dry-run and seed building (Phase 1)."""
 
-import os
-import tempfile
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -35,8 +32,16 @@ class TestDryRun:
         from nb_wrangler.ppe.cli import main
 
         rc = main(
-            ["env", "create", "--from-empty", "--name", "demo",
-             "--python", "3.11", "--dry-run"]
+            [
+                "env",
+                "create",
+                "--from-empty",
+                "--name",
+                "demo",
+                "--python",
+                "3.11",
+                "--dry-run",
+            ]
         )
         assert rc == 0
         out = capsys.readouterr().out
@@ -51,8 +56,15 @@ class TestDryRun:
         req.write_text("numpy>=1.20\npandas\n  # comment\n\n")
 
         rc = main(
-            ["env", "create", "--from-requirements", str(req),
-             "--name", "demo", "--dry-run"]
+            [
+                "env",
+                "create",
+                "--from-requirements",
+                str(req),
+                "--name",
+                "demo",
+                "--dry-run",
+            ]
         )
         assert rc == 0
         out = capsys.readouterr().out
@@ -68,8 +80,15 @@ class TestDryRun:
             "name: old-name\nchannels:\n  - conda-forge\ndependencies:\n  - numpy\n"
         )
         rc = main(
-            ["env", "create", "--from-mamba-spec", str(spec_file),
-             "--name", "demo", "--dry-run"]
+            [
+                "env",
+                "create",
+                "--from-mamba-spec",
+                str(spec_file),
+                "--name",
+                "demo",
+                "--dry-run",
+            ]
         )
         assert rc == 0
         out = capsys.readouterr().out
@@ -89,8 +108,15 @@ class TestDryRun:
             "extra_pip_packages:\n  - requests\n"
         )
         rc = main(
-            ["env", "create", "--from-wrangler-spec", str(spec_file),
-             "--name", "demo", "--dry-run"]
+            [
+                "env",
+                "create",
+                "--from-wrangler-spec",
+                str(spec_file),
+                "--name",
+                "demo",
+                "--dry-run",
+            ]
         )
         assert rc == 0
         out = capsys.readouterr().out
@@ -103,11 +129,20 @@ class TestDryRun:
         from nb_wrangler.ppe.cli import main
 
         nb = tmp_path / "test.ipynb"
-        nb.write_text('{"cells":[{"cell_type":"code","source":["import os\\n", "import pandas as pd\\n"]}]}')
+        nb.write_text(
+            '{"cells":[{"cell_type":"code","source":["import os\\n", "import pandas as pd\\n"]}]}'
+        )
 
         rc = main(
-            ["env", "create", "--from-notebooks", str(nb),
-             "--name", "demo", "--dry-run"]
+            [
+                "env",
+                "create",
+                "--from-notebooks",
+                str(nb),
+                "--name",
+                "demo",
+                "--dry-run",
+            ]
         )
         assert rc == 0
         out = capsys.readouterr().out
@@ -118,10 +153,10 @@ class TestDryRun:
         """Verify no environment is created during dry-run."""
         from nb_wrangler.ppe.cli import main
 
-        with patch("nb_wrangler.environment.EnvironmentManager.create_environment") as mock_create:
-            rc = main(
-                ["env", "create", "--from-empty", "--name", "demo", "--dry-run"]
-            )
+        with patch(
+            "nb_wrangler.environment.EnvironmentManager.create_environment"
+        ) as mock_create:
+            rc = main(["env", "create", "--from-empty", "--name", "demo", "--dry-run"])
             assert rc == 0
             mock_create.assert_not_called()
 

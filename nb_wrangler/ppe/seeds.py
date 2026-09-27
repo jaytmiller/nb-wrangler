@@ -93,9 +93,7 @@ def _extract_notebook_imports(path: str | Path) -> list[str]:
     return imports
 
 
-def seed_from_notebooks(
-    name: str, paths: list[str], python: str | None = None
-) -> dict:
+def seed_from_notebooks(name: str, paths: list[str], python: str | None = None) -> dict:
     """Build a mamba spec from imports found in notebook files."""
     spec = _base_spec(name, python)
     imports: list[str] = []
