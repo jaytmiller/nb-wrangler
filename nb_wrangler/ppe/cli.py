@@ -29,9 +29,9 @@ from nb_wrangler.utils import yaml_dumps, sha256_file
 _ENV_CREATE = "create"
 _ENV_SAVE = "save"
 _ENV_RESTORE = "restore"
+_ENV_LS = "ls"
+_ENV_INFO = "info"
 _ENV_NOT_IMPLEMENTED = [
-    "ls",
-    "info",
     "rm",
     "install",
     "uninstall",
@@ -41,7 +41,7 @@ _ENV_NOT_IMPLEMENTED = [
     "unregister",
 ]
 
-# top-level groups (only env has real subcommands in Phases 1-3)
+# top-level groups (only env has real subcommands in Phases 1-4)
 _TOP_LEVEL_STUBS = ["var", "data", "export", "status", "doctor"]
 
 
@@ -102,6 +102,12 @@ def _add_env_subcommands(subparsers) -> None:
         "restore", help="Unpack a saved environment and register kernel"
     )
     _add_restore_args(restore)
+
+    ls = env_sub.add_parser("ls", help="List live envs and pantry shelves")
+    _add_ls_args(ls)
+
+    info = env_sub.add_parser("info", help="Show detailed info for an environment")
+    _add_info_args(info)
 
     for cmd in _ENV_NOT_IMPLEMENTED:
         env_sub.add_parser(cmd, help=f"({cmd} -- not yet implemented)")
@@ -193,6 +199,49 @@ def _add_restore_args(p) -> None:
     )
 
 
+def _add_ls_args(p) -> None:
+    """Add ``env ls`` specific arguments to *p*."""
+    p.add_argument(
+        "patterns",
+        nargs="*",
+        default=[],
+        metavar="NAME-or-glob",
+        help="Filter shelves by name or glob pattern",
+    )
+    p.add_argument(
+        "--all",
+        action="store_true",
+        help="Show every match across pantries (don't collapse to first)",
+    )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict search to a single pantry directory",
+    )
+    p.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+
+def _add_info_args(p) -> None:
+    """Add ``env info`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to inspect")
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict search to a single pantry directory",
+    )
+    p.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -203,7 +252,10 @@ def _dispatch_env(args, parser) -> int:
     if not args.env_command:
         print(
             "ppe env: sub-command required. Use one of: "
-            + ", ".join([_ENV_CREATE, _ENV_SAVE, _ENV_RESTORE] + _ENV_NOT_IMPLEMENTED)
+            + ", ".join(
+                [_ENV_CREATE, _ENV_SAVE, _ENV_RESTORE, _ENV_LS, _ENV_INFO]
+                + _ENV_NOT_IMPLEMENTED
+            )
         )
         return 0
     if args.env_command == _ENV_CREATE:
@@ -212,6 +264,10 @@ def _dispatch_env(args, parser) -> int:
         return _cmd_env_save(args)
     if args.env_command == _ENV_RESTORE:
         return _cmd_env_restore(args)
+    if args.env_command == _ENV_LS:
+        return _cmd_env_ls(args)
+    if args.env_command == _ENV_INFO:
+        return _cmd_env_info(args)
     return _cmd_not_implemented(args.env_command)
 
 
@@ -508,6 +564,175 @@ def _write_at_boot_snippet(name: str) -> None:
             f.write(f"\n# Added by ppe\n{marker}\n")
         print(f"Appended to {bashrc}: {marker}")
     print(f"At-boot snippet written to {snippet_path}")
+
+
+# ---------------------------------------------------------------------------
+# env ls
+# ---------------------------------------------------------------------------
+
+
+def _cmd_env_ls(args) -> int:
+    """Handle ``ppe env ls`` — list live envs and pantry shelves."""
+    _ensure_config()
+    config = PpeConfig()
+
+    pantry_dir = Path(args.pantry) if args.pantry else None
+    patterns = args.patterns if args.patterns else [None]
+
+    all_shelves = []
+    for pattern in patterns:
+        all_shelves.extend(config.list_shelves(glob_expr=pattern, pantry=pantry_dir))
+
+    live_envs = config.list_live_envs()
+    live_names = {e["name"] for e in live_envs}
+
+    if args.format == "json":
+        _print_ls_json(all_shelves, live_envs)
+    else:
+        _print_ls_table(all_shelves, live_names, args.all)
+
+    _print_shadowing_warnings(all_shelves)
+    return 0
+
+
+def _print_ls_table(shelves: list[dict], live_names: set[str], show_all: bool) -> None:
+    """Print a table of shelves and live envs."""
+    seen: set[str] = set()
+    print(f"{'NAME':<20} {'PANTRY':<30} {'STATUS':<8} {'HASH':<12} {'LIVE'}")
+    print("-" * 80)
+    for entry in shelves:
+        name = entry["name"]
+        if not show_all and name in seen:
+            continue
+        seen.add(name)
+        writable = "r/o" if not entry["writable"] else ""
+        hash_short = (entry["save_hash"] or "-")[:12]
+        live_mark = "*" if name in live_names else ""
+        print(
+            f"{name:<20} {str(entry['pantry']):<30} {writable:<8} {hash_short:<12} {live_mark}"
+        )
+    for env in live_names - seen:
+        print(f"{env:<20} {'<live>':<30} {'':<8} {'':<12} *")
+
+
+def _print_ls_json(shelves: list[dict], live_envs: list[dict]) -> None:
+    """Print ls results as JSON."""
+    import json
+
+    result = {
+        "shelves": [
+            {
+                "name": s["name"],
+                "pantry": str(s["pantry"]),
+                "writable": s["writable"],
+                "save_hash": s["save_hash"],
+            }
+            for s in shelves
+        ],
+        "live_envs": [{"name": e["name"], "path": str(e["path"])} for e in live_envs],
+    }
+    print(json.dumps(result, indent=2))
+
+
+def _print_shadowing_warnings(shelves: list[dict]) -> None:
+    """Warn when a name appears in multiple pantries."""
+    from collections import defaultdict
+
+    by_name: dict[str, list[Path]] = defaultdict(list)
+    for entry in shelves:
+        by_name[entry["name"]].append(entry["pantry"])
+    for name, pantries in by_name.items():
+        if len(pantries) > 1:
+            print(
+                f"WARNING: '{name}' shadowed across pantries: "
+                + ", ".join(str(p) for p in pantries),
+                file=sys.stderr,
+            )
+
+
+# ---------------------------------------------------------------------------
+# env info
+# ---------------------------------------------------------------------------
+
+
+def _cmd_env_info(args) -> int:
+    """Handle ``ppe env info NAME`` — show detailed environment metadata."""
+    _ensure_config()
+    config = PpeConfig()
+
+    pantry_dir = Path(args.pantry) if args.pantry else None
+    shelves = config.list_shelves(glob_expr=args.name, pantry=pantry_dir)
+    live_envs = config.list_live_envs()
+    live_names = {e["name"] for e in live_envs}
+
+    if not shelves and args.name not in live_names:
+        print(
+            f"Info: no shelf or live env named '{args.name}' found.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if args.format == "json":
+        _print_info_json(args.name, shelves, live_envs)
+    else:
+        _print_info_table(args.name, shelves, live_envs)
+
+    _print_shadowing_warnings(shelves)
+    return 0
+
+
+def _print_info_table(name: str, shelves: list[dict], live_envs: list[dict]) -> None:
+    """Print table-style info for *name*."""
+    print(f"Environment: {name}")
+    print()
+
+    live_match = next((e for e in live_envs if e["name"] == name), None)
+    if live_match:
+        print(f"  Live env:    {live_match['path']} *")
+    else:
+        print("  Live env:    (not installed)")
+    print()
+
+    if not shelves:
+        print("  No shelves found.")
+        return
+
+    for i, entry in enumerate(shelves):
+        writable = "r/o" if not entry["writable"] else "r/w"
+        hash_short = entry["save_hash"] or "none"
+        print(f"  Shelf {i + 1}:")
+        print(f"    Pantry:     {entry['pantry']}")
+        print(f"    Path:       {entry['path']}")
+        print(f"    Writable:   {writable}")
+        print(f"    Save hash:  {hash_short}")
+        print()
+
+
+def _print_info_json(name: str, shelves: list[dict], live_envs: list[dict]) -> None:
+    """Print JSON-style info for *name*."""
+    import json
+
+    result = {
+        "name": name,
+        "shelves": [
+            {
+                "name": s["name"],
+                "pantry": str(s["pantry"]),
+                "writable": s["writable"],
+                "save_hash": s["save_hash"],
+            }
+            for s in shelves
+        ],
+        "live_env": next(
+            (
+                {"name": e["name"], "path": str(e["path"])}
+                for e in live_envs
+                if e["name"] == name
+            ),
+            None,
+        ),
+    }
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":
