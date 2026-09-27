@@ -82,9 +82,7 @@ class TestWritablePantries:
         rw.mkdir()
         os.chmod(ro, 0o500)
         try:
-            with patch(
-                "nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro, rw]
-            ):
+            with patch("nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro, rw]):
                 config = PpeConfig()
                 first = config.first_writable_pantry()
                 assert first == rw
@@ -116,9 +114,7 @@ class TestTargetPantry:
 
         rw = tmp_path / "rw"
         rw.mkdir()
-        with patch(
-            "nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [rw]
-        ):
+        with patch("nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [rw]):
             config = PpeConfig()
             assert config.target_pantry(rw) == rw
 
@@ -130,9 +126,7 @@ class TestTargetPantry:
         ro.mkdir()
         os.chmod(ro, 0o500)
         try:
-            with patch(
-                "nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro]
-            ):
+            with patch("nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro]):
                 config = PpeConfig()
                 result = config.target_pantry(ro)
                 assert result is None
@@ -157,9 +151,7 @@ class TestTargetPantry:
         ro.mkdir()
         os.chmod(ro, 0o500)
         try:
-            with patch(
-                "nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro]
-            ):
+            with patch("nb_wrangler.ppe.config.NBW_PANTRY_DIRS", [ro]):
                 config = PpeConfig()
                 assert config.target_pantry() is None
         finally:
