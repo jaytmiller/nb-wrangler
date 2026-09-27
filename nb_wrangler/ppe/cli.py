@@ -36,7 +36,6 @@ _ENV_RESTORE = "restore"
 _ENV_LS = "ls"
 _ENV_INFO = "info"
 _ENV_NOT_IMPLEMENTED = [
-    "rm",
     "ensure",
     "register",
     "unregister",
@@ -124,6 +123,9 @@ def _add_env_subcommands(subparsers) -> None:
         "relock", help="Re-curate locks and validate the implicit spec"
     )
     _add_relock_args(relock)
+
+    rm = env_sub.add_parser("rm", help="Delete environments from live and/or archive")
+    _add_rm_args(rm)
 
     for cmd in _ENV_NOT_IMPLEMENTED:
         env_sub.add_parser(cmd, help=f"({cmd} -- not yet implemented)")
@@ -314,6 +316,54 @@ def _add_relock_args(p) -> None:
     )
 
 
+def _add_rm_args(p) -> None:
+    """Add ``env rm`` specific arguments to *p*."""
+    p.add_argument(
+        "names",
+        nargs="+",
+        metavar="NAME",
+        help="Environment name(s) or glob patterns (e.g. team-*)",
+    )
+    target = p.add_mutually_exclusive_group()
+    target.add_argument(
+        "--live",
+        action="store_const",
+        dest="target",
+        const="live",
+        help="Remove only from live envs (NBW_ROOT/envs/)",
+    )
+    target.add_argument(
+        "--archived",
+        action="store_const",
+        dest="target",
+        const="archived",
+        help="Remove only from archived shelves",
+    )
+    target.add_argument(
+        "--both",
+        action="store_const",
+        dest="target",
+        const="both",
+        help="Remove from both live and archived (default)",
+    )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict shelf search to a single pantry directory",
+    )
+    p.add_argument(
+        "-y",
+        "--yes",
+        action="store_true",
+        help="Skip confirmation prompt (scripts/automation)",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Print planned deletions without executing",
+    )
+
+
 # ---------------------------------------------------------------------------
 # Dispatch
 # ---------------------------------------------------------------------------
@@ -325,7 +375,7 @@ def _dispatch_env(args, parser) -> int:
         print(
             "ppe env: sub-command required. Use one of: "
             + ", ".join(
-                [_ENV_CREATE, _ENV_SAVE, _ENV_RESTORE, _ENV_LS, _ENV_INFO]
+                [_ENV_CREATE, _ENV_SAVE, _ENV_RESTORE, _ENV_LS, _ENV_INFO, "rm"]
                 + _ENV_NOT_IMPLEMENTED
             )
         )
@@ -346,6 +396,8 @@ def _dispatch_env(args, parser) -> int:
         return _cmd_env_uninstall(args)
     if args.env_command == "relock":
         return _cmd_env_relock(args)
+    if args.env_command == "rm":
+        return _cmd_env_rm(args)
     return _cmd_not_implemented(args.env_command)
 
 
@@ -1106,6 +1158,183 @@ def _apply_relock(config, name, spec, compiled) -> None:
     pip_section[:] = compiled
     _save_ppe_spec(config, name, spec)
     print(f"Relocked {len(compiled)} packages for '{name}'.")
+
+
+# ---------------------------------------------------------------------------
+# env rm  (Phase 6)
+# ---------------------------------------------------------------------------
+
+
+def _cmd_env_rm(args) -> int:
+    """Handle ``ppe env rm`` — delete envs from live and/or archive."""
+    _ensure_config()
+    config = PpeConfig()
+
+    target_type = args.target or "both"
+    targets = _resolve_rm_targets(config, args.names, target_type, args.pantry)
+
+    if not targets:
+        print("No matching environments found.", file=sys.stderr)
+        return 1
+
+    if args.dry_run:
+        _print_rm_plan(targets)
+        return 0
+
+    errors = _check_rm_readonly(targets)
+    if errors:
+        for msg in errors:
+            print(f"Error: {msg}", file=sys.stderr)
+        print(
+            "Set NBW_PANTRY to a writable path or use --pantry <writable-path>.",
+            file=sys.stderr,
+        )
+        return 1
+
+    unsafe = [t for t in targets if not _is_safe_rm_path(t, config)]
+    if unsafe:
+        for t in unsafe:
+            print(
+                f"Error: refusing to delete path outside safe roots: {t['path']}",
+                file=sys.stderr,
+            )
+        return 1
+
+    _print_rm_plan(targets)
+
+    if not args.yes:
+        if not _prompt_rm_confirmation():
+            print("Aborted.", file=sys.stderr)
+            return 1
+
+    return 1 if _do_rm(targets) > 0 else 0
+
+
+def _resolve_rm_targets(config, patterns, target_type, pantry_filter):
+    """Resolve NAME patterns against live envs and/or shelves."""
+    targets = []
+    if target_type in ("live", "both"):
+        targets.extend(_resolve_live_targets(config, patterns))
+    if target_type in ("archived", "both"):
+        targets.extend(_resolve_shelf_targets(config, patterns, pantry_filter))
+    return targets
+
+
+def _resolve_live_targets(config, patterns):
+    """Resolve patterns against live envs under NBW_ROOT/envs/."""
+    live_envs = config.list_live_envs()
+    return [
+        {"type": "live", "name": e["name"], "path": e["path"], "writable": True}
+        for e in live_envs
+        if _matches_any_pattern(e["name"], patterns)
+    ]
+
+
+def _resolve_shelf_targets(config, patterns, pantry_filter):
+    """Resolve patterns against shelves across pantries."""
+    pantry_dir = Path(pantry_filter) if pantry_filter else None
+    shelves = config.list_shelves(pantry=pantry_dir)
+    return [
+        {
+            "type": "shelf",
+            "name": s["name"],
+            "path": s["path"],
+            "pantry": s["pantry"],
+            "writable": s["writable"],
+        }
+        for s in shelves
+        if _matches_any_pattern(s["name"], patterns)
+    ]
+
+
+def _matches_any_pattern(name, patterns):
+    """Check if *name* matches any of the glob *patterns*."""
+    import fnmatch
+
+    return any(fnmatch.fnmatch(name, p) for p in patterns)
+
+
+def _check_rm_readonly(targets):
+    """Return list of error messages for read-only targets."""
+    errors = []
+    for t in targets:
+        if t["type"] == "shelf" and not t["writable"]:
+            errors.append(
+                f"cannot delete '{t['name']}' from read-only pantry: {t['pantry']}"
+            )
+    return errors
+
+
+def _is_safe_rm_path(target, config):
+    """Check that a resolved rm target path is under a safe root."""
+    path = target["path"].resolve()
+    if target["type"] == "live":
+        safe_root = (config.nbw_root / "envs").resolve()
+        return path.is_relative_to(safe_root)
+    for pantry in config.pantry_dirs:
+        safe_root = (pantry / "shelves").resolve()
+        if path.is_relative_to(safe_root):
+            return True
+    return False
+
+
+def _print_rm_plan(targets):
+    """Print the planned deletions."""
+    print("The following will be removed:")
+    for t in targets:
+        if t["type"] == "live":
+            print(f"  [live]   {t['name']:<20} -> {t['path']}")
+        else:
+            print(f"  [shelf]  {t['name']:<20} -> {t['path']}  ({t['pantry']})")
+
+
+def _prompt_rm_confirmation():
+    """Prompt for confirmation. Returns True if confirmed."""
+    try:
+        response = input("Proceed? (y/N): ").strip().lower()
+    except EOFError:
+        return False
+    return response in ("y", "yes")
+
+
+def _do_rm(targets):
+    """Delete the resolved targets. Returns number of failures."""
+    import shutil
+
+    failures = 0
+    for t in targets:
+        path = t["path"]
+        if not path.exists():
+            print(f"Already gone: {t['type']} '{t['name']}'")
+            continue
+        try:
+            shutil.rmtree(path)
+            print(f"Removed {t['type']} '{t['name']}' at {path}")
+        except OSError as e:
+            print(f"Warning: could not remove {t['name']}: {e}", file=sys.stderr)
+            failures += 1
+    _cleanup_empty_shelf_dirs(targets)
+    return failures
+
+
+def _cleanup_empty_shelf_dirs(targets):
+    """Best-effort removal of now-empty shelves/ directories."""
+    import shutil
+
+    seen = set()
+    for t in targets:
+        if t["type"] != "shelf":
+            continue
+        shelves_dir = t["pantry"] / "shelves"
+        if shelves_dir in seen:
+            continue
+        seen.add(shelves_dir)
+        if shelves_dir.exists():
+            try:
+                if not list(shelves_dir.iterdir()):
+                    shutil.rmtree(shelves_dir)
+            except OSError:
+                pass
 
 
 if __name__ == "__main__":
