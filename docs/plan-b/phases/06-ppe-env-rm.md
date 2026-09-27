@@ -55,15 +55,15 @@ installer model), not opt-in.
 
 ## Tasks
 
-- [ ] Resolve `NAME...` (names + globs) against live envs and shelves.
-- [ ] Apply `--live/--archived/--both` filter.
-- [ ] Refuse r/o pantry targets with an actionable message.
-- [ ] Safety: validate every resolved path is under `NBW_ROOT/envs/` or a
+- [x] Resolve `NAME...` (names + globs) against live envs and shelves.
+- [x] Apply `--live/--archived/--both` filter.
+- [x] Refuse r/o pantry targets with an actionable message.
+- [x] Safety: validate every resolved path is under `NBW_ROOT/envs/` or a
       `shelves/` dir; reject escapes.
-- [ ] Confirmation prompt (y/N) by default; `--yes`/`-y` skips.
-- [ ] `--dry-run` prints the resolved targets and exits 0.
-- [ ] Delete selected; best-effort remove empty shelf dirs.
-- [ ] Tests: glob resolution, r/o refusal, `--yes` fast path, `--dry-run`
+- [x] Confirmation prompt (y/N) by default; `--yes`/`-y` skips.
+- [x] `--dry-run` prints the resolved targets and exits 0.
+- [x] Delete selected; best-effort remove empty shelf dirs.
+- [x] Tests: glob resolution, r/o refusal, `--yes` fast path, `--dry-run`
       no-op, path-escape rejection.
 
 ## Testing / validation
