@@ -1,9 +1,5 @@
 # Persistent Platform Environments CLI (`ppe`)
 
-> Canonical CLI design for Persistent Platform Environments. This document
-> consolidates the earlier `docs/plan-b-cli.md` proposal into one source of
-> truth under `docs/plan-b/`.
-
 ## Scope
 
 This describes the proposed CLI for users and admins managing PPEs (Persistent
@@ -83,6 +79,7 @@ ppe data (ls|download|unpack|pack|clean)
 ppe export NAME  [--to-mamba-spec|--to-requirements|--to-wrangler-spec] [-o FILE|-]
 ppe status
 ppe doctor
+ppe completions (bash|zsh|fish)
 ```
 
 Per-command syntax is summarized below. `<NAME>` is a single environment name;
@@ -300,7 +297,19 @@ questions.
 
 ## Shell integration
 
-- Bash/zsh/fish completions shipped out of the box.
+- Bash/zsh/fish completions shipped out of the box; use
+  `ppe completions bash|zsh|fish` to print the static completion script
+  (no `argcomplete`/runtime dependency required).  Install with:
+
+  ```sh
+  # bash (user)
+  eval "$(ppe completions bash)" >> ~/.bashrc
+  # zsh (user)
+  echo 'eval "$(ppe completions zsh)"' >> ~/.zshrc
+  # fish (user)
+  ppe completions fish > ~/.config/fish/completions/ppe.fish
+  ```
+
 - `ppe env restore NAME` (and `ppe var ls --export`) print `eval`-able output,
   mirroring the existing `nb-wrangler setenv` hook pattern (hook mamba, then
   `eval` exports, then activate the target env).
@@ -344,4 +353,6 @@ Once implemented, validate with the project's existing tooling:
 make unit-test                 # focused tests for ppe command parsing/behaviour
 make lint/flake8 && make lint/black && make lint/mypy   # style + typing
 make test-functional
+# smoke:
+ppe completions bash            # print bash completion script
 ```
