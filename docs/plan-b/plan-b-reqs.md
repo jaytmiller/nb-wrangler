@@ -1,4 +1,4 @@
-# Persistent Platform Environments
+# Persistent Platform Environments (PPE's)
 
 ## Scope
 
@@ -23,13 +23,7 @@ This comcept arose from these factors:
 - Eliminates need for public image registry
 - Enables smaller generic image:
   1. Faster spawn times
-  2. Reduced attack surface / formal scanning maintenance
-
-## Naming
-
-Rather than calling this Wrangler Plan-B, I've gotten as far as describing
-the system concept as `User Installed Persistent Environments` and the CLI
-dedicated to it as `ppe` for Persistent Environment Tool.
+  2. Reduced attack surface / scanning maintenance
 
 ## Benefits
 
@@ -49,7 +43,9 @@ The end-to-end process of building a complex image has 3-4 phases: defining the 
 
 #### Platform Persistent Environment (PPE) Workflow
 
-The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme that supports the extra Wrangler features and uses uv and careful storage management to dramatically improve speed. As such, relative to defining and curating the wrangler spec, which also installs the environment ephemerally as a side effect, there is only one immediate extra step: archive the installed environment for faster future use by unpacking vs. repeat package installation requiring several minutes.
+The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme that supports the extra Wrangler features and uses uv and careful storage management to dramatically improve speed. An additional observation is that installing a PPE is typically no more complicated than curating an environment; consequently, and admin curating on the platform only has to save to a team or system pantry and the development and installation process is complete on that SDLC. To promote from TEST to OPS, re-installing a mission environment from the locked Wrangler spec is sound and repeatable. Other higher fidelity methods of transferring the installed binaries from TEST to OPS are possible but probably not needed.
+
+The awareness of the disparity in complexity between the current workflow above and the on-platform curation workflow below is another compelling reason (other than better kernel-xxx) to attempt PPE's.  Note that it also eliminates multi-month/year points of organizational contention with respect to obtaining public registries or burensome image scanning and agreements and permission structures required for both.
 
 ![Peristent Environment Workflow](./PersistentEnvironmentCreation.svg)
 
@@ -57,9 +53,9 @@ The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme tha
 
 - Provides a fast replacement for the current *kernel-xxx* scripts that also interoperate with the `nbw` tool used for notebook-driven image building.
 
-### Enables smaller, simpler base images, faster spawning
+### Enables smaller, simpler base images
 
-- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. This image would also be simpler and with fewer "concerns" and simpler Dockerfile if we can partition correctly, potentially reducing the frequency at which we rebuild this funtionality. Rolling our own base image or deriving it from another astro-project would also enable a consistent usage of uv to install all pip packages and environments.
+- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. This image would also be simpler and with fewer "concerns" and simpler Dockerfile if we can partition correctly, potentially reducing the frequency at which we rebuild this funtionality as well as easing the burden of formally required scanning. Rolling our own base image or deriving it from another astro-project would also enable a consistent usage of uv to install all pip packages and environments.
 
 ### Fast archiving and restoration
 
@@ -96,6 +92,8 @@ This was particularly attractive during years of struggle to get public registry
 One very significant thing which is nominally lost is Docker's ability to build once and install the same binary everywhere.  However, one example of a simple solution is just to track mission specs as part of deployments and install them to EFS using relatively trivial scripts or pipelines.
 
 ## Required Features
+
+The requirements and design for baseline PPE's revolve around scoping to a CLI tool and defining its approach, overall interface, and command set.
 
 ### CLI Command (ppe)
 
@@ -146,4 +144,14 @@ One very significant thing which is nominally lost is Docker's ability to build 
 
 ### Spawn-time selection and/or unpacking
 
+This is easily achieved by wiring automatic unpacking into the post-start-hook or shell profile and defining *what* is unpacked either inline in the profile or in a seperate PPE config file.
+
+A more sophisticated approach could enable selection at the same time images are selected on the spawn page but the value proposition needs to be fleshed out.
+
 ### Jupyter labextension environment management
+
+A more valuable approach to PPE management would be to build some kind of notebook or lab extension capable of performing PPE management functions from the notebook UI.  This would enable switching between versions or missions that are available for use without stopping the server and re-spawning.
+
+### Direct EFS unpacking/installation
+
+This is slow to set up and may have inadequate performance, but once performed the live state of the PPE is automatically available avoiding any user driven or automatic runtime restoration and corresponding waiting period of 20 seconds or so per environment.
