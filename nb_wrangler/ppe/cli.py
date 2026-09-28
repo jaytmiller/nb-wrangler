@@ -27,6 +27,7 @@ from nb_wrangler.ppe.seeds import (
     seed_from_requirements,
     seed_from_wrangler_spec,
 )
+from nb_wrangler import data_manager
 from nb_wrangler.utils import yaml_dumps, sha256_file, get_yaml, writelines
 
 # env subcommands implemented vs. stubbed for later phases
@@ -225,12 +226,12 @@ def _add_data_subcommands(subparsers) -> None:
     ls = data_sub.add_parser("ls", help="List data archives for an environment")
     _add_data_ls_args(ls)
 
-    data_sub.add_parser(
-        "download", help="Download data archives (Phase 9b)"
-    ).add_argument("name")
-    data_sub.add_parser("unpack", help="Unpack data archives (Phase 9b)").add_argument(
-        "name"
-    )
+    download = data_sub.add_parser("download", help="Download data archives (Phase 9b)")
+    _add_data_download_args(download)
+
+    unpack = data_sub.add_parser("unpack", help="Unpack data archives (Phase 9b)")
+    _add_data_unpack_args(unpack)
+
     data_sub.add_parser("pack", help="Pack live data dirs (Phase 9c)").add_argument(
         "name"
     )
@@ -661,6 +662,46 @@ def _add_data_ls_args(p) -> None:
     )
 
 
+def _add_data_download_args(p) -> None:
+    """Add ``data download`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "--select",
+        default=".*",
+        metavar="REGEX",
+        help="Select specific archives by REGEX (default: all)",
+    )
+    p.add_argument(
+        "--no-validate",
+        action="store_true",
+        help="Skip post-download checksum/manifest validation",
+    )
+
+
+def _add_data_unpack_args(p) -> None:
+    """Add ``data unpack`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "--no-unpack-existing",
+        action="store_true",
+        help="Skip archives that are already unpacked",
+    )
+    syms = p.add_mutually_exclusive_group()
+    syms.add_argument(
+        "--symlinks",
+        dest="symlinks",
+        action="store_true",
+        default=True,
+        help="Create symlinks at install_data locations (default)",
+    )
+    syms.add_argument(
+        "--no-symlinks",
+        dest="symlinks",
+        action="store_false",
+        help="Do not create symlinks at install_data locations",
+    )
+
+
 # ---------------------------------------------------------------------------
 # data (archive management for PPE environments)
 # ---------------------------------------------------------------------------
@@ -677,6 +718,10 @@ def _dispatch_data(args, parser) -> int:
         return 0
     if args.data_command == "ls":
         return _cmd_data_ls(args)
+    if args.data_command == "download":
+        return _cmd_data_download(args)
+    if args.data_command == "unpack":
+        return _cmd_data_unpack(args)
     return _cmd_not_implemented(args.data_command)
 
 
@@ -689,6 +734,34 @@ def _cmd_data_ls(args) -> int:
         _print_data_ls_json(archives, args.name)
     else:
         _print_data_ls_table(archives, args.name)
+    return 0
+
+
+def _cmd_data_download(args) -> int:
+    """Handle ``ppe data download NAME [--select REGEX] [--no-validate]``."""
+    _ensure_config()
+    success = data_manager.download_data(
+        args.name,
+        select=args.select,
+        validate=not args.no_validate,
+    )
+    if not success:
+        return 1
+    print(f"Downloaded data archives for '{args.name}'.")
+    return 0
+
+
+def _cmd_data_unpack(args) -> int:
+    """Handle ``ppe data unpack NAME [--no-unpack-existing] [--symlinks|--no-symlinks]``."""
+    _ensure_config()
+    success = data_manager.unpack_data(
+        args.name,
+        symlinks=args.symlinks,
+        no_unpack_existing=args.no_unpack_existing,
+    )
+    if not success:
+        return 1
+    print(f"Unpacked data archives for '{args.name}'.")
     return 0
 
 

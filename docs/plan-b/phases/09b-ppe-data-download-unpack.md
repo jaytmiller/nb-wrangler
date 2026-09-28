@@ -63,11 +63,11 @@ same shelf→live data dir pipeline.
 
 ## Tasks
 
-- [ ] `data download`: invoke wrangler download with `--select` / `--no-validate`
+- [x] `data download`: invoke wrangler download with `--select` / `--no-validate`
       forwarded.
-- [ ] `data unpack`: invoke wrangler unpack with `--symlinks`/`--no-symlinks` /
+- [x] `data unpack`: invoke wrangler unpack with `--symlinks`/`--no-symlinks` /
       `--no-unpack-existing` forwarded.
-- [ ] Tests: each subcommand invokes the right wrangler routine with the right
+- [x] Tests: each subcommand invokes the right wrangler routine with the right
       flags (fakes).
 
 ## Testing / validation
