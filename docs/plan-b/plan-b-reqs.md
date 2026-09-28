@@ -51,7 +51,7 @@ The awareness of the disparity in complexity between the current workflow above 
 
 ### Faster than kernel-xxx scripts
 
-- Provides a fast replacement for the current *kernel-xxx* scripts that also interoperate with the `nbw` tool used for notebook-driven image building.
+- Provides a fast replacement for the current *kernel-xxx* scripts that also interoperate with the Wrangler system used for notebook-driven image building.
 
 ### Enables smaller, simpler base images
 
@@ -97,9 +97,10 @@ The requirements and design for baseline PPE's revolve around scoping to a CLI t
 
 ### CLI Command (ppe)
 
-   Key to making this user-friendly will be providing a CLI tool `ppe` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. A third candidate is uv specs but current wrangler support/usage of `uv` is limited to pip package management.  For operating on archived environments, referring to the environment MUST support lookups by kernel name but may include other beneficial mechanisms.
+   Key to making this user-friendly will be providing a CLI tool `ppe` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. For operating on archived environments, referring to the environment will support lookups by kernel name vs. lookup by spec.
 
-   **NOTE:** command examples given below are based on the current relatively complex nbw CLI used for curation and image building.  As such they are primarily technical notes on how the user CLI maps onto `nbw` features.  The user CLI will be a thin wrapper heavily dependent on existing functionality.
+   This tool is the core of the PPE implementation,  see [ppe tool cli](plan-b-cli.md)
+
 
 ### Investigate official env archive formats
 
@@ -124,21 +125,11 @@ The requirements and design for baseline PPE's revolve around scoping to a CLI t
 
 ### Ability to support readonly persistent archives
 
-## CLI Tool Requirements (ppe)
+## CLI Tool (ppe)
 
-### 1. Configure Storage
-### 1. Create Environment
-### 1. Activate Environment
-### 1. Deactivate Environment
-### 1. Update Environment
-### 1. Archive Environment
-### 1. Restore Environment
-### 1. Delete Environments
-### 1. List Environments
-### 1. Add env vars
-### 1. Remove env vars
-### 1. List env vars
-### 1. Export spec (export)
+The `ppe` tool gives users a clean dedicated CLI for working with PPEs from a context they're largely familiar with already rather than the existing Wrangler curation/admin CLI.  For simple cases and functionality, this tool replaces direct manipulation of the Wrangler spec by users, but shadows the user inputs in a hidden spec in the archive.  This shadow enables usage of any advanced features or distinctions in the wrangler.
+
+See 
 
 ## More exotic directions
 

@@ -5,6 +5,8 @@ subcommand-group CLI for managing user-installed persistent environments.
 """
 
 import argparse
+import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -40,8 +42,7 @@ _ENV_ENSURE = "ensure"
 _ENV_REGISTER = "register"
 _ENV_UNREGISTER = "unregister"
 
-# top-level groups stubbed for future phases (var/data are implemented in Phases 8/9a)
-_TOP_LEVEL_STUBS = ["export", "status", "doctor"]
+# top-level groups exported/status/doctor are implemented in Phase 10
 
 
 # ---------------------------------------------------------------------------
@@ -64,6 +65,12 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _dispatch_var(args, parser)
     if args.command == "data":
         return _dispatch_data(args, parser)
+    if args.command == "export":
+        return _cmd_export(args)
+    if args.command == "status":
+        return _cmd_status(args)
+    if args.command == "doctor":
+        return _cmd_doctor(args)
     return _cmd_not_implemented(args.command)
 
 
@@ -86,7 +93,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_env_subcommands(subparsers)
     _add_var_subcommands(subparsers)
     _add_data_subcommands(subparsers)
-    _add_stub_groups(subparsers)
+    _add_export_status_doctor_subcommands(subparsers)
     return parser
 
 
@@ -148,10 +155,16 @@ def _add_env_subcommands(subparsers) -> None:
     _add_unregister_args(unregister)
 
 
-def _add_stub_groups(subparsers) -> None:
-    """Add top-level stub groups for future phases."""
-    for group in _TOP_LEVEL_STUBS:
-        subparsers.add_parser(group, help=f"({group} -- not yet implemented)")
+def _add_export_status_doctor_subcommands(subparsers) -> None:
+    """Add export, status, doctor subcommand parsers (Phase 10)."""
+    export = subparsers.add_parser(
+        "export", help="Export environment spec in various formats"
+    )
+    _add_export_args(export)
+    status = subparsers.add_parser("status", help="Show system state summary")
+    _add_status_args(status)
+    doctor = subparsers.add_parser("doctor", help="Run self-test checks")
+    _add_doctor_args(doctor)
 
 
 def _add_var_subcommands(subparsers) -> None:
@@ -232,12 +245,13 @@ def _add_data_subcommands(subparsers) -> None:
     unpack = data_sub.add_parser("unpack", help="Unpack data archives (Phase 9b)")
     _add_data_unpack_args(unpack)
 
-    data_sub.add_parser("pack", help="Pack live data dirs (Phase 9c)").add_argument(
-        "name"
+    pack = data_sub.add_parser("pack", help="Pack live data dirs into archive files")
+    _add_data_pack_args(pack)
+
+    clean = data_sub.add_parser(
+        "clean", help="Delete data archives and/or unpacked files"
     )
-    data_sub.add_parser(
-        "clean", help="Delete data archives/unpacked files (Phase 9c)"
-    ).add_argument("name")
+    _add_data_clean_args(clean)
 
 
 def _add_create_args(p) -> None:
@@ -702,6 +716,23 @@ def _add_data_unpack_args(p) -> None:
     )
 
 
+def _add_data_pack_args(p) -> None:
+    """Add ``data pack`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+
+
+def _add_data_clean_args(p) -> None:
+    """Add ``data clean`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "mode",
+        nargs="?",
+        choices=["archived", "unpacked", "both"],
+        default="both",
+        help="What to delete: archived, unpacked, or both (default: both)",
+    )
+
+
 # ---------------------------------------------------------------------------
 # data (archive management for PPE environments)
 # ---------------------------------------------------------------------------
@@ -722,6 +753,10 @@ def _dispatch_data(args, parser) -> int:
         return _cmd_data_download(args)
     if args.data_command == "unpack":
         return _cmd_data_unpack(args)
+    if args.data_command == "pack":
+        return _cmd_data_pack(args)
+    if args.data_command == "clean":
+        return _cmd_data_clean(args)
     return _cmd_not_implemented(args.data_command)
 
 
@@ -762,6 +797,26 @@ def _cmd_data_unpack(args) -> int:
     if not success:
         return 1
     print(f"Unpacked data archives for '{args.name}'.")
+    return 0
+
+
+def _cmd_data_pack(args) -> int:
+    """Handle ``ppe data pack NAME`` — pack live data dirs into archive files."""
+    _ensure_config()
+    success = data_manager.pack_data(args.name)
+    if not success:
+        return 1
+    print(f"Packed data archives for '{args.name}'.")
+    return 0
+
+
+def _cmd_data_clean(args) -> int:
+    """Handle ``ppe data clean NAME [archived|unpacked|both]`` — delete data."""
+    _ensure_config()
+    success = data_manager.delete_data(args.name, mode=args.mode)
+    if not success:
+        return 1
+    print(f"Cleaned data for '{args.name}' (mode: {args.mode}).")
     return 0
 
 
@@ -1904,6 +1959,461 @@ def _cmd_env_unregister(args) -> int:
     em.unregister_environment(args.name)
     print(f"Unregistered Jupyter kernel '{args.name}' (if it existed).")
     return 0
+
+
+# ---------------------------------------------------------------------------
+# export (Phase 10)
+# ---------------------------------------------------------------------------
+
+
+def _add_export_args(p) -> None:
+    """Add ``export`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to export")
+    fmt = p.add_mutually_exclusive_group()
+    fmt.add_argument(
+        "--to-mamba-spec",
+        action="store_true",
+        help="Export as mamba spec YAML (default)",
+    )
+    fmt.add_argument(
+        "--to-requirements", action="store_true", help="Export as pip requirements list"
+    )
+    fmt.add_argument(
+        "--to-wrangler-spec", action="store_true", help="Export as wrangler spec YAML"
+    )
+    p.add_argument(
+        "-o",
+        "--output",
+        default="-",
+        metavar="FILE",
+        help="Output file (default: '-' for stdout)",
+    )
+
+
+def _cmd_export(args) -> int:
+    """Handle ``ppe export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec] [-o FILE|-]``."""
+    _ensure_config()
+    config = PpeConfig()
+    spec_path = config.ppe_spec_path(args.name)
+    if not spec_path.exists():
+        print(f"Error: no spec found for env '{args.name}'.", file=sys.stderr)
+        return 1
+    spec = _load_ppe_spec(config, args.name)
+    output = _format_export(spec, args)
+    _write_export_output(output, args.output, args.name)
+    return 0
+
+
+def _format_export(spec: dict, args) -> str:
+    """Format the spec according to the chosen export flags."""
+    if args.to_requirements:
+        return _spec_to_requirements(spec)
+    if args.to_wrangler_spec:
+        return yaml_dumps(_spec_to_wrangler(spec))
+    return yaml_dumps(spec)  # default: mamba spec
+
+
+def _write_export_output(output: str, output_path: str, name: str) -> None:
+    """Write export output to file or stdout."""
+    if output_path == "-":
+        print(output, end="")
+    else:
+        Path(output_path).write_text(output)
+        print(f"Exported spec for '{name}' to {output_path}")
+
+
+def _spec_to_requirements(spec: dict) -> str:
+    """Extract pip packages from spec as requirements lines."""
+    packages = _extract_pip_packages(spec.get("dependencies", []))
+    if not packages:
+        return ""
+    return "\n".join(packages) + "\n"
+
+
+def _extract_pip_packages(deps: list) -> list[str]:
+    """Return pip packages from the dependencies list."""
+    for dep in deps:
+        if isinstance(dep, dict) and "pip" in dep:
+            return dep["pip"]
+    return []
+
+
+def _spec_to_wrangler(spec: dict) -> dict:
+    """Convert a mamba spec to a minimal wrangler spec dict."""
+    name = spec.get("name", "unnamed")
+    conda, pip = _split_conda_pip(spec.get("dependencies", []))
+    py_ver = _extract_python_version(conda)
+    conda_clean = [p for p in conda if not str(p).startswith("python") and p != "pip"]
+    return {
+        "image_spec_header": {
+            "image_name": name,
+            "kernel_name": name,
+            "display_name": name,
+            "python_version": py_ver,
+        },
+        "extra_mamba_packages": conda_clean,
+        "extra_pip_packages": pip,
+    }
+
+
+def _split_conda_pip(deps: list) -> tuple[list, list[str]]:
+    """Split dependencies into conda packages and pip packages."""
+    conda: list = []
+    pip: list[str] = []
+    for dep in deps:
+        if isinstance(dep, dict) and "pip" in dep:
+            pip.extend(dep["pip"])
+        else:
+            conda.append(dep)
+    return conda, pip
+
+
+def _extract_python_version(conda: list) -> Optional[str]:
+    """Extract the python version from conda package list."""
+    for pkg in conda:
+        if isinstance(pkg, str) and pkg.startswith("python="):
+            return pkg.split("=", 1)[1]
+    return None
+
+
+# ---------------------------------------------------------------------------
+# status (Phase 10)
+# ---------------------------------------------------------------------------
+
+
+def _add_status_args(p) -> None:
+    """Add ``status`` specific arguments to *p*."""
+    p.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+
+def _cmd_status(args) -> int:
+    """Handle ``ppe status`` — show system state summary."""
+    _ensure_config()
+    config = PpeConfig()
+    status = _aggregate_status(config)
+    if args.format == "json":
+        _print_status_json(status)
+    else:
+        _print_status_table(status)
+    return 0
+
+
+def _aggregate_status(config: PpeConfig) -> dict:
+    """Build the status dict for table/json output."""
+    active_env = os.environ.get("NBW_ACTIVE_ENV")
+    live_envs = config.list_live_envs()
+    shelves = config.list_shelves()
+    kernelspecs = _list_kernelspecs()
+    kernel_names = {k.lower() for k in kernelspecs}
+    envs = _build_status_envs(live_envs, shelves, kernel_names)
+    return {
+        "active_env": active_env,
+        "active_pantry": os.environ.get("NBW_PANTRY")
+        or str(config.first_writable_pantry()),
+        "pantries": [
+            {"path": str(p), "writable": config.is_writable(p)}
+            for p in config.pantry_dirs
+        ],
+        "environments": envs,
+    }
+
+
+def _build_status_envs(live_envs, shelves, kernel_names) -> list[dict]:
+    """Build list of env status dicts from live envs and shelves."""
+    envs: dict[str, dict] = {}
+    for e in live_envs:
+        envs[e["name"]] = {
+            "name": e["name"],
+            "state": "live",
+            "live_path": str(e["path"]),
+            "pantry": None,
+            "kernel_registered": e["name"].lower() in kernel_names,
+        }
+    for s in shelves:
+        if s["name"] not in envs:
+            envs[s["name"]] = {
+                "name": s["name"],
+                "state": "archived",
+                "live_path": None,
+                "pantry": str(s["pantry"]),
+                "kernel_registered": s["name"].lower() in kernel_names,
+            }
+        elif envs[s["name"]]["state"] == "live":
+            envs[s["name"]]["state"] = "both"
+            envs[s["name"]]["pantry"] = str(s["pantry"])
+    return list(envs.values())
+
+
+def _list_kernelspecs() -> dict:
+    """Return kernelspecs via ``jupyter kernelspec list --json``."""
+    em = EnvironmentManager()
+    result = em.wrangler_run("jupyter kernelspec list --json", check=False)
+    if not hasattr(result, "returncode"):
+        return {}
+    if getattr(result, "returncode", 0) != 0:
+        return {}
+    stdout = getattr(result, "stdout", None) or ""
+    try:
+        return json.loads(stdout).get("kernelspecs", {})
+    except (ValueError, TypeError):
+        return {}
+
+
+def _print_status_table(status: dict) -> None:
+    """Print status as a human-readable table."""
+    print(f"Active env:     {status['active_env'] or '(none)'}")
+    print(f"Active pantry:  {status['active_pantry']}")
+    print()
+    print(f"{'ENV':<20} {'STATE':<10} {'LIVE':<36} {'PANTRY':<28} {'KERNEL'}")
+    print("-" * 104)
+    for env in sorted(status["environments"], key=lambda x: x["name"]):
+        kernel = "registered" if env["kernel_registered"] else "absent"
+        live = str(env["live_path"] or "-")
+        pantry = str(env["pantry"] or "-")
+        print(f"{env['name']:<20} {env['state']:<10} {live:<36} {pantry:<28} {kernel}")
+    print()
+    print("Pantries:")
+    for p in status["pantries"]:
+        writable = "r/w" if p["writable"] else "r/o"
+        print(f"  {p['path']} ({writable})")
+
+
+def _print_status_json(status: dict) -> None:
+    """Print status as JSON."""
+    print(json.dumps(status, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# doctor (Phase 10)
+# ---------------------------------------------------------------------------
+
+
+def _add_doctor_args(p) -> None:
+    """Add ``doctor`` specific arguments to *p*."""
+    p.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+
+def _cmd_doctor(args) -> int:
+    """Handle ``ppe doctor`` — run self-test checks."""
+    _ensure_config()
+    config = PpeConfig()
+    checks = _run_doctor_checks(config)
+    if args.format == "json":
+        _print_doctor_json(checks)
+    else:
+        _print_doctor_table(checks)
+    return 0 if all(c["pass"] for c in checks) else 1
+
+
+def _run_doctor_checks(config: PpeConfig) -> list[dict]:
+    """Run all doctor checks and return results."""
+    return [
+        _check_mamba_availability(),
+        _check_pantry_writability(config),
+        _check_efs_mount(config),
+        _check_kernel_json_sanity(),
+    ]
+
+
+def _check_mamba_availability() -> dict:
+    """Check for micromamba/mamba availability on PATH."""
+    import shutil
+
+    found = []
+    for tool in ("micromamba", "mamba"):
+        path = shutil.which(tool)
+        if path:
+            found.append(f"{tool} = {path}")
+    if found:
+        return {
+            "check": "mamba/micromamba",
+            "pass": True,
+            "detail": ", ".join(found),
+            "hint": "",
+        }
+    return {
+        "check": "mamba/micromamba",
+        "pass": False,
+        "detail": "neither micromamba nor mamba on PATH",
+        "hint": "Install micromamba or add mamba to PATH.",
+    }
+
+
+def _check_pantry_writability(config: PpeConfig) -> dict:
+    """Check that at least one pantry is writable."""
+    writable = [str(p) for p in config.writable_pantries()]
+    if writable:
+        return {
+            "check": "pantry writability",
+            "pass": True,
+            "detail": ", ".join(writable),
+            "hint": "",
+        }
+    all_paths = [str(p) for p in config.pantry_dirs]
+    return {
+        "check": "pantry writability",
+        "pass": False,
+        "detail": "No writable pantries",
+        "hint": f"Check permissions on: {', '.join(all_paths)}",
+    }
+
+
+def _check_efs_mount(config: PpeConfig) -> dict:
+    """Check EFS mount status for pantry paths."""
+    info = _detect_efs_mount(config)
+    if info:
+        return {"check": "EFS mount", "pass": True, "detail": info, "hint": ""}
+    return {
+        "check": "EFS mount",
+        "pass": False,
+        "detail": "No EFS mount detected on pantry paths",
+        "hint": "Check that EFS is mounted at the pantry path.",
+    }
+
+
+def _detect_efs_mount(config: PpeConfig) -> str:
+    """Detect EFS mount for any pantry path."""
+    mounts = _read_proc_mounts()
+    for pantry in config.pantry_dirs:
+        if not pantry.exists():
+            continue
+        for _, mount_point, fstype, _ in mounts:
+            if "efs" in fstype.lower() or "efs" in mount_point.lower():
+                if str(pantry).startswith(mount_point):
+                    return f"{pantry} on {fstype} ({mount_point})"
+    return ""
+
+
+def _read_proc_mounts() -> list[tuple[str, str, str, str]]:
+    """Parse /proc/mounts and return (device, mount_point, fstype, options)."""
+    results: list[tuple[str, str, str, str]] = []
+    try:
+        with open("/proc/mounts") as f:
+            for line in f:
+                parts = line.split()
+                if len(parts) >= 4:
+                    results.append((parts[0], parts[1], parts[2], parts[3]))
+    except OSError:
+        pass
+    return results
+
+
+def _check_kernel_json_sanity() -> dict:
+    """Check kernel-JSON sanity for the active environment."""
+    active = os.environ.get("NBW_ACTIVE_ENV")
+    if not active:
+        return {
+            "check": "kernel-JSON sanity",
+            "pass": True,
+            "detail": "no active env — skipped",
+            "hint": "",
+        }
+    kernel_dir = _find_kernel_dir(active)
+    if not kernel_dir:
+        return _kernel_missing_result(active)
+    kernel_json = kernel_dir / "kernel.json"
+    if not kernel_json.exists():
+        return _kernel_json_missing_result(active, kernel_dir)
+    data = _load_kernel_json(kernel_json)
+    if data is None:
+        return _kernel_invalid_result(active)
+    if not data.get("argv"):
+        return _kernel_no_argv_result(active)
+    return {
+        "check": "kernel-JSON sanity",
+        "pass": True,
+        "detail": f"valid kernel.json for '{active}'",
+        "hint": "",
+    }
+
+
+def _find_kernel_dir(env_name: str) -> Optional[Path]:
+    """Find the Jupyter kernel directory for *env_name*."""
+    kernels_base = Path.home() / ".local" / "share" / "jupyter" / "kernels"
+    for name in (env_name, env_name.lower()):
+        candidate = kernels_base / name
+        if candidate.is_dir():
+            return candidate
+    return None
+
+
+def _load_kernel_json(path: Path) -> Optional[dict]:
+    """Load and parse a kernel.json file, returning None on failure."""
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return None
+
+
+def _kernel_missing_result(name: str) -> dict:
+    """Return a fail result for a missing kernel spec."""
+    return {
+        "check": "kernel-JSON sanity",
+        "pass": False,
+        "detail": f"kernel spec for '{name}' not found",
+        "hint": f"Run `ppe env register {name}` to create it.",
+    }
+
+
+def _kernel_json_missing_result(name: str, dir_path: Path) -> dict:
+    """Return a fail result for a missing kernel.json."""
+    return {
+        "check": "kernel-JSON sanity",
+        "pass": False,
+        "detail": f"kernel.json missing in {dir_path}",
+        "hint": f"Re-register: `ppe env register {name}`",
+    }
+
+
+def _kernel_invalid_result(name: str) -> dict:
+    """Return a fail result for an invalid kernel.json."""
+    return {
+        "check": "kernel-JSON sanity",
+        "pass": False,
+        "detail": f"invalid kernel.json for '{name}'",
+        "hint": f"Re-register: `ppe env register {name}`",
+    }
+
+
+def _kernel_no_argv_result(name: str) -> dict:
+    """Return a fail result for a kernel.json with no argv."""
+    return {
+        "check": "kernel-JSON sanity",
+        "pass": False,
+        "detail": f"kernel.json for '{name}' has no argv",
+        "hint": f"Re-register: `ppe env register {name}`",
+    }
+
+
+def _print_doctor_table(checks: list[dict]) -> None:
+    """Print doctor check results as a table."""
+    print("ppe doctor — self-test results")
+    print("=" * 80)
+    for c in checks:
+        status = "PASS" if c["pass"] else "FAIL"
+        print(f"  [{status}] {c['check']}")
+        print(f"        {c['detail']}")
+        if c["hint"]:
+            print(f"        hint: {c['hint']}")
+    print("=" * 80)
+    passed = sum(1 for c in checks if c["pass"])
+    print(f"{passed}/{len(checks)} checks passed")
+
+
+def _print_doctor_json(checks: list[dict]) -> None:
+    """Print doctor check results as JSON."""
+    result = {"checks": checks, "all_pass": all(c["pass"] for c in checks)}
+    print(json.dumps(result, indent=2))
 
 
 if __name__ == "__main__":

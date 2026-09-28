@@ -315,3 +315,110 @@ class TestDataUnpack:
             mock_unp.return_value = False
             rc = main(["data", "unpack", "demo"])
         assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# data pack (Phase 9c)
+# ---------------------------------------------------------------------------
+
+
+class TestDataPack:
+    """Tests for ppe data pack — flag forwarding to data_manager."""
+
+    def test_pack_forwards_name(self, tmp_path):
+        """ppe data pack forwards name to data_manager.pack_data."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.pack_data") as mock_pack,
+        ):
+            mock_pack.return_value = True
+            rc = main(["data", "pack", "demo"])
+        assert rc == 0
+        mock_pack.assert_called_once_with("demo")
+
+    def test_pack_failure_exits_nonzero(self, tmp_path):
+        """A failing pack returns exit code 1 (not 2/not-implemented)."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.pack_data") as mock_pack,
+        ):
+            mock_pack.return_value = False
+            rc = main(["data", "pack", "demo"])
+        assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# data clean (Phase 9c)
+# ---------------------------------------------------------------------------
+
+
+class TestDataClean:
+    """Tests for ppe data clean — mode forwarding to data_manager."""
+
+    def test_clean_default_mode_both(self, tmp_path):
+        """ppe data clean with no mode defaults to 'both'."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.delete_data") as mock_del,
+        ):
+            mock_del.return_value = True
+            rc = main(["data", "clean", "demo"])
+        assert rc == 0
+        mock_del.assert_called_once_with("demo", mode="both")
+
+    def test_clean_archived(self, tmp_path):
+        """clean archived forwards mode='archived'."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.delete_data") as mock_del,
+        ):
+            mock_del.return_value = True
+            rc = main(["data", "clean", "demo", "archived"])
+        assert rc == 0
+        mock_del.assert_called_once_with("demo", mode="archived")
+
+    def test_clean_unpacked(self, tmp_path):
+        """clean unpacked forwards mode='unpacked'."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.delete_data") as mock_del,
+        ):
+            mock_del.return_value = True
+            rc = main(["data", "clean", "demo", "unpacked"])
+        assert rc == 0
+        mock_del.assert_called_once_with("demo", mode="unpacked")
+
+    def test_clean_both_explicit(self, tmp_path):
+        """clean both forwards mode='both' explicitly."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.delete_data") as mock_del,
+        ):
+            mock_del.return_value = True
+            rc = main(["data", "clean", "demo", "both"])
+        assert rc == 0
+        mock_del.assert_called_once_with("demo", mode="both")
+
+    def test_clean_failure_exits_nonzero(self, tmp_path):
+        """A failing clean returns exit code 1 (not 2/not-implemented)."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.delete_data") as mock_del,
+        ):
+            mock_del.return_value = False
+            rc = main(["data", "clean", "demo"])
+        assert rc == 1

@@ -593,6 +593,33 @@ def unpack_data(
     return _run_data_step(cfg)
 
 
+def pack_data(name: str) -> bool:
+    """Pack live data dirs back into archive files in the shelf for *name*.
+
+    Thin wrapper over nb-wrangler's ``--data-pack`` flag.
+    """
+    spec_path = _resolve_shelf_spec_path(name)
+    if spec_path is None:
+        print(f"No wrangler spec found for env '{name}'.", file=sys.stderr)
+        return False
+    cfg = _data_wrangler_config(spec_path, data_pack=True)
+    return _run_data_step(cfg)
+
+
+def delete_data(name: str, mode: str = "both") -> bool:
+    """Delete data archives and/or unpacked files for *name*.
+
+    Thin wrapper over nb-wrangler's ``--data-delete`` flag. *mode* is
+    forwarded verbatim: ``archived``, ``unpacked``, or ``both``.
+    """
+    spec_path = _resolve_shelf_spec_path(name)
+    if spec_path is None:
+        print(f"No wrangler spec found for env '{name}'.", file=sys.stderr)
+        return False
+    cfg = _data_wrangler_config(spec_path, data_delete=mode)
+    return _run_data_step(cfg)
+
+
 def main(argv):
     config.set_args_config(config.WranglerConfig())
     config.args_config.debug = True
