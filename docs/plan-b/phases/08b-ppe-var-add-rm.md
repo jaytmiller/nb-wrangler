@@ -67,13 +67,13 @@ the vars in a terminal.
 
 ## Tasks
 
-- [ ] `var add`: parse `VAR=VALUE` (first-`=` split); validate; upsert into
+- [x] `var add`: parse `VAR=VALUE` (first-`=` split); validate; upsert into
       spec; persist; refresh kernel.
-- [ ] `var rm`: remove glob-matched vars from spec; refresh kernel; no-op on
+- [x] `var rm`: remove glob-matched vars from spec; refresh kernel; no-op on
       no match.
-- [ ] `_refresh_kernel_vars`: `register_environment(name, name, env_vars)`;
+- [x] `_refresh_kernel_vars`: `register_environment(name, name, env_vars)`;
       warn on stderr if it fails (spec still saved).
-- [ ] Tests for all of the above (fakes for spec + kernel).
+- [x] Tests for all of the above (fakes for spec + kernel).
 
 ## Testing / validation
 
