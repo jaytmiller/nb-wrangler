@@ -81,19 +81,11 @@ class TestParser:
 
 
 class TestNotImplemented:
-    """All non-create subcommands should exit 2 cleanly."""
+    """Commands that are genuinely not yet implemented should exit 2 cleanly.
 
-    def test_status_not_implemented(self, capsys):
-        from nb_wrangler.ppe.cli import main
-
-        rc = main(["status"])
-        assert rc == 2
-
-    def test_doctor_not_implemented(self, capsys):
-        from nb_wrangler.ppe.cli import main
-
-        rc = main(["doctor"])
-        assert rc == 2
+    (export/status/doctor were previously in this category but are now
+    implemented in Phase 10 — see tests/ppe/test_export_status_doctor.py.)
+    """
 
     def test_env_no_subcommand_prints_help(self, capsys):
         from nb_wrangler.ppe.cli import main
