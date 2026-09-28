@@ -80,11 +80,6 @@ This was particularly attractive during years of struggle to get public registry
 
 - Provides a short path for promoting a user or teams personal environment to a notebook image supporting exactly that environment.  (Under the hood of `ppe`,  wrangler is still using a wrangler spec to define the environment.)
 
-### Pantry path supports multiple pantries: user, team, system
-
-![SinglePantry](./SinglePantry.svg)
-
-
 ## What it isn't
 
 One very significant thing which is nominally lost is Docker's ability to build once and install the same binary everywhere.  However, one example of a simple solution is just to track mission specs as part of deployments and install them to EFS using relatively trivial scripts or pipelines.
