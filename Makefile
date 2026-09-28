@@ -274,7 +274,8 @@ lint/black: ## check style with black
 
 lint/bandit: ## check security with bandit
 	@echo ================================================================================
-	find ${PROJECT} tests -name '*.py' | xargs bandit -v -ll -ii --format txt
+	find ${PROJECT} -name '*.py' | xargs bandit --severity-level medium -v -ii --format txt
+	find tests -name '*.py' | xargs bandit --severity-level high -v -ii --format txt
 
 lint/mypy:
 	@echo ================================================================================

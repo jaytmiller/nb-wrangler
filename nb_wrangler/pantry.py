@@ -270,7 +270,6 @@ class NbwPantrySet(WranglerLoggable):
         raise NotImplementedError("archive_shelf not yet implemented")
 
 
-
 class NbwShelf(WranglerLoggable, WranglerEnvable):
     """
     Represents a shelf in the environment store.

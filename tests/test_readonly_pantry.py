@@ -243,4 +243,7 @@ def test_abstract_data_path_uses_correct_pantry(tmp_path):
         pantry = NbwPantrySet()
         shelf = pantry.get_shelf("from-secondary")
         assert shelf.pantry_path == secondary
-        assert shelf.abstract_data_path == secondary / "shelves" / "from-secondary" / "data"
+        assert (
+            shelf.abstract_data_path
+            == secondary / "shelves" / "from-secondary" / "data"
+        )
