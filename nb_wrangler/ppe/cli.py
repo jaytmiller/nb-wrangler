@@ -21,6 +21,7 @@ from nb_wrangler.constants import (
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.logger import WranglerLogger
 from nb_wrangler.pantry import NbwShelf
+from nb_wrangler.ppe import completions as completions_mod
 from nb_wrangler.ppe.config import PpeConfig
 from nb_wrangler.ppe.seeds import (
     seed_from_empty,
@@ -45,13 +46,39 @@ _ENV_UNREGISTER = "unregister"
 # top-level groups exported/status/doctor are implemented in Phase 10
 
 
+class PpeError(Exception):
+    """Base error for ppe with a clean message and exit code."""
+
+    def __init__(self, message: str, exit_code: int = 1):
+        super().__init__(message)
+        self.message = message
+        self.exit_code = exit_code
+
+
 # ---------------------------------------------------------------------------
 # Entry point
 # ---------------------------------------------------------------------------
 
 
 def main(argv: Optional[list[str]] = None) -> int:
-    """Entry point for the ``ppe`` command."""
+    """Entry point for the ``ppe`` command.
+
+    Wraps all subcommands in a try/except that maps known errors to
+    clean exit codes + messages — no raw tracebacks are shown for
+    expected failures.
+    """
+    try:
+        return _main(argv)
+    except PpeError as exc:
+        print(f"ppe: {exc.message}", file=sys.stderr)
+        return exc.exit_code
+    except KeyboardInterrupt:
+        print("\nInterrupted.", file=sys.stderr)
+        return 130
+
+
+def _main(argv: Optional[list[str]] = None) -> int:
+    """Actual command dispatch without error wrapping."""
     parser = build_parser()
     args, _ = parser.parse_known_args(argv)
 
@@ -71,6 +98,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _cmd_status(args)
     if args.command == "doctor":
         return _cmd_doctor(args)
+    if args.command == "completions":
+        return _cmd_completions(args)
     return _cmd_not_implemented(args.command)
 
 
@@ -94,6 +123,7 @@ def build_parser() -> argparse.ArgumentParser:
     _add_var_subcommands(subparsers)
     _add_data_subcommands(subparsers)
     _add_export_status_doctor_subcommands(subparsers)
+    _add_completions_subcommands(subparsers)
     return parser
 
 
@@ -165,6 +195,16 @@ def _add_export_status_doctor_subcommands(subparsers) -> None:
     _add_status_args(status)
     doctor = subparsers.add_parser("doctor", help="Run self-test checks")
     _add_doctor_args(doctor)
+
+
+def _add_completions_subcommands(subparsers) -> None:
+    """Add the ``completions`` subcommand (Phase 11)."""
+    comp = subparsers.add_parser("completions", help="Print shell completion scripts")
+    comp.add_argument(
+        "shell",
+        choices=["bash", "zsh", "fish"],
+        help="Shell to generate completions for",
+    )
 
 
 def _add_var_subcommands(subparsers) -> None:
@@ -2414,6 +2454,25 @@ def _print_doctor_json(checks: list[dict]) -> None:
     """Print doctor check results as JSON."""
     result = {"checks": checks, "all_pass": all(c["pass"] for c in checks)}
     print(json.dumps(result, indent=2))
+
+
+# ---------------------------------------------------------------------------
+# completions (Phase 11)
+# ---------------------------------------------------------------------------
+
+
+def _cmd_completions(args) -> int:
+    """Handle ``ppe completions bash|zsh|fish``."""
+    script = completions_mod.generate_completion(args.shell)
+    if script is None:
+        print(
+            f"Unknown shell '{args.shell}'. "
+            f"Supported: {', '.join(completions_mod.get_supported_shells())}",
+            file=sys.stderr,
+        )
+        return 1
+    print(script, end="")
+    return 0
 
 
 if __name__ == "__main__":
