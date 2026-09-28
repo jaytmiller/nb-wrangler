@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 import re
 from dataclasses import dataclass
 from collections import defaultdict
+from typing import Optional
 
 
 from . import utils
@@ -491,6 +492,105 @@ class RefdataValidator(WranglerLoggable):
         pantry_exports.update(pantry_env_vars)
         pantry_exports.update(other_env_vars)
         return pantry_exports
+
+
+# ---------------------------------------------------------------------------
+# Thin wrappers over nb-wrangler's --data-download / --data-unpack flags.
+# Used by the `ppe` CLI's `data download` / `data unpack` subcommands; they
+# forward name + flags to the wrangler's flag-driven data execution path
+# instead of reimplementing download/symlink logic.
+# ---------------------------------------------------------------------------
+
+
+def _resolve_shelf_spec_path(name: str) -> Optional[Path]:
+    """Return the wrangler spec path for the shelf named *name*, or None.
+
+    Looks up the shelf across NBW_PANTRY_DIRS and returns its
+    nbw-wrangler-spec.yaml path when present.
+    """
+    from .pantry import NbwPantrySet
+
+    shelf = NbwPantrySet.from_env().get_shelf(name)
+    if shelf.spec_path.exists():
+        return shelf.spec_path
+    return None
+
+
+def _data_wrangler_config(
+    spec_path: Path, **data_flags: object
+) -> "config.WranglerConfig":
+    """Build a WranglerConfig that runs *data_flags* as explicit steps.
+
+    No workflows are enabled, so only the flagged data steps execute.
+    """
+    cfg = config.WranglerConfig(
+        workflows=[],
+        spec_file=str(spec_path),
+        output_dir=constants.NBW_ROOT / "temps",
+        repos_dir=constants.NBW_ROOT / "notebook_repos",
+    )
+    for key, value in data_flags.items():
+        setattr(cfg, key, value)
+    return cfg
+
+
+def _run_data_step(cfg: "config.WranglerConfig") -> bool:
+    """Install *cfg* as the global config and run NotebookWrangler.main().
+
+    Any exception is reported as a failure (False) rather than propagating.
+    """
+    from . import logger as logger_mod
+    from .wrangler import NotebookWrangler
+
+    config.set_args_config(cfg)
+    logger_mod.WranglerLogger.from_config(cfg)
+    try:
+        wrangler = NotebookWrangler()
+        return wrangler.main()
+    except Exception as exc:  # noqa: BLE001 - report any failure to caller
+        return get_configured_logger().exception(exc, "Failed to run data step:")
+
+
+def download_data(name: str, select: str = ".*", validate: bool = True) -> bool:
+    """Download data archives declared by *name*'s spec into the shelf.
+
+    Thin wrapper over nb-wrangler's ``--data-download`` flag. *select*
+    forwards to ``--data-select``; *validate* controls ``--data-no-validation``
+    (forwarded verbatim).
+    """
+    spec_path = _resolve_shelf_spec_path(name)
+    if spec_path is None:
+        print(f"No wrangler spec found for env '{name}'.", file=sys.stderr)
+        return False
+    cfg = _data_wrangler_config(
+        spec_path,
+        data_download=True,
+        data_select=select,
+        data_no_validation=not validate,
+    )
+    return _run_data_step(cfg)
+
+
+def unpack_data(
+    name: str, symlinks: bool = True, no_unpack_existing: bool = False
+) -> bool:
+    """Unpack downloaded archives to live data dirs for *name*.
+
+    Thin wrapper over nb-wrangler's ``--data-unpack`` flag. *symlinks*
+    toggles ``--data-symlinks``/``--data-no-symlinks`` and
+    *no_unpack_existing* forwards to ``--data-no-unpack-existing`` verbatim.
+    """
+    spec_path = _resolve_shelf_spec_path(name)
+    if spec_path is None:
+        print(f"No wrangler spec found for env '{name}'.", file=sys.stderr)
+        return False
+    cfg = _data_wrangler_config(
+        spec_path,
+        data_unpack=True,
+        data_no_symlinks=not symlinks,
+        data_no_unpack_existing=no_unpack_existing,
+    )
+    return _run_data_step(cfg)
 
 
 def main(argv):

@@ -176,3 +176,142 @@ class TestDataLs:
         assert "data-alpha.tar.gz" in out
         assert "last-save.sha256" not in out
         assert "env-demo.tar.gz" not in out
+
+
+# ---------------------------------------------------------------------------
+# data download (Phase 9b)
+# ---------------------------------------------------------------------------
+
+
+class TestDataDownload:
+    """Tests for ppe data download — flag forwarding to data_manager."""
+
+    def test_download_default(self, tmp_path, capsys):
+        """Default download forwards name plus default select/validate."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.download_data") as mock_dl,
+        ):
+            mock_dl.return_value = True
+            rc = main(["data", "download", "demo"])
+        assert rc == 0
+        mock_dl.assert_called_once_with("demo", select=".*", validate=True)
+
+    def test_download_with_select(self, tmp_path, capsys):
+        """--select REGEX is forwarded to data_manager.download_data."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.download_data") as mock_dl,
+        ):
+            mock_dl.return_value = True
+            rc = main(["data", "download", "demo", "--select", "roman_.*"])
+        assert rc == 0
+        mock_dl.assert_called_once_with("demo", select="roman_.*", validate=True)
+
+    def test_download_no_validate(self, tmp_path, capsys):
+        """--no-validate flips validate to False when forwarded."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.download_data") as mock_dl,
+        ):
+            mock_dl.return_value = True
+            rc = main(["data", "download", "demo", "--no-validate"])
+        assert rc == 0
+        mock_dl.assert_called_once_with("demo", select=".*", validate=False)
+
+    def test_download_failure_exits_nonzero(self, tmp_path, capsys):
+        """A failing download returns exit code 1 (not 2/not-implemented)."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.download_data") as mock_dl,
+        ):
+            mock_dl.return_value = False
+            rc = main(["data", "download", "demo"])
+        assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# data unpack (Phase 9b)
+# ---------------------------------------------------------------------------
+
+
+class TestDataUnpack:
+    """Tests for ppe data unpack — flag forwarding to data_manager."""
+
+    def test_unpack_default_symlinks(self, tmp_path, capsys):
+        """Default unpack forwards default symlinks and no-unpack-existing."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.unpack_data") as mock_unp,
+        ):
+            mock_unp.return_value = True
+            rc = main(["data", "unpack", "demo"])
+        assert rc == 0
+        mock_unp.assert_called_once_with(
+            "demo", symlinks=True, no_unpack_existing=False
+        )
+
+    def test_unpack_no_symlinks(self, tmp_path, capsys):
+        """--no-symlinks forwards symlinks=False."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.unpack_data") as mock_unp,
+        ):
+            mock_unp.return_value = True
+            rc = main(["data", "unpack", "demo", "--no-symlinks"])
+        assert rc == 0
+        mock_unp.assert_called_once_with(
+            "demo", symlinks=False, no_unpack_existing=False
+        )
+
+    def test_unpack_symlinks_explicit(self, tmp_path, capsys):
+        """--symlinks forwards symlinks=True (explicit)."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.unpack_data") as mock_unp,
+        ):
+            mock_unp.return_value = True
+            rc = main(["data", "unpack", "demo", "--symlinks"])
+        assert rc == 0
+        mock_unp.assert_called_once_with(
+            "demo", symlinks=True, no_unpack_existing=False
+        )
+
+    def test_unpack_no_unpack_existing(self, tmp_path, capsys):
+        """--no-unpack-existing forwards no_unpack_existing=True."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.unpack_data") as mock_unp,
+        ):
+            mock_unp.return_value = True
+            rc = main(["data", "unpack", "demo", "--no-unpack-existing"])
+        assert rc == 0
+        mock_unp.assert_called_once_with("demo", symlinks=True, no_unpack_existing=True)
+
+    def test_unpack_failure_exits_nonzero(self, tmp_path, capsys):
+        """A failing unpack returns exit code 1 (not 2/not-implemented)."""
+        from nb_wrangler.ppe.cli import main
+
+        with (
+            _patch_root_and_pantry(tmp_path),
+            patch("nb_wrangler.ppe.cli.data_manager.unpack_data") as mock_unp,
+        ):
+            mock_unp.return_value = False
+            rc = main(["data", "unpack", "demo"])
+        assert rc == 1
