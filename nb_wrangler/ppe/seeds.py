@@ -7,8 +7,10 @@ serialization with ``nb_wrangler.utils.yaml_dumps``.
 
 import json
 import re
+import subprocess
 from pathlib import Path
 
+from nb_wrangler.constants import NBW_MAMBA_CMD
 from nb_wrangler.utils import get_yaml
 
 
@@ -126,4 +128,100 @@ def seed_from_wrangler_spec(name: str, path: str | Path) -> dict:
     extra_pip = wspec.get("extra_pip_packages", []) or []
     spec["dependencies"].append({"pip": list(extra_pip)})
 
+    return spec
+
+
+# ---------------------------------------------------------------------------
+# --from-existing-env
+# ---------------------------------------------------------------------------
+
+
+def _run_mamba_export(env_name: str) -> str:
+    """Run ``mamba env export`` for *env_name* and return YAML stdout.
+
+    Raises ``ValueError`` if the environment is not found or the command
+    fails.
+    """
+    cmd = [NBW_MAMBA_CMD, "env", "export", "-n", env_name, "--no-builds"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise ValueError(
+            f"mamba env export failed for '{env_name}': " f"{result.stderr.strip()}"
+        )
+    return result.stdout
+
+
+def _run_pip_freeze(env_name: str) -> list[str]:
+    """Run ``pip freeze`` inside *env_name* and return package lines.
+
+    Raises ``ValueError`` if the command fails.
+    """
+    cmd = [NBW_MAMBA_CMD, "run", "-n", env_name, "pip", "freeze"]
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise ValueError(
+            f"pip freeze failed for '{env_name}': " f"{result.stderr.strip()}"
+        )
+    return _parse_pip_freeze(result.stdout)
+
+
+def _parse_pip_freeze(text: str) -> list[str]:
+    """Parse pip-freeze output into clean, non-comment package lines."""
+    packages: list[str] = []
+    for line in text.splitlines():
+        line = line.strip()
+        if line and not line.startswith("#"):
+            packages.append(line)
+    return packages
+
+
+def _parse_env_export(yaml_text: str, name: str, python: str | None) -> dict:
+    """Parse env-export YAML into a mamba-spec dict.
+
+    Overrides the environment name, strips the ``pip:`` sub-dict and any
+    ``python=`` entry from conda dependencies (caller may pass *python*
+    to pin a specific version), and ensures ``pip`` is present as a
+    conda dependency.
+    """
+    yaml = get_yaml()
+    export = yaml.load(yaml_text) or {}
+    channels = export.get("channels") or ["conda-forge"]
+    deps: list = []
+    for dep in export.get("dependencies", []):
+        if isinstance(dep, dict) and "pip" in dep:
+            continue
+        if isinstance(dep, str) and dep.startswith("python"):
+            continue
+        deps.append(dep)
+    if python:
+        deps.insert(0, f"python={python}")
+    if not any(isinstance(d, str) and d == "pip" for d in deps):
+        deps.append("pip")
+    return {
+        "name": name,
+        "channels": list(channels),
+        "dependencies": deps,
+    }
+
+
+def _add_pip_section(spec: dict, pip_packages: list[str]) -> None:
+    """Append a ``pip:`` sub-dict to the spec's dependency list."""
+    spec["dependencies"].append({"pip": list(pip_packages)})
+
+
+def seed_from_existing_env(name: str, env_name: str, python: str | None = None) -> dict:
+    """Build a mamba-spec dict from an existing mamba environment.
+
+    Exports the package set of *env_name*, overrides the target name
+    with *name*, and returns a spec dict suitable for serialization
+    with ``yaml_dumps``.
+
+    Raises ``ValueError`` if the environment cannot be found or the
+    required subcommands fail.
+    """
+    yaml_text = _run_mamba_export(env_name)
+    spec = _parse_env_export(yaml_text, name, python)
+    pip_packages = _run_pip_freeze(env_name)
+    if pip_packages:
+        _add_pip_section(spec, pip_packages)
     return spec

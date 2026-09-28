@@ -99,11 +99,20 @@ ppe env create --from-requirements <requirements.txt...> [--python 3.11] [--name
 ppe env create --from-mamba-spec   <mamba-spec.yaml>     [--python 3.11] [--name N] [--display-name D]
 ppe env create --from-wrangler-spec <wrangler-spec.yaml> [--name N] [--display-name D]
 ppe env create --from-notebooks    <http(s)-ipynb | local-ipynb...> [--name N] [--display-name D]
+ppe env create --from-existing-env <ENV_NAME>            [--name N] [--display-name D] [--pantry P]
 ```
 
 - `--name` / `--display-name` / `--python` are the global identifiers; prefer
   flags over positional names to keep syntax uniform across groups.
 - `--dry-run` is accepted to preview the seeded spec without installing.
+- `--from-existing-env <ENV_NAME>` imports an already-installed mamba/micromamba
+  environment into the PPE lifecycle. It exports the env's package set via
+  `mamba env export --no-builds` (conda) and `pip freeze` (pip), writes the
+  shadow `.ppe-spec.yaml`, registers the Jupyter kernel, and writes a shelf
+  `nbw-wrangler-spec.yaml` so `ppe env save`/`restore`/`ls` work immediately —
+  all **without** re-creating the environment. `--name` becomes the PPE
+  lifecycle name; `--pantry` selects the target pantry directory (defaults to
+  the first writable pantry).
 
 #### `ppe env install` / `ppe env uninstall`
 
@@ -333,6 +342,13 @@ To avoid silent "first match wins" shadowing at platform scale:
    in a terminal; pull PPE env vars via `eval "$(ppe var ls astro-py --export)"`.
 4. **Archive:** `ppe env save astro-py`
 5. **Restore later:** `ppe env restore astro-py`, then pick the kernel.
+
+**Importing an existing env (no re-creation):**
+
+2. **Onboard:** `ppe env create --from-existing-env astro-py --name astro-py`
+   — writes the shadow spec, registers the kernel, and creates a shelf spec so
+   `ppe env save`/`restore` work immediately. The env is not reinstalled.
+2. **(Optional) archive:** `ppe env save astro-py` (now backed by the shelf spec).
 
 ## Relationship to existing modules
 
