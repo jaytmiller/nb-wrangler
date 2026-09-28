@@ -39,8 +39,8 @@ _ENV_ENSURE = "ensure"
 _ENV_REGISTER = "register"
 _ENV_UNREGISTER = "unregister"
 
-# top-level groups stubbed for future phases (var is implemented in Phase 8)
-_TOP_LEVEL_STUBS = ["data", "export", "status", "doctor"]
+# top-level groups stubbed for future phases (var/data are implemented in Phases 8/9a)
+_TOP_LEVEL_STUBS = ["export", "status", "doctor"]
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +61,8 @@ def main(argv: Optional[list[str]] = None) -> int:
         return _dispatch_env(args, parser)
     if args.command == "var":
         return _dispatch_var(args, parser)
+    if args.command == "data":
+        return _dispatch_data(args, parser)
     return _cmd_not_implemented(args.command)
 
 
@@ -82,6 +84,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     _add_env_subcommands(subparsers)
     _add_var_subcommands(subparsers)
+    _add_data_subcommands(subparsers)
     _add_stub_groups(subparsers)
     return parser
 
@@ -210,6 +213,30 @@ def _add_var_rm_args(p) -> None:
         metavar="GLOB",
         help="Glob pattern(s) matching variable names to remove",
     )
+
+
+def _add_data_subcommands(subparsers) -> None:
+    """Add the ``data`` subcommand group (Phase 9a: data archive management)."""
+    data_parser = subparsers.add_parser(
+        "data", help="Manage data archives for an environment"
+    )
+    data_sub = data_parser.add_subparsers(dest="data_command")
+
+    ls = data_sub.add_parser("ls", help="List data archives for an environment")
+    _add_data_ls_args(ls)
+
+    data_sub.add_parser(
+        "download", help="Download data archives (Phase 9b)"
+    ).add_argument("name")
+    data_sub.add_parser("unpack", help="Unpack data archives (Phase 9b)").add_argument(
+        "name"
+    )
+    data_sub.add_parser("pack", help="Pack live data dirs (Phase 9c)").add_argument(
+        "name"
+    )
+    data_sub.add_parser(
+        "clean", help="Delete data archives/unpacked files (Phase 9c)"
+    ).add_argument("name")
 
 
 def _add_create_args(p) -> None:
@@ -619,6 +646,90 @@ def _print_var_ls_json(env_vars: dict, name: str) -> None:
     result = {
         "name": name,
         "environment_vars": dict(sorted(env_vars.items())),
+    }
+    print(json.dumps(result, indent=2))
+
+
+def _add_data_ls_args(p) -> None:
+    """Add ``data ls`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name")
+    p.add_argument(
+        "--format",
+        choices=["table", "json"],
+        default="table",
+        help="Output format (default: table)",
+    )
+
+
+# ---------------------------------------------------------------------------
+# data (archive management for PPE environments)
+# ---------------------------------------------------------------------------
+
+
+def _dispatch_data(args, parser) -> int:
+    """Route ``ppe data`` subcommands."""
+    if not args.data_command:
+        print(
+            "ppe data: sub-command required. Use one of: ls, download, "
+            "unpack, pack, clean",
+            file=sys.stderr,
+        )
+        return 0
+    if args.data_command == "ls":
+        return _cmd_data_ls(args)
+    return _cmd_not_implemented(args.data_command)
+
+
+def _cmd_data_ls(args) -> int:
+    """Handle ``ppe data ls NAME [--format table|json]``."""
+    _ensure_config()
+    config = PpeConfig()
+    archives = _list_data_archives(config, args.name)
+    if args.format == "json":
+        _print_data_ls_json(archives, args.name)
+    else:
+        _print_data_ls_table(archives, args.name)
+    return 0
+
+
+def _list_data_archives(config, name: str) -> list[tuple[str, int]]:
+    """Return sorted list of ``(filename, size)`` for data archives of *name*.
+
+    Scans the env's shelf ``archives/`` dir for files matching ``data-*``,
+    excluding internal files such as ``last-save.sha256``.
+    """
+    import fnmatch
+
+    results: list[tuple[str, int]] = []
+    for _, shelf_path in config.find_shelves(name):
+        archive_dir = shelf_path / "archives"
+        if not archive_dir.is_dir():
+            continue
+        for entry in archive_dir.iterdir():
+            if entry.is_file() and fnmatch.fnmatch(entry.name, "data-*"):
+                results.append((entry.name, entry.stat().st_size))
+    results.sort(key=lambda x: x[0])
+    return results
+
+
+def _print_data_ls_table(archives: list[tuple[str, int]], name: str) -> None:
+    """Print a two-column ARCHIVE/SIZE table."""
+    print(f"{'ARCHIVE':<30} SIZE")
+    print("-" * 70)
+    if not archives:
+        print(f"(no data archives defined for '{name}')")
+        return
+    for fname, size in archives:
+        print(f"{fname:<30} {size}")
+
+
+def _print_data_ls_json(archives: list[tuple[str, int]], name: str) -> None:
+    """Print ls results as JSON."""
+    import json
+
+    result = {
+        "name": name,
+        "archives": [fname for fname, _ in archives],
     }
     print(json.dumps(result, indent=2))
 

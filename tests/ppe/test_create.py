@@ -83,12 +83,6 @@ class TestParser:
 class TestNotImplemented:
     """All non-create subcommands should exit 2 cleanly."""
 
-    def test_data_ls_not_implemented(self, capsys):
-        from nb_wrangler.ppe.cli import main
-
-        rc = main(["data", "ls"])
-        assert rc == 2
-
     def test_status_not_implemented(self, capsys):
         from nb_wrangler.ppe.cli import main
 

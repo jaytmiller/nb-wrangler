@@ -20,8 +20,8 @@ dependency, most important first.
 | 5 | [05-ppe-env-install-uninstall-and-relock](05-ppe-env-install-uninstall-and-relock.md) | `ppe env install/uninstall` + `ppe env relock` (explicit re-curate). |
 | 6 | [06-ppe-env-rm](06-ppe-env-rm.md) | `ppe env rm` (interactive / `--yes`). |
 | 7 | [07-ppe-env-ensure-register-unregister](07-ppe-env-ensure-register-unregister.md) | `ppe env ensure` + `register/unregister`. |
-| 8 | [08-ppe-var](08-ppe-var.md) | `ppe var add/rm/ls`. |
-| 9 | [09-ppe-data](09-ppe-data.md) | `ppe data ls/download/unpack/pack/clean`. |
+| 8 | [08-ppe-var](08-ppe-var.md) | `ppe var add/rm/ls`. Subtasks: [8a ls](08a-ppe-var-ls.md), [8b add/rm](08b-ppe-var-add-rm.md). |
+| 9 | [09-ppe-data](09-ppe-data.md) | `ppe data ls/download/unpack/pack/clean`. Subtasks: [9a ls](09a-ppe-data-ls.md), [9b download/unpack](09b-ppe-data-download-unpack.md), [9c pack/clean](09c-ppe-data-pack-clean.md). |
 | 10 | [10-ppe-export-status-doctor](10-ppe-export-status-doctor.md) | `ppe export` + `status` + `doctor`. |
 | 11 | [11-shell-completions-and-polish](11-shell-completions-and-polish.md) | bash/zsh/fish completions, end-to-end tests, docs wiring. |
 
