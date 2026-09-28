@@ -99,7 +99,7 @@ The requirements and design for baseline PPE's revolve around scoping to a CLI t
 
    Key to making this user-friendly will be providing a CLI tool `ppe` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. For operating on archived environments, referring to the environment will support lookups by kernel name vs. lookup by spec.
 
-   This tool is the core of the PPE implementation,  see [ppe tool cli](plan-b-cli.md)
+   Although it is based upon and leverages nb-wrangler,  the `ppe` tool is the core of the PPE implementation,  see [ppe tool cli](plan-b-cli.md)
 
 
 ### Investigate official env archive formats
@@ -124,12 +124,6 @@ The requirements and design for baseline PPE's revolve around scoping to a CLI t
 ### Ability to support user, team, and mission/image level environments and archives
 
 ### Ability to support readonly persistent archives
-
-## CLI Tool (ppe)
-
-The `ppe` tool gives users a clean dedicated CLI for working with PPEs from a context they're largely familiar with already rather than the existing Wrangler curation/admin CLI.  For simple cases and functionality, this tool replaces direct manipulation of the Wrangler spec by users, but shadows the user inputs in a hidden spec in the archive.  This shadow enables usage of any advanced features or distinctions in the wrangler.
-
-See 
 
 ## More exotic directions
 
