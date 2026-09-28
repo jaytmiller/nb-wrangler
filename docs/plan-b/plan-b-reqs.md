@@ -14,9 +14,6 @@ differences between container storage (fast) and EFS (horrible small/many file
 performance) by systematically controlling how live environments are installed
 on container storage or archived on EFS for reinstallation later.
 
-Wrangler handling of PPE's has 3 immediate areas of application: personal custom
-environments, team custom environments, and global system environments.
-
 This comcept arose from these factors:
 
 - Vastly simpler workflow
@@ -43,7 +40,7 @@ The end-to-end process of building a complex image has 3-4 phases: defining the 
 
 #### Platform Persistent Environment (PPE) Workflow
 
-The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme that supports the extra Wrangler features and uses uv and careful storage management to dramatically improve speed. An additional observation is that installing a PPE is typically no more complicated than curating an environment; consequently, and admin curating on the platform only has to save to a team or system pantry and the development and installation process is complete on that SDLC. To promote from TEST to OPS, re-installing a mission environment from the locked Wrangler spec is sound and repeatable. Other higher fidelity methods of transferring the installed binaries from TEST to OPS are possible but probably not needed.
+The PPE workflow is an up-scaled version of the platform's kernel-xxx scheme that supports the extra Wrangler features and uses uv and careful storage management to dramatically improve speed. An additional observation is that installing a PPE is typically no more complicated than curating an environment; consequently, an admin curating on the platform only has to save to a team or system pantry and the development and installation process is complete on that SDLC. To promote from TEST to OPS, re-installing a mission environment from the locked Wrangler spec is sound and repeatable. Other higher fidelity methods of transferring the installed binaries from TEST to OPS are possible but probably not needed.
 
 The awareness of the disparity in complexity between the current workflow above and the on-platform curation workflow below is another compelling reason (other than better kernel-xxx) to attempt PPE's.  Note that it also eliminates multi-month/year points of organizational contention with respect to obtaining public registries or burensome image scanning and agreements and permission structures required for both.
 
@@ -55,21 +52,17 @@ The awareness of the disparity in complexity between the current workflow above 
 
 ### Enables smaller, simpler base images
 
-- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. This image would also be simpler and with fewer "concerns" and simpler Dockerfile if we can partition correctly, potentially reducing the frequency at which we rebuild this funtionality as well as easing the burden of formally required scanning. Rolling our own base image or deriving it from another astro-project would also enable a consistent usage of uv to install all pip packages and environments.
+- Enables the creation of completely generic base-environment-only images that are ~half the size of the current two kernel (base + mission) images and spawn more rapidly. Other benefits of the simplicity are (most likely) easier and less frequent rebuilds as well as a smaller attack surface in the image.
 
 ### Fast archiving and restoration
 
-- Measured kernel "unpack" times of 20-30 seconds are probably < ECR transfer times for 2-3G of environment binaries.  Archiving times are likewise fast: 40-60 seconds, once.  If faster storage than EFS is used, these times would likely further improve...  where as ECR transfer times would remain constant.
+- Measured kernel "unpack" times of 20 seconds are probably < ECR transfer times for 2-3G of environment binaries.  Archiving times are likewise fast: 40-60 seconds, once.  If faster storage than EFS is used, these times would likely further improve...  where as ECR transfer times would remain constant.
 
 ### Eliminates requirement for public registry
 
 - Eliminates the need for but does not preclude an image host and build pipelines.
 This was particularly attractive during years of struggle to get public registry support
 (DockerHub or GHCR) for GitHub image building.
-
-### Eliminates requirement for public pipelines
-
-- Ducks but does not preclude the requirement and/or process for scanning these "350+ package mission environments" because there is no image involved and it is equivalent to what users can and do already.  Meanwhile any smaller generic base image should be much easier to keep clean on any required scans due to reduced package count. (Two different OSS AI's referred to image scanning given our user install capability as "Security Theater" and recommended one-time scans for simplified images requiring only CRITICAL fixes.)
 
 ### Enables multiple active environments
 
@@ -86,6 +79,11 @@ This was particularly attractive during years of struggle to get public registry
 ### Supports rapid conversion of personal or team PPE's to images
 
 - Provides a short path for promoting a user or teams personal environment to a notebook image supporting exactly that environment.  (Under the hood of `ppe`,  wrangler is still using a wrangler spec to define the environment.)
+
+### Pantry path supports multiple pantries: user, team, system
+
+![SinglePantry](./SinglePantry.svg)
+
 
 ## What it isn't
 
@@ -119,11 +117,23 @@ The requirements and design for baseline PPE's revolve around scoping to a CLI t
    For registry use ghcr://nbs_<glob>,  requires Docker won't work on platform
 ```
 
-### Automatic association of correct data with active kernel
+### Wrangler Code and Data Archive (Pantry)
 
-### Ability to support user, team, and mission/image level environments and archives
+The core element of Wrangler archiving is a directory structure known as a "pantry" that has one "shelf" for each environment.
 
-### Ability to support readonly persistent archives
+![Single Pantry](./SinglePantry.svg)
+
+Wrangler/PPE control the location of multiple pantries using an environment variable `NBW_PATH`.  Similar to PATH,  it is a colon-seperated list of pantries in priority order.
+
+Here are some likely scenarios for pantry locations. (current, personal, team, system, or combinations there of)
+
+![Three Pantry Tiers](./ThreeTierPath.svg)
+
+#### Ability to support user, team, and mission/image level environments and archives
+
+#### Ability to support readonly persistent archives
+
+#### Automatic association of correct data with active kernel
 
 ## More exotic directions
 
