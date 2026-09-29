@@ -381,7 +381,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(True),
             patch(
-                "nb_wrangler.ppe.cli._compile_pip_packages",
+                "nb_wrangler.ppe.env_relock.compile_pip_packages",
                 return_value=compiled,
             ),
         ):
@@ -411,7 +411,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(True),
             patch(
-                "nb_wrangler.ppe.cli._compile_pip_packages",
+                "nb_wrangler.ppe.env_relock.compile_pip_packages",
                 return_value=["numpy==1.26.4"],
             ),
         ):
@@ -442,7 +442,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(True),
             patch(
-                "nb_wrangler.ppe.cli._compile_pip_packages",
+                "nb_wrangler.ppe.env_relock.compile_pip_packages",
                 return_value=compiled,
             ),
         ):
@@ -510,7 +510,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(True),
             patch(
-                "nb_wrangler.ppe.cli._compile_pip_packages",
+                "nb_wrangler.ppe.env_relock.compile_pip_packages",
                 return_value=None,
             ),
         ):
