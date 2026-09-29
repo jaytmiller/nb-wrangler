@@ -57,4 +57,4 @@ include = [
 
 [project.scripts]
 nbw = "nb_wrangler.cli:main"
-ppe = "nb_wrangler.ppe.cli:main"
+hubenv = "nb_wrangler.hubenv.cli:main"

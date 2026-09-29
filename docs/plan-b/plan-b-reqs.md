@@ -24,7 +24,7 @@ This comcept arose from these factors:
 
 ## Benefits
 
-The benefits of User Installed Environments using `ppe`:
+The benefits of User Installed Environments using `hubenv`:
 
 ### Vastly simpler workflow and process
 
@@ -78,7 +78,7 @@ This was particularly attractive during years of struggle to get public registry
 
 ### Supports rapid conversion of personal or team PPE's to images
 
-- Provides a short path for promoting a user or teams personal environment to a notebook image supporting exactly that environment.  (Under the hood of `ppe`,  wrangler is still using a wrangler spec to define the environment.)
+- Provides a short path for promoting a user or teams personal environment to a notebook image supporting exactly that environment.  (Under the hood of `hubenv`,  wrangler is still using a wrangler spec to define the environment.)
 
 ## What it isn't
 
@@ -88,11 +88,11 @@ One very significant thing which is nominally lost is Docker's ability to build 
 
 The requirements and design for baseline PPE's revolve around scoping to a CLI tool and defining its approach, overall interface, and command set.
 
-### CLI Command (ppe)
+### CLI Command (hubenv)
 
-   Key to making this user-friendly will be providing a CLI tool `ppe` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. For operating on archived environments, referring to the environment will support lookups by kernel name vs. lookup by spec.
+   Key to making this user-friendly will be providing a CLI tool `hubenv` that works in terms people are familiar with such as mamba .yaml specs and pip requirements.txt specs in addition to wrangler specs. For operating on archived environments, referring to the environment will support lookups by kernel name vs. lookup by spec.
 
-   Although it is based upon and leverages nb-wrangler,  the `ppe` tool is the core of the PPE implementation,  see [ppe tool cli](plan-b-cli.md)
+   Although it is based upon and leverages nb-wrangler,  the `hubenv` tool is the core of the PPE implementation,  see [hubenv tool cli](plan-b-cli.md)
 
 
 ### Investigate official env archive formats
