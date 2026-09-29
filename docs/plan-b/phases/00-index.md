@@ -1,4 +1,4 @@
-# `ppe` Implementation Phases — Index
+# `hubenv` Implementation Phases — Index
 
 > Sequential implementation plans for the Persistent Platform Environments CLI.
 > Based on `docs/plan-b/plan-b-cli.md`. Execute top-to-bottom; each phase builds
@@ -6,32 +6,32 @@
 
 ## Phase order & rationale
 
-The first **three** phases deliver the top-priority MVP: a working `ppe` that can
+The first **three** phases deliver the top-priority MVP: a working `hubenv` that can
 **create**, **save** (archive), and **restore** (unarchive) environments.
 Remaining phases are ordered by platform-user value and implementation
 dependency, most important first.
 
 | # | Plan | Summary |
 |---|------|---------|
-| 1 | [01-ppe-foundation-and-create](01-ppe-foundation-and-create.md) | CLI scaffold, config/env handling, r/o pantry detection, `ppe env create` (full). |
-| 2 | [02-ppe-env-save](02-ppe-env-save.md) | `ppe env save` — pack a live env into a pantry "can". |
-| 3 | [03-ppe-env-restore](03-ppe-env-restore.md) | `ppe env restore` — unpack a "can", register kernel, eval-able exports, idempotency. |
-| 4 | [04-ppe-env-ls-and-info](04-ppe-env-ls-and-info.md) | `ppe env ls` + `info` + shadowing disambiguation. |
-| 5 | [05-ppe-env-install-uninstall-and-relock](05-ppe-env-install-uninstall-and-relock.md) | `ppe env install/uninstall` + `ppe env relock` (explicit re-curate). |
-| 6 | [06-ppe-env-rm](06-ppe-env-rm.md) | `ppe env rm` (interactive / `--yes`). |
-| 7 | [07-ppe-env-ensure-register-unregister](07-ppe-env-ensure-register-unregister.md) | `ppe env ensure` + `register/unregister`. |
-| 8 | [08-ppe-var](08-ppe-var.md) | `ppe var add/rm/ls`. Subtasks: [8a ls](08a-ppe-var-ls.md), [8b add/rm](08b-ppe-var-add-rm.md). |
-| 9 | [09-ppe-data](09-ppe-data.md) | `ppe data ls/download/unpack/pack/clean`. Subtasks: [9a ls](09a-ppe-data-ls.md), [9b download/unpack](09b-ppe-data-download-unpack.md), [9c pack/clean](09c-ppe-data-pack-clean.md). |
-| 10 | [10-ppe-export-status-doctor](10-ppe-export-status-doctor.md) | `ppe export` + `status` + `doctor`. |
+| 1 | [01-hubenv-foundation-and-create](01-hubenv-foundation-and-create.md) | CLI scaffold, config/env handling, r/o pantry detection, `hubenv env create` (full). |
+| 2 | [02-hubenv-env-save](02-hubenv-env-save.md) | `hubenv env save` — pack a live env into a pantry "can". |
+| 3 | [03-hubenv-env-restore](03-hubenv-env-restore.md) | `hubenv env restore` — unpack a "can", register kernel, eval-able exports, idempotency. |
+| 4 | [04-hubenv-env-ls-and-info](04-hubenv-env-ls-and-info.md) | `hubenv env ls` + `info` + shadowing disambiguation. |
+| 5 | [05-hubenv-env-install-uninstall-and-relock](05-hubenv-env-install-uninstall-and-relock.md) | `hubenv env install/uninstall` + `hubenv env relock` (explicit re-curate). |
+| 6 | [06-hubenv-env-rm](06-hubenv-env-rm.md) | `hubenv env rm` (interactive / `--yes`). |
+| 7 | [07-hubenv-env-ensure-register-unregister](07-hubenv-env-ensure-register-unregister.md) | `hubenv env ensure` + `register/unregister`. |
+| 8 | [08-hubenv-var](08-hubenv-var.md) | `hubenv var add/rm/ls`. Subtasks: [8a ls](08a-hubenv-var-ls.md), [8b add/rm](08b-hubenv-var-add-rm.md). |
+| 9 | [09-hubenv-data](09-hubenv-data.md) | `hubenv data ls/download/unpack/pack/clean`. Subtasks: [9a ls](09a-hubenv-data-ls.md), [9b download/unpack](09b-hubenv-data-download-unpack.md), [9c pack/clean](09c-hubenv-data-pack-clean.md). |
+| 10 | [10-hubenv-export-status-doctor](10-hubenv-export-status-doctor.md) | `hubenv export` + `status` + `doctor`. |
 | 11 | [11-shell-completions-and-polish](11-shell-completions-and-polish.md) | bash/zsh/fish completions, end-to-end tests, docs wiring. |
 
 ## Common scaffolding conventions
 
 All phases follow these conventions (established in Phase 1 and reused):
 
-- **Entry point:** add `ppe = "nb_wrangler.ppe.cli:main"` to
+- **Entry point:** add `hubenv = "nb_wrangler.hubenv.cli:main"` to
   `[project.scripts]` in `pyproject.toml`.
-- **Package:** new `nb_wrangler/ppe/` with `__init__.py` and `cli.py`.
+- **Package:** new `nb_wrangler/hubenv/` with `__init__.py` and `cli.py`.
 - **Reuse, don't reimplement:** build on `nb_wrangler/constants.py`
   (`NBW_ROOT`, `NBW_PANTRY_DIRS`, `NBW_MAMBA_CMD`, `NBW_PIP_CMD`),
   `nb_wrangler/pantry.py` (`NbwPantry`/`NbwPantrySet`),
