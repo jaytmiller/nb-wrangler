@@ -31,7 +31,7 @@ def _patch_nbw_root(tmp_path):
 def _patch_list_kernelspecs(return_value=None):
     """Patch _list_kernelspecs to return a known dict."""
     return patch(
-        "nb_wrangler.ppe.cli._list_kernelspecs", return_value=return_value or {}
+        "nb_wrangler.ppe.status.list_kernelspecs", return_value=return_value or {}
     )
 
 
@@ -49,10 +49,10 @@ def _all_checks_context(**overrides):
     """
     stack = ExitStack()
     patches = [
-        ("nb_wrangler.ppe.cli._check_mamba_availability", "mamba"),
-        ("nb_wrangler.ppe.cli._check_pantry_writability", "pantry"),
-        ("nb_wrangler.ppe.cli._check_efs_mount", "efs"),
-        ("nb_wrangler.ppe.cli._check_kernel_json_sanity", "kernel"),
+        ("nb_wrangler.ppe.doctor.check_mamba_availability", "mamba"),
+        ("nb_wrangler.ppe.doctor.check_pantry_writability", "pantry"),
+        ("nb_wrangler.ppe.doctor.check_efs_mount", "efs"),
+        ("nb_wrangler.ppe.doctor.check_kernel_json_sanity", "kernel"),
     ]
     for target, key in patches:
         stack.enter_context(

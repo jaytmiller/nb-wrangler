@@ -40,7 +40,7 @@ def _patch_pack(return_value: bool = True):
 
 def _fake_hash():
     """Return a context manager that patches sha256_file to return a fake hash."""
-    return patch("nb_wrangler.ppe.cli.sha256_file", return_value="abc123def456")
+    return patch("nb_wrangler.ppe.env_save.sha256_file", return_value="abc123def456")
 
 
 class TestSaveDryRun:

@@ -130,13 +130,15 @@ def _patch_handle_result(result=True):
 
 
 def _patch_sha256(value="deadbeef"):
-    """Mock sha256_file."""
-    return patch("nb_wrangler.ppe.cli.sha256_file", return_value=value)
+    """Mock sha256_file used by env save."""
+    return patch("nb_wrangler.ppe.env_save.sha256_file", return_value=value)
 
 
 def _patch_compile(packages):
     """Mock _compile_pip_packages to return pre-set package list."""
-    return patch("nb_wrangler.ppe.cli._compile_pip_packages", return_value=packages)
+    return patch(
+        "nb_wrangler.ppe.env_relock.compile_pip_packages", return_value=packages
+    )
 
 
 # ---------------------------------------------------------------------------
