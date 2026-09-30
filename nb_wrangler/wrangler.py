@@ -109,7 +109,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Strictly speaking,  kernel name,  but nominally also environment name.
         The worst/only exception I know of is "base" environment == "python3" kernel.
         """
-        return self.spec_manager.kernel_name if self.spec_manager else None
+        if self.spec_manager:
+            if self.spec_manager.kernel_name == "python3":
+                return "base"
+            else:
+                return self.spec_manager.kernel_name
+        else:
+            return None
 
     @property
     def kernel_display_name(self) -> str:
@@ -1055,10 +1061,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.warning("No kernel name found to delete. Skipping.")
 
         if self.env_name.startswith("python") or self.env_name in ["base"]:
-            self.logger.warning(
-                "Skipping base environment deletion and de-registration, uninstalling packages."
+            return self.logger.warning(
+                "Skipping base environment deletion and de-registration."
             )
-            return self._uninstall_packages()
 
         # unregister_environment is tolerant of a missing kernel spec (it warns and
         # returns True on "not found"), so this branch now only fires for genuine
