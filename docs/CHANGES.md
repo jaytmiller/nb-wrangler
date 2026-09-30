@@ -1,3 +1,21 @@
+**v0.9.3** change notes (since v0.9.2):
+
+### Bug Fixes
+
+- **`--packages-omit-spi` flag now effective** (`nb_wrangler/compiler.py`). The `packages_omit_spi` config flag was checked but had no effect during requirements compilation — SPI pip files were still included in the gathered `spi_pip_files` list. The flag is now respected: when `self.config.packages_omit_spi` is set, `spi_pip_files` is an empty list, skipping inclusion of SPI pip requirements.
+
+### uv `--system` Adaptation
+
+- **`--system` flag added to uv compile command** (`nb_wrangler/compiler.py`). The `pip compile` invocation now includes `--system`, designating that the resolved environment should target the non-virtualenv system environment rather than creating an isolated venv.
+- **`--system` flag added to uv pip install** (`nb_wrangler/environment.py`). When `uv` is detected in the pip command, `--system` is now included in the `pip install` call, matching the non-virtualenv execution model. Plain `pip` commands are unchanged.
+
+### Timeout Constants
+
+- **New `PULL_TIMEOUT` constant** (`nb_wrangler/constants.py`). Docker `pull` operations now use a dedicated 1-hour (3600s) timeout (`PULL_TIMEOUT` in `constants.py`, imported into `registry.py`), instead of the generic `DEFAULT_TIMEOUT`.
+- **Increased `DEFAULT_TIMEOUT`** from 300s to 600s.
+
+---
+
 **v0.9.2** change notes (since v0.9.1):
 
 ### Bug Fixes
