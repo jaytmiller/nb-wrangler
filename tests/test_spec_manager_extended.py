@@ -251,9 +251,7 @@ class TestRefdataSpecFromDictRemoteData:
                     "environment_variable": "DEMO_VAR",
                     "install_path": "${HOME}/data/",
                     "data_path": "demo_v1",
-                    "data_url": [
-                        "https://example.com/data.tar.gz"
-                    ],
+                    "data_url": ["https://example.com/data.tar.gz"],
                 }
             },
             "other_variables": {"EXTRA_VAR": "value"},
