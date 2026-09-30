@@ -119,9 +119,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     @property
     def pip_packages(self) -> list[str]:
         """Use compiled packages if available, otherwise from spec output."""
-        return (
-            self.spec_manager.get_output_data("pip_compiler_output").splitlines() or []
-        )
+        output = self.spec_manager.get_output_data("pip_compiler_output")
+        return output.splitlines() if output else []
 
     @property
     def mamba_spec_file(self):
@@ -1054,6 +1053,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unregister its kernel and delete the test environment."""
         if not self.resolved_kname:
             return self.logger.warning("No kernel name found to delete. Skipping.")
+
+        if self.env_name.startswith("python") or self.env_name in ["base"]:
+            self.logger.warning("Skipping base environment deletion and de-registration, uninstalling packages.")
+            return self._uninstall_packages()
 
         # unregister_environment is tolerant of a missing kernel spec (it warns and
         # returns True on "not found"), so this branch now only fires for genuine

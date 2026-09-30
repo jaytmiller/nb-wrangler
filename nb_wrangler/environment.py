@@ -341,8 +341,12 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             f"Uninstalling {n_packages} packages from environment {env_name}."
         )
 
-        # Uninstall packages using uv
-        cmd = f"{self.pip_command} uninstall -r {req_path}"
+        # Uninstall packages
+        if "uv" in self.pip_command:
+            cmd = f"{self.pip_command} uninstall --system -r {req_path}"
+        else:
+            cmd = f"{self.pip_command} uninstall -r {req_path}"
+            
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
