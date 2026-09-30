@@ -2050,6 +2050,8 @@ out:
           CRDS_SERVER_URL: https://roman-crds.stsci.edu
           CRDS_CONTEXT: roman_0041.pmap
           CRDS_PATH: ${HOME}/crds_cache
+        remote_data:
+          some_key: some_value
     spec_exports:
       pandeia_refdata: ${HOME}/refdata/pandeia_data-2025.9-roman
       STPSF_PATH: ${HOME}/refdata/stpsf-data

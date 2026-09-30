@@ -539,3 +539,81 @@ class TestDevOverridesValidation:
         }
         validator, _ = _make_bad_validator(tmp_path, spec)
         assert validator.validate() is True
+
+
+class TestRefdataRemoteDataValidation:
+    """Tests that the remote_data field in refdata_dependencies is accepted
+    by spec validation (ignored, not processed)."""
+
+    def test_remote_data_in_refdata_is_valid(self, tmp_path):
+        """Spec with remote_data under refdata_dependencies should validate."""
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "refdata_dependencies": {
+                "install_files": {
+                    "demo": {
+                        "version": "1.0.0",
+                        "environment_variable": "DEMO_VAR",
+                        "install_path": "${HOME}/data/",
+                        "data_path": "demo_v1",
+                        "data_url": ["https://example.com/data.tar.gz"],
+                    }
+                },
+                "other_variables": {"EXTRA_VAR": "value"},
+                "remote_data": {"some_key": "some_value"},
+            },
+        }
+        validator, _ = _make_bad_validator(tmp_path, spec)
+        assert validator.validate() is True
+
+    def test_remote_data_in_dev_overrides_is_valid(self, tmp_path):
+        """Spec with remote_data under dev_overrides.refdata_dependencies should validate."""
+        spec = {
+            "image_spec_header": {
+                "image_name": "t",
+                "kernel_name": "k",
+                "deployment_name": "w",
+                "python_version": "3.12",
+            },
+            "repositories": {},
+            "system": {
+                "spec_version": 2.3,
+                "spi": {"repo": "r"},
+                "nb-wrangler": {"repo": "r"},
+                "date_updated": "x",
+            },
+            "refdata_dependencies": {
+                "install_files": {
+                    "demo": {
+                        "version": "1.0.0",
+                        "environment_variable": "DEMO_VAR",
+                        "install_path": "${HOME}/data/",
+                        "data_path": "demo_v1",
+                        "data_url": ["https://example.com/data.tar.gz"],
+                    }
+                },
+                "other_variables": {"EXTRA_VAR": "value"},
+                "remote_data": {"base_key": "base_value"},
+            },
+            "dev_overrides": {
+                "refdata_dependencies": {
+                    "other_variables": {"EXTRA_VAR": "dev_value"},
+                    "remote_data": {"dev_key": "dev_value"},
+                }
+            },
+        }
+        validator, mock_sm = _make_bad_validator(tmp_path, spec)
+        mock_sm.config.dev = True
+        assert validator.validate() is True
