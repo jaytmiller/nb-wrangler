@@ -313,7 +313,10 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             pip_cmd = re.sub(r"^pip$", r"uv pip", str(self.config.pip_command))
         else:
             pip_cmd = str(self.config.pip_command)
-        cmd = f"{pip_cmd} install -r {req_path} {overrides}"
+        if "uv" in pip_cmd:
+            cmd = f"{pip_cmd} install --system -r {req_path} {overrides}"
+        else:
+            cmd = f"{pip_cmd} install -r {req_path} {overrides}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
