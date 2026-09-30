@@ -173,6 +173,11 @@ pantry save-hash matches the live restore-hash (use `--force` to override).
   (`.bashrc`/spawn hook) without prompting — replaces the "edit your dotfiles"
   workaround.
 
+  NOTE: this needs a way to remove --at-boot configuration, display at-boot status/info,
+  and have multi-pantry configuation so that the system and teams can define it for their
+  respective pantries and/or users.  Likewise users should be able to automatically
+  restore or omit environments not under their direct control and r/w access.
+
 #### `hubenv env save`
 
 ```sh
@@ -274,11 +279,28 @@ Data is a first-class concern on the science platform, so it gets its own group
 
 ```sh
 hubenv data ls       NAME [--format table|json]
+hubenv data define NAME [--from-refdata-dependencies refdata_dependencies.yaml] [--update]
+hubenv data share  NAME FROM-NAME [--update]
 hubenv data download NAME [--select REGEX] [--no-validate]
 hubenv data unpack   NAME [--no-unpack-existing] [--symlinks|--no-symlinks]
 hubenv data pack     NAME
 hubenv data clean    NAME [archived|unpacked|both]
 ```
+
+hubenv data define works using the same data spec format created for roman_notebooks.
+potentially there are other TBD methods so --from-refdata-dependencies is shown as one 
+defined option,  but at least one option is required so it is not fully optional.
+
+hubenv data share NAME FROM-NAME shares data in FROM-NAME with NAME while occupying 
+minimal space, probably symlinks.  Doing this will add the env var definitions available
+in FROM-NAME to NAME's notebooks without downloading all new data.  Potentially should
+also have modification tracking across environments so that NAME knows if/when FROM-NAME
+changed.  Potentially hard links could be used instead when possible,  at a penalty
+/ limitation of sharing only on the same volume, but without a specific need to track
+updates since "shareees" would effectively be co-owners and retain the original rather
+than mirroring the updates or requiring complex change tracking.
+
+--update replaces any existing data definition or sharing, hubenv rejects if existing and no --update.
 
 ### `hubenv export`
 
