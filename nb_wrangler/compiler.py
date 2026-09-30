@@ -86,7 +86,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         )
         pip_command = re.sub(r"^pip$", r"uv pip ", str(self.config.pip_command))
         cmd = (
-            f"{pip_command} compile --quiet --output-file {str(output_file)} --python {self.python_path}"
+            f"{pip_command} compile --quiet --system --output-file {str(output_file)} --python {self.python_path}"
             + f" --universal {python_ver}"
             + " --no-header --annotate"
             + f" {overrides}"
