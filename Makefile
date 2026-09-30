@@ -195,7 +195,6 @@ DATA_SELECTED = 'pandeia|stpsf|other-spectra_multi_v2_sed'
 DATA_CLEANUP = ../../nb-wrangler data-test-spec.yaml --data-delete both --data-select ${DATA_SELECTED}
 
 data-clean:
-	source ./nb-wrangler environment  &&  \
 	cd tests/data-functional && \
 	rm -rf references && \
 	git checkout -- data-test-spec.yaml
@@ -230,7 +229,7 @@ data-test-reinstall:
 
 # ==========================================================================================================
 
-clean: clean-build clean-pyc clean-test clean-other ## remove all build, test, coverage and Python artifacts
+clean: clean-build clean-pyc clean-test clean-other data-clean ## remove all build, test, coverage and Python artifacts
 
 clean-build: ## remove build artifacts
 	rm -fr build/
