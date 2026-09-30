@@ -1055,7 +1055,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return self.logger.warning("No kernel name found to delete. Skipping.")
 
         if self.env_name.startswith("python") or self.env_name in ["base"]:
-            self.logger.warning("Skipping base environment deletion and de-registration, uninstalling packages.")
+            self.logger.warning(
+                "Skipping base environment deletion and de-registration, uninstalling packages."
+            )
             return self._uninstall_packages()
 
         # unregister_environment is tolerant of a missing kernel spec (it warns and
