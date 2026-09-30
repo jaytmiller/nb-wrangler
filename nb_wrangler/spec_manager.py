@@ -15,7 +15,7 @@ from .spec_validator import SpecValidator
 _OVERRIDES_SCHEMA: dict[str, Any] = {
     "test_environment_vars": None,
     "repositories": ["url", "ref"],
-    "refdata_dependencies": ["install_files", "other_variables"],
+    "refdata_dependencies": ["install_files", "other_variables", "remote_data"],
     "environment_vars": None,
     "override_pip_versions": [],
     # Package-list overrides: when present under dev_overrides these *replace* the
@@ -693,7 +693,7 @@ class SpecManager(
                 "contents_only": None,
             }
         ],
-        "refdata_dependencies": ["install_files", "other_variables"],
+        "refdata_dependencies": ["install_files", "other_variables", "remote_data"],
         "environment_vars": None,
         "test_environment_vars": None,
         "environment_spec": ["uri", "repo", "path"],

@@ -261,7 +261,7 @@ class RefdataSpec(WranglerLoggable):
         self = cls()
         if not isinstance(spec_dict, dict):
             raise ValueError("spec_dict is not a dictionary.")
-        allowed_keys = {"install_files", "other_variables"}
+        allowed_keys = {"install_files", "other_variables", "remote_data"}
         unknown_keys = set(spec_dict.keys()) - allowed_keys
         if unknown_keys:
             self.logger.error(

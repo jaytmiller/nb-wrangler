@@ -136,6 +136,138 @@ channels:
         assert "name" in sm.inline_mamba_spec
 
 
+class TestRefdataRemoteDataIgnored:
+    """Tests that the top-level remote_data field in refdata_dependencies is
+    accepted by validation but not processed (ignored)."""
+
+    def test_remote_data_accepted_in_spec_refdata(self, tmp_path):
+        """remote_data under top-level refdata_dependencies should not cause validation errors."""
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["refdata_dependencies"] = {
+            "install_files": {
+                "demo_data": {
+                    "version": "1.0.0",
+                    "environment_variable": "DEMO_DATA_PATH",
+                    "install_path": "${HOME}/demo_refdata/",
+                    "data_path": "demo_v1",
+                    "data_url": [
+                        "https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz"
+                    ],
+                }
+            },
+            "other_variables": {"DEMO_VAR": "demo_value"},
+            "remote_data": {"some_key": "some_value"},
+        }
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+        assert sm.refdata_dependencies["remote_data"] == {"some_key": "some_value"}
+
+    def test_remote_data_accepted_in_dev_overrides(self, tmp_path):
+        """remote_data under dev_overrides.refdata_dependencies should not cause errors."""
+        from nb_wrangler.config import WranglerConfig
+        from nb_wrangler.spec_manager import SpecManager
+
+        set_args_config(
+            WranglerConfig(workflows=[], repos_dir=tmp_path / "repos", dev=True)
+        )
+        sm = SpecManager()
+
+        spec_dict = _make_valid_spec_dict()
+        spec_dict["refdata_dependencies"] = {
+            "install_files": {
+                "demo_data": {
+                    "version": "1.0.0",
+                    "environment_variable": "DEMO_DATA_PATH",
+                    "install_path": "${HOME}/demo_refdata/",
+                    "data_path": "demo_v1",
+                    "data_url": [
+                        "https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz"
+                    ],
+                }
+            },
+            "other_variables": {"DEMO_VAR": "demo_value"},
+            "remote_data": {"base_key": "base_value"},
+        }
+        spec_dict["dev_overrides"] = {
+            "refdata_dependencies": {
+                "other_variables": {"DEMO_VAR": "dev_value"},
+                "remote_data": {"dev_key": "dev_value"},
+            }
+        }
+        yaml_content = yaml.dump(spec_dict, default_flow_style=False)
+        spec_file = tmp_path / "spec.yaml"
+        spec_file.write_text(yaml_content)
+
+        assert sm.load_spec(spec_file) is True
+        assert sm.validate() is True
+
+
+class TestRefdataSpecFromDictRemoteData:
+    """Tests that RefdataSpec.from_dict correctly ignores remote_data."""
+
+    def test_from_dict_accepts_remote_data(self):
+        """RefdataSpec.from_dict should accept and ignore remote_data."""
+        from nb_wrangler.data_manager import RefdataSpec
+
+        spec_dict = {
+            "install_files": {
+                "pandeia": {
+                    "version": "2025.9",
+                    "environment_variable": "pandeia_refdata",
+                    "install_path": "${HOME}/refdata/",
+                    "data_path": "pandeia_data-2025.9-roman",
+                    "data_url": [
+                        "https://stsci.box.com/shared/static/0qjvuqwkurhx1xd13i63j760cosep9wh.gz"
+                    ],
+                }
+            },
+            "other_variables": {
+                "CRDS_SERVER_URL": "https://roman-crds.stsci.edu",
+            },
+            "remote_data": {"some_key": "some_value"},
+        }
+
+        spec = RefdataSpec.from_dict("test_refdata", spec_dict)
+        assert "pandeia" in spec.install_files
+        assert spec.other_variables["CRDS_SERVER_URL"] == "https://roman-crds.stsci.edu"
+
+    def test_from_dict_todict_omits_remote_data(self):
+        """RefdataSpec.todict should not include remote_data in the output."""
+        from nb_wrangler.data_manager import RefdataSpec
+
+        spec_dict = {
+            "install_files": {
+                "demo": {
+                    "version": "1.0.0",
+                    "environment_variable": "DEMO_VAR",
+                    "install_path": "${HOME}/data/",
+                    "data_path": "demo_v1",
+                    "data_url": [
+                        "https://example.com/data.tar.gz"
+                    ],
+                }
+            },
+            "other_variables": {"EXTRA_VAR": "value"},
+            "remote_data": {"ignored_key": "ignored_value"},
+        }
+
+        spec = RefdataSpec.from_dict("test_refdata", spec_dict)
+        result = spec.todict()
+        # todict only returns install_files and other_variables
+        assert "remote_data" not in result
+        assert "install_files" in result
+        assert "other_variables" in result
+
+
 class TestEnvironmentVarsField:
     def test_environment_vars_in_allowed_keywords(self, tmp_path):
         from nb_wrangler.spec_manager import SpecManager
