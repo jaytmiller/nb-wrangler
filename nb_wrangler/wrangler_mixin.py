@@ -7,8 +7,11 @@ These mixins provide utility methods that are duplicated across
 
 from typing import TYPE_CHECKING
 
+<<<<<<< HEAD
 from .spec_manager import kernel_name_to_env_name
 
+=======
+>>>>>>> ee84578 (Factored some common code out of wrangler.py and data_wrangler.py to)
 if TYPE_CHECKING:
     from .spec_manager import SpecManager
     from .config import WranglerConfig
@@ -26,10 +29,10 @@ class WranglerWorkflowMixin:
     are available.
 
     Subclasses must also provide:
+    - ``self.resolved_environment_name`` (property): the environment name
+      with python3→base mapping applied.
+    - ``self.resolved_kname`` (property): the raw kernel name for display.
     - ``self.env_manager``: the environment manager instance.
-      ``resolved_environment_name`` and ``resolved_kname`` are provided by
-      this mixin, using ``compiled_kernel_name`` (optional) and
-      ``spec_manager`` when available.
     """
 
     # Declared for type-checking; provided at runtime by WranglerConfigurable
