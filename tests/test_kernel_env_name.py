@@ -137,6 +137,38 @@ class TestNotebookWranglerEnvNameSeparation:
         assert wrangler.resolved_kname == "mykernel"
         assert wrangler.resolved_environment_name == "mykernel"
 
+    def test_compiled_kernel_name_takes_priority(self, tmp_path):
+        """compiled_kernel_name overrides spec-derived kernel name."""
+        from nb_wrangler.wrangler import NotebookWrangler
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name="python3")
+        )
+        wrangler = NotebookWrangler.__new__(NotebookWrangler)
+        wrangler.spec_manager = sm
+        wrangler.config = sm.config
+        wrangler.compiled_kernel_name = "compiled-kernel"
+
+        assert wrangler.resolved_kname == "compiled-kernel"
+        assert wrangler.resolved_environment_name == "compiled-kernel"
+
+    def test_compiled_kernel_name_python3_maps_to_base(self, tmp_path):
+        """compiled_kernel_name='python3' still maps to 'base' env."""
+        from nb_wrangler.wrangler import NotebookWrangler
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name="mykernel")
+        )
+        wrangler = NotebookWrangler.__new__(NotebookWrangler)
+        wrangler.spec_manager = sm
+        wrangler.config = sm.config
+        wrangler.compiled_kernel_name = "python3"
+
+        assert wrangler.resolved_kname == "python3"
+        assert wrangler.resolved_environment_name == "base"
+
     def test_env_name_deprecated_but_works(self, tmp_path):
         """env_name still works but emits a DeprecationWarning."""
         from nb_wrangler.wrangler import NotebookWrangler
@@ -161,7 +193,7 @@ class TestNotebookWranglerEnvNameSeparation:
 
 
 class TestDataWranglerResolvedKname:
-    """Tests that DataWrangler.resolved_kname uses SpecManager.get_resolved_kernel_name."""
+    """Tests that DataWrangler resolved_kname / resolved_environment_name."""
 
     def test_data_wrangler_resolved_kname_from_spec(self, tmp_path):
         from nb_wrangler.data_wrangler import DataWrangler
@@ -179,6 +211,25 @@ class TestDataWranglerResolvedKname:
         dw = DataWrangler(sm, pantry, repo_manager, env_manager)
 
         assert dw.resolved_kname == "mykernel"
+        assert dw.resolved_environment_name == "mykernel"
+
+    def test_data_wrangler_python3_maps_to_base(self, tmp_path):
+        from nb_wrangler.data_wrangler import DataWrangler
+        from nb_wrangler.repository import RepositoryManager
+        from nb_wrangler.pantry import NbwPantry
+        from nb_wrangler.environment import EnvironmentManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name="python3")
+        )
+        pantry = NbwPantry()
+        repo_manager = RepositoryManager(tmp_path / "repos")
+        env_manager = EnvironmentManager()
+        dw = DataWrangler(sm, pantry, repo_manager, env_manager)
+
+        assert dw.resolved_kname == "python3"
+        assert dw.resolved_environment_name == "base"
 
 
 class TestEnvironmentExistsExactMatch:

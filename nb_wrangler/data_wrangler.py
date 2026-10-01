@@ -32,16 +32,6 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
         self.repo_manager = repo_manager
         self.env_manager = env_manager
 
-    @property
-    def resolved_kname(self) -> str | None:
-        """Helper to get kernel name, matching NotebookWrangler logic."""
-        return self.spec_manager.get_resolved_kernel_name()
-
-    @property
-    def resolved_environment_name(self) -> str | None:
-        """Environment name with python3→base mapping applied."""
-        return self.spec_manager.get_resolved_environment_name()
-
     def collect(self) -> bool:
         """Collect data from notebook repos."""
         self.logger.info("Collecing data information from notebook repo data specs.")

@@ -87,35 +87,6 @@ class NotebookWrangler(
         self.config.repos_dir.mkdir(parents=True, exist_ok=True)
 
     @property
-    def resolved_kname(self) -> str | None:
-        """Highest-priority available kernel name (kernel_name, not env_name).
-
-        The kernel name can come from three places, in order of priority:
-        1. self.compiled_kernel_name: Set after the compile step. The most accurate.
-        2. spec output: For pre-compiled specs (`--reinstall` workflow).
-        3. spec_manager.get_resolved_kernel_name: From the initial spec load.
-        """
-        if not self.spec_manager:
-            return self.compiled_kernel_name
-        return self.compiled_kernel_name or self.spec_manager.get_resolved_kernel_name()
-
-    @property
-    def resolved_environment_name(self) -> str | None:
-        """Highest-priority available environment name (with python3→base mapping).
-
-        This should be used for conda/micromamba environment operations where
-        the 'python3' kernel maps to the 'base' environment.
-        """
-        env_name = self.compiled_kernel_name or (
-            self.spec_manager.get_resolved_environment_name()
-            if self.spec_manager
-            else None
-        )
-        if env_name == "python3":
-            return "base"
-        return env_name
-
-    @property
     def deployment_name(self):
         """Nominally the branch of science-platform-images this build will target."""
         return self.spec_manager.deployment_name if self.spec_manager else None

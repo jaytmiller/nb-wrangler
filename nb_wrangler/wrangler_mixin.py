@@ -24,10 +24,10 @@ class WranglerWorkflowMixin:
     are available.
 
     Subclasses must also provide:
-    - ``self.resolved_environment_name`` (property): the environment name
-      with python3→base mapping applied.
-    - ``self.resolved_kname`` (property): the raw kernel name for display.
     - ``self.env_manager``: the environment manager instance.
+      ``resolved_environment_name`` and ``resolved_kname`` are provided by
+      this mixin, using ``compiled_kernel_name`` (optional) and
+      ``spec_manager`` when available.
     """
 
     # Declared for type-checking; provided at runtime by WranglerConfigurable
@@ -37,17 +37,40 @@ class WranglerWorkflowMixin:
     logger: "WranglerLogger"
     env_manager: "EnvironmentManager"
 
-    # Declared for type-checking; provided at runtime by subclasses as
-    # properties that return the appropriate name.
-    @property
-    def resolved_environment_name(self) -> str | None:
-        """Environment name with python3→base mapping (provided by subclass)."""
-        raise NotImplementedError
+    # Optional attribute set by subclasses that perform compilation
+    # (e.g. NotebookWrangler).  When set, it takes priority over the
+    # spec-derived kernel name.  Defaults to None for subclasses that
+    # do not compile (e.g. DataWrangler).
+    compiled_kernel_name: str | None = None
 
     @property
     def resolved_kname(self) -> str | None:
-        """Raw kernel name for display (provided by subclass)."""
-        raise NotImplementedError
+        """Highest-priority available kernel name (kernel_name, not env_name).
+
+        The kernel name can come from two places, in order of priority:
+        1. ``compiled_kernel_name``: Set after the compile step. The most
+           accurate.  Defaults to ``None`` for wranglers that do not
+           compile.
+        2. ``spec_manager.get_resolved_kernel_name``: From the spec output
+           or initial spec load.
+        """
+        if self.compiled_kernel_name is not None:
+            return self.compiled_kernel_name
+        if not self.spec_manager:
+            return None
+        return self.spec_manager.get_resolved_kernel_name()
+
+    @property
+    def resolved_environment_name(self) -> str | None:
+        """Highest-priority available environment name (with python3→base mapping).
+
+        This should be used for conda/micromamba environment operations where
+        the 'python3' kernel maps to the 'base' environment.
+        """
+        env_name = self.resolved_kname
+        if env_name == "python3":
+            return "base"
+        return env_name
 
     def run_workflow(
         self, name: str, steps: list, continue_on_failure: bool = False
