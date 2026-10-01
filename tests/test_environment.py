@@ -58,7 +58,8 @@ class TestEnvironmentExists:
         em = EnvironmentManager()
         assert em.environment_exists("base") is True
 
-    def test_name_starts_with_mm_ends_with_env(self, tmp_path):
+    def test_env_dir_exists(self, tmp_path):
+        """environment_exists returns True when the env directory exists locally."""
         from nb_wrangler.environment import EnvironmentManager  # noqa: F401
 
         from nb_wrangler.config import WranglerConfig, set_args_config
@@ -66,14 +67,26 @@ class TestEnvironmentExists:
         set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
         em = _make_manager_with_mocks(tmp_path)
 
-        mm_prefix = str(em.nbw_mm_dir)
-        env_path = tmp_path / "test_env"
-        em.wrangler_run = MagicMock(
-            return_value=MagicMock(stdout=json.dumps({"envs": [str(env_path)]}) + "\n")
-        )
-
-        em.get_existing_envs = MagicMock(return_value=[f"{mm_prefix}/envs/my_test"])
+        # Create the expected env directory at the path env_live_path computes
+        env_path = em.env_live_path("my_test")
+        env_path.mkdir(parents=True, exist_ok=True)
         assert em.environment_exists("my_test") is True
+
+    def test_env_not_present_when_dir_missing(self, tmp_path):
+        """environment_exists returns False when the env directory doesn't exist.
+
+        Regression: previously micromamba env list could report environments
+        from other NBW_ROOT prefixes, causing false positives.
+        """
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = _make_manager_with_mocks(tmp_path)
+
+        # The expected path does not exist on disk
+        assert em.environment_exists("nonexistent_env") is False
 
 
 class TestHandleResult:

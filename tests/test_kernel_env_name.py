@@ -201,32 +201,29 @@ class TestEnvironmentExistsExactMatch:
         assert em.environment_exists("python3") is True
 
     def test_exact_match_found(self, tmp_path):
-        """An env whose name exactly matches should be found."""
+        """An env whose directory exists at the expected path should be found."""
         em = self._make_manager(tmp_path)
-        # get_existing_envs returns full paths; environment_exists takes the name
-        em.get_existing_envs = MagicMock(
-            return_value=["/path/to/nbw_mm/envs/roman-nexus"]
-        )
+        env_path = em.env_live_path("roman-nexus")
+        env_path.mkdir(parents=True, exist_ok=True)
         assert em.environment_exists("roman-nexus") is True
 
     def test_suffix_no_longer_matches(self, tmp_path):
         """A suffix-only match should NOT be found with exact matching.
 
         Previously, 'nexus' would match env '/path/to/nbw_mm/envs/romannexus'
-        via endswith. With exact matching, this must return False.
+        via endswith. With exact path matching, this must return False.
         """
         em = self._make_manager(tmp_path)
-        em.get_existing_envs = MagicMock(
-            return_value=["/path/to/nbw_mm/envs/romannexus"]
-        )
+        # Only 'romannexus' directory exists; 'nexus' should not match it
+        env_path = em.env_live_path("romannexus")
+        env_path.mkdir(parents=True, exist_ok=True)
         assert em.environment_exists("nexus") is False
 
     def test_case_sensitive_exact_match(self, tmp_path):
         """Env names are case-sensitive."""
         em = self._make_manager(tmp_path)
-        em.get_existing_envs = MagicMock(
-            return_value=["/path/to/nbw_mm/envs/RomanNexus-2026.2"]
-        )
+        env_path = em.env_live_path("RomanNexus-2026.2")
+        env_path.mkdir(parents=True, exist_ok=True)
         assert em.environment_exists("RomanNexus-2026.2") is True
         assert em.environment_exists("romannexus-2026.2") is False
 

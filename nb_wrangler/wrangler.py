@@ -934,7 +934,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         if not self.resolved_environment_name or not compiled_mamba_spec_str:
             return self.logger.error(
-                "No compiled kernel name or mamba spec found. Run --packages-compile first."
+                "No compiled environment name or mamba spec found. Run --packages-compile first."
             )
 
         if self.env_manager.environment_exists(self.resolved_environment_name):
@@ -1033,12 +1033,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _test_imports(self) -> bool:
         """Unconditionally run import checks if test_imports are defined."""
-        if not self.resolved_kname:
-            return self.logger.error("No kernel name found to test imports on.")
+        if not self.resolved_environment_name:
+            return self.logger.error("No environment name found to test imports on.")
         self._inject_test_env_vars()
 
         if nb_to_imports := self.spec_manager.get_outputs("nb_to_imports"):
-            return self.env_manager.test_nb_imports(self.resolved_kname, nb_to_imports)
+            return self.env_manager.test_nb_imports(
+                self.resolved_environment_name, nb_to_imports
+            )
         else:
             return self.logger.warning("Found no imports to check in spec'd notebooks.")
 
@@ -1066,20 +1068,24 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _unpack_environment(self) -> bool:
         """Unpack a pre-built environment from the pantry."""
-        if not self.resolved_kname:
-            return self.logger.error("No kernel name defined in spec to unpack.")
+        if not self.resolved_environment_name:
+            return self.logger.error("No environment name defined in spec to unpack.")
 
         if self.pantry_shelf.unpack_environment(
-            self.resolved_kname, self.spec_manager.moniker, self.archive_format
+            self.resolved_environment_name,
+            self.spec_manager.moniker,
+            self.archive_format,
         ):
             return self._register_environment()
         return False
 
     def _pack_environment(self) -> bool:
-        if not self.resolved_kname:
-            return self.logger.error("No kernel name found to pack.")
+        if not self.resolved_environment_name:
+            return self.logger.error("No environment name found to pack.")
         return self.pantry_shelf.pack_environment(
-            self.resolved_kname, self.spec_manager.moniker, self.archive_format
+            self.resolved_environment_name,
+            self.spec_manager.moniker,
+            self.archive_format,
         )
 
     def _delete_environment(self) -> bool:
@@ -1117,9 +1123,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if self.resolved_environment_name:
             print(self.resolved_environment_name)
             return True
-        return self.logger.error("Could not determine kernel name.")
+        return self.logger.error("Could not determine environment name.")
 
-    def _get_environment(self) -> dict:
+    def _get_environment_vars(self) -> dict:
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
             env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
@@ -1128,7 +1134,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return {}
 
     def _setup_environment(self) -> bool:
-        env_vars = self._get_environment()
+        env_vars = self._get_environment_vars()
         env_vars = utils.resolve_env(env_vars)
         for key, value in env_vars.items():
             os.environ[key] = value
@@ -1140,12 +1146,9 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
         if not self.resolved_environment_name:
-            return self.logger.error("No kernel name found to register.")
-        env_vars = self._get_environment()
+            return self.logger.error("No environment name found to register.")
+        env_vars = self._get_environment_vars()
         display_name = self.spec_manager.display_name or self.resolved_kname
-        self.logger.debug(
-            f"The resolved env vars for environment '{self.resolved_environment_name}' are '{env_vars}'."
-        )
         if not self.env_manager.register_environment(
             self.resolved_environment_name, display_name, env_vars
         ):
@@ -1155,15 +1158,15 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""
         if not self.resolved_environment_name:
-            return self.logger.error("No kernel name found to unregister.")
+            return self.logger.error("No environment name found to unregister.")
         return self.env_manager.unregister_environment(self.resolved_environment_name)
 
     def _spi_inject_reqs(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""
-        if not self.resolved_kname:
-            return self.logger.error("No kernel name found for SPI injection.")
+        if not self.resolved_environment_name:
+            return self.logger.error("No environment name found for SPI injection.")
         exports_str = self.data_wrangler.get_exports()
-        return self.injector.inject(self.resolved_kname, exports_str)
+        return self.injector.inject(self.resolved_environment_name, exports_str)
 
     def _spi_image_test(self) -> bool:
         """Run the image-test script for the current SPI deployment."""

@@ -36,7 +36,7 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
         """Helper to get kernel name, matching NotebookWrangler logic."""
         return self.spec_manager.get_resolved_kernel_name()
 
-    def _get_environment(self) -> dict:
+    def _get_environment_vars(self) -> dict:
         data = self.spec_manager.get_output_data("data")
         if data is not None and not self.config.data_env_vars_no_auto_add:
             mode = self.config.data_env_vars_mode
@@ -50,10 +50,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
         kname = self.resolved_kname
         if not kname:
             return self.logger.error("No kernel name found to register.")
-        env_vars = self._get_environment()
+        env_vars = self._get_environment_vars()
         display_name = self.spec_manager.display_name or kname
         self.logger.debug(
-            f"The resolved env vars for environment '{kname}' are '{env_vars}'."
+            f"The resolved env vars for kernel '{kname}' are '{env_vars}'."
         )
         if not self.env_manager.register_environment(kname, display_name, env_vars):
             return False

@@ -473,20 +473,18 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         self.logger.debug(f"Checking existence of {env_name}.")
         if self.is_base_env_alias(env_name):
             return True
-        envs = self.get_existing_envs()
-        # Extract env name from each path and compare exactly.
-        # Paths look like "<envs_dir>/<env_name>"; the base env path is
-        # "<mm_dir>" and is already handled by is_base_env_alias above.
-        for env_path in envs:
-            resolved_name = Path(env_path).name
+        expected_path = self.env_live_path(env_name)
+        self.logger.debug(f"Checking existence of {env_name} at {expected_path}.")
+        # Only consider environments within the configured nbw_mm_dir.
+        # micromamba env list may report environments from other prefixes
+        # (e.g. when NBW_ROOT differs between runs).
+        if not expected_path.exists():
             self.logger.debug(
-                f"Checking existence of {env_name} against {env_path} (name={resolved_name})."
+                f"Environment {env_name} does not exist at {expected_path}."
             )
-            if resolved_name == env_name:
-                self.logger.debug(f"Environment {env_name} exists.")
-                return True
-        self.logger.debug(f"Environment {env_name} does not exist.")
-        return False
+            return False
+        self.logger.debug(f"Environment {env_name} exists at {expected_path}.")
+        return True
 
     def get_existing_envs(self) -> list[str]:
         cmd = self.mamba_command + " env list --json"
