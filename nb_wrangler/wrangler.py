@@ -85,19 +85,32 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     @property
     def resolved_kname(self) -> str | None:
-        """
-        Gets the definitive kernel name from the most reliable source available.
+        """Highest-priority available kernel name (kernel_name, not env_name).
 
         The kernel name can come from three places, in order of priority:
         1. self.compiled_kernel_name: Set after the compile step. The most accurate.
         2. spec output: For pre-compiled specs (`--reinstall` workflow).
-        3. self.env_name: From the initial spec load (for simple mode or early steps).
+        3. spec_manager.get_resolved_kernel_name: From the initial spec load.
         """
-        return (
-            self.compiled_kernel_name
-            or self.spec_manager.get_output_data("kernel_name")
-            or self.env_name
+        if not self.spec_manager:
+            return self.compiled_kernel_name
+        return self.compiled_kernel_name or self.spec_manager.get_resolved_kernel_name()
+
+    @property
+    def resolved_environment_name(self) -> str | None:
+        """Highest-priority available environment name (with python3→base mapping).
+
+        This should be used for conda/micromamba environment operations where
+        the 'python3' kernel maps to the 'base' environment.
+        """
+        env_name = self.compiled_kernel_name or (
+            self.spec_manager.get_resolved_environment_name()
+            if self.spec_manager
+            else None
         )
+        if env_name == "python3":
+            return "base"
+        return env_name
 
     @property
     def deployment_name(self):
@@ -105,17 +118,31 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.spec_manager.deployment_name if self.spec_manager else None
 
     @property
-    def env_name(self):
-        """Strictly speaking,  kernel name,  but nominally also environment name.
-        The worst/only exception I know of is "base" environment == "python3" kernel.
+    def environment_name(self):
+        """Conda/micromamba environment name (may differ from kernel_name for 'python3').
+
+        Delegates to SpecManager.environment_name for canonical mapping.
         """
         if self.spec_manager:
-            if self.spec_manager.kernel_name == "python3":
-                return "base"
-            else:
-                return self.spec_manager.kernel_name
+            return self.spec_manager.environment_name
         else:
             return None
+
+    @property
+    def env_name(self):
+        """Deprecated alias for environment_name.
+
+        Kept for backward compatibility; will be removed in a future version.
+        """
+        warn_msg = (
+            "NotebookWrangler.env_name is deprecated and will be removed in a "
+            "future version. Use environment_name or resolved_environment_name "
+            "instead."
+        )
+        import warnings
+
+        warnings.warn(warn_msg, DeprecationWarning, stacklevel=2)
+        return self.environment_name
 
     @property
     def kernel_display_name(self) -> str:
@@ -905,25 +932,25 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         """Unconditionally initialize the target environment."""
         compiled_mamba_spec_str = self.spec_manager.get_output_data("mamba_spec", {})
 
-        if not self.resolved_kname or not compiled_mamba_spec_str:
+        if not self.resolved_environment_name or not compiled_mamba_spec_str:
             return self.logger.error(
                 "No compiled kernel name or mamba spec found. Run --packages-compile first."
             )
 
-        if self.env_manager.environment_exists(self.resolved_kname):
+        if self.env_manager.environment_exists(self.resolved_environment_name):
             return self.logger.info(
-                f"Environment {self.resolved_kname} already exists, skipping re-install. Use --env-delete to remove."
+                f"Environment {self.resolved_environment_name} already exists, skipping re-install. Use --env-delete to remove."
             )
 
         # Write the compiled mamba spec to a temporary file
         temp_mamba_spec_file = (
-            self.config.output_dir / f"{self.resolved_kname}-mamba.yml"
+            self.config.output_dir / f"{self.resolved_environment_name}-mamba.yml"
         )
         with open(temp_mamba_spec_file, "w") as f:
             f.write(compiled_mamba_spec_str)
 
         if not self.env_manager.create_environment(
-            self.resolved_kname, temp_mamba_spec_file
+            self.resolved_environment_name, temp_mamba_spec_file
         ):
             return False
         if not self._register_environment():
@@ -932,14 +959,14 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _install_packages(self) -> bool:
         """Unconditionally install packages and test imports."""
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.error(
                 "No compiled kernel name found. Run --packages-compile first."
             )
 
         if self.pip_packages:
             if not self.env_manager.install_packages(
-                self.resolved_kname,
+                self.resolved_environment_name,
                 self.pip_packages,
                 self.override_pip_versions_file,
             ):
@@ -950,18 +977,18 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _uninstall_packages(self) -> bool:
         """Unconditionally uninstall pip packages from target environment."""
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.error("No kernel name found to uninstall from.")
         return self.env_manager.uninstall_packages(
-            self.resolved_kname, self.pip_packages
+            self.resolved_environment_name, self.pip_packages
         )
 
     def _copy_spec_to_env(self) -> bool:
         self.logger.debug("Copying spec to target environment.")
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.error("No kernel name found to copy spec to.")
         return self.spec_manager.save_spec(
-            self.env_manager.env_live_path(self.resolved_kname),
+            self.env_manager.env_live_path(self.resolved_environment_name),
             add_sha256=not self.config.spec_ignore_hash,
         )
 
@@ -1057,10 +1084,10 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _delete_environment(self) -> bool:
         """Unregister its kernel and delete the test environment."""
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.warning("No kernel name found to delete. Skipping.")
 
-        if self.env_name.startswith("python") or self.env_name in ["base"]:
+        if self.resolved_environment_name in ["base", "python3"]:
             return self.logger.warning(
                 "Skipping base environment deletion and de-registration."
             )
@@ -1068,13 +1095,13 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         # unregister_environment is tolerant of a missing kernel spec (it warns and
         # returns True on "not found"), so this branch now only fires for genuine
         # uninstall failures rather than benign reset/cleanup cases.
-        if not self.env_manager.unregister_environment(self.resolved_kname):
+        if not self.env_manager.unregister_environment(self.resolved_environment_name):
             self.logger.warning(
-                f"Failed to unregister environment {self.resolved_kname}. This can be normal if it was never registered."
+                f"Failed to unregister environment {self.resolved_environment_name}. This can be normal if it was never registered."
             )
-        if not self.env_manager.delete_environment(self.resolved_kname):
+        if not self.env_manager.delete_environment(self.resolved_environment_name):
             self.logger.warning(
-                f"Failed to delete environment {self.resolved_kname}. This can be normal if it never existed."
+                f"Failed to delete environment {self.resolved_environment_name}. This can be normal if it never existed."
             )
         return True
 
@@ -1087,8 +1114,8 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         return self.env_manager.compact()
 
     def _env_print_name(self) -> bool:
-        if self.resolved_kname:
-            print(self.resolved_kname)
+        if self.resolved_environment_name:
+            print(self.resolved_environment_name)
             return True
         return self.logger.error("Could not determine kernel name.")
 
@@ -1112,24 +1139,24 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _register_environment(self) -> bool:  # post-start-hook / user support
         """Register the target environment with Jupyter as a kernel."""
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.error("No kernel name found to register.")
         env_vars = self._get_environment()
         display_name = self.spec_manager.display_name or self.resolved_kname
         self.logger.debug(
-            f"The resolved env vars for environment '{self.resolved_kname}' are '{env_vars}'."
+            f"The resolved env vars for environment '{self.resolved_environment_name}' are '{env_vars}'."
         )
         if not self.env_manager.register_environment(
-            self.resolved_kname, display_name, env_vars
+            self.resolved_environment_name, display_name, env_vars
         ):
             return False
         return True
 
     def _unregister_environment(self) -> bool:
         """Unregister the target environment from Jupyter."""
-        if not self.resolved_kname:
+        if not self.resolved_environment_name:
             return self.logger.error("No kernel name found to unregister.")
-        return self.env_manager.unregister_environment(self.resolved_kname)
+        return self.env_manager.unregister_environment(self.resolved_environment_name)
 
     def _spi_inject_reqs(self) -> bool:
         """Populat the local SPI clone with requirements and info from the spec."""

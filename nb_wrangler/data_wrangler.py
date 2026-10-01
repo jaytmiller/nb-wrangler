@@ -34,13 +34,7 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
     @property
     def resolved_kname(self) -> str | None:
         """Helper to get kernel name, matching NotebookWrangler logic."""
-        # Note: This is a bit of duplication, but necessary if we want DataWrangler
-        # to be independent for environment registration.
-        # In a fuller refactor, this state might live in a shared context.
-        return (
-            self.spec_manager.get_output_data("kernel_name")
-            or self.spec_manager.kernel_name
-        )
+        return self.spec_manager.get_resolved_kernel_name()
 
     def _get_environment(self) -> dict:
         data = self.spec_manager.get_output_data("data")

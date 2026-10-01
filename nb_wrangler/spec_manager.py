@@ -112,6 +112,38 @@ class SpecManager(
         return None
 
     @property
+    def environment_name(self) -> str | None:
+        """The conda/micromamba environment name used for environment operations.
+
+        Normally identical to kernel_name, but follows the convention that the
+        'python3' kernel and 'base' conda environment refer to the same thing.
+        """
+        kname = self.kernel_name
+        if kname == "python3":
+            return "base"
+        return kname
+
+    def get_resolved_kernel_name(self) -> str | None:
+        """Get the most reliable kernel name available.
+
+        Returns the compiled kernel name if available, otherwise falls back to
+        the kernel_name stored in spec output, otherwise the kernel_name from
+        the spec header / inline mamba spec.
+        """
+        return self.get_output_data("kernel_name") or self.kernel_name
+
+    def get_resolved_environment_name(self) -> str | None:
+        """Get the most reliable environment name available.
+
+        Applies the python3-to-base mapping convention on top of the resolved
+        kernel name.
+        """
+        kname = self.get_resolved_kernel_name()
+        if kname == "python3":
+            return "base"
+        return kname
+
+    @property
     def display_name(self) -> str:  # readable name in lab menu
         return self.header.get("display_name", self.kernel_name)
 
