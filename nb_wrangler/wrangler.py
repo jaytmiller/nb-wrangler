@@ -19,6 +19,7 @@ from .injector import get_injector
 from .registry import RegistryManager
 from .pantry import NbwPantry
 from .data_wrangler import DataWrangler
+from .wrangler_mixin import WranglerWorkflowMixin
 from . import utils
 
 
@@ -49,7 +50,9 @@ def _parse_ls_remote_tags(result: object) -> list[str]:
     return tags
 
 
-class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
+class NotebookWrangler(
+    WranglerConfigurable, WranglerLoggable, WranglerEnvable, WranglerWorkflowMixin
+):
     """Main wrangler class for processing notebooks."""
 
     def __init__(self):
@@ -316,25 +319,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info(
             f"Final value --dev is set to {self.config.dev}. --prod is set to {self.config.prod}."
         )
-
-    def run_workflow(
-        self, name: str, steps: list, continue_on_failure: bool = False
-    ) -> bool:
-        self.logger.info("Running", name, "workflow")
-        overall_success = True
-        for step in steps:
-            self.logger.info(f"Step {step.__name__} of Workflow {name}.")
-            if not step():
-                if continue_on_failure:
-                    self.logger.warning(f"FAILED Workflow {name} Step {step.__name__}.")
-                    overall_success = False
-                else:
-                    return self.logger.error(
-                        f"FAILED Workflow {name} Step {step.__name__}."
-                    )
-        if not overall_success:
-            return self.logger.warning(f"Workflow {name} completed with errors.")
-        return self.logger.info("Workflow", name, "completed.")
 
     def _run_development_workflow(self) -> bool:
         """Execute steps for spec/notebook development workflow."""
@@ -815,15 +799,20 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         self.logger.info("Listing available shelves/specs in pantry.")
         return self.pantry.list_shelves()
 
-    def _clean_repos(self) -> bool:
-        """Clean up specified patterns in cloned repositories."""
-        if self.config.repos_clean is None:
-            return True
+    def _collect_repo_urls(self) -> list[str]:
+        """Gather notebook repo URLs plus the SPI repo URL from the spec output."""
         output_repos = self.spec_manager.get_output_data("repositories", {})
         urls = [repo["url"] for repo in output_repos.values()]
         if spi_info := self.spec_manager.get_output_data("spi"):
             if spi_url := spi_info.get("repo"):
                 urls.append(spi_url)
+        return urls
+
+    def _clean_repos(self) -> bool:
+        """Clean up specified patterns in cloned repositories."""
+        if self.config.repos_clean is None:
+            return True
+        urls = self._collect_repo_urls()
         patterns = self.config.repos_clean
         if isinstance(patterns, str):
             patterns = [patterns]
@@ -831,11 +820,7 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
     def _delete_repos(self) -> bool:
         """Delete notebook and SPI repo clones."""
-        output_repos = self.spec_manager.get_output_data("repositories", {})
-        urls = [repo["url"] for repo in output_repos.values()]
-        if spi_info := self.spec_manager.get_output_data("spi"):
-            if spi_url := spi_info.get("repo"):
-                urls.append(spi_url)
+        urls = self._collect_repo_urls()
         return self.repo_manager.delete_repos(urls)
 
     def _compile_requirements(self) -> bool:
@@ -872,7 +857,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             )
         except Exception as e:
             return self.logger.error(f"Failed to save compiled mamba spec: {e}")
-        return True
 
     def _compile_pip_requirements(self) -> bool:
 
@@ -1125,14 +1109,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             return True
         return self.logger.error("Could not determine environment name.")
 
-    def _get_environment_vars(self) -> dict:
-        data = self.spec_manager.get_output_data("data")
-        if data is not None and not self.config.data_env_vars_no_auto_add:
-            env_vars = data.get(self.config.data_env_vars_mode + "_exports", {})
-            return env_vars
-        else:
-            return {}
-
     def _setup_environment(self) -> bool:
         env_vars = self._get_environment_vars()
         env_vars = utils.resolve_env(env_vars)
@@ -1141,18 +1117,6 @@ class NotebookWrangler(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
             self.logger.debug(
                 f"Setting environment '{key}' = '{value}' for wrangler and and notebooks."
             )
-        return True
-
-    def _register_environment(self) -> bool:  # post-start-hook / user support
-        """Register the target environment with Jupyter as a kernel."""
-        if not self.resolved_environment_name:
-            return self.logger.error("No environment name found to register.")
-        env_vars = self._get_environment_vars()
-        display_name = self.spec_manager.display_name or self.resolved_kname
-        if not self.env_manager.register_environment(
-            self.resolved_environment_name, display_name, env_vars
-        ):
-            return False
         return True
 
     def _unregister_environment(self) -> bool:

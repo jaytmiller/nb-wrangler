@@ -11,10 +11,11 @@ from .repository import RepositoryManager
 from .data_manager import RefdataValidator
 from .pantry import NbwPantry
 from .environment import EnvironmentManager
+from .wrangler_mixin import WranglerWorkflowMixin
 from . import utils
 
 
-class DataWrangler(WranglerConfigurable, WranglerLoggable):
+class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin):
     """Handles data curation operations."""
 
     def __init__(
@@ -36,47 +37,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable):
         """Helper to get kernel name, matching NotebookWrangler logic."""
         return self.spec_manager.get_resolved_kernel_name()
 
-    def _get_environment_vars(self) -> dict:
-        data = self.spec_manager.get_output_data("data")
-        if data is not None and not self.config.data_env_vars_no_auto_add:
-            mode = self.config.data_env_vars_mode
-            env_vars = data.get(mode + "_exports", {})
-            return env_vars
-        else:
-            return {}
-
-    def _register_environment(self) -> bool:
-        """Register the target environment with Jupyter as a kernel."""
-        kname = self.resolved_kname
-        if not kname:
-            return self.logger.error("No kernel name found to register.")
-        env_vars = self._get_environment_vars()
-        display_name = self.spec_manager.display_name or kname
-        self.logger.debug(
-            f"The resolved env vars for kernel '{kname}' are '{env_vars}'."
-        )
-        if not self.env_manager.register_environment(kname, display_name, env_vars):
-            return False
-        return True
-
-    def run_workflow(
-        self, name: str, steps: list, continue_on_failure: bool = False
-    ) -> bool:
-        self.logger.info("Running", name, "workflow")
-        overall_success = True
-        for step in steps:
-            self.logger.info(f"Step {step.__name__} of Workflow {name}.")
-            if not step():
-                if continue_on_failure:
-                    self.logger.warning(f"FAILED Workflow {name} Step {step.__name__}.")
-                    overall_success = False
-                else:
-                    return self.logger.error(
-                        f"FAILED Workflow {name} Step {step.__name__}."
-                    )
-        if not overall_success:
-            return self.logger.warning(f"Workflow {name} completed with errors.")
-        return self.logger.info("Workflow", name, "completed.")
+    @property
+    def resolved_environment_name(self) -> str | None:
+        """Environment name with python3→base mapping applied."""
+        return self.spec_manager.get_resolved_environment_name()
 
     def collect(self) -> bool:
         """Collect data from notebook repos."""
