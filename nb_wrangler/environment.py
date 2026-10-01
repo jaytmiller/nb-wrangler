@@ -428,24 +428,60 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
                 f"(no registered Jupyter kernel with that name). This can be normal "
                 f"during --reset-curation when the environment was never registered."
             )
-        cmd = self._condition_cmd(f"jupyter kernelspec uninstall -y {env_name.lower()}")
+        # Look up the exact registered name (case-sensitive) since Jupyter
+        # preserves the case of kernel names as they were registered.
+        kernel_name_exact = self._lookup_jupyter_kernel_name(env_name)
+        cmd = self._condition_cmd(
+            f"jupyter kernelspec uninstall -y {kernel_name_exact}"
+        )
         result = self.wrangler_run(cmd, check=False)
         return self.handle_result(
             result,
-            f"Failed to unregister Jupyter kernel {env_name.lower()}: ",
-            f"Unregistered Jupyter kernel {env_name.lower()}. Environment {env_name} "
+            f"Failed to unregister Jupyter kernel {env_name}: ",
+            f"Unregistered Jupyter kernel {env_name}. Environment {env_name} "
             f"is no longer offered by JupyterLab.",
         )
 
+    def _lookup_jupyter_kernel_name(self, env_name: str) -> str:
+        """Look up the exact registered kernel name (case-sensitive) for ``env_name``.
+
+        Jupyter kernelspec list returns kernel names as they were registered, preserving
+        case. We do a case-insensitive comparison to find the exact match so that the
+        uninstall command uses the correct name.
+        """
+        cmd = "jupyter kernelspec list --json"
+        result = self.wrangler_run(cmd, check=False)
+        if not isinstance(result, CompletedProcess):
+            return env_name
+        stdout = getattr(result, "stdout", None) or ""
+        try:
+            specs = json.loads(stdout).get("kernelspecs", {}) if stdout else {}
+        except (ValueError, TypeError):
+            return env_name
+        for name in specs:
+            if name.lower() == env_name.lower():
+                return name
+        return env_name
+
     def environment_exists(self, env_name: str) -> bool:
-        """Return True IFF `env_name` exists."""
+        """Return True IFF `env_name` exists as a conda/micromamba environment.
+
+        Uses exact name matching against the list of existing environments.
+        Conda env names are case-sensitive, so the comparison is case-sensitive.
+        """
         self.logger.debug(f"Checking existence of {env_name}.")
         if self.is_base_env_alias(env_name):
             return True
         envs = self.get_existing_envs()
-        for env in envs:
-            self.logger.debug(f"Checking existence of {env_name} against {env}.")
-            if env.startswith(str(NBW_MM)) and env.endswith(env_name):
+        # Extract env name from each path and compare exactly.
+        # Paths look like "<envs_dir>/<env_name>"; the base env path is
+        # "<mm_dir>" and is already handled by is_base_env_alias above.
+        for env_path in envs:
+            resolved_name = Path(env_path).name
+            self.logger.debug(
+                f"Checking existence of {env_name} against {env_path} (name={resolved_name})."
+            )
+            if resolved_name == env_name:
                 self.logger.debug(f"Environment {env_name} exists.")
                 return True
         self.logger.debug(f"Environment {env_name} does not exist.")
