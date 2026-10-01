@@ -24,12 +24,13 @@ make lint/flake8
 make lint/black
 make lint/radon
 make lint/mypy
+make black
 ```
 Use these commands instead of inlining the related utility directly with python,
 e.g. prefer "make link/black" over "python -m black ...".  Note that each lint/xxx
 Makefile rule is diagnostic only, e.g. lint/black detects errors but does not fix
-them.  It is also OK to call each utility,  e.g. "black" or "flake8",  directly,
-but again do not call them via "python -m" because it will always require approval.
+them.  Note that "make black" reformats using our configuration rather than
+checking whitespace.
 
 Although uv is used internally and to install nb-wrangler, the test environment
 does not include a .venv; hence when needed use "python" instead of

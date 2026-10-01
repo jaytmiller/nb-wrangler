@@ -270,7 +270,7 @@ lint/flake8: ## check style with flake8
 
 lint/black: ## check style with black
 	@echo ================================================================================
-	black --check ${PROJECT} tests
+	black --check --target-version=py312 ${PROJECT} tests
 
 lint/bandit: ## check security with bandit
 	@echo ================================================================================
@@ -296,6 +296,9 @@ lint/radon: lint/radon-cc lint/radon-mi
 
 
 lint: lint/flake8  lint/mypy  lint/black  lint/bandit lint/radon ## check style, type annotations, whitespace
+
+black:
+	black --target-version=py312  tests nb_wrangler
 
 
 test-all: setup lint unit-test
