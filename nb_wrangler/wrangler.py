@@ -9,7 +9,7 @@ import copy
 from .constants import NBW_URI, LOG_FILE
 from .config import WranglerConfigurable
 from .logger import WranglerLoggable
-from .spec_manager import SpecManager
+from .spec_manager import SpecManager, is_base_env_name
 from .repository import RepositoryManager
 from .nb_processor import NotebookImportProcessor
 from .environment import WranglerEnvable
@@ -1048,7 +1048,7 @@ class NotebookWrangler(
         if not self.resolved_environment_name:
             return self.logger.warning("No kernel name found to delete. Skipping.")
 
-        if self.resolved_environment_name in ["base", "python3"]:
+        if is_base_env_name(self.resolved_environment_name):
             return self.logger.warning(
                 "Skipping base environment deletion and de-registration."
             )

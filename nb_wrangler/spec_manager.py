@@ -12,6 +12,28 @@ from .config import WranglerConfigurable  # Import WranglerConfigurable
 from .constants import DEFAULT_ARCHIVE_FORMAT
 from .spec_validator import SpecValidator
 
+
+def kernel_name_to_env_name(kernel_name: str | None) -> str | None:
+    """Map a kernel name to its canonical conda/micromamba environment name.
+
+    The 'python3' kernel and 'base' conda environment refer to the same
+    thing, so 'python3' is mapped to 'base'.  All other names pass through
+    unchanged.
+    """
+    if kernel_name in ["python", "python3"]:
+        return "base"
+    return kernel_name
+
+
+def is_base_env_name(env_name: str | None) -> bool:
+    """Return True if *env_name* refers to the base conda environment.
+
+    Both 'base' and 'python3' are treated as aliases for the base
+    environment per the wrangler convention.
+    """
+    return env_name in ("base", "python3", "python")
+
+
 _OVERRIDES_SCHEMA: dict[str, Any] = {
     "test_environment_vars": None,
     "repositories": ["url", "ref"],
@@ -118,10 +140,7 @@ class SpecManager(
         Normally identical to kernel_name, but follows the convention that the
         'python3' kernel and 'base' conda environment refer to the same thing.
         """
-        kname = self.kernel_name
-        if kname == "python3":
-            return "base"
-        return kname
+        return kernel_name_to_env_name(self.kernel_name)
 
     def get_resolved_kernel_name(self) -> str | None:
         """Get the most reliable kernel name available.
@@ -138,10 +157,7 @@ class SpecManager(
         Applies the python3-to-base mapping convention on top of the resolved
         kernel name.
         """
-        kname = self.get_resolved_kernel_name()
-        if kname == "python3":
-            return "base"
-        return kname
+        return kernel_name_to_env_name(self.get_resolved_kernel_name())
 
     @property
     def display_name(self) -> str:  # readable name in lab menu
