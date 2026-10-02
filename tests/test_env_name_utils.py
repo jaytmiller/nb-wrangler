@@ -38,7 +38,7 @@ class TestIsBaseEnvName:
         assert is_base_env_name("base") is True
 
     def test_python3_is_alias(self):
-        assert is_base_env_name("python3") is True
+        assert is_base_env_name("python3") is False
 
     def test_custom_env_not_alias(self):
         assert is_base_env_name("RomanNexus-2026.2") is False
@@ -48,6 +48,9 @@ class TestIsBaseEnvName:
 
     def test_empty_string_not_alias(self):
         assert is_base_env_name("") is False
+
+    def test_python_is_not_alias(self):
+        assert is_base_env_name("python") is False
 
 
 class TestSpecManagerUsesCanonicalMapper:

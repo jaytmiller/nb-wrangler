@@ -248,7 +248,11 @@ class TestEnvironmentExistsExactMatch:
         assert em.environment_exists("base") is True
 
     def test_python3_env_exists(self, tmp_path):
+        """python3 is no longer treated as a base alias; environment_exists checks filesystem."""
         em = self._make_manager(tmp_path)
+        # python3 is not a base alias anymore; check the filesystem
+        env_path = em.env_live_path("python3")
+        env_path.mkdir(parents=True, exist_ok=True)
         assert em.environment_exists("python3") is True
 
     def test_exact_match_found(self, tmp_path):
@@ -321,3 +325,59 @@ class TestLookupJupyterKernelName:
             return_value=CompletedProcess(["jupyter"], 0, stdout=listing)
         )
         assert em._lookup_jupyter_kernel_name("MyEnv") == "MyEnv"
+
+
+class TestCompilerResolvedEnvironmentName:
+    """Tests that RequirementsCompiler uses resolved_environment_name
+    (with python3→base mapping) for env_run calls and mamba-spec name."""
+
+    def _make_compiler(self, tmp_path, kernel_name="python3"):
+        from nb_wrangler.compiler import RequirementsCompiler
+        from nb_wrangler.repository import RepositoryManager
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name=kernel_name)
+        )
+        repo_manager = RepositoryManager(tmp_path / "repos")
+        compiler = RequirementsCompiler(sm, repo_manager)
+        return compiler
+
+    def test_resolved_environment_name_python3(self, tmp_path):
+        """Compiler resolved_environment_name maps python3→base."""
+        compiler = self._make_compiler(tmp_path, kernel_name="python3")
+        assert compiler.resolved_environment_name == "base"
+
+    def test_resolved_environment_name_custom(self, tmp_path):
+        """Compiler resolved_environment_name passes through custom names."""
+        compiler = self._make_compiler(tmp_path, kernel_name="RomanNexus-2026.2")
+        assert compiler.resolved_environment_name == "RomanNexus-2026.2"
+
+    def test_env_run_uses_resolved_environment_name(self, tmp_path):
+        """env_run calls should receive the environment name, not the kernel name."""
+        from unittest.mock import MagicMock
+
+        compiler = self._make_compiler(tmp_path, kernel_name="python3")
+        captured_names = []
+
+        def fake_env_run(env_name, cmd, **kwargs):
+            captured_names.append(env_name)
+            return MagicMock(stdout="", returncode=0)
+
+        compiler.env_manager.env_run = fake_env_run
+        compiler.env_manager.handle_result = MagicMock(return_value=True)
+
+        from pathlib import Path
+
+        compiler._run_pip_compile(Path(tmp_path / "out.txt"), [], "")
+
+        # All env_run calls should use 'base', not 'python3'
+        assert all(
+            name == "base" for name in captured_names
+        ), f"Expected all env_run calls to use 'base', got: {captured_names}"
+
+    def test_mamba_spec_name_uses_environment_name(self, tmp_path):
+        """Simple-mode mamba spec name should use environment name, not kernel name."""
+        compiler = self._make_compiler(tmp_path, kernel_name="python3")
+        base_mamba_spec = compiler._get_base_mamba_spec()
+        assert base_mamba_spec["name"] == "base"

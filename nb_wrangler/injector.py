@@ -109,18 +109,18 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
         return self.spec_manager.save_spec(out_spec)
 
-    def inject(self, kernel_name: str, env_exports: str) -> bool:
+    def inject(self, environment_name: str, env_exports: str) -> bool:
         """
         Performs a placeholder injection of the SPI.
         """
         self.logger.info(
-            f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} kernel {kernel_name}..."
+            f"Initiating SPI injection into {self.spi_path} for {self.deployment_name} environment {environment_name}..."
         )
         if self.deployment_name != "wrangler":
-            kernel_path = self.environments_path / kernel_name
-            test_path = kernel_path / "tests"
-            env_yml = kernel_path / f"{kernel_name}.yml"
-            env_pip = kernel_path / f"{kernel_name}.pip"
+            env_path = self.environments_path / environment_name
+            test_path = env_path / "tests"
+            env_yml = env_path / f"{environment_name}.yml"
+            env_pip = env_path / f"{environment_name}.pip"
             self._inject("test_imports", test_path / "imports")
             # self._inject("test_notebooks", self.test_path / "notebooks")
             self._inject("mamba_spec", env_yml)
