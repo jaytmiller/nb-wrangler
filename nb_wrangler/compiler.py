@@ -11,7 +11,7 @@ from .logger import WranglerLoggable
 from .environment import WranglerEnvable
 from .constants import TARGET_PACKAGES, PIP_COMPILE_TIMEOUT
 from .repository import RepositoryManager
-from .spec_manager import SpecManager
+from .spec_manager import SpecManager, kernel_name_to_env_name
 from .injector import SpiInjector
 from .utils import get_yaml
 from . import utils
@@ -30,6 +30,16 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         self.spec_manager = spec_manager
         self.repo_manager = repo_manager
         self.python_path = python_path
+
+    @property
+    def resolved_environment_name(self) -> str | None:
+        """The conda environment name for this compiler's spec, with python3→base mapping.
+
+        Uses the canonical ``kernel_name_to_env_name`` mapping so that
+        ``env_run`` calls and mamba-spec ``name`` fields use the correct
+        environment identifier rather than the raw kernel name.
+        """
+        return kernel_name_to_env_name(self.spec_manager.kernel_name)
 
     def compile_requirements(
         self,
@@ -133,7 +143,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         cmd = " ".join(cmd_parts)
 
         result = self.env_manager.env_run(
-            self.spec_manager.kernel_name, cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+            self.resolved_environment_name,
+            cmd,
+            check=False,
+            timeout=PIP_COMPILE_TIMEOUT,
         )
         if not self.env_manager.handle_result(
             result, f"{self.config.pip_command} compile failed: "
@@ -142,7 +155,10 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
 
         cmd = f"{str(self.config.pip_command)} freeze --quiet"
         result = self.env_manager.env_run(
-            self.spec_manager.kernel_name, cmd, check=False, timeout=PIP_COMPILE_TIMEOUT
+            self.resolved_environment_name,
+            cmd,
+            check=False,
+            timeout=PIP_COMPILE_TIMEOUT,
         )
         if not self.env_manager.handle_result(
             result, f"{self.config.pip_command} freeze failed: "
@@ -361,7 +377,7 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
                 f"Using simple definition with python_version={self.spec_manager.python_version}."
             )
             return {
-                "name": self.spec_manager.kernel_name,
+                "name": self.resolved_environment_name,
                 "channels": ["conda-forge"],
                 "dependencies": [f"python={self.spec_manager.python_version}"],
             }

@@ -36,7 +36,7 @@ class TestIsBaseEnvAlias:
 
         set_args_config(WranglerConfig(workflows=[]))
         em = EnvironmentManager()
-        assert em.is_base_env_alias("python3") is True
+        assert em.is_base_env_alias("python3") is False
 
     def test_custom_env_not_alias(self):
         from nb_wrangler.environment import EnvironmentManager  # noqa: F401

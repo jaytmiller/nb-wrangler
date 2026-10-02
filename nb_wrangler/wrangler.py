@@ -121,7 +121,11 @@ class NotebookWrangler(
     @property
     def kernel_display_name(self) -> str:
         """More readable version of kernel name visible in JupyterLab menu."""
-        return self.spec_manager.display_name if self.spec_manager else self.env_name
+        return (
+            self.spec_manager.display_name
+            if self.spec_manager
+            else self.environment_name
+        )
 
     @property
     def pip_packages(self) -> list[str]:

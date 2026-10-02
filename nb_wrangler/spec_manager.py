@@ -28,10 +28,12 @@ def kernel_name_to_env_name(kernel_name: str | None) -> str | None:
 def is_base_env_name(env_name: str | None) -> bool:
     """Return True if *env_name* refers to the base conda environment.
 
-    Both 'base' and 'python3' are treated as aliases for the base
-    environment per the wrangler convention.
+    Only 'base' is treated as an alias for the base environment. The
+    'python3' and 'python' kernel names are handled by
+    ``kernel_name_to_env_name`` which maps them to 'base' before they
+    reach this function.
     """
-    return env_name in ("base", "python3", "python")
+    return env_name == "base"
 
 
 _OVERRIDES_SCHEMA: dict[str, Any] = {
