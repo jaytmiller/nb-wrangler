@@ -7,6 +7,8 @@ These mixins provide utility methods that are duplicated across
 
 from typing import TYPE_CHECKING
 
+from .spec_manager import kernel_name_to_env_name
+
 if TYPE_CHECKING:
     from .spec_manager import SpecManager
     from .config import WranglerConfig
@@ -67,10 +69,7 @@ class WranglerWorkflowMixin:
         This should be used for conda/micromamba environment operations where
         the 'python3' kernel maps to the 'base' environment.
         """
-        env_name = self.resolved_kname
-        if env_name == "python3":
-            return "base"
-        return env_name
+        return kernel_name_to_env_name(self.resolved_kname)
 
     def run_workflow(
         self, name: str, steps: list, continue_on_failure: bool = False

@@ -27,6 +27,8 @@ from collections.abc import Callable
 from .logger import WranglerLoggable
 from .config import WranglerConfigurable
 
+from .spec_manager import is_base_env_name
+
 from .constants import (
     NBW_ROOT,
     NBW_PANTRY,
@@ -505,7 +507,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         return envs
 
     def is_base_env_alias(self, env_name: str) -> bool:
-        if env_name in ["base", "python3"]:
+        if is_base_env_name(env_name):
             self.logger.debug(
                 f"Environment / kernel {env_name} is assumed to be the base environment."
             )
