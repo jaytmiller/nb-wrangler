@@ -691,9 +691,8 @@ def main() -> int:
         return 0
     if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)
-    log = logger.WranglerLogger()
-    if not args.quiet:
-        log.info("Wrangler version:", constants.__version__)
+    log = logger.WranglerLogger(quiet=args.quiet)
+    log.info("Wrangler version:", constants.__version__)
     if args.spec_uri is None:
         if os.environ.get("NBW_SPEC") is None:
             if not args.docker_pull:
