@@ -394,3 +394,55 @@ class TestConditionCmd:
         result = em._condition_cmd(["ls", "-la"])
         assert isinstance(result, list)
         assert len(result) == 2
+
+
+class TestWranglerRunMambaRootPrefix:
+    """Tests that wrangler_run injects MAMBA_ROOT_PREFIX into subprocess env.
+
+    Regression: when a system-level micromamba is installed, the shell init
+    sets MAMBA_EXE and MAMBA_ROOT_PREFIX to the system installation. This
+    caused nb-wrangler to use the wrong micromamba and look for environments
+    in the wrong directory, leading to PEP 668 errors from system Python.
+    """
+
+    def test_injects_mamba_root_prefix(self, tmp_path):
+        """wrangler_run sets MAMBA_ROOT_PREFIX to nbw_mm_dir in subprocess env."""
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = EnvironmentManager()
+        em.logger = MagicMock()
+
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="ok", stderr="", returncode=0)
+            em.wrangler_run(["echo", "hello"])
+
+            call_kwargs = mock_run.call_args.kwargs
+            env = call_kwargs.get("env")
+            assert env is not None, "env should be passed to subprocess.run"
+            assert env["MAMBA_ROOT_PREFIX"] == str(em.nbw_mm_dir)
+
+    def test_does_not_override_explicit_env(self, tmp_path):
+        """wrangler_run respects an explicitly provided env dict."""
+        from nb_wrangler.environment import EnvironmentManager  # noqa: F401
+
+        from nb_wrangler.config import WranglerConfig, set_args_config
+
+        set_args_config(WranglerConfig(workflows=[], repos_dir=tmp_path / "repos"))
+        em = EnvironmentManager()
+        em.logger = MagicMock()
+
+        custom_env = {"PATH": "/custom/path", "MY_VAR": "test"}
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(stdout="ok", stderr="", returncode=0)
+            em.wrangler_run(["echo", "hello"], env=custom_env)
+
+            call_kwargs = mock_run.call_args.kwargs
+            env = call_kwargs["env"]
+            # Custom env is preserved
+            assert env["MY_VAR"] == "test"
+            assert env["PATH"] == "/custom/path"
+            # And MAMBA_ROOT_PREFIX is still injected
+            assert env["MAMBA_ROOT_PREFIX"] == str(em.nbw_mm_dir)
