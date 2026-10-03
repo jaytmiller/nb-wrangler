@@ -30,7 +30,7 @@ def _ls_remote_stdout(tags):
 
 
 def test_print_repo_tags_with_prod(tmp_path, capsys):
-    spec_file = Path(__file__).parent.parent / "specs/samples/tike-wrangler-k1.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/tike-wrangler-k1.yaml"
     config = WranglerConfig(
         workflows=[],
         spec_file=str(spec_file),
@@ -65,7 +65,7 @@ def test_print_repo_tags_with_prod(tmp_path, capsys):
 
 def test_print_repo_tags_version_prefix(tmp_path, capsys):
     """If the spec ref is ``2026.2``, the highest ``2026.2.z`` tag is returned."""
-    spec_file = Path(__file__).parent.parent / "specs/samples/RomanNexus-2026.2.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/RomanNexus-2026.2.yaml"
     config = WranglerConfig(
         workflows=[],
         spec_file=str(spec_file),
@@ -99,7 +99,7 @@ def test_print_repo_tags_version_prefix(tmp_path, capsys):
 
 def test_print_repo_tags_greatest_numeric_z(tmp_path, capsys):
     """``2026.2.10`` should be selected over ``2026.2.2`` (z=10 > z=2)."""
-    spec_file = Path(__file__).parent.parent / "specs/samples/RomanNexus-2026.2.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/RomanNexus-2026.2.yaml"
     config = WranglerConfig(
         workflows=[],
         spec_file=str(spec_file),
@@ -132,7 +132,7 @@ def test_print_repo_tags_greatest_numeric_z(tmp_path, capsys):
 
 def test_print_repo_tags_no_matching_tags(tmp_path, capsys):
     """When ls-remote returns only ``main``, the ref ``main`` is returned as-is."""
-    spec_file = Path(__file__).parent.parent / "specs/samples/RomanNexus-2026.2.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/RomanNexus-2026.2.yaml"
     config = WranglerConfig(
         workflows=[],
         spec_file=str(spec_file),

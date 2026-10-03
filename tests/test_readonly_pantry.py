@@ -48,7 +48,7 @@ def test_wrangler_init_with_readonly_pantry(tmp_path):
     pantry_dir.mkdir()
     os.chmod(pantry_dir, 0o500)
 
-    spec_file = Path(__file__).parent.parent / "specs/samples/tike-wrangler-k1.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/tike-wrangler-k1.yaml"
 
     # Create configuration
     config = WranglerConfig(

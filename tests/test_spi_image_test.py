@@ -11,7 +11,7 @@ from nb_wrangler.injector import SpiInjector
 @pytest.fixture(autouse=True)
 def setup_config(tmp_path_factory):
     tmp_dir = tmp_path_factory.mktemp("config")
-    spec_file = Path(__file__).parent.parent / "specs/samples/tike-wrangler-k1.yaml"
+    spec_file = Path(__file__).parent.parent / "sample-specs/tike-wrangler-k1.yaml"
     config = WranglerConfig(
         workflows=[],
         spec_file=str(spec_file),
@@ -151,7 +151,7 @@ def test_spi_image_test_string_split_into_params(tmp_path: Path):
     config = WranglerConfig(
         workflows=[],
         spec_file=str(
-            Path(__file__).parent.parent / "specs/samples/tike-wrangler-k1.yaml"
+            Path(__file__).parent.parent / "sample-specs/tike-wrangler-k1.yaml"
         ),
         repos_dir=repos_dir,
         prod=True,
