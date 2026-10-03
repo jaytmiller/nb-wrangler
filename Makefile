@@ -46,7 +46,7 @@ setup:
 
 # ==========================================================================================================
 
-YAML_FILES := $(shell find specs/samples/fnc-test-spec.yaml specs/samples -name "*.yaml")
+YAML_FILES := $(shell find sample-specs/fnc-test-spec.yaml sample-specs -name "*.yaml")
 
 .PHONY: specs-update specs-curate specs-data-curate specs-validate
 
@@ -105,62 +105,62 @@ fnc-bootstrap: fnc-preclean
 	./nb-wrangler bootstrap
 
 fnc-curate:
-	./nb-wrangler  specs/samples/fnc-test-spec.yaml --curate
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --curate
 
 fnc-reinstall:
-	./nb-wrangler  specs/samples/fnc-test-spec.yaml --reinstall --use-dirty-repos
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --reinstall --use-dirty-repos
 
 fnc-packages-uninstall: fnc-curate
-	./nb-wrangler  specs/samples/fnc-test-spec.yaml --packages-uninstall
+	./nb-wrangler  sample-specs/fnc-test-spec.yaml --packages-uninstall
 
 fnc-packages-install: fnc-curate fnc-packages-uninstall
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --packages-install
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --packages-install
 
 fnc-env-pack: fnc-packages-install
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-pack
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-pack
 
 fnc-env-unpack:  fnc-packages-uninstall
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-unpack
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-unpack
 
 fnc-test-imports: fnc-packages-install
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --test-imports
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --test-imports
 
 fnc-test-notebooks: fnc-packages-install
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --test-notebooks zooniverse_view
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --test-notebooks zooniverse_view
 
 fnc-test: fnc-packages-install
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml -t zooniverse_view
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml -t zooniverse_view
 
 fnc-compact: fnc-packages-install
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-compact
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-compact
 
 fnc-packages-compile: fnc-clone-repos
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --packages-compile
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --packages-compile
 
 fnc-clone-repos:
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --clone-repos --overwrite-local-changes
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --clone-repos --overwrite-local-changes
 
 fnc-env-init: fnc-packages-compile
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-init
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-init
 
 fnc-env-delete: fnc-env-init
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-delete
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-delete
 
 fnc-env-register: fnc-env-init
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-register
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-register
 
 fnc-env-unregister: fnc-env-init
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-unregister
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-unregister
 
 fnc-env-kernel-cleanup: fnc-env-init
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --env-kernel-cleanup
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --env-kernel-cleanup
 
 fnc-spi-basic-workflow: fnc-inject-spi
 	@echo "--- Running basic SPI workflow test ---"
 	# Ensure clean state for git operations and remove previous test branches
 	cd inject-spi-references/science-platform-images && git checkout main && git branch -D test-spi-branch || true
 	# Run inject-spi with branch, commit, prune, build
-	./nb-wrangler specs/samples/fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
+	./nb-wrangler sample-specs/fnc-test-spec.yaml --inject-spi --repos-dir inject-spi-references --overwrite-local-changes \
 		--spi-commit-message "Test SPI commit" \
 		--spi-branch test-spi-branch
 	@echo "--- Verifying basic SPI workflow test results ---"
@@ -170,16 +170,16 @@ fnc-spi-basic-workflow: fnc-inject-spi
 	git -C inject-spi-references/science-platform-images log -1 --pretty=format:"%s" test-spi-branch | grep "Test SPI commit"
 
 fnc-spec-reset: fnc-packages-compile
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --spec-reset
-	git checkout -- specs/samples/fnc-test-spec.yaml
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --spec-reset
+	git checkout -- sample-specs/fnc-test-spec.yaml
 
 fnc-spec-validate: fnc-packages-compile
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --spec-validate
-	git checkout -- specs/samples/fnc-test-spec.yaml
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --spec-validate
+	git checkout -- sample-specs/fnc-test-spec.yaml
 
 fnc-inject-spi:
 	rm -rf inject-spi-references
-	./nb-wrangler   specs/samples/fnc-test-spec.yaml --curate --inject-spi  --repos-dir  inject-spi-references
+	./nb-wrangler   sample-specs/fnc-test-spec.yaml --curate --inject-spi  --repos-dir  inject-spi-references
 
 
 
@@ -249,7 +249,7 @@ clean-test: ## remove test and coverage artifacts
 	rm -fr .tox/
 	rm -fr .pytest_cache nb_wranger/.pytest_cache
 	rm -fr $$TEST_OUTPUTS
-	git checkout -- specs/samples tests/data-functional
+	git checkout -- sample-specs tests/data-functional
 
 clean-other:
 	rm -rf prof
@@ -262,6 +262,10 @@ clean-other:
 	rm -f common_mamba_packages.txt
 	rm -f extra_mamba_packages.txt
 	rm -f tests/data-functional/common_pip_packages.txt
+	rm -rf .kilo
+	rm -rf .benchmarks
+	rm -rf .ipynb_checkpoints
+	rm -rf .ruff_cace
 
 lint/flake8: ## check style with flake8
 	@echo ================================================================================
@@ -315,7 +319,7 @@ test-bootstrap-only:
 test-bootstrap-spec:
 	rm -rf $NBW_ROOT
 	make clean
-	./nb-wrangler bootstrap ./specs/samples/fnc-test-spec.yaml
+	./nb-wrangler bootstrap ./sample-specs/fnc-test-spec.yaml
 
 unit-test:  clean-test   ## run tests quickly with the default Python
 	@echo ================================================================================
