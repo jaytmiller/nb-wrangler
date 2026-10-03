@@ -10,19 +10,14 @@ WRANGLER_SPEC_VERSION = 2.3
 
 # Path constants
 HOME = Path(os.environ.get("HOME", "."))
-NBW_ROOT = Path(
-    os.environ.get(
-        "NBW_ROOT",
-        os.environ.get(
-            "MAMBA_ROOT_PREFIX", os.environ.get("CONDA_ROOT_PREFIX", HOME / ".nbw-live")
-        ),
-    )
-)
+# NBW_ROOT and NBW_MM must not inherit MAMBA_ROOT_PREFIX or CONDA_ROOT_PREFIX
+# as fallbacks, because those variables are typically set by a system-level
+# micromamba/conda shell init and would point nb-wrangler to the wrong
+# installation directory, causing environment lookups to fail.
+NBW_ROOT = Path(os.environ.get("NBW_ROOT", HOME / ".nbw-live"))
 NBW_PANTRY = Path(os.environ.get("NBW_PANTRY", HOME / ".nbw-pantry"))
 NBW_CACHE = Path(os.environ.get("NBW_CACHE", NBW_ROOT / "cache"))
-NBW_MM = Path(
-    os.environ.get("NBW_MM", os.environ.get("MAMBA_ROOT_PREFIX", NBW_ROOT / "mm"))
-)
+NBW_MM = Path(os.environ.get("NBW_MM", NBW_ROOT / "mm"))
 
 # Command constants used for resolve_commands_from_spec to detect env var presence.
 NBW_MAMBA_DEFAULT = str(NBW_MM / "bin" / "micromamba")

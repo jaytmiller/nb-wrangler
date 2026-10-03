@@ -4,10 +4,10 @@
 
 - **`--packages-omit-spi` flag now effective** (`nb_wrangler/compiler.py`). The `packages_omit_spi` config flag was checked but had no effect during requirements compilation — SPI pip files were still included in the gathered `spi_pip_files` list. The flag is now respected: when `self.config.packages_omit_spi` is set, `spi_pip_files` is an empty list, skipping inclusion of SPI pip requirements.
 
-### uv `--system` Adaptation
+### Micromamba Environment Isolation Fixes
 
-- **`--system` flag added to uv compile command** (`nb_wrangler/compiler.py`). The `pip compile` invocation now includes `--system`, designating that the resolved environment should target the non-virtualenv system environment rather than creating an isolated venv.
-- **`--system` flag added to uv pip install** (`nb_wrangler/environment.py`). When `uv` is detected in the pip command, `--system` is now included in the `pip install` call, matching the non-virtualenv execution model. Plain `pip` commands are unchanged.
+- **`wrangler_run` now injects `MAMBA_ROOT_PREFIX`** (`nb_wrangler/environment.py`). When a system-level micromamba is installed, shell init scripts set `MAMBA_ROOT_PREFIX` (and `MAMBA_EXE`) to the system installation. Without an explicit override, subprocess calls could find the wrong `micromamba` binary or look for environments in the wrong directory, leading to PEP 668 errors from system Python. `wrangler_run` now always sets `MAMBA_ROOT_PREFIX` to nb-wrangler's own `NBW_MM` directory in the subprocess environment.
+- **Removed `MAMBA_ROOT_PREFIX` / `CONDA_ROOT_PREFIX` fallbacks from `NBW_ROOT` and `NBW_MM`** (`nb_wrangler/constants.py`). These fallbacks caused nb-wrangler to adopt a system-level micromamba's root prefix as its own installation directory, causing environment lookups to fail. `NBW_ROOT` and `NBW_MM` now default strictly to `~/.nbw-live` and `~/.nbw-live/mm` respectively.
 
 ### Timeout Constants
 
@@ -138,7 +138,7 @@
 
 ### Sample Specs & Tests
 
-- **Sample Spec Updates**: Updated `specs/samples/RomanNexus-2026.2.yaml` to illustrate latest spec format (version 2.3) extensions, including new package-list override support and cleaned `dev_overrides` sections. Added baseline 2026.2 Roman spec for tagging dev. Added `specs/roman/astroquery-mast-test.yaml` and `specs/jwebbinar/jwebbinar-50.yaml`.
+- **Sample Spec Updates**: Updated `sample-specs/RomanNexus-2026.2.yaml` to illustrate latest spec format (version 2.3) extensions, including new package-list override support and cleaned `dev_overrides` sections. Added baseline 2026.2 Roman spec for tagging dev. Added `specs/roman/astroquery-mast-test.yaml` and `specs/jwebbinar/jwebbinar-50.yaml`.
 
 - **Tests Added (13 new/updated files)**:
   - `tests/test_assets_injection.py` — asset injection tests

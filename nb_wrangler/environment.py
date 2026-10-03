@@ -184,6 +184,19 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         else:
             raise ValueError(f"Invalid output_mode value: {output_mode}")
         parameters.update(extra_parameters)
+        # Ensure micromamba looks in nb-wrangler's mm directory, not in any
+        # system-level MAMBA_ROOT_PREFIX that might be set by a shell init.
+        existing_env = parameters.get("env")
+        if existing_env is not None:
+            parameters["env"] = {
+                **existing_env,
+                "MAMBA_ROOT_PREFIX": str(self.nbw_mm_dir),
+            }
+        else:
+            parameters["env"] = {
+                **os.environ,
+                "MAMBA_ROOT_PREFIX": str(self.nbw_mm_dir),
+            }
         self.logger.debug(f"Running command with no shell: {command} {parameters}")
         # self.logger.debug(f"For trying it this may work anyway: {' '.join(command)}")
         result = subprocess.run(command, **parameters)
@@ -315,10 +328,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
             pip_cmd = re.sub(r"^pip$", r"uv pip", str(self.config.pip_command))
         else:
             pip_cmd = str(self.config.pip_command)
-        if "uv" in pip_cmd:
-            cmd = f"{pip_cmd} install --system -r {req_path} {overrides}"
-        else:
-            cmd = f"{pip_cmd} install -r {req_path} {overrides}"
+        cmd = f"{pip_cmd} install -r {req_path} {overrides}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
@@ -344,11 +354,7 @@ class EnvironmentManager(WranglerConfigurable, WranglerLoggable):
         )
 
         # Uninstall packages
-        if "uv" in self.pip_command:
-            cmd = f"{self.pip_command} uninstall --system -r {req_path}"
-        else:
-            cmd = f"{self.pip_command} uninstall -r {req_path}"
-
+        cmd = f"{self.pip_command} uninstall -r {req_path}"
         result = self.env_run(
             env_name, cmd, check=False, timeout=INSTALL_PACKAGES_TIMEOUT
         )
