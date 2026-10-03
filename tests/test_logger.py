@@ -63,6 +63,27 @@ class TestWranglerLogger:
         assert result is False
         assert "err msg" in logger.errors
 
+    def test_quiet_suppresses_stderr(self, capsys):
+        """When quiet=True, INFO messages must not appear on stderr."""
+        logger = WranglerLogger(quiet=True)
+        logger.info("this should not appear on stderr")
+        captured = capsys.readouterr()
+        assert "this should not appear on stderr" not in captured.err
+        assert "this should not appear on stderr" not in captured.out
+
+    def test_quiet_does_not_suppress_stdout(self, capsys):
+        """When quiet=True, print() to stdout must still work."""
+        WranglerLogger(quiet=True)  # configures quiet logger
+        print("environment_name")
+        captured = capsys.readouterr()
+        assert "environment_name" in captured.out
+
+    def test_non_quiet_outputs_to_stderr(self, capsys):
+        """When quiet=False, INFO messages appear on stderr."""
+        WranglerLogger(quiet=False).info("this should appear on stderr")
+        captured = capsys.readouterr()
+        assert "this should appear on stderr" in captured.err
+
     def test_writes_warning_to_warnings(self):
         logger = WranglerLogger(quiet=True)
         result = logger.warning("warn msg")
