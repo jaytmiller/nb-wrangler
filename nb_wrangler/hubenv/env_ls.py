@@ -68,28 +68,3 @@ def print_ls_json(shelves: list[dict], live_envs: list[dict]) -> None:
         "live_envs": [{"name": e["name"], "path": str(e["path"])} for e in live_envs],
     }
     print(json.dumps(result, indent=2))
-
-
-# Backward-compat re-exports
-
-
-def _cmd_env_ls(args) -> int:
-    """Backward-compat alias for ``cmd_env_ls``."""
-    return cmd_env_ls(args)
-
-
-def _print_ls_table(shelves, live_names, show_all) -> None:
-    """Backward-compat alias for ``print_ls_table``."""
-    print_ls_table(shelves, live_names, show_all)
-
-
-def _print_ls_json(shelves, live_envs) -> None:
-    """Backward-compat alias for ``print_ls_json``."""
-    print_ls_json(shelves, live_envs)
-
-
-def _print_shadowing_warnings(shelves) -> None:
-    """Backward-compat re-export from ``_common``."""
-    from nb_wrangler.hubenv._common import print_shadowing_warnings
-
-    print_shadowing_warnings(shelves)

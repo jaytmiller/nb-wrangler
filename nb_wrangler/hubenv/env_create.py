@@ -24,8 +24,6 @@ from nb_wrangler.hubenv.seeds import (
 )
 from nb_wrangler.utils import yaml_dumps
 
-from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
-
 
 def cmd_env_create(args) -> int:
     """Handle ``hubenv env create``."""
@@ -125,35 +123,3 @@ def install_environment(name: str, spec_yaml: str) -> int:
     finally:
         tmp_path.unlink(missing_ok=True)
     return 0 if success else 1
-
-
-# Backward-compat re-exports
-
-
-def _cmd_env_create(args) -> int:
-    """Backward-compat alias for ``cmd_env_create``."""
-    return cmd_env_create(args)
-
-
-def _build_seed_dict(args) -> dict:
-    """Backward-compat alias for ``build_seed_dict``."""
-    return build_seed_dict(args)
-
-
-def _import_existing_env(args, seed, spec_yaml) -> int:
-    """Backward-compat alias for ``import_existing_env``."""
-    return import_existing_env(args, seed, spec_yaml)
-
-
-def _write_shelf_spec(config, name, spec_yaml, pantry) -> None:
-    """Backward-compat alias for ``write_shelf_spec``."""
-    write_shelf_spec(config, name, spec_yaml, pantry)
-
-
-def _install_environment(name: str, spec_yaml: str) -> int:
-    """Backward-compat alias for ``install_environment``."""
-    return install_environment(name, spec_yaml)
-
-
-# Silence unused warnings
-_ = DEFAULT_ARCHIVE_FORMAT

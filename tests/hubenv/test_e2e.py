@@ -135,7 +135,7 @@ def _patch_sha256(value="deadbeef"):
 
 
 def _patch_compile(packages):
-    """Mock _compile_pip_packages to return pre-set package list."""
+    """Mock compile_pip_packages to return pre-set package list."""
     return patch(
         "nb_wrangler.hubenv.env_relock.compile_pip_packages", return_value=packages
     )

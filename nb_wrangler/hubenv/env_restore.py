@@ -160,38 +160,5 @@ def write_at_boot_snippet(name: str) -> None:
     print(f"At-boot snippet written to {snippet_path}")
 
 
-# Backward-compat re-exports
-
-
-def _cmd_env_restore(args) -> int:
-    """Backward-compat alias for ``cmd_env_restore``."""
-    return cmd_env_restore(args)
-
-
-def _find_restore_shelf(config, args):
-    """Backward-compat alias for ``find_restore_shelf``."""
-    return find_restore_shelf(config, args)
-
-
-def _read_save_hash(shelf):
-    """Backward-compat alias for ``read_save_hash``."""
-    return read_save_hash(shelf)
-
-
-def _read_restore_hash(config, name):
-    """Backward-compat alias for ``read_restore_hash``."""
-    return read_restore_hash(config, name)
-
-
-def _record_restore_hash(config, name, save_hash):
-    """Backward-compat alias for ``record_restore_hash``."""
-    return record_restore_hash(config, name, save_hash)
-
-
-def _write_at_boot_snippet(name):
-    """Backward-compat alias for ``write_at_boot_snippet``."""
-    write_at_boot_snippet(name)
-
-
 # Silence unused import warnings
 _ = DEFAULT_ARCHIVE_FORMAT

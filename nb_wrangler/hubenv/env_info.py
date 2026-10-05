@@ -1,5 +1,6 @@
 """env info subcommand: show detailed environment metadata."""
 
+import sys
 from pathlib import Path
 
 from nb_wrangler.hubenv._common import ensure_config, print_shadowing_warnings
@@ -84,31 +85,3 @@ def print_info_json(name: str, shelves: list[dict], live_envs: list[dict]) -> No
         ),
     }
     print(json.dumps(result, indent=2))
-
-
-# Backward-compat re-exports
-
-
-def _cmd_env_info(args) -> int:
-    """Backward-compat alias for ``cmd_env_info``."""
-    return cmd_env_info(args)
-
-
-def _print_info_table(name, shelves, live_envs) -> None:
-    """Backward-compat alias for ``print_info_table``."""
-    print_info_table(name, shelves, live_envs)
-
-
-def _print_info_json(name, shelves, live_envs) -> None:
-    """Backward-compat alias for ``print_info_json``."""
-    print_info_json(name, shelves, live_envs)
-
-
-def _print_shadowing_warnings(shelves) -> None:
-    """Backward-compat re-export from ``_common``."""
-    from nb_wrangler.hubenv._common import print_shadowing_warnings
-
-    print_shadowing_warnings(shelves)
-
-
-import sys  # noqa: E402  (used by cmd_env_info for stderr)

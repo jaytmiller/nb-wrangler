@@ -3,6 +3,7 @@
 Handles ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec]``.
 """
 
+import sys
 from pathlib import Path
 from typing import Optional
 
@@ -90,29 +91,3 @@ def extract_python_version(conda: list) -> Optional[str]:
         if isinstance(pkg, str) and pkg.startswith("python="):
             return pkg.split("=", 1)[1]
     return None
-
-
-# Backward-compat re-exports for tests that patch ``nb_wrangler.hubenv.cli.*``
-
-
-def _spec_to_requirements(spec: dict) -> str:
-    """Backward-compat alias for ``spec_to_requirements``."""
-    return spec_to_requirements(spec)
-
-
-def _spec_to_wrangler(spec: dict) -> dict:
-    """Backward-compat alias for ``spec_to_wrangler``."""
-    return spec_to_wrangler(spec)
-
-
-def _split_conda_pip(deps: list) -> tuple[list, list[str]]:
-    """Backward-compat alias for ``split_conda_pip``."""
-    return split_conda_pip(deps)
-
-
-def _extract_python_version(conda: list) -> Optional[str]:
-    """Backward-compat alias for ``extract_python_version``."""
-    return extract_python_version(conda)
-
-
-import sys  # noqa: E402  (used by cmd_export for stderr)
