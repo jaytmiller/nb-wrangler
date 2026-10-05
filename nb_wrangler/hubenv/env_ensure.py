@@ -88,24 +88,3 @@ def cmd_env_unregister(args) -> int:
     em.unregister_environment(args.name)
     print(f"Unregistered Jupyter kernel '{args.name}' (if it existed).")
     return 0
-
-
-# Backward-compat re-exports
-
-
-def _cmd_env_ensure(args) -> int:
-    """Backward-compat alias for ``cmd_env_ensure``."""
-    return cmd_env_ensure(args)
-
-
-def _cmd_env_register(args) -> int:
-    """Backward-compat alias for ``cmd_env_register``."""
-    return cmd_env_register(args)
-
-
-def _cmd_env_unregister(args) -> int:
-    """Backward-compat alias for ``cmd_env_unregister``."""
-    return cmd_env_unregister(args)
-
-
-_EnsureArgs = EnsureArgs  # backward-compat alias

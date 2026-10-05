@@ -92,36 +92,3 @@ def apply_relock(config, name, spec, compiled) -> None:
     pip_section[:] = compiled
     save_hubenv_spec(config, name, spec)
     print(f"Relocked {len(compiled)} packages for '{name}'.")
-
-
-# Backward-compat re-exports
-
-
-def _cmd_env_relock(args) -> int:
-    """Backward-compat alias for ``cmd_env_relock``."""
-    return cmd_env_relock(args)
-
-
-def _do_relock(config, em, name, dry_run) -> int:
-    """Backward-compat alias for ``do_relock``."""
-    return do_relock(config, em, name, dry_run)
-
-
-def _compile_pip_packages(em, name, packages):
-    """Backward-compat alias for ``compile_pip_packages``."""
-    return compile_pip_packages(em, name, packages)
-
-
-def _read_compiled_versions(filepath) -> list[str]:
-    """Backward-compat alias for ``read_compiled_versions``."""
-    return read_compiled_versions(filepath)
-
-
-def _print_relock_dry_run(name, compiled) -> None:
-    """Backward-compat alias for ``print_relock_dry_run``."""
-    print_relock_dry_run(name, compiled)
-
-
-def _apply_relock(config, name, spec, compiled) -> None:
-    """Backward-compat alias for ``apply_relock``."""
-    apply_relock(config, name, spec, compiled)

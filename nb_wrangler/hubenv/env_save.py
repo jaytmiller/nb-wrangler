@@ -65,16 +65,3 @@ def persist_save_hash(shelf: NbwShelf, can_path) -> None:
     hash_file = shelf.archive_root / "last-save.sha256"
     shelf.archive_root.mkdir(parents=True, exist_ok=True)
     hash_file.write_text(save_hash + "\n")
-
-
-# Backward-compat re-exports (tests patch these paths)
-
-
-def _cmd_env_save(args) -> int:
-    """Backward-compat alias for ``cmd_env_save``."""
-    return cmd_env_save(args)
-
-
-def _persist_save_hash(shelf: NbwShelf, can_path) -> None:
-    """Backward-compat alias for ``persist_save_hash``."""
-    persist_save_hash(shelf, can_path)

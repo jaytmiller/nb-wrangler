@@ -192,7 +192,7 @@ class TestDataDownload:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.download_data") as mock_dl,
+            patch("nb_wrangler.hubenv.data.data_manager.download_data") as mock_dl,
         ):
             mock_dl.return_value = True
             rc = main(["data", "download", "demo"])
@@ -205,7 +205,7 @@ class TestDataDownload:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.download_data") as mock_dl,
+            patch("nb_wrangler.hubenv.data.data_manager.download_data") as mock_dl,
         ):
             mock_dl.return_value = True
             rc = main(["data", "download", "demo", "--select", "roman_.*"])
@@ -218,7 +218,7 @@ class TestDataDownload:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.download_data") as mock_dl,
+            patch("nb_wrangler.hubenv.data.data_manager.download_data") as mock_dl,
         ):
             mock_dl.return_value = True
             rc = main(["data", "download", "demo", "--no-validate"])
@@ -231,7 +231,7 @@ class TestDataDownload:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.download_data") as mock_dl,
+            patch("nb_wrangler.hubenv.data.data_manager.download_data") as mock_dl,
         ):
             mock_dl.return_value = False
             rc = main(["data", "download", "demo"])
@@ -252,7 +252,7 @@ class TestDataUnpack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.unpack_data") as mock_unp,
+            patch("nb_wrangler.hubenv.data.data_manager.unpack_data") as mock_unp,
         ):
             mock_unp.return_value = True
             rc = main(["data", "unpack", "demo"])
@@ -267,7 +267,7 @@ class TestDataUnpack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.unpack_data") as mock_unp,
+            patch("nb_wrangler.hubenv.data.data_manager.unpack_data") as mock_unp,
         ):
             mock_unp.return_value = True
             rc = main(["data", "unpack", "demo", "--no-symlinks"])
@@ -282,7 +282,7 @@ class TestDataUnpack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.unpack_data") as mock_unp,
+            patch("nb_wrangler.hubenv.data.data_manager.unpack_data") as mock_unp,
         ):
             mock_unp.return_value = True
             rc = main(["data", "unpack", "demo", "--symlinks"])
@@ -297,7 +297,7 @@ class TestDataUnpack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.unpack_data") as mock_unp,
+            patch("nb_wrangler.hubenv.data.data_manager.unpack_data") as mock_unp,
         ):
             mock_unp.return_value = True
             rc = main(["data", "unpack", "demo", "--no-unpack-existing"])
@@ -310,7 +310,7 @@ class TestDataUnpack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.unpack_data") as mock_unp,
+            patch("nb_wrangler.hubenv.data.data_manager.unpack_data") as mock_unp,
         ):
             mock_unp.return_value = False
             rc = main(["data", "unpack", "demo"])
@@ -331,7 +331,7 @@ class TestDataPack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.pack_data") as mock_pack,
+            patch("nb_wrangler.hubenv.data.data_manager.pack_data") as mock_pack,
         ):
             mock_pack.return_value = True
             rc = main(["data", "pack", "demo"])
@@ -344,7 +344,7 @@ class TestDataPack:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.pack_data") as mock_pack,
+            patch("nb_wrangler.hubenv.data.data_manager.pack_data") as mock_pack,
         ):
             mock_pack.return_value = False
             rc = main(["data", "pack", "demo"])
@@ -365,7 +365,7 @@ class TestDataClean:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.delete_data") as mock_del,
+            patch("nb_wrangler.hubenv.data.data_manager.delete_data") as mock_del,
         ):
             mock_del.return_value = True
             rc = main(["data", "clean", "demo"])
@@ -378,7 +378,7 @@ class TestDataClean:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.delete_data") as mock_del,
+            patch("nb_wrangler.hubenv.data.data_manager.delete_data") as mock_del,
         ):
             mock_del.return_value = True
             rc = main(["data", "clean", "demo", "archived"])
@@ -391,7 +391,7 @@ class TestDataClean:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.delete_data") as mock_del,
+            patch("nb_wrangler.hubenv.data.data_manager.delete_data") as mock_del,
         ):
             mock_del.return_value = True
             rc = main(["data", "clean", "demo", "unpacked"])
@@ -404,7 +404,7 @@ class TestDataClean:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.delete_data") as mock_del,
+            patch("nb_wrangler.hubenv.data.data_manager.delete_data") as mock_del,
         ):
             mock_del.return_value = True
             rc = main(["data", "clean", "demo", "both"])
@@ -417,7 +417,7 @@ class TestDataClean:
 
         with (
             _patch_root_and_pantry(tmp_path),
-            patch("nb_wrangler.hubenv.cli.data_manager.delete_data") as mock_del,
+            patch("nb_wrangler.hubenv.data.data_manager.delete_data") as mock_del,
         ):
             mock_del.return_value = False
             rc = main(["data", "clean", "demo"])

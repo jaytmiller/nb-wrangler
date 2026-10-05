@@ -17,11 +17,3 @@ def cmd_completions(args) -> int:
         return 1
     print(script, end="")
     return 0
-
-
-# Backward-compat re-export
-
-
-def _cmd_completions(args) -> int:
-    """Backward-compat alias for ``cmd_completions``."""
-    return cmd_completions(args)

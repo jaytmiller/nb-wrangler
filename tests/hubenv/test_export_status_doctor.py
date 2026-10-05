@@ -404,57 +404,57 @@ class TestExportHelpers:
     """Tests for export helper functions."""
 
     def test_spec_to_requirements(self):
-        from nb_wrangler.hubenv.cli import _spec_to_requirements
+        from nb_wrangler.hubenv.export import spec_to_requirements
 
         spec = {"dependencies": [{"pip": ["numpy", "pandas"]}]}
-        result = _spec_to_requirements(spec)
+        result = spec_to_requirements(spec)
         assert "numpy" in result
         assert "pandas" in result
 
     def test_spec_to_requirements_empty(self):
-        from nb_wrangler.hubenv.cli import _spec_to_requirements
+        from nb_wrangler.hubenv.export import spec_to_requirements
 
         spec = {"dependencies": ["python=3.11", "pip"]}
-        result = _spec_to_requirements(spec)
+        result = spec_to_requirements(spec)
         assert result == ""
 
     def test_spec_to_wrangler(self):
-        from nb_wrangler.hubenv.cli import _spec_to_wrangler
+        from nb_wrangler.hubenv.export import spec_to_wrangler
 
         spec = {
             "name": "demo",
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "scipy", "pip", {"pip": ["numpy"]}],
         }
-        wspec = _spec_to_wrangler(spec)
+        wspec = spec_to_wrangler(spec)
         assert wspec["image_spec_header"]["image_name"] == "demo"
         assert wspec["image_spec_header"]["python_version"] == "3.11"
         assert "scipy" in wspec["extra_mamba_packages"]
         assert "numpy" in wspec["extra_pip_packages"]
 
     def test_spec_to_wrangler_no_python(self):
-        from nb_wrangler.hubenv.cli import _spec_to_wrangler
+        from nb_wrangler.hubenv.export import spec_to_wrangler
 
         spec = {
             "name": "demo",
             "channels": ["conda-forge"],
             "dependencies": ["scipy", "pip", {"pip": ["numpy"]}],
         }
-        wspec = _spec_to_wrangler(spec)
+        wspec = spec_to_wrangler(spec)
         assert wspec["image_spec_header"]["python_version"] is None
 
     def test_extract_python_version(self):
-        from nb_wrangler.hubenv.cli import _extract_python_version
+        from nb_wrangler.hubenv.export import extract_python_version
 
-        assert _extract_python_version(["python=3.11"]) == "3.11"
-        assert _extract_python_version(["python=3.11.5", "numpy"]) == "3.11.5"
-        assert _extract_python_version(["numpy"]) is None
+        assert extract_python_version(["python=3.11"]) == "3.11"
+        assert extract_python_version(["python=3.11.5", "numpy"]) == "3.11.5"
+        assert extract_python_version(["numpy"]) is None
 
     def test_split_conda_pip(self):
-        from nb_wrangler.hubenv.cli import _split_conda_pip
+        from nb_wrangler.hubenv.export import split_conda_pip
 
         deps = ["python=3.11", {"pip": ["numpy", "pandas"]}]
-        conda, pip = _split_conda_pip(deps)
+        conda, pip = split_conda_pip(deps)
         assert "python=3.11" in conda
         assert "numpy" in pip
         assert "pandas" in pip

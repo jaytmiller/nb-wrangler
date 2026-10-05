@@ -370,7 +370,7 @@ class TestRmPathSafety:
             assert "outside" in err.lower() or "refusing" in err.lower()
 
     def test_safe_live_path_accepted(self, tmp_path):
-        from nb_wrangler.hubenv.cli import _is_safe_rm_path
+        from nb_wrangler.hubenv import env_rm
         from nb_wrangler.hubenv.config import HubenvConfig
 
         with (
@@ -381,10 +381,10 @@ class TestRmPathSafety:
             safe_path = tmp_path / "envs" / "demo"
             safe_path.mkdir(parents=True)
             target = {"type": "live", "path": safe_path}
-            assert _is_safe_rm_path(target, config)
+            assert env_rm.is_safe_rm_path(target, config)
 
     def test_safe_shelf_path_accepted(self, tmp_path):
-        from nb_wrangler.hubenv.cli import _is_safe_rm_path
+        from nb_wrangler.hubenv import env_rm
         from nb_wrangler.hubenv.config import HubenvConfig
 
         pantry = tmp_path / "pantry"
@@ -395,10 +395,10 @@ class TestRmPathSafety:
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
             config = HubenvConfig()
             target = {"type": "shelf", "path": shelf_path, "pantry": pantry}
-            assert _is_safe_rm_path(target, config)
+            assert env_rm.is_safe_rm_path(target, config)
 
     def test_unsafe_shelf_path_rejected(self, tmp_path):
-        from nb_wrangler.hubenv.cli import _is_safe_rm_path
+        from nb_wrangler.hubenv import env_rm
         from nb_wrangler.hubenv.config import HubenvConfig
 
         with (
@@ -411,7 +411,7 @@ class TestRmPathSafety:
                 "path": Path("/tmp/evil"),
                 "pantry": Path("/tmp"),
             }
-            assert not _is_safe_rm_path(target, config)
+            assert not env_rm.is_safe_rm_path(target, config)
 
 
 # ---------------------------------------------------------------------------
