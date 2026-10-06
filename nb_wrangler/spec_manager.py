@@ -139,11 +139,15 @@ class SpecManager(
     def environment_name(self) -> str | None:
         """The conda/micromamba environment name used for environment operations.
 
-        Normally identical to kernel_name, but follows the convention that the
-        'python3' kernel and 'base' conda environment refer to the same thing.
-        When kernel_name is unspecified, defaults to image_name.
+        Priority chain:
+        1. Explicit ``environment_name`` in the spec header (trumps everything).
+        2. ``kernel_name`` with the ``python3`` -> ``base`` mapping applied.
+        3. Fallback to ``image_name`` when ``kernel_name`` is unspecified.
         """
-        return kernel_name_to_env_name(self.kernel_name) or self.header.get("image_name")
+        header_env = self.header.get("environment_name")
+        if header_env is not None:
+            return header_env
+        return kernel_name_to_env_name(self.kernel_name) or self.image_name
 
     def get_resolved_kernel_name(self) -> str | None:
         """Get the most reliable kernel name available.
@@ -451,7 +455,21 @@ class SpecManager(
 
     @property
     def shelf_name(self) -> str:
-        return self.moniker  # + "-" + self.spec_id
+        """Directory name where persistent code/data/archives are stored.
+
+        Priority chain:
+        1. Explicit ``shelf_name`` in the spec header (trumps everything).
+        2. Resolved ``environment_name`` (applies python3 -> base mapping).
+        3. Fallback to ``moniker`` (filesystem-safe ``image_name``) when
+           environment_name cannot be determined.
+        """
+        header_shelf = self.header.get("shelf_name")
+        if header_shelf is not None:
+            return header_shelf
+        env_name = self.environment_name
+        if env_name is not None:
+            return env_name
+        return self.moniker
 
     @property
     def archive_format(self) -> str:
@@ -725,7 +743,9 @@ class SpecManager(
             "python_version",
             "deployment_name",
             "kernel_name",
+            "environment_name",
             "display_name",
+            "shelf_name",
             "manager",
         ],
         "repositories": ["url", "ref"],
