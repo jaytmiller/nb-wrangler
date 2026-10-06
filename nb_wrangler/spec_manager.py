@@ -141,8 +141,9 @@ class SpecManager(
 
         Normally identical to kernel_name, but follows the convention that the
         'python3' kernel and 'base' conda environment refer to the same thing.
+        When kernel_name is unspecified, defaults to image_name.
         """
-        return kernel_name_to_env_name(self.kernel_name)
+        return kernel_name_to_env_name(self.kernel_name) or self.header.get("image_name")
 
     def get_resolved_kernel_name(self) -> str | None:
         """Get the most reliable kernel name available.
@@ -162,7 +163,7 @@ class SpecManager(
         return kernel_name_to_env_name(self.get_resolved_kernel_name())
 
     @property
-    def display_name(self) -> str:  # readable name in lab menu
+    def display_name(self) -> str | None:  # readable name in lab menu
         return self.header.get("display_name", self.kernel_name)
 
     @property

@@ -119,7 +119,7 @@ class NotebookWrangler(
         return self.environment_name
 
     @property
-    def kernel_display_name(self) -> str:
+    def kernel_display_name(self) -> str | None:
         """More readable version of kernel name visible in JupyterLab menu."""
         return (
             self.spec_manager.display_name

@@ -381,3 +381,73 @@ class TestCompilerResolvedEnvironmentName:
         compiler = self._make_compiler(tmp_path, kernel_name="python3")
         base_mamba_spec = compiler._get_base_mamba_spec()
         assert base_mamba_spec["name"] == "base"
+
+
+def _make_spec_without_kernel_name():
+    """Create a minimal spec dict without a kernel_name in the header.
+
+    This simulates a spec where kernel_name is absent and must be derived
+    from image_name for environment_name purposes.
+    """
+    return {
+        "image_spec_header": {
+            "image_name": "fallback-image",
+            "deployment_name": "wrangler",
+            "python_version": "3.12",
+            "valid_on": "2026-01-01",
+            "expires_on": "2027-01-01",
+        },
+        "repositories": {},
+        "extra_mamba_packages": [],
+        "common_mamba_packages": [],
+        "extra_pip_packages": [],
+        "common_pip_packages": [],
+        "apt_packages": [],
+        "system": {
+            "spec_version": 2.3,
+            "spi": {"repo": "https://example.com/spi.git"},
+            "nb-wrangler": {"repo": "https://example.com/nbw.git"},
+            "date_updated": "2026-01-01T00:00:00",
+        },
+    }
+
+
+class TestEnvironmentNameDefaults:
+    """Tests for environment_name and display_name defaulting behavior."""
+
+    def test_environment_name_defaults_to_image_name_when_no_kernel(self, tmp_path):
+        """When kernel_name is absent, environment_name defaults to image_name."""
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_spec_without_kernel_name()
+        )
+        assert sm.kernel_name is None
+        assert sm.environment_name == "fallback-image"
+
+    def test_environment_name_prefers_kernel_over_image(self, tmp_path):
+        """When kernel_name is present, environment_name uses it (not image_name)."""
+        spec_dict = _make_spec_without_kernel_name()
+        spec_dict["image_spec_header"]["kernel_name"] = "mykernel"
+        sm = _make_spec_manager_from_spec(tmp_path, spec_dict)
+        assert sm.kernel_name == "mykernel"
+        assert sm.environment_name == "mykernel"
+
+    def test_environment_name_python3_maps_to_base(self, tmp_path):
+        """python3 kernel maps to base environment, not image_name."""
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name="python3")
+        )
+        assert sm.environment_name == "base"
+
+    def test_display_name_returns_none_when_no_kernel_or_display(self, tmp_path):
+        """display_name returns None when both display_name and kernel_name absent."""
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_spec_without_kernel_name()
+        )
+        assert sm.display_name is None
+
+    def test_display_name_defaults_to_kernel_name(self, tmp_path):
+        """display_name defaults to kernel_name when display_name is absent."""
+        sm = _make_spec_manager_from_spec(
+            tmp_path, _make_valid_spec_dict(kernel_name="mykernel")
+        )
+        assert sm.display_name == "mykernel"
