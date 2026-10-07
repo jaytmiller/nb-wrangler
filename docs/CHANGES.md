@@ -9,10 +9,20 @@
 - **`wrangler_run` now injects `MAMBA_ROOT_PREFIX`** (`nb_wrangler/environment.py`). When a system-level micromamba is installed, shell init scripts set `MAMBA_ROOT_PREFIX` (and `MAMBA_EXE`) to the system installation. Without an explicit override, subprocess calls could find the wrong `micromamba` binary or look for environments in the wrong directory, leading to PEP 668 errors from system Python. `wrangler_run` now always sets `MAMBA_ROOT_PREFIX` to nb-wrangler's own `NBW_MM` directory in the subprocess environment.
 - **Removed `MAMBA_ROOT_PREFIX` / `CONDA_ROOT_PREFIX` fallbacks from `NBW_ROOT` and `NBW_MM`** (`nb_wrangler/constants.py`). These fallbacks caused nb-wrangler to adopt a system-level micromamba's root prefix as its own installation directory, causing environment lookups to fail. `NBW_ROOT` and `NBW_MM` now default strictly to `~/.nbw-live` and `~/.nbw-live/mm` respectively.
 
+### `--quiet` Flag Behavior
+
+- **`--quiet`/`-q` now suppresses startup version log** (`nb_wrangler/cli.py`). The `WranglerLogger` is now constructed with `quiet=args.quiet`, so the `Wrangler version:` INFO message is suppressed when `--quiet` is passed. Previously, version output was guarded by an `if not args.quiet` check that bypassed the logger's own quiet mode.
+- **`--env-print-name --quiet` suppresses all output except environment name** (`nb_wrangler/cli.py`). Specifying no spec results in no output but exit status 1.
+
 ### Timeout Constants
 
 - **New `PULL_TIMEOUT` constant** (`nb_wrangler/constants.py`). Docker `pull` operations now use a dedicated 1-hour (3600s) timeout (`PULL_TIMEOUT` in `constants.py`, imported into `registry.py`), instead of the generic `DEFAULT_TIMEOUT`.
 - **Increased `DEFAULT_TIMEOUT`** from 300s to 600s.
+
+### Tests Added
+
+- `tests/test_environment.py` — `TestWranglerRunMambaRootPrefix` test class verifying that `wrangler_run` injects `MAMBA_ROOT_PREFIX` into the subprocess environment and respects explicitly provided `env` dicts.
+- `tests/test_logger.py` — `test_quiet_suppresses_stderr`, `test_quiet_does_not_suppress_stdout`, and `test_non_quiet_outputs_to_stderr` tests for the `quiet` parameter on `WranglerLogger`.
 
 ---
 
