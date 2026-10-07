@@ -417,9 +417,7 @@ class TestEnvironmentNameDefaults:
 
     def test_environment_name_defaults_to_image_name_when_no_kernel(self, tmp_path):
         """When kernel_name is absent, environment_name defaults to image_name."""
-        sm = _make_spec_manager_from_spec(
-            tmp_path, _make_spec_without_kernel_name()
-        )
+        sm = _make_spec_manager_from_spec(tmp_path, _make_spec_without_kernel_name())
         assert sm.kernel_name is None
         assert sm.environment_name == "fallback-image"
 
@@ -440,9 +438,7 @@ class TestEnvironmentNameDefaults:
 
     def test_display_name_returns_none_when_no_kernel_or_display(self, tmp_path):
         """display_name returns None when both display_name and kernel_name absent."""
-        sm = _make_spec_manager_from_spec(
-            tmp_path, _make_spec_without_kernel_name()
-        )
+        sm = _make_spec_manager_from_spec(tmp_path, _make_spec_without_kernel_name())
         assert sm.display_name is None
 
     def test_display_name_defaults_to_kernel_name(self, tmp_path):
