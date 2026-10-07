@@ -7,11 +7,8 @@ These mixins provide utility methods that are duplicated across
 
 from typing import TYPE_CHECKING
 
-<<<<<<< HEAD
 from .spec_manager import kernel_name_to_env_name
 
-=======
->>>>>>> ee84578 (Factored some common code out of wrangler.py and data_wrangler.py to)
 if TYPE_CHECKING:
     from .spec_manager import SpecManager
     from .config import WranglerConfig
