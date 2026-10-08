@@ -2,18 +2,16 @@
 
 import fnmatch
 import json
-import sys
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
+from nb_wrangler.hubenv._common import get_logger
 from nb_wrangler.hubenv.env_spec import load_hubenv_spec, save_hubenv_spec
 
 
 def cmd_var_ls(args) -> int:
     """Handle ``hubenv var ls NAME [GLOB...]``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     spec = load_hubenv_spec(config, args.name)
     env_vars = spec.get("environment_vars") or {}
     filtered = filter_vars_by_glob(env_vars, args.globs)
@@ -66,12 +64,11 @@ def print_var_ls_json(env_vars: dict, name: str) -> None:
 
 def cmd_var_add(args) -> int:
     """Handle ``hubenv var add NAME VAR=VALUE...``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     try:
         updates = parse_var_assignments(args.assignments)
     except ValueError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        get_logger().error(f"{exc}")
         return 1
     spec = load_hubenv_spec(config, args.name)
     env_vars = spec.get("environment_vars") or {}
@@ -103,8 +100,7 @@ def print_var_add_result(name: str, updates: dict[str, str]) -> None:
 
 def cmd_var_rm(args) -> int:
     """Handle ``hubenv var rm NAME GLOB...``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     spec = load_hubenv_spec(config, args.name)
     env_vars = spec.get("environment_vars") or {}
     spec["environment_vars"] = env_vars
@@ -143,7 +139,4 @@ def refresh_kernel_vars(name: str, env_vars: dict[str, str]) -> None:
     em = EnvironmentManager()
     success = em.register_environment(name, name, env_vars)
     if not success:
-        print(
-            f"Warning: kernel refresh for '{name}' failed (spec still updated).",
-            file=sys.stderr,
-        )
+        get_logger().warning(f"Kernel refresh for '{name}' failed (spec still updated).")

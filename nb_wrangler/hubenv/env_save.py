@@ -1,12 +1,10 @@
 """env save subcommand: pack a live environment into a pantry archive."""
 
-import sys
-
 from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.pantry import NbwShelf
-from nb_wrangler.hubenv._common import ensure_config, print_no_writable_pantry
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger, print_no_writable_pantry
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.utils import sha256_file
 
 
@@ -16,8 +14,7 @@ def cmd_env_save(args) -> int:
     Pack an installed environment into a pantry archive. Uses wrangler's
     NbwShelf.pack_environment routine for tarball creation.
     """
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
 
     target = config.target_pantry(args.pantry)
     if target is None:
@@ -27,11 +24,7 @@ def cmd_env_save(args) -> int:
     em = EnvironmentManager()
     env_path = em.env_live_path(args.name)
     if not env_path.exists():
-        print(
-            f"Error: live environment '{args.name}' not found at {env_path}",
-            file=sys.stderr,
-        )
-        return 1
+        return get_logger().error(f"Live environment '{args.name}' not found at {env_path}")
 
     shelf = NbwShelf(target / "shelves" / args.name, pantry_path=target)
     can_path = shelf.env_archive_path(args.name, DEFAULT_ARCHIVE_FORMAT)
@@ -43,12 +36,9 @@ def cmd_env_save(args) -> int:
         return 0
 
     if can_path.exists() and not args.force:
-        print(
-            f"Error: archive already exists at {can_path}. "
-            f"Use --force to overwrite.",
-            file=sys.stderr,
+        return get_logger().error(
+            f"Archive already exists at {can_path}. Use --force to overwrite."
         )
-        return 1
 
     success = shelf.pack_environment(args.name, args.name, DEFAULT_ARCHIVE_FORMAT)
     if not success:

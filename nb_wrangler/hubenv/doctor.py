@@ -6,14 +6,12 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_doctor(args) -> int:
     """Handle ``hubenv doctor`` — run self-test checks."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     checks = run_doctor_checks(config)
     if args.format == "json":
         print_doctor_json(checks)
@@ -22,7 +20,7 @@ def cmd_doctor(args) -> int:
     return 0 if all(c["pass"] for c in checks) else 1
 
 
-def run_doctor_checks(config: HubenvConfig) -> list[dict]:
+def run_doctor_checks(config: PantryStore) -> list[dict]:
     """Run all doctor checks and return results."""
     return [
         check_mamba_availability(),
@@ -54,7 +52,7 @@ def check_mamba_availability() -> dict:
     }
 
 
-def check_pantry_writability(config: HubenvConfig) -> dict:
+def check_pantry_writability(config: PantryStore) -> dict:
     """Check that at least one pantry is writable."""
     writable = [str(p) for p in config.writable_pantries()]
     if writable:
@@ -73,7 +71,7 @@ def check_pantry_writability(config: HubenvConfig) -> dict:
     }
 
 
-def check_efs_mount(config: HubenvConfig) -> dict:
+def check_efs_mount(config: PantryStore) -> dict:
     """Check EFS mount status for pantry paths."""
     info = detect_efs_mount(config)
     if info:
@@ -86,7 +84,7 @@ def check_efs_mount(config: HubenvConfig) -> dict:
     }
 
 
-def detect_efs_mount(config: HubenvConfig) -> str:
+def detect_efs_mount(config: PantryStore) -> str:
     """Detect EFS mount for any pantry path."""
     mounts = read_proc_mounts()
     for pantry in config.pantry_dirs:

@@ -1,6 +1,5 @@
 """env create subcommand: seed, install, and register environments."""
 
-import sys
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -8,11 +7,11 @@ from typing import Optional
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.pantry import NbwShelf
 from nb_wrangler.hubenv._common import (
-    ensure_config,
+    get_logger,
     print_exports,
     print_no_writable_pantry,
 )
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import save_hubenv_spec
 from nb_wrangler.hubenv.seeds import (
     seed_from_empty,
@@ -27,8 +26,6 @@ from nb_wrangler.utils import yaml_dumps
 
 def cmd_env_create(args) -> int:
     """Handle ``hubenv env create``."""
-    ensure_config()
-
     seed = build_seed_dict(args)
     spec_yaml = yaml_dumps(seed)
 
@@ -70,14 +67,11 @@ def import_existing_env(args, seed, spec_yaml) -> int:
     shadow spec, register the kernel, and write a shelf spec so that
     ``save``/``restore``/``ls`` work immediately.
     """
-    config = HubenvConfig()
+    config = PantryStore()
     em = EnvironmentManager()
 
     if not em.environment_exists(args.from_existing_env):
-        print(
-            f"Error: environment '{args.from_existing_env}' " f"not found in mamba.",
-            file=sys.stderr,
-        )
+        get_logger().error(f"Environment '{args.from_existing_env}' not found in mamba.")
         return 1
 
     save_hubenv_spec(config, args.name, seed)
@@ -93,7 +87,7 @@ def import_existing_env(args, seed, spec_yaml) -> int:
 
 
 def write_shelf_spec(
-    config: HubenvConfig, name: str, spec_yaml: str, pantry: Optional[str]
+    config: PantryStore, name: str, spec_yaml: str, pantry: Optional[str]
 ) -> None:
     """Write the wrangler spec into the first writable pantry shelf.
 

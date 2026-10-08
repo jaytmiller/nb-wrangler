@@ -3,23 +3,21 @@
 Handles ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec]``.
 """
 
-import sys
 from pathlib import Path
 from typing import Optional
 
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import load_hubenv_spec
 from nb_wrangler.utils import yaml_dumps
 
 
 def cmd_export(args) -> int:
     """Handle ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec] [-o FILE|-]``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     spec_path = config.hubenv_spec_path(args.name)
     if not spec_path.exists():
-        print(f"Error: no spec found for env '{args.name}'.", file=sys.stderr)
+        get_logger().error(f"No spec found for env '{args.name}'.")
         return 1
     spec = load_hubenv_spec(config, args.name)
     output = format_export(spec, args)

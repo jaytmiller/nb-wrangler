@@ -1,14 +1,13 @@
 """env restore subcommand: unpack a saved environment and register kernel."""
 
-import sys
 from pathlib import Path
 from typing import Optional
 
 from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.pantry import NbwShelf
-from nb_wrangler.hubenv._common import ensure_config, print_exports
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger, print_exports
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_restore(args) -> int:
@@ -17,17 +16,13 @@ def cmd_env_restore(args) -> int:
     Unpack a saved can into NBW_ROOT and register a Jupyter kernel.
     Supports idempotency (skip if restored hash matches save hash).
     """
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
 
     matches = find_restore_shelf(config, args)
     if matches is None:
         return 1
     if not matches:
-        print(
-            f"Error: no shelf '{args.name}' found in any pantry.",
-            file=sys.stderr,
-        )
+        get_logger().error(f"No shelf '{args.name}' found in any pantry.")
         return 1
 
     pantry_path, shelf_path = matches[0]
@@ -62,7 +57,7 @@ def cmd_env_restore(args) -> int:
 def _check_archive_exists(can_path) -> bool:
     """Validate can-path exists; print error if missing. Returns True on error."""
     if not can_path.exists():
-        print(f"Error: no archive (can) found at {can_path}", file=sys.stderr)
+        get_logger().error(f"No archive (can) found at {can_path}")
         return True
     return False
 
@@ -86,28 +81,22 @@ def _do_restore_unpack(shelf, name) -> bool:
     return success
 
 
-def find_restore_shelf(config: HubenvConfig, args) -> Optional[list[tuple[Path, Path]]]:
+def find_restore_shelf(config: PantryStore, args) -> Optional[list[tuple[Path, Path]]]:
     """Find shelf(s) for restore, handling --pantry and multi-match."""
     if args.pantry:
         forced = Path(args.pantry)
         shelf_path = forced / "shelves" / args.name
         if shelf_path.exists():
             return [(forced, shelf_path)]
-        print(
-            f"Error: no shelf '{args.name}' found in pantry {forced}.",
-            file=sys.stderr,
-        )
+        get_logger().error(f"No shelf '{args.name}' found in pantry {forced}.")
         return None
 
     matches = config.find_shelves(args.name)
     if len(matches) > 1:
-        print(
-            f"Error: '{args.name}' found in multiple pantries:",
-            file=sys.stderr,
-        )
+        get_logger().error(f"'{args.name}' found in multiple pantries:")
         for pantry, shelf_path in matches:
-            print(f"  {shelf_path}", file=sys.stderr)
-        print("Use --pantry to select a specific one.", file=sys.stderr)
+            get_logger().info(f"  {shelf_path}")
+        get_logger().info("Use --pantry to select a specific one.")
         return None
     return matches
 
@@ -120,7 +109,7 @@ def read_save_hash(shelf: NbwShelf) -> Optional[str]:
     return None
 
 
-def read_restore_hash(config: HubenvConfig, name: str) -> Optional[str]:
+def read_restore_hash(config: PantryStore, name: str) -> Optional[str]:
     """Read the restore-hash for *name* from the live store."""
     hash_file = config.restore_hash_path(name)
     if hash_file.exists():
@@ -128,7 +117,7 @@ def read_restore_hash(config: HubenvConfig, name: str) -> Optional[str]:
     return None
 
 
-def record_restore_hash(config: HubenvConfig, name: str, save_hash: str) -> None:
+def record_restore_hash(config: PantryStore, name: str, save_hash: str) -> None:
     """Persist the restore-hash for future idempotency checks."""
     hash_file = config.restore_hash_path(name)
     hash_file.parent.mkdir(parents=True, exist_ok=True)

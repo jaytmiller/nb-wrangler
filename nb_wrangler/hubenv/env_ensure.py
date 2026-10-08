@@ -1,11 +1,10 @@
 """env ensure/register/unregister subcommands."""
 
-import sys
 from typing import Optional
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv._common import ensure_config, print_exports
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger, print_exports
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_restore import cmd_env_restore, find_restore_shelf
 
 
@@ -26,8 +25,7 @@ def cmd_env_ensure(args) -> int:
     2. Else if an archive shelf exists -> restore it (reuse Phase 3 restore).
     3. Else -> error with create-suggestion, exit non-zero.
     """
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     em = EnvironmentManager()
 
     # 1. Live env exists -> no-op
@@ -41,10 +39,9 @@ def cmd_env_ensure(args) -> int:
     if matches is None:
         return 1
     if not matches:
-        print(
-            f"Error: no live environment and no archive shelf for '{args.name}'. "
-            f"Run `hubenv env create ... --name {args.name}` first.",
-            file=sys.stderr,
+        get_logger().error(
+            f"No live environment and no archive shelf for '{args.name}'. "
+            f"Run `hubenv env create ... --name {args.name}` first."
         )
         return 1
 
@@ -59,7 +56,6 @@ def cmd_env_ensure(args) -> int:
 
 def cmd_env_register(args) -> int:
     """Handle ``hubenv env register`` — (re)register the Jupyter kernel."""
-    ensure_config()
     em = EnvironmentManager()
 
     display_name = args.display_name or args.name
@@ -71,14 +67,13 @@ def cmd_env_register(args) -> int:
     success = em.register_environment(args.name, display_name, {})
     if success:
         print(f"Registered environment '{args.name}' as kernel '{display_name}'.")
-        print_exports(args.name, HubenvConfig())
+        print_exports(args.name, PantryStore())
         return 0
     return 1
 
 
 def cmd_env_unregister(args) -> int:
     """Handle ``hubenv env unregister`` — remove the Jupyter kernel spec."""
-    ensure_config()
     em = EnvironmentManager()
 
     if args.dry_run:

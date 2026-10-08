@@ -2,14 +2,13 @@
 
 from pathlib import Path
 
-from nb_wrangler.hubenv._common import ensure_config, print_shadowing_warnings
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import print_shadowing_warnings
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_ls(args) -> int:
     """Handle ``hubenv env ls`` — list live envs and pantry shelves."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
 
     pantry_dir = Path(args.pantry) if args.pantry else None
     patterns = args.patterns if args.patterns else [None]

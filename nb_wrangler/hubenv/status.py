@@ -4,14 +4,12 @@ import json
 import os
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_status(args) -> int:
     """Handle ``hubenv status`` — show system state summary."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     status = aggregate_status(config)
     if args.format == "json":
         print_status_json(status)
@@ -20,7 +18,7 @@ def cmd_status(args) -> int:
     return 0
 
 
-def aggregate_status(config: HubenvConfig) -> dict:
+def aggregate_status(config: PantryStore) -> dict:
     """Build the status dict for table/json output."""
     active_env = os.environ.get("NBW_ACTIVE_ENV")
     live_envs = config.list_live_envs()

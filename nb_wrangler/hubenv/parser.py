@@ -5,6 +5,68 @@ All ``build_parser`` and ``_add_*`` functions live here so that
 """
 
 import argparse
+from nb_wrangler.constants import (
+    VALID_LOG_TIME_MODES,
+    DEFAULT_LOG_TIMES_MODE,
+    VALID_COLOR_MODES,
+    DEFAULT_COLOR_MODE,
+    __version__,
+)
+
+
+def _add_global_flags(parser: argparse.ArgumentParser) -> None:
+    """Add global diagnostic flags to *parser*.
+
+    Shared by the top-level parser and all subparsers so that flags like
+    ``--quiet`` work both before (``hubenv --quiet env ls``) and after
+    (``hubenv env --quiet ls``) the subcommand.
+    """
+    global_group = parser.add_argument_group(
+        "Global", "Global diagnostic and output-control flags."
+    )
+    global_group.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        dest="quiet",
+        default=False,
+        help="Suppress all log output to stderr; only stdout will be visible.",
+    )
+    global_group.add_argument(
+        "--verbose",
+        action="store_true",
+        dest="verbose",
+        default=False,
+        help="Enable verbose log output.",
+    )
+    global_group.add_argument(
+        "--debug",
+        action="store_true",
+        dest="debug",
+        default=False,
+        help="Drop into debugging with pdb on exceptions.",
+    )
+    global_group.add_argument(
+        "--color",
+        choices=VALID_COLOR_MODES,
+        default=DEFAULT_COLOR_MODE,
+        dest="color",
+        help="Colorize log output.",
+    )
+    global_group.add_argument(
+        "--log-times",
+        choices=VALID_LOG_TIME_MODES,
+        default=DEFAULT_LOG_TIMES_MODE,
+        dest="log_times",
+        help="Include timestamps in log messages.",
+    )
+    global_group.add_argument(
+        "--reset-log",
+        action="store_true",
+        dest="reset_log",
+        default=False,
+        help="Delete nb-wrangler log file.",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,6 +77,13 @@ def build_parser() -> argparse.ArgumentParser:
             "Persistent Platform Environments CLI for nb-wrangler. "
             "Manage user-installed environments with archive/restore support."
         ),
+    )
+    _add_global_flags(parser)
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        default=False,
+        help="Print the nb-wrangler version and exit.",
     )
     subparsers = parser.add_subparsers(dest="command")
 
@@ -29,6 +98,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _add_env_subcommands(subparsers) -> None:
     """Add the ``env`` subcommand group with create, save, restore + stubs."""
     env_parser = subparsers.add_parser("env", help="Environment management")
+    _add_global_flags(env_parser)
     env_sub = env_parser.add_subparsers(dest="env_command")
 
     create = env_sub.add_parser("create", help="Create a new environment")
@@ -100,6 +170,7 @@ def _add_export_status_doctor_subcommands(subparsers) -> None:
 def _add_completions_subcommands(subparsers) -> None:
     """Add the ``completions`` subcommand (Phase 11)."""
     comp = subparsers.add_parser("completions", help="Print shell completion scripts")
+    _add_global_flags(comp)
     comp.add_argument(
         "shell",
         choices=["bash", "zsh", "fish"],
@@ -112,6 +183,7 @@ def _add_var_subcommands(subparsers) -> None:
     var_parser = subparsers.add_parser(
         "var", help="Manage environment variables for an env"
     )
+    _add_global_flags(var_parser)
     var_sub = var_parser.add_subparsers(dest="var_command")
 
     ls = var_sub.add_parser("ls", help="List env vars defined for an environment")
@@ -174,6 +246,7 @@ def _add_data_subcommands(subparsers) -> None:
     data_parser = subparsers.add_parser(
         "data", help="Manage data archives for an environment"
     )
+    _add_global_flags(data_parser)
     data_sub = data_parser.add_subparsers(dest="data_command")
 
     ls = data_sub.add_parser("ls", help="List data archives for an environment")

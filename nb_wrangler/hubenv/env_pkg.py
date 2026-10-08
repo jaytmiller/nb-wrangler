@@ -1,11 +1,9 @@
 """env install/uninstall subcommand: install or remove packages."""
 
-import sys
-
 from nb_wrangler.constants import NBW_MAMBA_CMD, NBW_PIP_CMD
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import update_and_save_spec
 
 
@@ -21,13 +19,11 @@ def cmd_env_uninstall(args) -> int:
 
 def cmd_env_pkg_action(args, action: str) -> int:
     """Shared install/uninstall handler."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     em = EnvironmentManager()
 
     if not em.environment_exists(args.name):
-        print(f"Error: live environment '{args.name}' not found.", file=sys.stderr)
-        return 1
+        return get_logger().error(f"Live environment '{args.name}' not found.")
 
     if args.dry_run:
         return pkg_dry_run(args, action)

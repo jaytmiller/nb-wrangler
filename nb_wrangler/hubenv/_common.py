@@ -4,44 +4,43 @@ Contains helpers used across multiple subcommand modules to avoid
 circular imports between command modules.
 """
 
-import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
-from nb_wrangler.config import WranglerConfig, set_args_config, get_args_config
-from nb_wrangler.logger import WranglerLogger
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.config import get_args_config
+from nb_wrangler.logger import get_configured_logger
+from nb_wrangler.hubenv.config import PantryStore
 
-
-def ensure_config() -> WranglerConfig:
-    """Return a global WranglerConfig, creating a minimal one if needed."""
-    try:
-        return get_args_config()
-    except (AssertionError, AttributeError):
-        config = WranglerConfig(workflows=[], repos_dir=Path("."), output_dir=Path("."))
-        set_args_config(config)
-        WranglerLogger.from_config(config)  # configure logging
-        return config
+if TYPE_CHECKING:
+    from nb_wrangler.config import WranglerConfig
 
 
-def print_exports(name: str, config: HubenvConfig) -> None:
+def get_logger():
+    """Return the configured logger for hubenv commands."""
+    return get_configured_logger()
+
+
+def get_config() -> "WranglerConfig":
+    """Return the current WranglerConfig (must be set via _setup_config)."""
+    return get_args_config()
+
+
+def print_exports(name: str, store: PantryStore) -> None:
     """Print eval-able shell exports for environment activation."""
     print(f"export NBW_ACTIVE_ENV={name}")
-    print(f"export NBW_ENV_ROOT={config.nbw_root / 'envs' / name}")
+    print(f"export NBW_ENV_ROOT={store.nbw_root / 'envs' / name}")
 
 
 def print_no_writable_pantry(forced_path: Optional[str]) -> None:
     """Print a clear error for no writable pantry."""
     if forced_path:
-        print(
-            f"Error: pantry '{forced_path}' is read-only or does not exist.",
-            file=sys.stderr,
+        get_logger().error(
+            f"Pantry '{forced_path}' is read-only or does not exist."
         )
     else:
-        print(
-            "Error: no writable pantry found. " "Set NBW_PANTRY to a writable path.",
-            file=sys.stderr,
+        get_logger().error(
+            "No writable pantry found. Set NBW_PANTRY to a writable path."
         )
 
 
@@ -52,8 +51,7 @@ def print_shadowing_warnings(shelves: list[dict]) -> None:
         by_name[entry["name"]].append(entry["pantry"])
     for name, pantries in by_name.items():
         if len(pantries) > 1:
-            print(
-                f"WARNING: '{name}' shadowed across pantries: "
-                + ", ".join(str(p) for p in pantries),
-                file=sys.stderr,
+            get_logger().warning(
+                f"'{name}' shadowed across pantries: "
+                + ", ".join(str(p) for p in pantries)
             )

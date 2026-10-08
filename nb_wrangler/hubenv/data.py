@@ -4,14 +4,12 @@ import fnmatch
 import json
 
 from nb_wrangler import data_manager
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_data_ls(args) -> int:
     """Handle ``hubenv data ls NAME [--format table|json]``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     archives = list_data_archives(config, args.name)
     if args.format == "json":
         print_data_ls_json(archives, args.name)
@@ -22,7 +20,6 @@ def cmd_data_ls(args) -> int:
 
 def cmd_data_download(args) -> int:
     """Handle ``hubenv data download NAME [--select REGEX] [--no-validate]``."""
-    ensure_config()
     success = data_manager.download_data(
         args.name,
         select=args.select,
@@ -36,7 +33,6 @@ def cmd_data_download(args) -> int:
 
 def cmd_data_unpack(args) -> int:
     """Handle ``hubenv data unpack``."""
-    ensure_config()
     success = data_manager.unpack_data(
         args.name,
         symlinks=args.symlinks,
@@ -50,7 +46,6 @@ def cmd_data_unpack(args) -> int:
 
 def cmd_data_pack(args) -> int:
     """Handle ``hubenv data pack NAME`` — pack live data dirs into archive files."""
-    ensure_config()
     success = data_manager.pack_data(args.name)
     if not success:
         return 1
@@ -60,7 +55,6 @@ def cmd_data_pack(args) -> int:
 
 def cmd_data_clean(args) -> int:
     """Handle ``hubenv data clean NAME [archived|unpacked|both]`` — delete data."""
-    ensure_config()
     success = data_manager.delete_data(args.name, mode=args.mode)
     if not success:
         return 1

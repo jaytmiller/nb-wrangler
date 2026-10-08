@@ -4,12 +4,12 @@ These helpers manage the per-environment YAML spec that hubenv keeps as
 the 'source of truth' for each environment's pinned dependencies.
 """
 
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.seeds import seed_from_empty
 from nb_wrangler.utils import get_yaml, yaml_dumps
 
 
-def load_hubenv_spec(config: HubenvConfig, name) -> dict:
+def load_hubenv_spec(config: PantryStore, name) -> dict:
     """Load the implicit spec, or create a base spec if none exists."""
     spec_path = config.hubenv_spec_path(name)
     if spec_path.exists():
@@ -19,7 +19,7 @@ def load_hubenv_spec(config: HubenvConfig, name) -> dict:
     return seed_from_empty(name, None)
 
 
-def save_hubenv_spec(config: HubenvConfig, name, spec) -> None:
+def save_hubenv_spec(config: PantryStore, name, spec) -> None:
     """Persist the implicit spec to disk."""
     spec_path = config.hubenv_spec_path(name)
     spec_path.parent.mkdir(parents=True, exist_ok=True)

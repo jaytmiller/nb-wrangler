@@ -1,28 +1,41 @@
-"""Pantry configuration and read-only detection for hubenv.
+"""Pantry store for hubenv.
 
-Thin wrapper over ``nb_wrangler.constants`` that classifies each pantry
-directory as writable or read-only using ``os.access``.
+Provides ``PantryStore`` — a helper class that classifies pantry
+directories as writable or read-only using ``os.access`` and exposes
+shelf/live-env lookups used by every ``hubenv`` command.
+
+Unlike a config dataclass, ``PantryStore`` is a plain helper that
+reads from ``nb_wrangler.constants`` (which reflect environment
+variables at import time) and logs diagnostics through the global
+wrangler logger.
 """
 
+import fnmatch
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from nb_wrangler.constants import NBW_PANTRY_DIRS, NBW_ROOT
-from nb_wrangler.logger import WranglerLoggable
 
 
-class HubenvConfig(WranglerLoggable):
-    """Pantry configuration with read-only detection.
+def _get_logger():
+    """Return the global configured logger (deferred import to avoid cycles)."""
+    from nb_wrangler.logger import get_configured_logger
+
+    return get_configured_logger()
+
+
+class PantryStore:
+    """Pantry helper with read-only detection.
 
     Wraps ``NBW_PANTRY_DIRS`` (a colon-separated, PATH-like list) and
     exposes writable-pantry lookups used by every ``hubenv`` command.
     """
 
     def __init__(self):
-        super().__init__()
         self.pantry_dirs: list[Path] = list(NBW_PANTRY_DIRS)
         self.nbw_root: Path = NBW_ROOT
+        self.logger = _get_logger()
 
     def is_writable(self, pantry: str | Path) -> bool:
         """Return True if *pantry* exists and the user can write to it."""
@@ -85,8 +98,6 @@ class HubenvConfig(WranglerLoggable):
         If *glob_expr* is given, filter by matching shelf name.
         If *pantry* is given, restrict to that single pantry directory.
         """
-        import fnmatch
-
         results: list[dict] = []
         search_pantries = [pantry] if pantry else self.pantry_dirs
         for p in search_pantries:
@@ -134,3 +145,8 @@ class HubenvConfig(WranglerLoggable):
         the seed spec + package delta so ``install``/``relock`` have state.
         """
         return self.nbw_root / "envs" / name / ".hubenv-spec.yaml"
+
+
+# Backwards-compatibility alias so existing code using HubenvConfig continues
+# to work until all importers are migrated to PantryStore.
+HubenvConfig = PantryStore

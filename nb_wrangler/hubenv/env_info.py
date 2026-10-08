@@ -1,16 +1,14 @@
 """env info subcommand: show detailed environment metadata."""
 
-import sys
 from pathlib import Path
 
-from nb_wrangler.hubenv._common import ensure_config, print_shadowing_warnings
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger, print_shadowing_warnings
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_info(args) -> int:
     """Handle ``hubenv env info NAME`` — show detailed environment metadata."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
 
     pantry_dir = Path(args.pantry) if args.pantry else None
     shelves = config.list_shelves(glob_expr=args.name, pantry=pantry_dir)
@@ -18,10 +16,7 @@ def cmd_env_info(args) -> int:
     live_names = {e["name"] for e in live_envs}
 
     if not shelves and args.name not in live_names:
-        print(
-            f"Info: no shelf or live env named '{args.name}' found.",
-            file=sys.stderr,
-        )
+        get_logger().warning(f"No shelf or live env named '{args.name}' found.")
         return 1
 
     if args.format == "json":

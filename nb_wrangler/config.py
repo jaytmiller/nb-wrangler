@@ -144,6 +144,9 @@ class WranglerConfig:
     spec_list: bool = False
     spec_add: bool = False
 
+    hubenv_command: Optional[str] = None
+    hubenv_args: Optional[argparse.Namespace] = None
+
     spi_branch: str = ""
     spi_commit_message: str = ""
     spi_inject_reqs: bool = False

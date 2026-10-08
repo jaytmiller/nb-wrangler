@@ -3,8 +3,8 @@
 import sys
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import (
     get_or_create_pip_section,
     load_hubenv_spec,
@@ -15,12 +15,11 @@ from nb_wrangler.utils import writelines
 
 def cmd_env_relock(args) -> int:
     """Handle ``hubenv env relock``."""
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
     em = EnvironmentManager()
 
     if not em.environment_exists(args.name):
-        print(f"Error: live environment '{args.name}' not found.", file=sys.stderr)
+        get_logger().error(f"Live environment '{args.name}' not found.")
         return 1
 
     return do_relock(config, em, args.name, args.dry_run)

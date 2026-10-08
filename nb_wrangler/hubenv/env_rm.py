@@ -1,12 +1,11 @@
 """env rm subcommand: delete environments from live and/or archive."""
 
 import shutil
-import sys
 from fnmatch import fnmatch
 from pathlib import Path
 
-from nb_wrangler.hubenv._common import ensure_config
-from nb_wrangler.hubenv.config import HubenvConfig
+from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_rm(args) -> int:
@@ -15,14 +14,13 @@ def cmd_env_rm(args) -> int:
     Orchestrates: resolve targets -> dry-run check -> validate ->
     confirm -> execute.
     """
-    ensure_config()
-    config = HubenvConfig()
+    config = PantryStore()
 
     target_type = args.target or "both"
     targets = resolve_rm_targets(config, args.names, target_type, args.pantry)
 
     if not targets:
-        print("No matching environments found.", file=sys.stderr)
+        get_logger().error("No matching environments found.")
         return 1
 
     if args.dry_run:
@@ -41,19 +39,17 @@ def validate_rm_targets(targets, config) -> bool:
     errors = check_rm_readonly(targets)
     if errors:
         for msg in errors:
-            print(f"Error: {msg}", file=sys.stderr)
-        print(
-            "Set NBW_PANTRY to a writable path or use --pantry <writable-path>.",
-            file=sys.stderr,
+            get_logger().error(msg)
+        get_logger().error(
+            "Set NBW_PANTRY to a writable path or use --pantry <writable-path>."
         )
         return True
 
     unsafe = [t for t in targets if not is_safe_rm_path(t, config)]
     if unsafe:
         for t in unsafe:
-            print(
-                f"Error: refusing to delete path outside safe roots: {t['path']}",
-                file=sys.stderr,
+            get_logger().error(
+                f"Refusing to delete path outside safe roots: {t['path']}"
             )
         return True
     return False
@@ -63,7 +59,7 @@ def confirm_and_rm(targets, yes: bool) -> int:
     """Prompt for confirmation then execute deletions."""
     if not yes:
         if not prompt_rm_confirmation():
-            print("Aborted.", file=sys.stderr)
+            get_logger().error("Aborted.")
             return 1
     return 1 if do_rm(targets) > 0 else 0
 
@@ -165,7 +161,7 @@ def do_rm(targets):
             shutil.rmtree(path)
             print(f"Removed {t['type']} '{t['name']}' at {path}")
         except OSError as e:
-            print(f"Warning: could not remove {t['name']}: {e}", file=sys.stderr)
+            get_logger().warning(f"Could not remove {t['name']}: {e}")
             failures += 1
     cleanup_empty_shelf_dirs(targets)
     return failures
