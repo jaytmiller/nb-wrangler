@@ -523,11 +523,13 @@ def _data_wrangler_config(
 
     No workflows are enabled, so only the flagged data steps execute.
     """
+    # Notebook repos live under the shelf (``<shelf>/notebook-repos``) — the
+    # single canonical location shared by nbw and hubenv.
     cfg = config.WranglerConfig(
         workflows=[],
         spec_file=str(spec_path),
         output_dir=constants.NBW_ROOT / "temps",
-        repos_dir=constants.NBW_ROOT / "notebook_repos",
+        repos_dir=spec_path.parent / "notebook-repos",
     )
     for key, value in data_flags.items():
         setattr(cfg, key, value)

@@ -13,9 +13,9 @@ ${NBW_PANTRY}/  (or first entry in the colon-separated list)
         env-1-tar
         repo-1-clone.tar.gz   ...
         data-1-clone.tar.gz   ...
-      notebook_repos/  (unpacked notebooks)
-        repo-clone-1/
-        repo-clone-2/
+       notebook-repos/  (unpacked notebooks)
+         repo-clone-1/
+         repo-clone-2/
       data/  (unpacked data)
         live-data-dir-1/
         live-data-dir-2/
@@ -40,7 +40,7 @@ ${NBW_ROOT}/
       env-1
   temps/
   cache/
-  notebook_repos/
+  notebook-repos/
     shelf-1/
       repo-clone-1
       ...
@@ -50,6 +50,7 @@ ${NBW_ROOT}/
       ...
 """
 
+import fnmatch
 import shutil
 from pathlib import Path
 from functools import cache
@@ -61,7 +62,13 @@ from . import utils
 # from .utils import DataDownloadError
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
-from .constants import NBW_PANTRY, NBW_PANTRY_DIRS, DATA_GET_TIMEOUT, ARCHIVE_TIMEOUT
+from .constants import (
+    NBW_PANTRY,
+    NBW_PANTRY_DIRS,
+    NBW_ROOT,
+    DATA_GET_TIMEOUT,
+    ARCHIVE_TIMEOUT,
+)
 
 
 class NbwPantry(WranglerLoggable):
@@ -163,13 +170,21 @@ class NbwPantrySet(WranglerLoggable):
     :class:`NbwPantry` instances.
     """
 
-    def __init__(self, paths: Optional[list[Path]] = None):
+    def __init__(
+        self,
+        paths: Optional[list[Path]] = None,
+        nbw_root: Optional[Path] = None,
+    ):
         """
         Initialize the coordinator.
 
         If *paths* is None, directories are read from ``NBW_PANTRY_DIRS``
         (a list of :class:`~pathlib.Path` parsed from the colon-separated env var).
         Empty/falsy paths (e.g. from trailing colons) are filtered out.
+
+        *nbw_root* anchors the live-installation layout (``envs/``, restore
+        hashes); it defaults to ``NBW_PANTRY``-independent ``NBW_ROOT`` and may
+        be overridden (e.g. by ``hubenv`` to its configured root).
         """
         super().__init__()
         if paths is None:
@@ -178,6 +193,8 @@ class NbwPantrySet(WranglerLoggable):
         paths = [p for p in paths if str(p)]
         # Create one NbwPantry instance per directory
         self.pantries: list[NbwPantry] = [NbwPantry(path=p) for p in paths]
+        self.pantry_dirs: list[Path] = [p.path for p in self.pantries]
+        self.nbw_root: Path = nbw_root if nbw_root is not None else NBW_ROOT
 
     @classmethod
     def from_env(cls) -> "NbwPantrySet":
@@ -218,7 +235,7 @@ class NbwPantrySet(WranglerLoggable):
         # Default to primary pantry for new shelf creation
         return self.primary.get_shelf(shelf_name)
 
-    def list_shelves(self) -> bool:
+    def print_shelves(self) -> bool:
         """Print the name of each shelf across all pantries, one per line.
 
         Shelves are deduplicated by name; the first (highest-priority) pantry's
@@ -245,6 +262,119 @@ class NbwPantrySet(WranglerLoggable):
                     seen.add(name)
                     matched.append(name)
         return matched
+
+    def list_shelves(
+        self, glob_expr: Optional[str] = None, pantry: Optional[Path] = None
+    ) -> list[dict]:
+        """Return metadata for shelves across pantries.
+
+        Each entry: ``{pantry, name, path, writable, save_hash}``.
+        If *glob_expr* is given, filter by matching shelf name.
+        If *pantry* is given, restrict to that single pantry directory.
+        """
+        results: list[dict] = []
+        search_pantries = [pantry] if pantry else self.pantry_dirs
+        for p in search_pantries:
+            shelves_dir = p / "shelves"
+            if not shelves_dir.exists():
+                continue
+            for shelf_path in sorted(shelves_dir.iterdir()):
+                if not shelf_path.is_dir():
+                    continue
+                if glob_expr and not fnmatch.fnmatch(shelf_path.name, glob_expr):
+                    continue
+                hash_file = shelf_path / "archives" / "last-save.sha256"
+                save_hash = (
+                    hash_file.read_text().strip() if hash_file.exists() else None
+                )
+                results.append(
+                    {
+                        "pantry": p,
+                        "name": shelf_path.name,
+                        "path": shelf_path,
+                        "writable": self.is_writable(p),
+                        "save_hash": save_hash,
+                    }
+                )
+        return results
+
+    def list_live_envs(self) -> list[dict]:
+        """Return metadata for live environments under ``<nbw_root>/envs``.
+
+        Each entry: ``{name, path}``.
+        """
+        envs_dir = self.nbw_root / "envs"
+        if not envs_dir.exists():
+            return []
+        results: list[dict] = []
+        for env_path in sorted(envs_dir.iterdir()):
+            if env_path.is_dir():
+                results.append({"name": env_path.name, "path": env_path})
+        return results
+
+    def restore_hash_path(self, name: str) -> Path:
+        """Return the live restore-hash marker path for *name*."""
+        return self.nbw_root / ".hubenv-restore" / f"{name}.sha256"
+
+    def shelf_spec_path(self, name: str) -> Path:
+        """Return the canonical shelf spec path for *name*.
+
+        The spec lives at ``<first writable pantry>/shelves/<name>/
+        nbw-wrangler-spec.yaml`` — the same location both ``nbw`` and
+        ``hubenv`` use, so the two apps share one spec file per shelf.
+        """
+        target = self.first_writable_pantry()
+        if target is None:
+            target = self.pantry_dirs[0]
+        return target / "shelves" / name / "nbw-wrangler-spec.yaml"
+
+    def is_writable(self, pantry: str | Path) -> bool:
+        """Return True if *pantry* exists and the user can write to it."""
+        p = Path(pantry)
+        if not p.exists():
+            return False
+        return os.access(p, os.W_OK)
+
+    def writable_pantries(self) -> list[Path]:
+        """Return writable pantry directories in priority order."""
+        return [p.path for p in self.pantries if self.is_writable(p.path)]
+
+    def first_writable_pantry(self) -> Optional[Path]:
+        """Return the first writable pantry, or None if all are read-only."""
+        writable = self.writable_pantries()
+        return writable[0] if writable else None
+
+    def target_pantry(self, forced_path: Optional[str | Path] = None) -> Optional[Path]:
+        """Resolve the pantry to write to.
+
+        If *forced_path* is given, validate it is writable and return it.
+        Otherwise return the first writable pantry.  Returns None when no
+        writable pantry is available.
+        """
+        if forced_path is not None:
+            p = Path(forced_path)
+            if not self.is_writable(p):
+                self.logger.error(
+                    f"Pantry '{p}' is read-only or does not exist. "
+                    f"Use --pantry <writable-path>."
+                )
+                return None
+            return p
+        return self.first_writable_pantry()
+
+    def find_shelves(self, name: str) -> list[tuple[Path, Path]]:
+        """Return all ``(pantry_path, shelf_path)`` pairs where a shelf named
+        *name* exists across the pantries.
+
+        Unlike :meth:`get_shelf`, this reports every match (for shadowing
+        detection) rather than only the first/highest-priority one.
+        """
+        matches: list[tuple[Path, Path]] = []
+        for pantry in self.pantries:
+            shelf_path = pantry.shelves / name
+            if shelf_path.exists():
+                matches.append((pantry.path, shelf_path))
+        return matches
 
     def delete_shelf(self, shelf_name: str | Path) -> bool:
         """Delete an existing shelf from the first pantry containing it.
@@ -288,7 +418,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
         env-1-tar
         repo-1.tar.gz   ...
         data-1.tar.gz   ...
-      notebook_repos/  (unpacked notebooks)
+      notebook-repos/  (unpacked notebooks)
         repo-1/
         repo-2/
         ...

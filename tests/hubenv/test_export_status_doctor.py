@@ -7,7 +7,6 @@ from unittest.mock import patch
 import pytest
 
 from nb_wrangler.config import WranglerConfig, set_args_config
-from nb_wrangler.utils import yaml_dumps
 
 
 @pytest.fixture(autouse=True)
@@ -24,8 +23,12 @@ def _set_config(tmp_path):
 
 
 def _patch_nbw_root(tmp_path):
-    """Patch NBW_ROOT in hubenv.config."""
-    return patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path)
+    """Patch NBW_ROOT + NBW_PANTRY_DIRS in hubenv.config."""
+    return patch.multiple(
+        "nb_wrangler.hubenv.config",
+        NBW_ROOT=tmp_path,
+        NBW_PANTRY_DIRS=[tmp_path / "pantry"],
+    )
 
 
 def _patch_list_kernelspecs(return_value=None):
@@ -74,11 +77,13 @@ def _make_spec(name="demo", with_pip=True):
 
 
 def _write_spec(tmp_path, name, spec):
-    """Write a spec file to the expected location."""
-    spec_path = tmp_path / "envs" / name / ".hubenv-spec.yaml"
-    spec_path.parent.mkdir(parents=True, exist_ok=True)
-    spec_path.write_text(yaml_dumps(spec))
-    return spec_path
+    """Write a mamba-view spec to the shelf via the public API."""
+    with _patch_nbw_root(tmp_path):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+
+        save_hubenv_spec(PantryStore(), name, spec)
+    return tmp_path / "pantry" / "shelves" / name / "nbw-wrangler-spec.yaml"
 
 
 # ---------------------------------------------------------------------------

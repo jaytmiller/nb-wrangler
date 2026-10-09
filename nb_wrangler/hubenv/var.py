@@ -139,4 +139,6 @@ def refresh_kernel_vars(name: str, env_vars: dict[str, str]) -> None:
     em = EnvironmentManager()
     success = em.register_environment(name, name, env_vars)
     if not success:
-        get_logger().warning(f"Kernel refresh for '{name}' failed (spec still updated).")
+        get_logger().warning(
+            f"Kernel refresh for '{name}' failed (spec still updated)."
+        )

@@ -212,9 +212,10 @@ class TestE2EFlow:
         assert rc == 0
 
         # Package should be recorded in spec
-        from nb_wrangler.utils import get_yaml
+        from nb_wrangler.hubenv.env_spec import load_hubenv_spec
+        from nb_wrangler.hubenv.config import PantryStore
 
-        spec = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        spec = load_hubenv_spec(PantryStore(), "demo")
         pip_deps = [
             d for d in spec["dependencies"] if isinstance(d, dict) and "pip" in d
         ]
@@ -231,7 +232,7 @@ class TestE2EFlow:
         assert rc == 0
 
         # Locks should be updated (pinned versions)
-        spec = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        spec = load_hubenv_spec(PantryStore(), "demo")
         pip_deps = [
             d for d in spec["dependencies"] if isinstance(d, dict) and "pip" in d
         ]
@@ -281,7 +282,7 @@ class TestE2EFlow:
         out = capsys.readouterr().out
         assert "Dry-run" in out
         # Spec should not exist (dry-run doesn't write)
-        spec_path = env_dir / ".hubenv-spec.yaml"
+        spec_path = _ppe_env["pantry"] / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
         assert not spec_path.exists()
 
     def test_restore_idempotent_skip(self, _ppe_env, capsys):

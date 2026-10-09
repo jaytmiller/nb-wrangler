@@ -35,9 +35,7 @@ def print_exports(name: str, store: PantryStore) -> None:
 def print_no_writable_pantry(forced_path: Optional[str]) -> None:
     """Print a clear error for no writable pantry."""
     if forced_path:
-        get_logger().error(
-            f"Pantry '{forced_path}' is read-only or does not exist."
-        )
+        get_logger().error(f"Pantry '{forced_path}' is read-only or does not exist.")
     else:
         get_logger().error(
             "No writable pantry found. Set NBW_PANTRY to a writable path."

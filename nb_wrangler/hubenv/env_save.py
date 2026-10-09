@@ -24,7 +24,9 @@ def cmd_env_save(args) -> int:
     em = EnvironmentManager()
     env_path = em.env_live_path(args.name)
     if not env_path.exists():
-        return get_logger().error(f"Live environment '{args.name}' not found at {env_path}")
+        return get_logger().error(
+            f"Live environment '{args.name}' not found at {env_path}"
+        )
 
     shelf = NbwShelf(target / "shelves" / args.name, pantry_path=target)
     can_path = shelf.env_archive_path(args.name, DEFAULT_ARCHIVE_FORMAT)

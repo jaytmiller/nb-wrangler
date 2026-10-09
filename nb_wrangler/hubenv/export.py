@@ -15,7 +15,7 @@ from nb_wrangler.utils import yaml_dumps
 def cmd_export(args) -> int:
     """Handle ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec] [-o FILE|-]``."""
     config = PantryStore()
-    spec_path = config.hubenv_spec_path(args.name)
+    spec_path = config.shelf_spec_path(args.name)
     if not spec_path.exists():
         get_logger().error(f"No spec found for env '{args.name}'.")
         return 1

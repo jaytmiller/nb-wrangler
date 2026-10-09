@@ -58,8 +58,37 @@ def _patch_handle_result(return_value: bool = True):
 
 
 def _patch_nbw_root(tmp_path):
-    """Return a context manager that patches NBW_ROOT in hubenv.config."""
-    return patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path)
+    """Return a context manager patching NBW_ROOT + NBW_PANTRY_DIRS."""
+    return patch.multiple(
+        "nb_wrangler.hubenv.config",
+        NBW_ROOT=tmp_path,
+        NBW_PANTRY_DIRS=[tmp_path / "pantry"],
+    )
+
+
+def _spec_path(tmp_path, name="demo"):
+    """Canonical path where the hubenv spec now lives (shelf location)."""
+    return tmp_path / "pantry" / "shelves" / name / "nbw-wrangler-spec.yaml"
+
+
+def _write_shelf_spec(tmp_path, name="demo", spec=None):
+    """Write a mamba-view spec through the public API."""
+    with _patch_nbw_root(tmp_path):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+
+        if spec is None:
+            spec = {"name": name, "channels": ["conda-forge"], "dependencies": []}
+        save_hubenv_spec(PantryStore(), name, spec)
+
+
+def _read_shelf_spec(tmp_path, name="demo"):
+    """Read a mamba-view spec through the public API."""
+    with _patch_nbw_root(tmp_path):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import load_hubenv_spec
+
+        return load_hubenv_spec(PantryStore(), name)
 
 
 # ---------------------------------------------------------------------------
@@ -85,12 +114,10 @@ class TestInstall:
             rc = main(["env", "install", "demo", "numpy", "pandas"])
 
         assert rc == 0
-        spec_path = env_dir / ".hubenv-spec.yaml"
+        spec_path = _spec_path(tmp_path)
         assert spec_path.exists()
 
-        from nb_wrangler.utils import get_yaml
-
-        spec = get_yaml().load(spec_path.read_text())
+        spec = _read_shelf_spec(tmp_path, "demo")
         pip_deps = spec["dependencies"][-1]["pip"]
         assert "numpy" in pip_deps
         assert "pandas" in pip_deps
@@ -169,7 +196,7 @@ class TestInstall:
             rc = main(["env", "install", "demo", "numpy", "--dry-run"])
 
         assert rc == 0
-        spec_path = env_dir / ".hubenv-spec.yaml"
+        spec_path = _spec_path(tmp_path)
         assert not spec_path.exists()
 
     def test_install_uv(self, tmp_path, capsys):
@@ -201,7 +228,6 @@ class TestInstall:
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
         # Pre-create a spec with pip section so we can verify conda add
-        from nb_wrangler.utils import yaml_dumps
 
         spec = {
             "name": "demo",
@@ -209,7 +235,7 @@ class TestInstall:
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
         env_dir.mkdir(parents=True, exist_ok=True)
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -220,9 +246,8 @@ class TestInstall:
             rc = main(["env", "install", "demo", "scipy", "--using", "mamba"])
 
         assert rc == 0
-        from nb_wrangler.utils import get_yaml
 
-        updated = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        updated = _read_shelf_spec(tmp_path)
         deps = updated["dependencies"]
         assert "scipy" in deps
         # pip section should still be intact
@@ -258,7 +283,7 @@ class TestInstall:
 
         assert rc == 1
         # spec should not be updated on failure
-        spec_path = env_dir / ".hubenv-spec.yaml"
+        spec_path = _spec_path(tmp_path)
         assert not spec_path.exists()
 
 
@@ -272,7 +297,6 @@ class TestUninstall:
 
     def test_uninstall_removes_from_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps, get_yaml
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -281,7 +305,7 @@ class TestUninstall:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy", "pandas"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -292,14 +316,13 @@ class TestUninstall:
             rc = main(["env", "uninstall", "demo", "numpy"])
 
         assert rc == 0
-        updated = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        updated = _read_shelf_spec(tmp_path)
         pip_deps = updated["dependencies"][-1]["pip"]
         assert "numpy" not in pip_deps
         assert "pandas" in pip_deps
 
     def test_uninstall_no_relock(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -308,7 +331,7 @@ class TestUninstall:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -324,7 +347,6 @@ class TestUninstall:
 
     def test_uninstall_dry_run(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -333,7 +355,7 @@ class TestUninstall:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -348,9 +370,8 @@ class TestUninstall:
         assert "Dry-run" in out
         assert "- numpy" in out
         # spec should not be changed
-        from nb_wrangler.utils import get_yaml
 
-        updated = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        updated = _read_shelf_spec(tmp_path)
         pip_deps = updated["dependencies"][-1]["pip"]
         assert "numpy" in pip_deps
 
@@ -365,7 +386,6 @@ class TestRelock:
 
     def test_relock_dry_run(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -374,7 +394,7 @@ class TestRelock:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy", "pandas"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         compiled = ["numpy==1.26.4", "pandas==2.2.0"]
         with (
@@ -396,7 +416,6 @@ class TestRelock:
     def test_relock_dry_run_no_write(self, tmp_path, capsys):
         """Dry-run relock must not modify the spec file."""
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps, get_yaml
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -405,7 +424,7 @@ class TestRelock:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -419,14 +438,13 @@ class TestRelock:
 
         assert rc == 0
         # Spec should still have unpinned numpy
-        updated = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        updated = _read_shelf_spec(tmp_path)
         pip_deps = updated["dependencies"][-1]["pip"]
         assert "numpy" in pip_deps
         assert "numpy==1.26.4" not in pip_deps
 
     def test_relock_writes_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps, get_yaml
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -435,7 +453,7 @@ class TestRelock:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         compiled = ["numpy==1.26.4", "pillow==10.2.0"]
         with (
@@ -451,14 +469,13 @@ class TestRelock:
         assert rc == 0
         out = capsys.readouterr().out
         assert "Relocked 2 packages" in out
-        updated = get_yaml().load((env_dir / ".hubenv-spec.yaml").read_text())
+        updated = _read_shelf_spec(tmp_path)
         pip_deps = updated["dependencies"][-1]["pip"]
         assert "numpy==1.26.4" in pip_deps
         assert "pillow==10.2.0" in pip_deps
 
     def test_relock_no_pip_packages(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -468,7 +485,7 @@ class TestRelock:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": []}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),
@@ -495,7 +512,6 @@ class TestRelock:
 
     def test_relock_compile_failure(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
-        from nb_wrangler.utils import yaml_dumps
 
         env_dir = tmp_path / "envs" / "demo"
         env_dir.mkdir(parents=True)
@@ -504,7 +520,7 @@ class TestRelock:
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "pip", {"pip": ["numpy"]}],
         }
-        (env_dir / ".hubenv-spec.yaml").write_text(yaml_dumps(spec))
+        _write_shelf_spec(tmp_path, "demo", spec)
 
         with (
             _patch_nbw_root(tmp_path),

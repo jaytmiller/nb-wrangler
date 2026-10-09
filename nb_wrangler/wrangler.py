@@ -772,7 +772,7 @@ class NotebookWrangler(
     def _spec_list(self) -> bool:
         """List the available shelves/specs in the pantry."""
         self.logger.info("Listing available shelves/specs in pantry.")
-        return self.pantry.list_shelves()
+        return self.pantry.print_shelves()
 
     def _collect_repo_urls(self) -> list[str]:
         """Gather notebook repo URLs plus the SPI repo URL from the spec output."""

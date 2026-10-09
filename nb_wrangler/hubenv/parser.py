@@ -10,7 +10,6 @@ from nb_wrangler.constants import (
     DEFAULT_LOG_TIMES_MODE,
     VALID_COLOR_MODES,
     DEFAULT_COLOR_MODE,
-    __version__,
 )
 
 

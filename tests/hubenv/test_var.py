@@ -7,7 +7,6 @@ import contextlib
 import pytest
 
 from nb_wrangler.config import WranglerConfig, set_args_config
-from nb_wrangler.utils import yaml_dumps, get_yaml
 
 
 @pytest.fixture(autouse=True)
@@ -23,29 +22,42 @@ def _set_config(tmp_path):
     )
 
 
-def _specs_dir(tmp_path, name):
-    """Return the .hubenv-spec.yaml path for *name* and ensure parent exists."""
-    spec_path = tmp_path / "envs" / name / ".hubenv-spec.yaml"
-    spec_path.parent.mkdir(parents=True, exist_ok=True)
-    return spec_path
+def _pantry_dir(tmp_path):
+    """Create (and return) the tmp pantry root for *tmp_path*."""
+    pantry = tmp_path / "pantry"
+    pantry.mkdir(parents=True, exist_ok=True)
+    return pantry
 
 
 def _write_spec(tmp_path, name, env_vars=None):
-    """Write a minimal hubenv spec with the given environment_vars dict."""
-    spec_path = _specs_dir(tmp_path, name)
-    spec = {"name": name, "channels": ["conda-forge"], "dependencies": []}
-    if env_vars is not None:
-        spec["environment_vars"] = env_vars
-    spec_path.write_text(yaml_dumps(spec))
-    return spec_path
+    """Write a minimal hubenv spec (mamba view) via the public API."""
+    pantry = _pantry_dir(tmp_path)
+    with (
+        patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+        patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+    ):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+
+        store = PantryStore()
+        spec = {"name": name, "channels": ["conda-forge"], "dependencies": []}
+        if env_vars is not None:
+            spec["environment_vars"] = env_vars
+        save_hubenv_spec(store, name, spec)
+    return pantry
 
 
 def _read_spec(tmp_path, name):
-    """Read back the ppf spec dict for *name*."""
-    spec_path = tmp_path / "envs" / name / ".hubenv-spec.yaml"
-    yaml = get_yaml()
-    with open(spec_path) as fh:
-        return yaml.load(fh)
+    """Read back the hubenv mamba-view for *name* via the public API."""
+    pantry = _pantry_dir(tmp_path)
+    with (
+        patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+        patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+    ):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import load_hubenv_spec
+
+        return load_hubenv_spec(PantryStore(), name)
 
 
 def _patch_register_env(return_value=True):
@@ -58,15 +70,28 @@ def _patch_register_env(return_value=True):
 
 @contextlib.contextmanager
 def _base_patch(tmp_path):
-    """Common patches: NBW_ROOT points at tmp_path; register is faked.
+    """Common patches: NBW_ROOT + NBW_PANTRY_DIRS point at tmp_path.
 
     Yields the register_environment mock so callers can assert on it.
     """
+    pantry = _pantry_dir(tmp_path)
     with (
+        patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
         patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         _patch_register_env(True) as p_reg,
     ):
         yield p_reg
+
+
+@contextlib.contextmanager
+def _ls_patch(tmp_path):
+    """Pantry root + NBW_ROOT patched for read-only helpers (no register)."""
+    pantry = _pantry_dir(tmp_path)
+    with (
+        patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+        patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+    ):
+        yield
 
 
 # ---------------------------------------------------------------------------
@@ -82,7 +107,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"DEBUG": "1", "API_KEY": "secret"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -95,7 +120,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"ZED": "1", "ALPHA": "2"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -109,7 +134,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"DEBUG": "1", "PATH": "/x"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo", "--export"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -121,7 +146,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"DEBUG": "1"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo", "--format", "json"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -133,7 +158,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"API_KEY": "1", "API_URL": "2", "DB": "3"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo", "API_*"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -146,7 +171,7 @@ class TestVarLs:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "demo"])
         assert rc == 0
         out = capsys.readouterr().out
@@ -156,7 +181,7 @@ class TestVarLs:
         """ls on a name with no spec does not crash."""
         from nb_wrangler.hubenv.cli import main
 
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _ls_patch(tmp_path):
             rc = main(["var", "ls", "ghost"])
         assert rc == 0
         assert "no environment variables" in capsys.readouterr().out.lower()
@@ -215,7 +240,7 @@ class TestVarAdd:
         from nb_wrangler.hubenv.cli import main
 
         _write_spec(tmp_path, "demo", {"DEBUG": "0"})
-        with patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path):
+        with _base_patch(tmp_path):
             rc = main(["var", "add", "demo", "DEBUG"])
         assert rc == 1
         err = capsys.readouterr().err

@@ -140,8 +140,8 @@ def test_list_shelves_across_pantries(tmp_path):
 
     with patch("nb_wrangler.pantry.NBW_PANTRY_DIRS", [primary, secondary]):
         pantry = NbwPantrySet()
-        # list_shelves prints to stdout; capture via capsys
-        pantry.list_shelves()
+        # print_shelves prints to stdout; capture via capsys
+        pantry.print_shelves()
         # We can't easily capture print output without capsys fixture;
         # verify deduplicated count via select_shelves instead:
         names = pantry.select_shelves("*")

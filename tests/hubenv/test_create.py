@@ -306,7 +306,9 @@ class TestCreateFromExistingEnv:
             )
 
         assert rc == 0
-        shadow = tmp_path / "envs" / "myproject" / ".hubenv-spec.yaml"
+        shadow = (
+            tmp_path / "pantry" / "shelves" / "myproject" / "nbw-wrangler-spec.yaml"
+        )
         assert shadow.exists()
 
     def test_import_writes_shelf_spec(self, tmp_path):
@@ -447,7 +449,9 @@ class TestCreateFromExistingEnv:
         assert rc == 0
         out = capsys.readouterr().out
         assert "name: myproject" in out
-        shadow = tmp_path / "envs" / "myproject" / ".hubenv-spec.yaml"
+        shadow = (
+            tmp_path / "pantry" / "shelves" / "myproject" / "nbw-wrangler-spec.yaml"
+        )
         assert not shadow.exists()
 
     def test_import_not_found(self, tmp_path):

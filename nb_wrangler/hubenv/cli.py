@@ -6,7 +6,7 @@ Thin facade that builds a parser and dispatches to subcommand modules.
 import sys
 from typing import Optional
 
-from nb_wrangler.config import WranglerConfig, set_args_config, get_args_config
+from nb_wrangler.config import WranglerConfig, set_args_config
 from nb_wrangler.logger import WranglerLogger, get_configured_logger
 from nb_wrangler.constants import __version__
 from nb_wrangler.hubenv.parser import build_parser

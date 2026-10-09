@@ -2,15 +2,9 @@
 
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.pantry import NbwShelf
-from nb_wrangler.hubenv._common import (
-    get_logger,
-    print_exports,
-    print_no_writable_pantry,
-)
+from nb_wrangler.hubenv._common import get_logger, print_exports
 from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import save_hubenv_spec
 from nb_wrangler.hubenv.seeds import (
@@ -34,7 +28,7 @@ def cmd_env_create(args) -> int:
         return 0
 
     if args.from_existing_env:
-        return import_existing_env(args, seed, spec_yaml)
+        return import_existing_env(args, seed)
 
     return install_environment(args.name, spec_yaml)
 
@@ -59,19 +53,21 @@ def build_seed_dict(args) -> dict:
     raise ValueError("No seed source specified")
 
 
-def import_existing_env(args, seed, spec_yaml) -> int:
+def import_existing_env(args, seed) -> int:
     """Onboard an existing mamba env into the PPE lifecycle.
 
     The env is already installed; we do *not* call
     ``EnvironmentManager.create_environment``.  Instead we persist the
-    shadow spec, register the kernel, and write a shelf spec so that
-    ``save``/``restore``/``ls`` work immediately.
+    shelf spec (the canonical ``nbw-wrangler-spec.yaml`` in the shelf),
+    register the kernel, and print activation exports.
     """
     config = PantryStore()
     em = EnvironmentManager()
 
     if not em.environment_exists(args.from_existing_env):
-        get_logger().error(f"Environment '{args.from_existing_env}' not found in mamba.")
+        get_logger().error(
+            f"Environment '{args.from_existing_env}' not found in mamba."
+        )
         return 1
 
     save_hubenv_spec(config, args.name, seed)
@@ -79,29 +75,9 @@ def import_existing_env(args, seed, spec_yaml) -> int:
     display_name = args.display_name or args.name
     em.register_environment(args.name, display_name, {})
 
-    write_shelf_spec(config, args.name, spec_yaml, args.pantry)
-
     print_exports(args.name, config)
     print(f"Imported environment '{args.from_existing_env}' as '{args.name}'.")
     return 0
-
-
-def write_shelf_spec(
-    config: PantryStore, name: str, spec_yaml: str, pantry: Optional[str]
-) -> None:
-    """Write the wrangler spec into the first writable pantry shelf.
-
-    A friendly error is printed (and nothing happens) when no pantry
-    is writable; onboarding still succeeds because the shadow spec was
-    already persisted.
-    """
-    target = config.target_pantry(pantry)
-    if target is None:
-        print_no_writable_pantry(pantry)
-        return
-    shelf = NbwShelf(target / "shelves" / name, pantry_path=target)
-    shelf.path.mkdir(parents=True, exist_ok=True)
-    shelf.spec_path.write_text(spec_yaml)
 
 
 def install_environment(name: str, spec_yaml: str) -> int:
