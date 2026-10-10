@@ -39,9 +39,9 @@ def _make_pantry(tmp_path, name="p1", with_shelves=None, writable=True):
 
 
 def _make_live_env(tmp_path, name, nbw_root=None):
-    """Create a fake live env directory."""
+    """Create a fake live env directory under ``<root>/mm/envs/<name>``."""
     root = nbw_root if nbw_root is not None else tmp_path
-    env = root / "envs" / name
+    env = root / "mm" / "envs" / name
     env.mkdir(parents=True, exist_ok=True)
     return env
 
@@ -74,6 +74,7 @@ class TestLs:
         with (
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
         ):
             _make_live_env(tmp_path, "demo", nbw_root=tmp_path)
             rc = main(["env", "ls"])
@@ -310,6 +311,7 @@ class TestConfigMethods:
         with (
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", []),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
         ):
             _make_live_env(tmp_path, "demo", nbw_root=tmp_path)
             _make_live_env(tmp_path, "prod", nbw_root=tmp_path)
@@ -324,6 +326,7 @@ class TestConfigMethods:
         with (
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", []),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
         ):
             config = HubenvConfig()
             envs = config.list_live_envs()

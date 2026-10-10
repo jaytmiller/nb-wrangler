@@ -113,6 +113,26 @@ def _patch_register(result=True):
     )
 
 
+def _patch_delete_env(env_dir):
+    """Mock EnvironmentManager deletion, actually removing the env dir.
+
+    Mirrors the real flow where ``mamba env remove`` deletes the live env.
+    """
+    import shutil
+    from unittest.mock import MagicMock
+
+    def _delete(name):
+        if env_dir.exists():
+            shutil.rmtree(env_dir)
+        return True
+
+    return patch.multiple(
+        "nb_wrangler.environment.EnvironmentManager",
+        unregister_environment=MagicMock(return_value=True),
+        delete_environment=MagicMock(side_effect=_delete),
+    )
+
+
 def _patch_env_run():
     """Mock env_run with a success CompletedProcess."""
     return patch(
@@ -246,7 +266,7 @@ class TestE2EFlow:
         assert mock_input.call_count == 1
         assert env_dir.exists()  # env still exists
 
-        with patch("builtins.input", return_value="y"):
+        with patch("builtins.input", return_value="y"), _patch_delete_env(env_dir):
             rc = main(["env", "rm", "demo", "--yes"])
         assert rc == 0
         assert not env_dir.exists()

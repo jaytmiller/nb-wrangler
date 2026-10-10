@@ -24,9 +24,8 @@ def cmd_env_save(args) -> int:
     em = EnvironmentManager()
     env_path = em.env_live_path(args.name)
     if not env_path.exists():
-        return get_logger().error(
-            f"Live environment '{args.name}' not found at {env_path}"
-        )
+        get_logger().error(f"Live environment '{args.name}' not found at {env_path}")
+        return 1
 
     shelf = NbwShelf(target / "shelves" / args.name, pantry_path=target)
     can_path = shelf.env_archive_path(args.name, DEFAULT_ARCHIVE_FORMAT)
@@ -38,9 +37,10 @@ def cmd_env_save(args) -> int:
         return 0
 
     if can_path.exists() and not args.force:
-        return get_logger().error(
+        get_logger().error(
             f"Archive already exists at {can_path}. Use --force to overwrite."
         )
+        return 1
 
     success = shelf.pack_environment(args.name, args.name, DEFAULT_ARCHIVE_FORMAT)
     if not success:

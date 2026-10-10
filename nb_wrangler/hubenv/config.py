@@ -35,12 +35,13 @@ class PantryStore(NbwPantrySet):
         self,
         paths: Optional[list[Path]] = None,
         nbw_root: Optional[Path] = None,
+        live_envs_root: Optional[Path] = None,
     ):
         if paths is None:
             paths = list(NBW_PANTRY_DIRS)
         if nbw_root is None:
             nbw_root = NBW_ROOT
-        super().__init__(paths=paths, nbw_root=nbw_root)
+        super().__init__(paths=paths, nbw_root=nbw_root, live_envs_root=live_envs_root)
 
     def __repr__(self) -> str:  # pragma: no cover
         return (

@@ -469,7 +469,7 @@ def _add_rm_args(p) -> None:
         action="store_const",
         dest="target",
         const="live",
-        help="Remove only from live envs (NBW_ROOT/envs/)",
+        help="Remove only from live envs (NBW_MM/envs/)",
     )
     target.add_argument(
         "--archived",

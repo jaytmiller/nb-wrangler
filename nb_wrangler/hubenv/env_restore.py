@@ -13,7 +13,7 @@ from nb_wrangler.hubenv.config import PantryStore
 def cmd_env_restore(args) -> int:
     """Handle ``hubenv env restore``.
 
-    Unpack a saved can into NBW_ROOT and register a Jupyter kernel.
+    Unpack a saved can into NBW_MM/envs and register a Jupyter kernel.
     Supports idempotency (skip if restored hash matches save hash).
     """
     config = PantryStore()

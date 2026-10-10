@@ -237,3 +237,19 @@ class TestSeedBuilders:
         pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
         assert "numpy" in pip_deps[0]["pip"]
         assert "pandas" in pip_deps[0]["pip"]
+
+    def test_seed_from_notebooks_filters_stdlib(self, tmp_path):
+        """BUILTIN_PACKAGES (os, sys, ...) must not leak into the pip list."""
+        from nb_wrangler.hubenv.seeds import seed_from_notebooks
+
+        nb = tmp_path / "test.ipynb"
+        nb.write_text(
+            '{"cells":[{"cell_type":"code","source":'
+            '["import os\\n", "import sys\\n", "import numpy as np\\n"]},'
+            '{"cell_type":"markdown","source":"# title"}]}'
+        )
+        spec = seed_from_notebooks("demo", [str(nb)])
+        pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
+        assert "numpy" in pip_deps[0]["pip"]
+        assert "os" not in pip_deps[0]["pip"]
+        assert "sys" not in pip_deps[0]["pip"]

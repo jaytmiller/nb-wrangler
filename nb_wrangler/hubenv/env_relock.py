@@ -1,7 +1,6 @@
 """env relock subcommand: re-curate locks and validate the implicit spec."""
 
-import sys
-
+from nb_wrangler.compiler import RequirementsCompiler
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv._common import get_logger
 from nb_wrangler.hubenv.config import PantryStore
@@ -10,7 +9,6 @@ from nb_wrangler.hubenv.env_spec import (
     load_hubenv_spec,
     save_hubenv_spec,
 )
-from nb_wrangler.utils import writelines
 
 
 def cmd_env_relock(args) -> int:
@@ -47,35 +45,9 @@ def do_relock(config, em, name, dry_run) -> int:
 
 
 def compile_pip_packages(em, name, packages):
-    """Compile pip packages using uv pip compile. Returns resolved versions."""
-    req_path = writelines(packages, em.nbw_temp_dir / f"relock_reqs_{name}.txt")
-    output_path = em.nbw_temp_dir / f"relock_compiled_{name}.txt"
-
-    cmd = (
-        f"uv pip compile --output-file {output_path} "
-        f"--python {sys.executable} --no-header --annotate {req_path}"
-    )
-    result = em.wrangler_run(cmd, check=False)
-
-    if not em.handle_result(
-        result, f"Failed to compile packages for relock of '{name}': "
-    ):
-        return None
-
-    return read_compiled_versions(output_path)
-
-
-def read_compiled_versions(filepath) -> list[str]:
-    """Read compiled package versions from a requirements file."""
-    if not filepath.exists():
-        return []
-    packages = []
-    with open(filepath) as f:
-        for line in f:
-            line = line.strip()
-            if line and not line.startswith(("#", "--")):
-                packages.append(line)
-    return packages
+    """Delegate to the shared RequirementsCompiler. Returns resolved versions."""
+    compiler = RequirementsCompiler(spec_manager=None, repo_manager=None)
+    return compiler.compile_packages_for_env(packages, em.nbw_temp_dir)
 
 
 def print_relock_dry_run(name, compiled) -> None:

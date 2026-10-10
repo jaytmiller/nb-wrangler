@@ -77,6 +77,28 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
             f"Compiled combined pip requirements to {len(package_versions)} package versions."
         )
 
+    def compile_packages_for_env(
+        self, packages: list[str], output_dir: Path
+    ) -> list[str] | None:
+        """Compile a flat pip list for an arbitrary live environment.
+
+        Reuses the uv/pip compile + ``PIP_COMPILE_TIMEOUT`` machinery of the
+        full-spec compile path, writing intermediate files under
+        ``output_dir``.  Returns the resolved ``package==version`` lines, or
+        ``None`` on failure.
+        """
+        output_dir = Path(output_dir)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        req_path = utils.writelines(packages, output_dir / "relock_reqs.txt")
+        output_path = output_dir / "relock_compiled.txt"
+        if "uv pip" in str(self.config.pip_command):
+            ok = self._run_uv_compile(output_path, [str(req_path)], "")
+        else:
+            ok = self._run_pip_compile(output_path, [str(req_path)], "")
+        if not ok:
+            return None
+        return self.read_package_versions([output_path])
+
     def _run_uv_compile(
         self,
         output_file: Path,
@@ -84,11 +106,8 @@ class RequirementsCompiler(WranglerConfigurable, WranglerLoggable, WranglerEnvab
         override_pip_versions_file: str,
     ) -> bool:
         """Run uv pip compile command to resolve pip package constraints."""
-        python_ver = (
-            f"--python-version {self.spec_manager.python_version}"
-            if self.spec_manager.python_version
-            else ""
-        )
+        python_version = self.spec_manager.python_version if self.spec_manager else None
+        python_ver = f"--python-version {python_version}" if python_version else ""
         overrides = (
             f"--overrides {override_pip_versions_file}"
             if override_pip_versions_file

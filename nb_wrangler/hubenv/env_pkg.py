@@ -23,7 +23,8 @@ def cmd_env_pkg_action(args, action: str) -> int:
     em = EnvironmentManager()
 
     if not em.environment_exists(args.name):
-        return get_logger().error(f"Live environment '{args.name}' not found.")
+        get_logger().error(f"Live environment '{args.name}' not found.")
+        return 1
 
     if args.dry_run:
         return pkg_dry_run(args, action)

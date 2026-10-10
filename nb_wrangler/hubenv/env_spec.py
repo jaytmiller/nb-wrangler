@@ -25,7 +25,7 @@ from nb_wrangler.utils import get_yaml, yaml_dumps
 # ---------------------------------------------------------------------------
 
 
-def _split_conda_pip(deps: list) -> tuple[list, list[str]]:
+def split_conda_pip(deps: list) -> tuple[list, list[str]]:
     """Split a mamba ``dependencies`` list into (conda strings, pip list)."""
     conda: list = []
     pip: list[str] = []
@@ -37,7 +37,7 @@ def _split_conda_pip(deps: list) -> tuple[list, list[str]]:
     return conda, pip
 
 
-def _python_version(conda: list) -> str | None:
+def python_version(conda: list) -> str | None:
     """Return the pinned python version string from a conda list, or None."""
     for pkg in conda:
         if isinstance(pkg, str) and pkg.startswith("python="):
@@ -82,8 +82,8 @@ def mamba_to_wrangler(name: str, mamba_spec: dict) -> dict:
     All validator-required scaffolding (``image_spec_header`` keys,
     ``repositories``, ``system.spi``) is filled in.
     """
-    conda, pip = _split_conda_pip(mamba_spec.get("dependencies") or [])
-    py = _python_version(conda)
+    conda, pip = split_conda_pip(mamba_spec.get("dependencies") or [])
+    py = python_version(conda)
     mamba_clean = [
         d
         for d in conda

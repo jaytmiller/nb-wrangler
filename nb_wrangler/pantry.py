@@ -62,6 +62,7 @@ from . import utils
 # from .utils import DataDownloadError
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
+from . import constants
 from .constants import (
     NBW_PANTRY,
     NBW_PANTRY_DIRS,
@@ -174,6 +175,7 @@ class NbwPantrySet(WranglerLoggable):
         self,
         paths: Optional[list[Path]] = None,
         nbw_root: Optional[Path] = None,
+        live_envs_root: Optional[Path] = None,
     ):
         """
         Initialize the coordinator.
@@ -182,9 +184,15 @@ class NbwPantrySet(WranglerLoggable):
         (a list of :class:`~pathlib.Path` parsed from the colon-separated env var).
         Empty/falsy paths (e.g. from trailing colons) are filtered out.
 
-        *nbw_root* anchors the live-installation layout (``envs/``, restore
-        hashes); it defaults to ``NBW_PANTRY``-independent ``NBW_ROOT`` and may
-        be overridden (e.g. by ``hubenv`` to its configured root).
+        *nbw_root* anchors the live-installation layout (restore hashes and
+        other live markers); it defaults to ``NBW_PANTRY``-independent
+        ``NBW_ROOT`` and may be overridden (e.g. by ``hubenv`` to its
+        configured root).
+
+        *live_envs_root* anchors where mamba-managed live environments are
+        stored; it defaults to ``NBW_MM / "envs"`` (the location mamba
+        actually installs to) and may be overridden (e.g. by tests) to
+        redirect listing to a sandbox directory.
         """
         super().__init__()
         if paths is None:
@@ -195,6 +203,11 @@ class NbwPantrySet(WranglerLoggable):
         self.pantries: list[NbwPantry] = [NbwPantry(path=p) for p in paths]
         self.pantry_dirs: list[Path] = [p.path for p in self.pantries]
         self.nbw_root: Path = nbw_root if nbw_root is not None else NBW_ROOT
+        self.live_envs_root: Path = (
+            live_envs_root
+            if live_envs_root is not None
+            else (constants.NBW_MM / "envs")
+        )
 
     @classmethod
     def from_env(cls) -> "NbwPantrySet":
@@ -299,11 +312,12 @@ class NbwPantrySet(WranglerLoggable):
         return results
 
     def list_live_envs(self) -> list[dict]:
-        """Return metadata for live environments under ``<nbw_root>/envs``.
+        """Return metadata for live environments under ``live_envs_root``.
 
-        Each entry: ``{name, path}``.
+        The default root is ``NBW_MM/envs`` — where mamba actually installs
+        environments. Each entry: ``{name, path}``.
         """
-        envs_dir = self.nbw_root / "envs"
+        envs_dir = self.live_envs_root
         if not envs_dir.exists():
             return []
         results: list[dict] = []

@@ -4,6 +4,7 @@ import shutil
 from fnmatch import fnmatch
 from pathlib import Path
 
+from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv._common import get_logger
 from nb_wrangler.hubenv.config import PantryStore
 
@@ -75,7 +76,7 @@ def resolve_rm_targets(config, patterns, target_type, pantry_filter):
 
 
 def resolve_live_targets(config, patterns):
-    """Resolve patterns against live envs under NBW_ROOT/envs/."""
+    """Resolve patterns against live envs under NBW_MM/envs/."""
     live_envs = config.list_live_envs()
     return [
         {"type": "live", "name": e["name"], "path": e["path"], "writable": True}
@@ -121,7 +122,7 @@ def is_safe_rm_path(target, config):
     """Check that a resolved rm target path is under a safe root."""
     path = target["path"].resolve()
     if target["type"] == "live":
-        safe_root = (config.nbw_root / "envs").resolve()
+        safe_root = config.live_envs_root.resolve()
         return path.is_relative_to(safe_root)
     for pantry in config.pantry_dirs:
         safe_root = (pantry / "shelves").resolve()
@@ -158,13 +159,28 @@ def do_rm(targets):
             print(f"Already gone: {t['type']} '{t['name']}'")
             continue
         try:
-            shutil.rmtree(path)
-            print(f"Removed {t['type']} '{t['name']}' at {path}")
+            if t["type"] == "live":
+                ok = delete_live_env(t["name"])
+            else:
+                shutil.rmtree(path)
+                ok = True
+            if ok:
+                print(f"Removed {t['type']} '{t['name']}' at {path}")
+            else:
+                get_logger().warning(f"Could not remove {t['name']}")
+                failures += 1
         except OSError as e:
             get_logger().warning(f"Could not remove {t['name']}: {e}")
             failures += 1
     cleanup_empty_shelf_dirs(targets)
     return failures
+
+
+def delete_live_env(name: str) -> bool:
+    """Unregister the kernel and delete a live mamba env via EnvironmentManager."""
+    em = EnvironmentManager()
+    em.unregister_environment(name)
+    return em.delete_environment(name)
 
 
 def cleanup_empty_shelf_dirs(targets):

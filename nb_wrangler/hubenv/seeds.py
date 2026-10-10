@@ -5,12 +5,11 @@ source-specific argument, and returns a mamba-spec dict suitable for
 serialization with ``nb_wrangler.utils.yaml_dumps``.
 """
 
-import json
-import re
 import subprocess
 from pathlib import Path
 
 from nb_wrangler.constants import NBW_MAMBA_CMD
+from nb_wrangler.nb_processor import NotebookImportProcessor
 from nb_wrangler.utils import get_yaml
 
 
@@ -64,44 +63,21 @@ def seed_from_mamba_spec(name: str, path: str | Path) -> dict:
     return spec
 
 
-def _extract_imports(code: str) -> list[str]:
-    """Extract top-level import package names from a code string."""
-    import_names: list[str] = []
-    # Match: import <pkg>  /  import <pkg> as ...  /  from <pkg> import ...
-    patterns = [
-        r"^\s*import\s+([\w.]+)",
-        r"^\s*from\s+([\w.]+)\s+import",
-    ]
-    for line in code.splitlines():
-        for pat in patterns:
-            match = re.match(pat, line)
-            if match:
-                pkg = match.group(1).split(".")[0]
-                if pkg not in import_names:
-                    import_names.append(pkg)
-    return import_names
-
-
-def _extract_notebook_imports(path: str | Path) -> list[str]:
-    """Extract import package names from a local .ipynb file."""
-    with open(path) as fh:
-        notebook = json.load(fh)
-    imports: list[str] = []
-    for cell in notebook.get("cells", []):
-        if cell.get("cell_type") != "code":
-            continue
-        for src in cell.get("source", []):
-            imports.extend(_extract_imports(src))
-    return imports
-
-
 def seed_from_notebooks(name: str, paths: list[str], python: str | None = None) -> dict:
-    """Build a mamba spec from imports found in notebook files."""
+    """Build a mamba spec from imports found in notebook files.
+
+    Delegates to :class:`NotebookImportProcessor` so the ``BUILTIN_PACKAGES``
+    filter (``os``, ``sys``, ``copy``, ``builtins``, ``__future__``) applies
+    and stdlib names do not leak into the ``pip`` section.
+    """
     spec = _base_spec(name, python)
-    imports: list[str] = []
+    processor = NotebookImportProcessor()
+    imports: set[str] = set()
     for p in paths:
-        imports.extend(_extract_notebook_imports(p))
-    spec["dependencies"].append({"pip": sorted(set(imports))})
+        result = processor.extract_imports([{p: [p]}])
+        for imps in result.values():
+            imports.update(imps)
+    spec["dependencies"].append({"pip": sorted(imports)})
     return spec
 
 

@@ -206,6 +206,12 @@ class TestExport:
         content = outfile.read_text()
         assert "image_spec_header" in content
         assert "extra_pip_packages" in content
+        # The old local spec_to_wrangler omitted these; the shared
+        # mamba_to_wrangler now emits a validated, spec-version-carrying file.
+        assert "deployment_name" in content
+        assert "valid_on" in content
+        assert "expires_on" in content
+        assert "spi" in content
 
     def test_export_default_is_mamba_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -242,10 +248,11 @@ class TestStatus:
     def test_status_table(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
 
-        (tmp_path / "envs" / "demo").mkdir(parents=True)
+        (tmp_path / "mm" / "envs" / "demo").mkdir(parents=True)
 
         with (
             _patch_nbw_root(tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
             _patch_list_kernelspecs({}),
         ):
             rc = main(["status"])
@@ -259,10 +266,11 @@ class TestStatus:
     def test_status_json(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
 
-        (tmp_path / "envs" / "demo").mkdir(parents=True)
+        (tmp_path / "mm" / "envs" / "demo").mkdir(parents=True)
 
         with (
             _patch_nbw_root(tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
             _patch_list_kernelspecs({"demo": {}}),
         ):
             rc = main(["status", "--format", "json"])
@@ -305,10 +313,11 @@ class TestStatus:
     def test_status_shows_kernel_state(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
 
-        (tmp_path / "envs" / "demo").mkdir(parents=True)
+        (tmp_path / "mm" / "envs" / "demo").mkdir(parents=True)
 
         with (
             _patch_nbw_root(tmp_path),
+            patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
             _patch_list_kernelspecs({"demo": {"argv": ["python"]}}),
         ):
             rc = main(["status"])
@@ -424,39 +433,40 @@ class TestExportHelpers:
         assert result == ""
 
     def test_spec_to_wrangler(self):
-        from nb_wrangler.hubenv.export import spec_to_wrangler
+        from nb_wrangler.hubenv.env_spec import mamba_to_wrangler
 
         spec = {
             "name": "demo",
             "channels": ["conda-forge"],
             "dependencies": ["python=3.11", "scipy", "pip", {"pip": ["numpy"]}],
         }
-        wspec = spec_to_wrangler(spec)
+        wspec = mamba_to_wrangler("demo", spec)
         assert wspec["image_spec_header"]["image_name"] == "demo"
         assert wspec["image_spec_header"]["python_version"] == "3.11"
         assert "scipy" in wspec["extra_mamba_packages"]
         assert "numpy" in wspec["extra_pip_packages"]
 
     def test_spec_to_wrangler_no_python(self):
-        from nb_wrangler.hubenv.export import spec_to_wrangler
+        from nb_wrangler.hubenv.env_spec import mamba_to_wrangler
 
         spec = {
             "name": "demo",
             "channels": ["conda-forge"],
             "dependencies": ["scipy", "pip", {"pip": ["numpy"]}],
         }
-        wspec = spec_to_wrangler(spec)
-        assert wspec["image_spec_header"]["python_version"] is None
+        wspec = mamba_to_wrangler("demo", spec)
+        # mamba_to_wrangler falls back to "" so spec validation passes.
+        assert wspec["image_spec_header"]["python_version"] == ""
 
-    def test_extract_python_version(self):
-        from nb_wrangler.hubenv.export import extract_python_version
+    def test_python_version(self):
+        from nb_wrangler.hubenv.env_spec import python_version
 
-        assert extract_python_version(["python=3.11"]) == "3.11"
-        assert extract_python_version(["python=3.11.5", "numpy"]) == "3.11.5"
-        assert extract_python_version(["numpy"]) is None
+        assert python_version(["python=3.11"]) == "3.11"
+        assert python_version(["python=3.11.5", "numpy"]) == "3.11.5"
+        assert python_version(["numpy"]) is None
 
     def test_split_conda_pip(self):
-        from nb_wrangler.hubenv.export import split_conda_pip
+        from nb_wrangler.hubenv.env_spec import split_conda_pip
 
         deps = ["python=3.11", {"pip": ["numpy", "pandas"]}]
         conda, pip = split_conda_pip(deps)

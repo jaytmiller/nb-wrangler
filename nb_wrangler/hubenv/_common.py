@@ -29,7 +29,7 @@ def get_config() -> "WranglerConfig":
 def print_exports(name: str, store: PantryStore) -> None:
     """Print eval-able shell exports for environment activation."""
     print(f"export NBW_ACTIVE_ENV={name}")
-    print(f"export NBW_ENV_ROOT={store.nbw_root / 'envs' / name}")
+    print(f"export NBW_ENV_ROOT={store.live_envs_root / name}")
 
 
 def print_no_writable_pantry(forced_path: Optional[str]) -> None:

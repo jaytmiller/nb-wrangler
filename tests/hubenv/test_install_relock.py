@@ -534,6 +534,117 @@ class TestRelock:
 
         assert rc == 1
 
+    def test_relock_delegates_to_compiler(self, tmp_path):
+        """``compile_pip_packages`` adapter must call through to
+        ``RequirementsCompiler.compile_packages_for_env`` with the pip list
+        and the env manager's ``nbw_temp_dir``."""
+        from unittest.mock import PropertyMock
+        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.hubenv.env_relock import compile_pip_packages
+
+        em = EnvironmentManager()
+        temp_dir = tmp_path / "tmp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        expected = ["numpy==1.26.4", "pandas==2.2.0"]
+        with (
+            patch.object(
+                EnvironmentManager,
+                "nbw_temp_dir",
+                new_callable=PropertyMock,
+                return_value=temp_dir,
+            ),
+            patch(
+                "nb_wrangler.compiler.RequirementsCompiler.compile_packages_for_env",
+                return_value=expected,
+            ) as mock_compile,
+        ):
+            got = compile_pip_packages(em, "demo", ["numpy", "pandas"])
+            mock_compile.assert_called_once_with(["numpy", "pandas"], temp_dir)
+        assert got == expected
+
+
+class TestCompilePackagesForEnv:
+    """Direct unit tests on ``RequirementsCompiler.compile_packages_for_env``."""
+
+    def test_uv_path_success_calls_read_package_versions(self, tmp_path):
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        compiler = RequirementsCompiler(spec_manager=None, repo_manager=None)
+        compiler.config.pip_command = "uv pip"
+        with (
+            patch.object(type(compiler), "_run_uv_compile", return_value=True),
+            patch.object(
+                type(compiler),
+                "read_package_versions",
+                return_value=["numpy==1.26.4"],
+            ) as mock_rpv,
+        ):
+            out = compiler.compile_packages_for_env(["numpy"], tmp_path)
+            expected = tmp_path / "relock_compiled.txt"
+            mock_rpv.assert_called_once_with([expected])
+        assert out == ["numpy==1.26.4"]
+
+    def test_pip_fallback_path_is_reachable(self, tmp_path):
+        """When ``pip_command`` does not include ``uv pip``, the pip fallback runs."""
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        compiler = RequirementsCompiler(spec_manager=None, repo_manager=None)
+        compiler.config.pip_command = "pip"
+        with (
+            patch.object(
+                type(compiler), "_run_pip_compile", return_value=True
+            ) as mock_pipc,
+            patch.object(
+                type(compiler),
+                "read_package_versions",
+                return_value=["numpy==1.26.4"],
+            ),
+        ):
+            out = compiler.compile_packages_for_env(["numpy"], tmp_path)
+            mock_pipc.assert_called_once()
+        assert out == ["numpy==1.26.4"]
+
+    def test_uv_failure_returns_none(self, tmp_path):
+        from nb_wrangler.compiler import RequirementsCompiler
+
+        compiler = RequirementsCompiler(spec_manager=None, repo_manager=None)
+        compiler.config.pip_command = "uv pip"
+        with (
+            patch.object(type(compiler), "_run_uv_compile", return_value=False),
+            patch.object(
+                type(compiler),
+                "read_package_versions",
+            ) as mock_rpv,
+        ):
+            out = compiler.compile_packages_for_env(["numpy"], tmp_path)
+            mock_rpv.assert_not_called()
+        assert out is None
+
+    def test_wrangler_run_uses_pip_compile_timeout(self, tmp_path):
+        """The uv compile path threads ``PIP_COMPILE_TIMEOUT`` into ``wrangler_run``."""
+        from nb_wrangler.compiler import RequirementsCompiler
+        from nb_wrangler.constants import PIP_COMPILE_TIMEOUT
+        from nb_wrangler.environment import EnvironmentManager
+
+        compiler = RequirementsCompiler(spec_manager=None, repo_manager=None)
+        compiler.config.pip_command = "uv pip"
+        fake_result = CompletedProcess(args=[], returncode=0, stdout="", stderr="")
+        with (
+            patch.object(
+                EnvironmentManager, "wrangler_run", return_value=fake_result
+            ) as mock_run,
+            patch.object(EnvironmentManager, "handle_result", return_value=True),
+            patch.object(
+                type(compiler),
+                "read_package_versions",
+                return_value=["numpy==1.26.4"],
+            ),
+        ):
+            compiler.compile_packages_for_env(["numpy"], tmp_path)
+            mock_run.assert_called_once()
+            _, kwargs = mock_run.call_args
+            assert kwargs.get("timeout") == PIP_COMPILE_TIMEOUT
+
 
 # ---------------------------------------------------------------------------
 # parser tests

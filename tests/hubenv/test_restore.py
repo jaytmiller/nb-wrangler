@@ -168,7 +168,10 @@ class TestRestoreIdempotency:
             restore_hash_file.parent.mkdir(parents=True)
             restore_hash_file.write_text("abc123\n")
 
-            with _patch_unpack_env(True) as mock_unpack:
+            with (
+                _patch_unpack_env(True) as mock_unpack,
+                _patch_register_env(True),
+            ):
                 rc = main(["env", "restore", "demo", "--force"])
                 assert rc == 0
                 mock_unpack.assert_called_once()

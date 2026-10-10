@@ -1,6 +1,7 @@
 """Tests for hubenv env rm (Phase 6)."""
 
 import os
+import shutil
 from pathlib import Path
 from unittest.mock import patch
 
@@ -22,6 +23,32 @@ def _set_config(tmp_path):
     )
 
 
+@pytest.fixture(autouse=True)
+def _live_envs_layout(tmp_path):
+    """Anchor live-env discovery to ``tmp_path/mm/envs`` and mock the
+    canonical EnvironmentManager deletion path (which in production runs
+    ``mamba env remove`` and the jupyter kernel uninstall)."""
+
+    def _delete(name):
+        live = tmp_path / "mm" / "envs" / name
+        if live.exists():
+            shutil.rmtree(live)
+        return True
+
+    with (
+        patch("nb_wrangler.constants.NBW_MM", tmp_path / "mm"),
+        patch(
+            "nb_wrangler.environment.EnvironmentManager.unregister_environment",
+            return_value=True,
+        ),
+        patch(
+            "nb_wrangler.environment.EnvironmentManager.delete_environment",
+            side_effect=_delete,
+        ),
+    ):
+        yield
+
+
 def _make_pantry(tmp_path, name="p1", with_shelves=None, writable=True):
     """Create a pantry with optional shelves."""
     pantry = tmp_path / name
@@ -38,9 +65,9 @@ def _make_pantry(tmp_path, name="p1", with_shelves=None, writable=True):
 
 
 def _make_live_env(tmp_path, name, nbw_root=None):
-    """Create a fake live env directory."""
+    """Create a fake live env directory under ``<root>/mm/envs/<name>``."""
     root = nbw_root if nbw_root is not None else tmp_path
-    env = root / "envs" / name
+    env = root / "mm" / "envs" / name
     env.mkdir(parents=True, exist_ok=True)
     return env
 
@@ -378,7 +405,7 @@ class TestRmPathSafety:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
             config = HubenvConfig()
-            safe_path = tmp_path / "envs" / "demo"
+            safe_path = tmp_path / "mm" / "envs" / "demo"
             safe_path.mkdir(parents=True)
             target = {"type": "live", "path": safe_path}
             assert env_rm.is_safe_rm_path(target, config)
@@ -469,6 +496,46 @@ class TestRmTargetOptions:
             assert rc == 0
             assert not env_path.exists()
             assert not (pantry / "shelves" / "demo").exists()
+
+
+# ---------------------------------------------------------------------------
+# hubenv env rm live kernel cleanup
+# ---------------------------------------------------------------------------
+
+
+class TestRmLiveKernelCleanup:
+    """Live targets route through EnvironmentManager; shelf targets don't."""
+
+    def test_live_target_calls_kernel_cleanup(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = tmp_path / "pantry"
+        pantry.mkdir()
+        _make_live_env(tmp_path, "demo")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+        ):
+            rc = main(["env", "rm", "demo", "--live", "--yes"])
+
+        assert rc == 0
+        EnvironmentManager.unregister_environment.assert_called_once_with("demo")
+        EnvironmentManager.delete_environment.assert_called_once_with("demo")
+
+    def test_shelf_only_target_skips_kernel_cleanup(self, tmp_path):
+        from nb_wrangler.environment import EnvironmentManager
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, "p1", with_shelves=["demo"])
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
+            rc = main(["env", "rm", "demo", "--archived", "--yes"])
+
+        assert rc == 0
+        EnvironmentManager.unregister_environment.assert_not_called()
+        EnvironmentManager.delete_environment.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
