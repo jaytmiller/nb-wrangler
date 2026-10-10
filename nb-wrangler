@@ -249,19 +249,19 @@ case $NBW_COMMAND in
         ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
         ;;
     act*)
+        # Name-based activation delegated to the python CLI (hubenv), which activates
+        # by absolute path and therefore works even under a foreign mamba/micromamba.
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
-        ${NBW_MAMBA} activate $*
+        eval "$("${NBW_MAMBA}" run -n ${NBW_WRANGLER_ENV} python -m nb_wrangler.hubenv.cli env activate --quiet $* 2>/dev/null)"
         ;;
     setenv)
-        # source nb-wrangler setenv <spec>
+        # source nb-wrangler setenv <spec>: spec-based activation via the python CLI.
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
-        ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
-        eval $(python -m nb_wrangler $* --data-print-exports 2>/dev/null)
-        ${NBW_MAMBA} activate $(python -m nb_wrangler $* --env-print-name 2>/dev/null)
+        eval "$("${NBW_MAMBA}" run -n ${NBW_WRANGLER_ENV} python -m nb_wrangler $* --env-activate --quiet 2>/dev/null)"
         ;;
     deact*)
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
-        ${NBW_MAMBA} deactivate
+        eval "$("${NBW_MAMBA}" run -n ${NBW_WRANGLER_ENV} python -m nb_wrangler --env-deactivate --quiet 2>/dev/null)"
         ;;
     *)
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"

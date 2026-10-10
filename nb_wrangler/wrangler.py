@@ -1,6 +1,7 @@
 """Main NotebookWrangler class orchestrating the curation process."""
 
 import os
+import sys
 from pathlib import Path
 from collections.abc import Callable
 from typing import Optional
@@ -467,6 +468,7 @@ class NotebookWrangler(
             (self.config.env_register, self._register_environment),
             (self.config.env_unregister, self._unregister_environment),
             (self.config.env_print_name, self._env_print_name),
+            (self.config.env_activate, self._env_activate),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
             (self.config.data_collect, self.data_wrangler.collect),
@@ -1083,6 +1085,32 @@ class NotebookWrangler(
             print(self.resolved_environment_name)
             return True
         return self.logger.error("Could not determine environment name.")
+
+    def _env_activate(self) -> bool:
+        """Emit a shell snippet that activates the spec's environment by path."""
+        from . import activation
+
+        if not self.resolved_environment_name:
+            return self.logger.error(
+                "Could not determine environment name to activate."
+            )
+        env_path = self.env_manager.env_live_path(self.resolved_environment_name)
+        data_exports = [
+            ln for ln in (self.data_wrangler.get_exports() or "").splitlines() if ln
+        ]
+        self.logger.debug(
+            f"Activating environment {env_path} via {self.config.mamba_command}"
+        )
+        snippet = activation.emit_activation(
+            str(self.env_manager.nbw_mm_dir),
+            self.config.mamba_command,
+            activation.detect_shell(),
+            str(env_path),
+            name=self.resolved_environment_name,
+            extra_exports=data_exports,
+        )
+        sys.stdout.write(snippet)
+        return True
 
     def _setup_environment(self) -> bool:
         env_vars = self._get_environment_vars()

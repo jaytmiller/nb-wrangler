@@ -291,6 +291,19 @@ def parse_args():
         action="store_true",
         help="Print the environment name associated with this spec to stdout.",
     )
+    env_group.add_argument(
+        "--env-activate",
+        action="store_true",
+        dest="env_activate",
+        help="Print a shell snippet (for eval/source) that activates the spec's "
+        "environment by absolute path, including any data exports.",
+    )
+    env_group.add_argument(
+        "--env-deactivate",
+        action="store_true",
+        dest="env_deactivate",
+        help="Print a shell snippet (for eval/source) that deactivates the current mamba environment.",
+    )
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
     )
@@ -688,6 +701,15 @@ def main() -> int:
     args = parse_args()
     if args.version:
         print(constants.__version__)
+        return 0
+    if args.env_deactivate:
+        from . import activation
+
+        from .constants import NBW_MAMBA_CMD
+
+        sys.stdout.write(
+            activation.emit_deactivate(NBW_MAMBA_CMD, activation.detect_shell())
+        )
         return 0
     if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)

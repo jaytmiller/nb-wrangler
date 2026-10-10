@@ -24,6 +24,7 @@ from nb_wrangler.hubenv.env_ensure import (
     cmd_env_register,
     cmd_env_unregister,
 )
+from nb_wrangler.hubenv.env_activate import cmd_env_activate, cmd_env_deactivate
 from nb_wrangler.hubenv.export import cmd_export
 from nb_wrangler.hubenv.var import cmd_var_ls, cmd_var_add, cmd_var_rm
 from nb_wrangler.hubenv.data import (
@@ -165,6 +166,8 @@ _ENV_DISPATCH = {
     "ensure": cmd_env_ensure,
     "register": cmd_env_register,
     "unregister": cmd_env_unregister,
+    "activate": cmd_env_activate,
+    "deactivate": cmd_env_deactivate,
 }
 
 # var subcommand dispatch

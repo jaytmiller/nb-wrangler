@@ -153,6 +153,17 @@ def _add_env_subcommands(subparsers) -> None:
     )
     _add_unregister_args(unregister)
 
+    activate = env_sub.add_parser(
+        "activate",
+        help="Print a shell snippet (for eval/source) that activates an environment by path",
+    )
+    _add_activate_args(activate)
+
+    env_sub.add_parser(
+        "deactivate",
+        help="Print a shell snippet (for eval/source) that deactivates the current mamba environment",
+    )
+
 
 def _add_export_status_doctor_subcommands(subparsers) -> None:
     """Add export, status, doctor subcommand parsers (Phase 10)."""
@@ -546,6 +557,11 @@ def _add_unregister_args(p) -> None:
         action="store_true",
         help="Print planned action without executing",
     )
+
+
+def _add_activate_args(p) -> None:
+    """Add ``env activate`` specific arguments to *p*."""
+    p.add_argument("name", help="Environment name to activate")
 
 
 def _add_export_args(p) -> None:

@@ -87,6 +87,8 @@ class WranglerConfig:
     packages_ignore_versions: bool = False
     env_archive_format: str = ""
     env_print_name: bool = False
+    env_activate: bool = False
+    env_deactivate: bool = False
     env_kernel_cleanup: bool = False
 
     packages_compile: bool = False
@@ -212,6 +214,8 @@ class WranglerConfig:
             env_compact=args.env_compact,
             packages_ignore_versions=args.packages_ignore_versions,
             env_print_name=args.env_print_name,
+            env_activate=getattr(args, "env_activate", False),
+            env_deactivate=getattr(args, "env_deactivate", False),
             env_kernel_cleanup=args.env_kernel_cleanup,
             packages_compile=args.packages_compile,
             packages_install=args.packages_install,

@@ -32,6 +32,22 @@ def print_exports(name: str, store: PantryStore) -> None:
     print(f"export NBW_ENV_ROOT={store.live_envs_root / name}")
 
 
+def var_export_lines(name: str, store: PantryStore) -> list[str]:
+    """Return ``export KEY=VALUE`` lines for ``name``'s shelf ``environment_vars``.
+
+    Matches the line format of ``hubenv var ls NAME --export`` so that
+    ``hubenv env activate`` stays byte-equivalent in its variable exports.
+    Returns an empty list when the shelf has no spec or variables defined.
+    """
+    try:
+        from nb_wrangler.hubenv.env_spec import load_hubenv_spec
+
+        env_vars = load_hubenv_spec(store, name).get("environment_vars") or {}
+    except Exception:
+        return []
+    return [f"export {key}={value}" for key, value in sorted(env_vars.items())]
+
+
 def print_no_writable_pantry(forced_path: Optional[str]) -> None:
     """Print a clear error for no writable pantry."""
     if forced_path:
