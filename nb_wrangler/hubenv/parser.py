@@ -314,6 +314,12 @@ def _add_create_args(p) -> None:
         help="Target pantry directory (default: first writable pantry)",
     )
     p.add_argument(
+        "--ephemeral",
+        action="store_true",
+        help="Build only the live environment; skip shelf-spec persistence "
+        "and kernel registration. Use for temporary or CI scratch envs.",
+    )
+    p.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the seeded spec without installing",

@@ -22,6 +22,29 @@ dependencies:
 prefix: /tmp/envs/astro-py
 """
 
+_MAMBA_SPEC_YAML = """
+name: old-name
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - numpy=1.26.0
+  - pip
+"""
+
+_WRANGLER_SPEC_YAML = """
+image_spec_header:
+  image_name: old-name
+  kernel_name: old-name
+  display_name: old-name
+  python_version: "3.11"
+repositories: {}
+extra_mamba_packages:
+  - numpy=1.26.0
+extra_pip_packages:
+  - requests==2.31.0
+"""
+
 
 # ---------------------------------------------------------------------------
 # CLI scaffold tests
@@ -485,3 +508,367 @@ class TestCreateFromExistingEnv:
             )
 
         assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# Default persistence: all install sources persist spec + register kernel
+# ---------------------------------------------------------------------------
+
+
+class TestDefaultPersist:
+    """All four install sources persist the shelf spec and register the
+    kernel by default (no extra flags needed)."""
+
+    @pytest.fixture(autouse=True)
+    def _set_config(self, tmp_path):
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                spec_file="",
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+
+    @pytest.fixture
+    def _pantry(self, tmp_path):
+        pantry = tmp_path / "pantry"
+        pantry.mkdir(exist_ok=True)
+        return pantry
+
+    def _shelf_spec(self, pantry, name):
+        return pantry / "shelves" / name / "nbw-wrangler-spec.yaml"
+
+    def test_from_empty_persists_and_registers(self, tmp_path, _pantry):
+        from nb_wrangler.hubenv.cli import main
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+
+        assert rc == 0
+        mock_create.assert_called_once()
+        mock_register.assert_called_once()
+        assert self._shelf_spec(_pantry, "demo").exists()
+
+    def test_from_requirements_persists_and_registers(self, tmp_path, _pantry):
+        from nb_wrangler.hubenv.cli import main
+
+        reqs = tmp_path / "reqs.txt"
+        reqs.write_text("numpy==1.26.0\npandas\n")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(
+                [
+                    "env",
+                    "create",
+                    "--from-requirements",
+                    str(reqs),
+                    "--name",
+                    "demo",
+                    "--python",
+                    "3.11",
+                ]
+            )
+
+        assert rc == 0
+        mock_create.assert_called_once()
+        mock_register.assert_called_once()
+        assert self._shelf_spec(_pantry, "demo").exists()
+
+    def test_from_mamba_spec_persists_and_registers(self, tmp_path, _pantry):
+        from nb_wrangler.hubenv.cli import main
+
+        mspec = tmp_path / "mamba-spec.yaml"
+        mspec.write_text(_MAMBA_SPEC_YAML)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(
+                [
+                    "env",
+                    "create",
+                    "--from-mamba-spec",
+                    str(mspec),
+                    "--name",
+                    "demo",
+                ]
+            )
+
+        assert rc == 0
+        mock_create.assert_called_once()
+        mock_register.assert_called_once()
+        assert self._shelf_spec(_pantry, "demo").exists()
+
+    def test_from_wrangler_spec_persists_and_registers(self, tmp_path, _pantry):
+        from nb_wrangler.hubenv.cli import main
+
+        wspec = tmp_path / "wrangler-spec.yaml"
+        wspec.write_text(_WRANGLER_SPEC_YAML)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(
+                [
+                    "env",
+                    "create",
+                    "--from-wrangler-spec",
+                    str(wspec),
+                    "--name",
+                    "demo",
+                ]
+            )
+
+        assert rc == 0
+        mock_create.assert_called_once()
+        mock_register.assert_called_once()
+        assert self._shelf_spec(_pantry, "demo").exists()
+
+    def test_install_failure_no_persistence(self, tmp_path, _pantry, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(EnvironmentManager, "create_environment", return_value=False),
+            patch.object(EnvironmentManager, "register_environment") as mock_register,
+        ):
+            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+
+        assert rc == 1
+        mock_register.assert_not_called()
+        assert not self._shelf_spec(_pantry, "demo").exists()
+
+
+# ---------------------------------------------------------------------------
+# --ephemeral: opt out of persistence
+# ---------------------------------------------------------------------------
+
+
+class TestEphemeral:
+    """``--ephemeral`` builds the live env but skips shelf spec and kernel."""
+
+    @pytest.fixture(autouse=True)
+    def _set_config(self, tmp_path):
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                spec_file="",
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+
+    def test_from_empty_ephemeral_skips_persistence(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = tmp_path / "pantry"
+        pantry.mkdir(exist_ok=True)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(EnvironmentManager, "register_environment") as mock_register,
+        ):
+            rc = main(
+                ["env", "create", "--from-empty", "--name", "demo", "--ephemeral"]
+            )
+
+        assert rc == 0
+        mock_create.assert_called_once()
+        mock_register.assert_not_called()
+        spec = pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+        assert not spec.exists()
+        err = capsys.readouterr().err
+        assert "ephemeral" in err.lower()
+
+    def test_from_existing_env_ephemeral_skips_persistence(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = tmp_path / "pantry"
+        pantry.mkdir(exist_ok=True)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch(
+                "nb_wrangler.hubenv.seeds._run_mamba_export",
+                return_value=_CANNED_EXPORT_YAML,
+            ),
+            patch("nb_wrangler.hubenv.seeds._run_pip_freeze", return_value=[]),
+            patch.object(EnvironmentManager, "environment_exists", return_value=True),
+            patch.object(EnvironmentManager, "register_environment") as mock_register,
+        ):
+            rc = main(
+                [
+                    "env",
+                    "create",
+                    "--from-existing-env",
+                    "astro-py",
+                    "--name",
+                    "myproject",
+                    "--ephemeral",
+                ]
+            )
+
+        assert rc == 0
+        mock_register.assert_not_called()
+        spec = pantry / "shelves" / "myproject" / "nbw-wrangler-spec.yaml"
+        assert not spec.exists()
+
+
+# ---------------------------------------------------------------------------
+# --pantry: forced pantry directory is honored
+# ---------------------------------------------------------------------------
+
+
+class TestPantryFlag:
+    """``--pantry`` forces the shelf spec into the named pantry."""
+
+    @pytest.fixture(autouse=True)
+    def _set_config(self, tmp_path):
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                spec_file="",
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+
+    def test_pantry_flag_writes_to_forced_pantry(self, tmp_path):
+        from nb_wrangler.hubenv.cli import main
+
+        default_pantry = tmp_path / "default-pantry"
+        default_pantry.mkdir(exist_ok=True)
+        forced_pantry = tmp_path / "forced-pantry"
+        forced_pantry.mkdir(exist_ok=True)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [default_pantry]),
+            patch.object(EnvironmentManager, "create_environment", return_value=True),
+            patch.object(EnvironmentManager, "register_environment", return_value=True),
+        ):
+            rc = main(
+                [
+                    "env",
+                    "create",
+                    "--from-empty",
+                    "--name",
+                    "demo",
+                    "--pantry",
+                    str(forced_pantry),
+                ]
+            )
+
+        assert rc == 0
+        forced_spec = forced_pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+        default_spec = default_pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+        assert forced_spec.exists()
+        assert not default_spec.exists()
+
+    def test_pantry_flag_ro_pantry_fails(self, tmp_path, capsys):
+        import os
+
+        from nb_wrangler.hubenv.cli import main
+
+        default_pantry = tmp_path / "default-pantry"
+        default_pantry.mkdir(exist_ok=True)
+        ro_pantry = tmp_path / "ro-pantry"
+        ro_pantry.mkdir(exist_ok=True)
+        os.chmod(ro_pantry, 0o500)
+
+        try:
+            with (
+                patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+                patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [default_pantry]),
+                patch.object(
+                    EnvironmentManager, "create_environment", return_value=True
+                ),
+            ):
+                rc = main(
+                    [
+                        "env",
+                        "create",
+                        "--from-empty",
+                        "--name",
+                        "demo",
+                        "--pantry",
+                        str(ro_pantry),
+                    ]
+                )
+
+            assert rc == 1
+            spec = default_pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+            assert not spec.exists()
+        finally:
+            os.chmod(ro_pantry, 0o700)
+
+
+# ---------------------------------------------------------------------------
+# Parser: --ephemeral flag
+# ---------------------------------------------------------------------------
+
+
+class TestEphemeralParser:
+    """``--ephemeral`` parses correctly and defaults to False."""
+
+    def test_ephemeral_flag_parses(self):
+        from nb_wrangler.hubenv.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(
+            [
+                "env",
+                "create",
+                "--from-empty",
+                "--name",
+                "demo",
+                "--ephemeral",
+            ]
+        )
+        assert args.ephemeral is True
+
+    def test_ephemeral_defaults_false(self):
+        from nb_wrangler.hubenv.cli import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["env", "create", "--from-empty", "--name", "demo"])
+        assert args.ephemeral is False

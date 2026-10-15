@@ -178,7 +178,7 @@ class TestE2EFlow:
         # --- Step 1: create ---
         env_dir = root / "envs" / "demo"
         env_dir.mkdir(parents=True)
-        with _patch_create_env():
+        with _patch_create_env(), _patch_register(True):
             rc = main(["env", "create", "--from-empty", "--name", "demo"])
         assert rc == 0
         assert env_dir.exists()
