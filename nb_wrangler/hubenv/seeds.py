@@ -9,7 +9,6 @@ import subprocess
 from pathlib import Path
 
 from nb_wrangler.constants import NBW_MAMBA_CMD
-from nb_wrangler.nb_processor import NotebookImportProcessor
 from nb_wrangler.utils import get_yaml
 
 
@@ -60,24 +59,6 @@ def seed_from_mamba_spec(name: str, path: str | Path) -> dict:
     with open(path) as fh:
         spec = yaml.load(fh)
     spec["name"] = name
-    return spec
-
-
-def seed_from_notebooks(name: str, paths: list[str], python: str | None = None) -> dict:
-    """Build a mamba spec from imports found in notebook files.
-
-    Delegates to :class:`NotebookImportProcessor` so the ``BUILTIN_PACKAGES``
-    filter (``os``, ``sys``, ``copy``, ``builtins``, ``__future__``) applies
-    and stdlib names do not leak into the ``pip`` section.
-    """
-    spec = _base_spec(name, python)
-    processor = NotebookImportProcessor()
-    imports: set[str] = set()
-    for p in paths:
-        result = processor.extract_imports([{p: [p]}])
-        for imps in result.values():
-            imports.update(imps)
-    spec["dependencies"].append({"pip": sorted(imports)})
     return spec
 
 

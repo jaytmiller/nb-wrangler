@@ -11,7 +11,6 @@ from nb_wrangler.hubenv.seeds import (
     seed_from_empty,
     seed_from_existing_env,
     seed_from_mamba_spec,
-    seed_from_notebooks,
     seed_from_requirements,
     seed_from_wrangler_spec,
 )
@@ -45,8 +44,6 @@ def build_seed_dict(args) -> dict:
         return seed_from_mamba_spec(name, args.from_mamba_spec)
     if args.from_wrangler_spec:
         return seed_from_wrangler_spec(name, args.from_wrangler_spec)
-    if args.from_notebooks:
-        return seed_from_notebooks(name, args.from_notebooks, python)
     if args.from_existing_env:
         return seed_from_existing_env(name, args.from_existing_env, python)
     # Should not reach here due to mutually-exclusive required group

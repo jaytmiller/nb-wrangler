@@ -125,30 +125,6 @@ class TestDryRun:
         assert "numpy" in out
         assert "requests" in out
 
-    def test_dry_run_notebooks_prints_spec(self, tmp_path, capsys):
-        from nb_wrangler.hubenv.cli import main
-
-        nb = tmp_path / "test.ipynb"
-        nb.write_text(
-            '{"cells":[{"cell_type":"code","source":["import os\\n", "import pandas as pd\\n"]}]}'
-        )
-
-        rc = main(
-            [
-                "env",
-                "create",
-                "--from-notebooks",
-                str(nb),
-                "--name",
-                "demo",
-                "--dry-run",
-            ]
-        )
-        assert rc == 0
-        out = capsys.readouterr().out
-        assert "name: demo" in out
-        assert "pandas" in out
-
     def test_dry_run_does_not_install(self, tmp_path, capsys):
         """Verify no environment is created during dry-run."""
         from nb_wrangler.hubenv.cli import main
@@ -223,33 +199,3 @@ class TestSeedBuilders:
         pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
         assert "requests" in pip_deps[0]["pip"]
         assert "matplotlib" in pip_deps[0]["pip"]
-
-    def test_seed_from_notebooks_extracts_imports(self, tmp_path):
-        from nb_wrangler.hubenv.seeds import seed_from_notebooks
-
-        nb = tmp_path / "test.ipynb"
-        nb.write_text(
-            '{"cells":[{"cell_type":"code","source":'
-            '["import numpy as np\\n", "from pandas import DataFrame\\n"]},'
-            '{"cell_type":"markdown","source":"# title"}]}'
-        )
-        spec = seed_from_notebooks("demo", [str(nb)])
-        pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
-        assert "numpy" in pip_deps[0]["pip"]
-        assert "pandas" in pip_deps[0]["pip"]
-
-    def test_seed_from_notebooks_filters_stdlib(self, tmp_path):
-        """BUILTIN_PACKAGES (os, sys, ...) must not leak into the pip list."""
-        from nb_wrangler.hubenv.seeds import seed_from_notebooks
-
-        nb = tmp_path / "test.ipynb"
-        nb.write_text(
-            '{"cells":[{"cell_type":"code","source":'
-            '["import os\\n", "import sys\\n", "import numpy as np\\n"]},'
-            '{"cell_type":"markdown","source":"# title"}]}'
-        )
-        spec = seed_from_notebooks("demo", [str(nb)])
-        pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
-        assert "numpy" in pip_deps[0]["pip"]
-        assert "os" not in pip_deps[0]["pip"]
-        assert "sys" not in pip_deps[0]["pip"]

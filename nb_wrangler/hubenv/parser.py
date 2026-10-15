@@ -301,13 +301,6 @@ def _add_create_args(p) -> None:
         help="Seed from a wrangler spec YAML file",
     )
     sources.add_argument(
-        "--from-notebooks",
-        nargs="*",
-        metavar="PATH",
-        default=[],
-        help="Seed from Python imports in notebook files",
-    )
-    sources.add_argument(
         "--from-existing-env",
         metavar="ENV_NAME",
         help="Import an existing mamba environment into the PPE lifecycle",
