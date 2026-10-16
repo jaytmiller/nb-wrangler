@@ -10,7 +10,7 @@ from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_rm(args) -> int:
-    """Handle ``hubenv env rm`` — delete envs from live and/or archive.
+    """Handle ``hubenv rm`` — delete envs from live and/or archive.
 
     Orchestrates: resolve targets -> dry-run check -> validate ->
     confirm -> execute.

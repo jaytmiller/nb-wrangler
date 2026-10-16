@@ -1,4 +1,4 @@
-# `hubenv env create` — Behavior Specification
+# `hubenv create` — Behavior Specification
 
 > Reverse-engineered spec. Derived from the implementation in
 > `nb_wrangler/hubenv/env_create.py`, `nb_wrangler/hubenv/parser.py`,
@@ -12,7 +12,7 @@
 
 ## 1. Purpose
 
-`hubenv env create` seeds a mamba-spec dict from one of five mutually-exclusive
+`hubenv create` seeds a mamba-spec dict from one of five mutually-exclusive
 sources, then either prints the spec (dry-run) or brings the environment fully
 into the hubenv "Persistent Platform Environment" (PPE) lifecycle:
 
@@ -29,7 +29,7 @@ Users who only need a throwaway live environment (CI, scratch) pass
 ## 2. Command synopsis
 
 ```
-hubenv env create --name NAME SOURCE_FLAG [SOURCE_ARGS] [OPTIONS]
+hubenv create --name NAME SOURCE_FLAG [SOURCE_ARGS] [OPTIONS]
 ```
 
 where at least one of the mutually-exclusive source flags must be present,

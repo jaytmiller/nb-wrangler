@@ -12,7 +12,7 @@ from nb_wrangler.hubenv.env_spec import (
 
 
 def cmd_env_relock(args) -> int:
-    """Handle ``hubenv env relock``."""
+    """Handle ``hubenv relock``."""
     config = PantryStore()
     em = EnvironmentManager()
 

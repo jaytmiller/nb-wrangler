@@ -60,7 +60,7 @@ class TestParser:
         rc = main([])
         assert rc == 0
         out = capsys.readouterr()
-        assert "env" in out.out
+        assert "create" in out.out
         assert "var" in out.out
         assert "data" in out.out
         assert "export" in out.out
@@ -72,10 +72,9 @@ class TestParser:
 
         parser = build_parser()
         args = parser.parse_args(
-            ["env", "create", "--from-empty", "--name", "demo", "--python", "3.11"]
+            ["create", "--from-empty", "--name", "demo", "--python", "3.11"]
         )
-        assert args.command == "env"
-        assert args.env_command == "create"
+        assert args.command == "create"
         assert args.name == "demo"
         assert args.python == "3.11"
         assert args.from_empty is True
@@ -85,7 +84,7 @@ class TestParser:
 
         parser = build_parser()
         try:
-            parser.parse_args(["env", "create", "--from-empty"])
+            parser.parse_args(["create", "--from-empty"])
         except SystemExit:
             return
         raise AssertionError("Expected SystemExit for missing --name")
@@ -97,7 +96,6 @@ class TestParser:
         try:
             parser.parse_args(
                 [
-                    "env",
                     "create",
                     "--from-empty",
                     "--from-requirements",
@@ -115,7 +113,7 @@ class TestParser:
 
         parser = build_parser()
         try:
-            parser.parse_args(["env", "create", "--name", "x"])
+            parser.parse_args(["create", "--name", "x"])
         except SystemExit:
             return
         raise AssertionError("Expected SystemExit for no seed source")
@@ -125,7 +123,7 @@ class TestParser:
 
         parser = build_parser()
         args = parser.parse_args(
-            ["env", "create", "--from-existing-env", "astro-py", "--name", "myproject"]
+            ["create", "--from-existing-env", "astro-py", "--name", "myproject"]
         )
         assert args.from_existing_env == "astro-py"
         assert args.name == "myproject"
@@ -137,7 +135,6 @@ class TestParser:
         try:
             parser.parse_args(
                 [
-                    "env",
                     "create",
                     "--from-empty",
                     "--from-existing-env",
@@ -163,11 +160,18 @@ class TestNotImplemented:
     implemented in Phase 10 — see tests/hubenv/test_export_status_doctor.py.)
     """
 
-    def test_env_no_subcommand_prints_help(self, capsys):
+    def test_legacy_env_group_rejected(self):
+        """``env`` is no longer a command group — a bare ``hubenv env`` must fail.
+
+        The former ``hubenv env <verb>`` surface was flattened to top-level
+        verbs; a bare ``hubenv env`` is now an invalid command, so argparse
+        rejects it with exit code 2.
+        """
         from nb_wrangler.hubenv.cli import main
 
-        rc = main(["env"])
-        assert rc == 0  # prints help
+        with pytest.raises(SystemExit) as exc:
+            main(["env"])
+        assert exc.value.code == 2
 
 
 # ---------------------------------------------------------------------------
@@ -279,12 +283,12 @@ class TestSeedFromExistingEnv:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env create --from-existing-env tests
+# hubenv create --from-existing-env tests
 # ---------------------------------------------------------------------------
 
 
 class TestCreateFromExistingEnv:
-    """Tests for hubenv env create --from-existing-env CLI."""
+    """Tests for hubenv create --from-existing-env CLI."""
 
     @pytest.fixture(autouse=True)
     def _set_config(self, tmp_path):
@@ -319,7 +323,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -356,7 +359,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -395,7 +397,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -432,7 +433,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -459,7 +459,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -498,7 +497,6 @@ class TestCreateFromExistingEnv:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -552,7 +550,7 @@ class TestDefaultPersist:
                 EnvironmentManager, "register_environment", return_value=True
             ) as mock_register,
         ):
-            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+            rc = main(["create", "--from-empty", "--name", "demo"])
 
         assert rc == 0
         mock_create.assert_called_once()
@@ -577,7 +575,6 @@ class TestDefaultPersist:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-requirements",
                     str(reqs),
@@ -611,7 +608,6 @@ class TestDefaultPersist:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-mamba-spec",
                     str(mspec),
@@ -643,7 +639,6 @@ class TestDefaultPersist:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-wrangler-spec",
                     str(wspec),
@@ -666,7 +661,7 @@ class TestDefaultPersist:
             patch.object(EnvironmentManager, "create_environment", return_value=False),
             patch.object(EnvironmentManager, "register_environment") as mock_register,
         ):
-            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+            rc = main(["create", "--from-empty", "--name", "demo"])
 
         assert rc == 1
         mock_register.assert_not_called()
@@ -706,9 +701,7 @@ class TestEphemeral:
             ) as mock_create,
             patch.object(EnvironmentManager, "register_environment") as mock_register,
         ):
-            rc = main(
-                ["env", "create", "--from-empty", "--name", "demo", "--ephemeral"]
-            )
+            rc = main(["create", "--from-empty", "--name", "demo", "--ephemeral"])
 
         assert rc == 0
         mock_create.assert_called_once()
@@ -737,7 +730,6 @@ class TestEphemeral:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-existing-env",
                     "astro-py",
@@ -788,7 +780,6 @@ class TestPantryFlag:
         ):
             rc = main(
                 [
-                    "env",
                     "create",
                     "--from-empty",
                     "--name",
@@ -825,7 +816,6 @@ class TestPantryFlag:
             ):
                 rc = main(
                     [
-                        "env",
                         "create",
                         "--from-empty",
                         "--name",
@@ -856,7 +846,6 @@ class TestEphemeralParser:
         parser = build_parser()
         args = parser.parse_args(
             [
-                "env",
                 "create",
                 "--from-empty",
                 "--name",
@@ -870,5 +859,5 @@ class TestEphemeralParser:
         from nb_wrangler.hubenv.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["env", "create", "--from-empty", "--name", "demo"])
+        args = parser.parse_args(["create", "--from-empty", "--name", "demo"])
         assert args.ephemeral is False

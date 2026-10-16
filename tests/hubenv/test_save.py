@@ -1,4 +1,4 @@
-"""Tests for hubenv env save (Phase 2)."""
+"""Tests for hubenv save (Phase 2)."""
 
 import os
 from pathlib import Path
@@ -44,7 +44,7 @@ def _fake_hash():
 
 
 class TestSaveDryRun:
-    """Tests for hubenv env save --dry-run."""
+    """Tests for hubenv save --dry-run."""
 
     def test_dry_run_prints_paths(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -58,7 +58,7 @@ class TestSaveDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             _patch_env_path(env_dir),
         ):
-            rc = main(["env", "save", "demo", "--dry-run"])
+            rc = main(["save", "demo", "--dry-run"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "shelf:" in out
@@ -77,7 +77,7 @@ class TestSaveDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             _patch_env_path(env_dir),
         ):
-            rc = main(["env", "save", "demo", "--dry-run"])
+            rc = main(["save", "demo", "--dry-run"])
             assert rc == 0
             # No archives directory should be created during dry-run
             assert not (pantry / "shelves" / "demo" / "archives").exists()
@@ -94,14 +94,14 @@ class TestSaveDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", []),
             _patch_env_path(env_dir),
         ):
-            rc = main(["env", "save", "demo", "--pantry", str(forced), "--dry-run"])
+            rc = main(["save", "demo", "--pantry", str(forced), "--dry-run"])
             assert rc == 0
             out = capsys.readouterr().out
             assert str(forced) in out
 
 
 class TestSaveActual:
-    """Tests for actual hubenv env save (with mocked pack routine)."""
+    """Tests for actual hubenv save (with mocked pack routine)."""
 
     def test_save_writes_hash(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -117,7 +117,7 @@ class TestSaveActual:
             _patch_pack(True),
             _fake_hash(),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
             assert rc == 0
 
         hash_file = pantry / "shelves" / "demo" / "archives" / "last-save.sha256"
@@ -138,7 +138,7 @@ class TestSaveActual:
             _patch_pack(True),
             _fake_hash(),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "Saved environment 'demo'" in out
@@ -156,7 +156,7 @@ class TestSaveActual:
             _patch_env_path(env_dir),
             _patch_pack(False),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
             assert rc == 1
 
     def test_save_force_overwrites_existing(self, tmp_path):
@@ -178,7 +178,7 @@ class TestSaveActual:
             _patch_pack(True),
             _fake_hash(),
         ):
-            rc = main(["env", "save", "demo", "--force"])
+            rc = main(["save", "demo", "--force"])
             assert rc == 0
 
     def test_save_refuses_existing_without_force(self, tmp_path, capsys):
@@ -198,7 +198,7 @@ class TestSaveActual:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             _patch_env_path(env_dir),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "already exists" in err
@@ -206,7 +206,7 @@ class TestSaveActual:
 
 
 class TestSaveErrors:
-    """Tests for hubenv env save error conditions."""
+    """Tests for hubenv save error conditions."""
 
     def test_readonly_pantry_returns_error(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -216,7 +216,7 @@ class TestSaveErrors:
         os.chmod(ro, 0o500)
         try:
             with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [ro]):
-                rc = main(["env", "save", "demo"])
+                rc = main(["save", "demo"])
                 assert rc == 1
                 err = capsys.readouterr().err
                 # Error should mention pantry/writable issue
@@ -235,7 +235,7 @@ class TestSaveErrors:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             _patch_env_path(tmp_path / "nonexistent"),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "not found" in err.lower()
@@ -248,7 +248,7 @@ class TestSaveErrors:
         os.chmod(ro, 0o500)
         try:
             with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [ro]):
-                rc = main(["env", "save", "demo"])
+                rc = main(["save", "demo"])
                 assert rc == 1
         finally:
             os.chmod(ro, 0o700)

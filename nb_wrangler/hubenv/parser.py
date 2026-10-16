@@ -13,13 +13,24 @@ from nb_wrangler.constants import (
 )
 
 
-def _add_global_flags(parser: argparse.ArgumentParser) -> None:
+def _add_global_flags(
+    parser: argparse.ArgumentParser, subcommand: bool = False
+) -> None:
     """Add global diagnostic flags to *parser*.
 
-    Shared by the top-level parser and all subparsers so that flags like
-    ``--quiet`` work both before (``hubenv --quiet env ls``) and after
-    (``hubenv env --quiet ls``) the subcommand.
+    Registered on the top-level parser and on each command parser so a flag
+    such as ``--quiet`` works on either side of a command
+    (``hubenv --quiet create`` and ``hubenv create --quiet``).
+
+    When *subcommand* is True, defaults become :data:`argparse.SUPPRESS` so a
+    command parser's defaults do not clobber a value already supplied on the
+    top level. The top-level parser keeps real defaults so ``args.<flag>``
+    always exists.
     """
+    d_bool = argparse.SUPPRESS if subcommand else False
+    d_color = argparse.SUPPRESS if subcommand else DEFAULT_COLOR_MODE
+    d_times = argparse.SUPPRESS if subcommand else DEFAULT_LOG_TIMES_MODE
+
     global_group = parser.add_argument_group(
         "Global", "Global diagnostic and output-control flags."
     )
@@ -28,34 +39,34 @@ def _add_global_flags(parser: argparse.ArgumentParser) -> None:
         "--quiet",
         action="store_true",
         dest="quiet",
-        default=False,
+        default=d_bool,
         help="Suppress all log output to stderr; only stdout will be visible.",
     )
     global_group.add_argument(
         "--verbose",
         action="store_true",
         dest="verbose",
-        default=False,
+        default=d_bool,
         help="Enable verbose log output.",
     )
     global_group.add_argument(
         "--debug",
         action="store_true",
         dest="debug",
-        default=False,
+        default=d_bool,
         help="Drop into debugging with pdb on exceptions.",
     )
     global_group.add_argument(
         "--color",
         choices=VALID_COLOR_MODES,
-        default=DEFAULT_COLOR_MODE,
+        default=d_color,
         dest="color",
         help="Colorize log output.",
     )
     global_group.add_argument(
         "--log-times",
         choices=VALID_LOG_TIME_MODES,
-        default=DEFAULT_LOG_TIMES_MODE,
+        default=d_times,
         dest="log_times",
         help="Include timestamps in log messages.",
     )
@@ -63,7 +74,7 @@ def _add_global_flags(parser: argparse.ArgumentParser) -> None:
         "--reset-log",
         action="store_true",
         dest="reset_log",
-        default=False,
+        default=d_bool,
         help="Delete nb-wrangler log file.",
     )
 
@@ -95,74 +106,58 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def _add_env_subcommands(subparsers) -> None:
-    """Add the ``env`` subcommand group with create, save, restore + stubs."""
-    env_parser = subparsers.add_parser("env", help="Environment management")
-    _add_global_flags(env_parser)
-    env_sub = env_parser.add_subparsers(dest="env_command")
+    """Add the environment verbs as top-level commands (flattened from ``env``).
 
-    create = env_sub.add_parser("create", help="Create a new environment")
-    _add_create_args(create)
-
-    save = env_sub.add_parser(
-        "save", help="Pack a live environment into a pantry archive"
-    )
-    _add_save_args(save)
-
-    restore = env_sub.add_parser(
-        "restore", help="Unpack a saved environment and register kernel"
-    )
-    _add_restore_args(restore)
-
-    ls = env_sub.add_parser("ls", help="List live envs and pantry shelves")
-    _add_ls_args(ls)
-
-    info = env_sub.add_parser("info", help="Show detailed info for an environment")
-    _add_info_args(info)
-
-    install = env_sub.add_parser(
-        "install", help="Install packages into a live environment"
-    )
-    _add_install_args(install)
-
-    uninstall = env_sub.add_parser(
-        "uninstall", help="Uninstall packages from a live environment"
-    )
-    _add_uninstall_args(uninstall)
-
-    relock = env_sub.add_parser(
-        "relock", help="Re-curate locks and validate the implicit spec"
-    )
-    _add_relock_args(relock)
-
-    rm = env_sub.add_parser("rm", help="Delete environments from live and/or archive")
-    _add_rm_args(rm)
-
-    ensure = env_sub.add_parser(
-        "ensure",
-        help="Idempotently ensure an env is available (live or restored)",
-    )
-    _add_ensure_args(ensure)
-
-    register = env_sub.add_parser(
-        "register", help="Register Jupyter kernel for an environment"
-    )
-    _add_register_args(register)
-
-    unregister = env_sub.add_parser(
-        "unregister", help="Unregister Jupyter kernel for an environment"
-    )
-    _add_unregister_args(unregister)
-
-    activate = env_sub.add_parser(
-        "activate",
-        help="Print a shell snippet (for eval/source) that activates an environment by path",
-    )
-    _add_activate_args(activate)
-
-    env_sub.add_parser(
-        "deactivate",
-        help="Print a shell snippet (for eval/source) that deactivates the current mamba environment",
-    )
+    Environments are hubenv's primary resource, so their verbs sit at the top
+    level (``hubenv create`` rather than ``hubenv env create``). Each verb
+    parser also receives the global flags so both ``hubenv --quiet create`` and
+    ``hubenv create --quiet`` parse.
+    """
+    verbs = [
+        ("create", "Create a new environment", _add_create_args),
+        ("save", "Pack a live environment into a pantry archive", _add_save_args),
+        (
+            "restore",
+            "Unpack a saved environment and register kernel",
+            _add_restore_args,
+        ),
+        ("ls", "List live envs and pantry shelves", _add_ls_args),
+        ("info", "Show detailed info for an environment", _add_info_args),
+        ("install", "Install packages into a live environment", _add_install_args),
+        (
+            "uninstall",
+            "Uninstall packages from a live environment",
+            _add_uninstall_args,
+        ),
+        ("relock", "Re-curate locks and validate the implicit spec", _add_relock_args),
+        ("rm", "Delete environments from live and/or archive", _add_rm_args),
+        (
+            "ensure",
+            "Idempotently ensure an env is available (live or restored)",
+            _add_ensure_args,
+        ),
+        ("register", "Register Jupyter kernel for an environment", _add_register_args),
+        (
+            "unregister",
+            "Unregister Jupyter kernel for an environment",
+            _add_unregister_args,
+        ),
+        (
+            "activate",
+            "Print a shell snippet (for eval/source) that activates an environment by path",
+            _add_activate_args,
+        ),
+        (
+            "deactivate",
+            "Print a shell snippet (for eval/source) that deactivates the current mamba environment",
+            None,
+        ),
+    ]
+    for name, help_text, add_args in verbs:
+        verb_parser = subparsers.add_parser(name, help=help_text)
+        if add_args is not None:
+            add_args(verb_parser)
+        _add_global_flags(verb_parser, subcommand=True)
 
 
 def _add_export_status_doctor_subcommands(subparsers) -> None:
@@ -323,7 +318,7 @@ def _add_create_args(p) -> None:
         "--save",
         action="store_true",
         help="Archive the environment into a pantry can immediately after "
-        "creation (equivalent to a subsequent `hubenv env save NAME`).",
+        "creation (equivalent to a subsequent `hubenv save NAME`).",
     )
     p.add_argument(
         "--dry-run",

@@ -145,7 +145,7 @@ class TestHubenvCmdIntegration:
 
 
 # ---------------------------------------------------------------------------
-# (a) hubenv env activate must ALSO emit the shelf's environment_vars,
+# (a) hubenv activate must ALSO emit the shelf's environment_vars,
 # byte-identically to `hubenv var ls NAME --export`, so `hubenv` users get
 # full parity with `nbw --env-activate` (spec data exports).
 # ---------------------------------------------------------------------------

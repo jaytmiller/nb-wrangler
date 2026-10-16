@@ -1,4 +1,4 @@
-"""Tests for hubenv env ensure / register / unregister (Phase 7)."""
+"""Tests for hubenv ensure / register / unregister (Phase 7)."""
 
 from unittest.mock import patch
 
@@ -70,7 +70,7 @@ def _patch_env_exists(exists=True):
 
 
 class TestEnsure:
-    """Tests for hubenv env ensure."""
+    """Tests for hubenv ensure."""
 
     def test_ensure_live_env_noop(self, tmp_path, capsys):
         """When a live env exists, ensure is a no-op."""
@@ -80,7 +80,7 @@ class TestEnsure:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_env_exists(True),
         ):
-            rc = main(["env", "ensure", "demo"])
+            rc = main(["ensure", "demo"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "already live" in out
@@ -99,7 +99,7 @@ class TestEnsure:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "ensure", "demo"])
+            rc = main(["ensure", "demo"])
             assert rc == 0
 
     def test_ensure_neither_live_nor_archive_errors(self, tmp_path, capsys):
@@ -114,11 +114,11 @@ class TestEnsure:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_env_exists(False),
         ):
-            rc = main(["env", "ensure", "demo"])
+            rc = main(["ensure", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "no live environment and no archive" in err.lower()
-            assert "hubenv env create" in err.lower()
+            assert "hubenv create" in err.lower()
 
     def test_ensure_is_non_interactive(self, tmp_path, capsys):
         """ensure must never prompt — even with no stdin."""
@@ -133,7 +133,7 @@ class TestEnsure:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "ensure", "demo"])
+            rc = main(["ensure", "demo"])
             assert rc == 0
 
     def test_ensure_dry_run(self, tmp_path, capsys):
@@ -149,7 +149,7 @@ class TestEnsure:
             _patch_unpack_env(True) as mock_unpack,
             _patch_register_env(True),
         ):
-            rc = main(["env", "ensure", "demo", "--dry-run"])
+            rc = main(["ensure", "demo", "--dry-run"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "dry-run" in out.lower()
@@ -162,7 +162,7 @@ class TestEnsure:
 
 
 class TestRegister:
-    """Tests for hubenv env register."""
+    """Tests for hubenv register."""
 
     def test_register_calls_register_environment(self, tmp_path, capsys):
         """register calls em.register_environment with env name as display."""
@@ -172,7 +172,7 @@ class TestRegister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_register_env(True) as mock_reg,
         ):
-            rc = main(["env", "register", "demo"])
+            rc = main(["register", "demo"])
             assert rc == 0
             mock_reg.assert_called_once_with("demo", "demo", {})
             out = capsys.readouterr().out
@@ -186,7 +186,7 @@ class TestRegister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_register_env(True) as mock_reg,
         ):
-            rc = main(["env", "register", "demo", "--display-name", "My Env"])
+            rc = main(["register", "demo", "--display-name", "My Env"])
             assert rc == 0
             mock_reg.assert_called_once_with("demo", "My Env", {})
 
@@ -198,7 +198,7 @@ class TestRegister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_register_env(True) as mock_reg,
         ):
-            rc = main(["env", "register", "demo", "--dry-run"])
+            rc = main(["register", "demo", "--dry-run"])
             assert rc == 0
             mock_reg.assert_not_called()
             out = capsys.readouterr().out
@@ -212,7 +212,7 @@ class TestRegister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_register_env(False),
         ):
-            rc = main(["env", "register", "demo"])
+            rc = main(["register", "demo"])
             assert rc == 1
 
 
@@ -222,7 +222,7 @@ class TestRegister:
 
 
 class TestUnregister:
-    """Tests for hubenv env unregister."""
+    """Tests for hubenv unregister."""
 
     def test_unregister_calls_unregister_environment(self, tmp_path, capsys):
         """unregister calls em.unregister_environment."""
@@ -232,7 +232,7 @@ class TestUnregister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_unregister_env(True) as mock_unreg,
         ):
-            rc = main(["env", "unregister", "demo"])
+            rc = main(["unregister", "demo"])
             assert rc == 0
             mock_unreg.assert_called_once_with("demo")
             out = capsys.readouterr().out
@@ -246,7 +246,7 @@ class TestUnregister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_unregister_env(True) as mock_unreg,
         ):
-            rc = main(["env", "unregister", "nonexistent"])
+            rc = main(["unregister", "nonexistent"])
             assert rc == 0
             mock_unreg.assert_called_once_with("nonexistent")
 
@@ -258,7 +258,7 @@ class TestUnregister:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             _patch_unregister_env(True) as mock_unreg,
         ):
-            rc = main(["env", "unregister", "demo", "--dry-run"])
+            rc = main(["unregister", "demo", "--dry-run"])
             assert rc == 0
             mock_unreg.assert_not_called()
             out = capsys.readouterr().out

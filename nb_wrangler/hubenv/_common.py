@@ -36,7 +36,7 @@ def var_export_lines(name: str, store: PantryStore) -> list[str]:
     """Return ``export KEY=VALUE`` lines for ``name``'s shelf ``environment_vars``.
 
     Matches the line format of ``hubenv var ls NAME --export`` so that
-    ``hubenv env activate`` stays byte-equivalent in its variable exports.
+    ``hubenv activate`` stays byte-equivalent in its variable exports.
     Returns an empty list when the shelf has no spec or variables defined.
     """
     try:

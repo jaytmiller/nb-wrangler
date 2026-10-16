@@ -11,7 +11,7 @@ from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_restore(args) -> int:
-    """Handle ``hubenv env restore``.
+    """Handle ``hubenv restore``.
 
     Unpack a saved can into NBW_MM/envs and register a Jupyter kernel.
     Supports idempotency (skip if restored hash matches save hash).
@@ -58,7 +58,7 @@ def _check_archive_exists(shelf, name: str, can_path) -> bool:
     """Validate can-path exists; print error if missing. Returns True on error.
 
     Distinctly names the "spec-only" state (a shelf + spec exist but no can
-    has been packed yet) so the user knows to run ``hubenv env save NAME``.
+    has been packed yet) so the user knows to run ``hubenv save NAME``.
     """
     if can_path.exists():
         return False
@@ -66,7 +66,7 @@ def _check_archive_exists(shelf, name: str, can_path) -> bool:
         f"Environment '{name}' has a shelf spec at {shelf.path} but no archive "
         f"(can) at {can_path}."
     )
-    get_logger().info(f"Run: hubenv env save {name}   to create the restoreable can.")
+    get_logger().info(f"Run: hubenv save {name}   to create the restoreable can.")
     return True
 
 
@@ -139,10 +139,10 @@ def write_at_boot_snippet(name: str) -> None:
     snippet_path = snippet_dir / f"env-{name}.sh"
 
     snippet = (
-        f"# hubenv env ensure {name} - idempotent restore at boot\n"
+        f"# hubenv ensure {name} - idempotent restore at boot\n"
         f'if [ -z "${{NBW_ACTIVE_ENV+set}}" ]; then\n'
         f'    export NBW_ACTIVE_ENV="{name}"\n'
-        f"    hubenv env ensure {name} 2>/dev/null || true\n"
+        f"    hubenv ensure {name} 2>/dev/null || true\n"
         f"fi\n"
     )
     snippet_path.write_text(snippet)

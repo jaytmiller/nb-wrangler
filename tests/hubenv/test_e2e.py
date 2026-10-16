@@ -179,7 +179,7 @@ class TestE2EFlow:
         env_dir = root / "envs" / "demo"
         env_dir.mkdir(parents=True)
         with _patch_create_env(), _patch_register(True):
-            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+            rc = main(["create", "--from-empty", "--name", "demo"])
         assert rc == 0
         assert env_dir.exists()
 
@@ -188,7 +188,7 @@ class TestE2EFlow:
             _patch_pack(pantry, True),
             _patch_sha256("abc123"),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
         assert rc == 0
 
         # Shelf + can should exist in pantry
@@ -202,7 +202,7 @@ class TestE2EFlow:
         assert hash_file.read_text().strip() == "abc123"
 
         # Env should appear in ls as both live and archived
-        rc = main(["env", "ls"])
+        rc = main(["ls"])
         assert rc == 0
         out = capsys.readouterr().out
         assert "demo" in out
@@ -212,7 +212,7 @@ class TestE2EFlow:
             _patch_unpack(True),
             _patch_register(True),
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
         assert rc == 0
         out = capsys.readouterr().out
         assert "export NBW_ACTIVE_ENV=demo" in out
@@ -228,7 +228,7 @@ class TestE2EFlow:
             _patch_env_run(),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "pandas"])
+            rc = main(["install", "demo", "numpy", "pandas"])
         assert rc == 0
 
         # Package should be recorded in spec
@@ -248,7 +248,7 @@ class TestE2EFlow:
             _patch_env_exists(True),
             _patch_compile(compiled),
         ):
-            rc = main(["env", "relock", "demo"])
+            rc = main(["relock", "demo"])
         assert rc == 0
 
         # Locks should be updated (pinned versions)
@@ -261,13 +261,13 @@ class TestE2EFlow:
 
         # --- Step 6: rm ---
         with patch("builtins.input", return_value="n") as mock_input:
-            rc = main(["env", "rm", "demo"])
+            rc = main(["rm", "demo"])
         assert rc == 1  # aborted by user
         assert mock_input.call_count == 1
         assert env_dir.exists()  # env still exists
 
         with patch("builtins.input", return_value="y"), _patch_delete_env(env_dir):
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
         assert rc == 0
         assert not env_dir.exists()
 
@@ -279,7 +279,7 @@ class TestE2EFlow:
         with patch(
             "nb_wrangler.environment.EnvironmentManager.create_environment"
         ) as mock_create:
-            rc = main(["env", "create", "--from-empty", "--name", "demo", "--dry-run"])
+            rc = main(["create", "--from-empty", "--name", "demo", "--dry-run"])
         assert rc == 0
         mock_create.assert_not_called()
         assert not (root / "envs" / "demo").exists()
@@ -297,7 +297,7 @@ class TestE2EFlow:
             _patch_pack(pantry, True),
             _patch_sha256("deadbeef"),
         ):
-            rc = main(["env", "create", "--from-empty", "--name", "demo", "--save"])
+            rc = main(["create", "--from-empty", "--name", "demo", "--save"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -312,11 +312,11 @@ class TestE2EFlow:
         (root / "envs" / "demo").mkdir(parents=True)
 
         with _patch_create_env(), _patch_register(True):
-            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+            rc = main(["create", "--from-empty", "--name", "demo"])
 
         assert rc == 0
         out = capsys.readouterr().out
-        assert "hubenv env save demo" in out
+        assert "hubenv save demo" in out
 
     def test_install_dry_run_does_not_change_spec(self, _ppe_env, capsys):
         """Install dry-run should not write the spec."""
@@ -331,7 +331,7 @@ class TestE2EFlow:
             _patch_env_run(),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "--dry-run"])
+            rc = main(["install", "demo", "numpy", "--dry-run"])
         assert rc == 0
         out = capsys.readouterr().out
         assert "Dry-run" in out
@@ -358,7 +358,7 @@ class TestE2EFlow:
         restore_file.write_text("abc123\n")
 
         with _patch_unpack(True) as mock_unpack:
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
         assert rc == 0
         out = capsys.readouterr().out
         assert "idempotent skip" in out
@@ -383,7 +383,7 @@ class TestE2EFlow:
             _patch_pack(True),
             _patch_sha256("abc123"),
         ):
-            rc = main(["env", "save", "demo"])
+            rc = main(["save", "demo"])
         assert rc == 1
         err = capsys.readouterr().err
         assert "already exists" in err
@@ -407,7 +407,7 @@ class TestE2EFlow:
             _patch_pack(pantry, True),
             _patch_sha256("newhash"),
         ):
-            rc = main(["env", "save", "demo", "--force"])
+            rc = main(["save", "demo", "--force"])
         assert rc == 0
 
         hash_file = pantry / "shelves" / "demo" / "archives" / "last-save.sha256"
@@ -421,7 +421,7 @@ class TestE2EFlow:
         env_dir = root / "envs" / "demo"
         env_dir.mkdir(parents=True)
 
-        rc = main(["env", "rm", "demo", "--dry-run", "--yes"])
+        rc = main(["rm", "demo", "--dry-run", "--yes"])
         assert rc == 0
         assert env_dir.exists()  # still there
         out = capsys.readouterr().out
@@ -432,7 +432,7 @@ class TestE2EFlow:
         """RM of nonexistent env should error."""
         from nb_wrangler.hubenv.cli import main
 
-        rc = main(["env", "rm", "nonexistent", "--yes"])
+        rc = main(["rm", "nonexistent", "--yes"])
         assert rc == 1
         err = capsys.readouterr().err
         assert "no matching" in err.lower()

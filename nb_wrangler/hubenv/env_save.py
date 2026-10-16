@@ -11,7 +11,7 @@ from nb_wrangler.utils import sha256_file
 
 
 def cmd_env_save(args) -> int:
-    """Handle ``hubenv env save``.
+    """Handle ``hubenv save``.
 
     Pack an installed environment into a pantry archive. Uses wrangler's
     NbwShelf.pack_environment routine for tarball creation.

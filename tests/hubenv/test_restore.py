@@ -1,4 +1,4 @@
-"""Tests for hubenv env restore (Phase 3)."""
+"""Tests for hubenv restore (Phase 3)."""
 
 import os
 from unittest.mock import patch
@@ -58,7 +58,7 @@ def _patch_register_env(return_value=True):
 
 
 class TestRestoreHappyPath:
-    """Tests for basic hubenv env restore functionality."""
+    """Tests for basic hubenv restore functionality."""
 
     def test_restore_prints_exports(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -70,7 +70,7 @@ class TestRestoreHappyPath:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "export NBW_ACTIVE_ENV=demo" in out
@@ -85,7 +85,7 @@ class TestRestoreHappyPath:
             _patch_unpack_env(True) as mock_unpack,
             _patch_register_env(True) as mock_reg,
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 0
             mock_unpack.assert_called_once_with("demo", "demo", ".tar")
             mock_reg.assert_called_once()
@@ -96,7 +96,7 @@ class TestRestoreHappyPath:
         pantry = _make_pantry(tmp_path, with_can=False)
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "no archive" in err.lower()
@@ -107,9 +107,9 @@ class TestRestoreHappyPath:
         pantry = _make_pantry(tmp_path, with_can=False)
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
-            main(["env", "restore", "demo"])
+            main(["restore", "demo"])
             err = capsys.readouterr().err
-            assert "hubenv env save demo" in err
+            assert "hubenv save demo" in err
 
     def test_restore_no_shelf_returns_error(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -118,7 +118,7 @@ class TestRestoreHappyPath:
         pantry.mkdir()
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "no shelf" in err.lower()
@@ -132,7 +132,7 @@ class TestRestoreHappyPath:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             _patch_unpack_env(False),
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 1
 
 
@@ -159,7 +159,7 @@ class TestRestoreIdempotency:
             restore_hash_file.write_text("abc123\n")
 
             with _patch_unpack_env(True) as mock_unpack:
-                rc = main(["env", "restore", "demo"])
+                rc = main(["restore", "demo"])
                 assert rc == 0
                 out = capsys.readouterr().out
                 assert "idempotent skip" in out
@@ -182,7 +182,7 @@ class TestRestoreIdempotency:
                 _patch_unpack_env(True) as mock_unpack,
                 _patch_register_env(True),
             ):
-                rc = main(["env", "restore", "demo", "--force"])
+                rc = main(["restore", "demo", "--force"])
                 assert rc == 0
                 mock_unpack.assert_called_once()
 
@@ -197,7 +197,7 @@ class TestRestoreIdempotency:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 0
 
         hash_file = tmp_path / ".hubenv-restore" / "demo.sha256"
@@ -215,7 +215,7 @@ class TestRestoreIdempotency:
             _patch_unpack_env(True) as mock_unpack,
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 0
             mock_unpack.assert_called_once()
 
@@ -239,7 +239,7 @@ class TestRestoreForcedPantry:
         (shelf / "archives" / "env-demo.tar").write_text("fake")
 
         with _patch_unpack_env(True), _patch_register_env(True):
-            rc = main(["env", "restore", "demo", "--pantry", str(forced)])
+            rc = main(["restore", "demo", "--pantry", str(forced)])
             assert rc == 0
 
     def test_forced_pantry_missing_shelf(self, tmp_path, capsys):
@@ -249,7 +249,7 @@ class TestRestoreForcedPantry:
         forced.mkdir()
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [forced]):
-            rc = main(["env", "restore", "demo", "--pantry", str(forced)])
+            rc = main(["restore", "demo", "--pantry", str(forced)])
             assert rc == 1
             err = capsys.readouterr().err
             assert "no shelf" in err.lower()
@@ -273,7 +273,7 @@ class TestRestoreMultiMatch:
             (shelf / "archives").mkdir(parents=True)
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry1, pantry2]):
-            rc = main(["env", "restore", "demo"])
+            rc = main(["restore", "demo"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "multiple pantries" in err.lower()
@@ -296,7 +296,7 @@ class TestRestoreMultiMatch:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo", "--pantry", str(pantry1)])
+            rc = main(["restore", "demo", "--pantry", str(pantry1)])
             assert rc == 0
 
 
@@ -321,14 +321,14 @@ class TestRestoreAtBoot:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo", "--at-boot"])
+            rc = main(["restore", "demo", "--at-boot"])
 
         assert rc == 0
         snippet = home / ".hubenv" / "env-demo.sh"
         assert snippet.exists()
         content = snippet.read_text()
         assert "NBW_ACTIVE_ENV" in content
-        assert "hubenv env ensure demo" in content
+        assert "hubenv ensure demo" in content
 
     def test_at_boot_appends_to_bashrc(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -345,7 +345,7 @@ class TestRestoreAtBoot:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo", "--at-boot"])
+            rc = main(["restore", "demo", "--at-boot"])
 
         assert rc == 0
         content = bashrc.read_text()
@@ -369,7 +369,7 @@ class TestRestoreAtBoot:
             _patch_unpack_env(True),
             _patch_register_env(True),
         ):
-            rc = main(["env", "restore", "demo", "--at-boot"])
+            rc = main(["restore", "demo", "--at-boot"])
 
         assert rc == 0
         content = bashrc.read_text()

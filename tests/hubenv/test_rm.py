@@ -1,4 +1,4 @@
-"""Tests for hubenv env rm (Phase 6)."""
+"""Tests for hubenv rm (Phase 6)."""
 
 import os
 import shutil
@@ -73,12 +73,12 @@ def _make_live_env(tmp_path, name, nbw_root=None):
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm --dry-run
+# hubenv rm --dry-run
 # ---------------------------------------------------------------------------
 
 
 class TestRmDryRun:
-    """Tests for hubenv env rm --dry-run."""
+    """Tests for hubenv rm --dry-run."""
 
     def test_dry_run_prints_plan(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -91,7 +91,7 @@ class TestRmDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--dry-run"])
+            rc = main(["rm", "demo", "--dry-run"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "demo" in out
@@ -108,7 +108,7 @@ class TestRmDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--dry-run"])
+            rc = main(["rm", "demo", "--dry-run"])
             assert rc == 0
             assert env_path.exists()
 
@@ -125,7 +125,7 @@ class TestRmDryRun:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo*", "--dry-run"])
+            rc = main(["rm", "demo*", "--dry-run"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "demo1" in out
@@ -134,12 +134,12 @@ class TestRmDryRun:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm --yes
+# hubenv rm --yes
 # ---------------------------------------------------------------------------
 
 
 class TestRmYes:
-    """Tests for hubenv env rm --yes."""
+    """Tests for hubenv rm --yes."""
 
     def test_yes_deletes_live_env(self, tmp_path):
         from nb_wrangler.hubenv.cli import main
@@ -152,7 +152,7 @@ class TestRmYes:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
             assert rc == 0
             assert not env_path.exists()
 
@@ -162,7 +162,7 @@ class TestRmYes:
         pantry = _make_pantry(tmp_path, "p1", with_shelves=["demo"])
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
             assert rc == 0
             assert not (pantry / "shelves" / "demo").exists()
 
@@ -176,7 +176,7 @@ class TestRmYes:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
             assert rc == 0
             assert not env_path.exists()
             assert not (pantry / "shelves" / "demo").exists()
@@ -192,14 +192,14 @@ class TestRmYes:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
             assert rc == 0
             out = capsys.readouterr().out
             assert "Proceed?" not in out
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm confirmation
+# hubenv rm confirmation
 # ---------------------------------------------------------------------------
 
 
@@ -218,7 +218,7 @@ class TestRmConfirmation:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo"])
+            rc = main(["rm", "demo"])
             assert rc == 0
 
     def test_confirm_yes_deletes(self, tmp_path):
@@ -233,7 +233,7 @@ class TestRmConfirmation:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo"])
+            rc = main(["rm", "demo"])
             assert rc == 0
             assert not env_path.exists()
 
@@ -249,7 +249,7 @@ class TestRmConfirmation:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="n"),
         ):
-            rc = main(["env", "rm", "demo"])
+            rc = main(["rm", "demo"])
             assert rc == 1
             assert env_path.exists()
 
@@ -265,13 +265,13 @@ class TestRmConfirmation:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value=""),
         ):
-            rc = main(["env", "rm", "demo"])
+            rc = main(["rm", "demo"])
             assert rc == 1
             assert env_path.exists()
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm read-only
+# hubenv rm read-only
 # ---------------------------------------------------------------------------
 
 
@@ -292,7 +292,7 @@ class TestRmReadOnly:
                 patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [ro]),
                 patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             ):
-                rc = main(["env", "rm", "demo", "--yes"])
+                rc = main(["rm", "demo", "--yes"])
                 assert rc == 1
                 err = capsys.readouterr().err
                 assert "read-only" in err.lower() or "writable" in err.lower()
@@ -313,7 +313,7 @@ class TestRmReadOnly:
                 patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", []),
                 patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             ):
-                rc = main(["env", "rm", "demo", "--pantry", str(ro), "--yes"])
+                rc = main(["rm", "demo", "--pantry", str(ro), "--yes"])
                 assert rc == 1
                 err = capsys.readouterr().err
                 assert "read-only" in err.lower() or "writable" in err.lower()
@@ -322,7 +322,7 @@ class TestRmReadOnly:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm globs
+# hubenv rm globs
 # ---------------------------------------------------------------------------
 
 
@@ -342,7 +342,7 @@ class TestRmGlobs:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo*"])
+            rc = main(["rm", "demo*"])
             assert rc == 0
             assert not env1.exists()
             assert not env2.exists()
@@ -360,7 +360,7 @@ class TestRmGlobs:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="n") as mock_input,
         ):
-            rc = main(["env", "rm", "demo*"])
+            rc = main(["rm", "demo*"])
             assert rc == 1
             out = capsys.readouterr().out
             assert "demo1" in out
@@ -370,7 +370,7 @@ class TestRmGlobs:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm path safety
+# hubenv rm path safety
 # ---------------------------------------------------------------------------
 
 
@@ -391,7 +391,7 @@ class TestRmPathSafety:
                 return_value=[{"name": "evil", "path": evil_dir}],
             ),
         ):
-            rc = main(["env", "rm", "evil", "--yes"])
+            rc = main(["rm", "evil", "--yes"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "outside" in err.lower() or "refusing" in err.lower()
@@ -442,7 +442,7 @@ class TestRmPathSafety:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm target options
+# hubenv rm target options
 # ---------------------------------------------------------------------------
 
 
@@ -460,7 +460,7 @@ class TestRmTargetOptions:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo", "--live"])
+            rc = main(["rm", "demo", "--live"])
             assert rc == 0
             assert not env_path.exists()
             assert (pantry / "shelves" / "demo").exists()
@@ -476,7 +476,7 @@ class TestRmTargetOptions:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo", "--archived"])
+            rc = main(["rm", "demo", "--archived"])
             assert rc == 0
             assert env_path.exists()
             assert not (pantry / "shelves" / "demo").exists()
@@ -492,14 +492,14 @@ class TestRmTargetOptions:
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
             patch("builtins.input", return_value="y"),
         ):
-            rc = main(["env", "rm", "demo", "--both"])
+            rc = main(["rm", "demo", "--both"])
             assert rc == 0
             assert not env_path.exists()
             assert not (pantry / "shelves" / "demo").exists()
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm live kernel cleanup
+# hubenv rm live kernel cleanup
 # ---------------------------------------------------------------------------
 
 
@@ -518,7 +518,7 @@ class TestRmLiveKernelCleanup:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "demo", "--live", "--yes"])
+            rc = main(["rm", "demo", "--live", "--yes"])
 
         assert rc == 0
         EnvironmentManager.unregister_environment.assert_called_once_with("demo")
@@ -531,7 +531,7 @@ class TestRmLiveKernelCleanup:
         pantry = _make_pantry(tmp_path, "p1", with_shelves=["demo"])
 
         with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
-            rc = main(["env", "rm", "demo", "--archived", "--yes"])
+            rc = main(["rm", "demo", "--archived", "--yes"])
 
         assert rc == 0
         EnvironmentManager.unregister_environment.assert_not_called()
@@ -539,7 +539,7 @@ class TestRmLiveKernelCleanup:
 
 
 # ---------------------------------------------------------------------------
-# hubenv env rm errors
+# hubenv rm errors
 # ---------------------------------------------------------------------------
 
 
@@ -556,7 +556,7 @@ class TestRmErrors:
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
         ):
-            rc = main(["env", "rm", "nonexistent", "--yes"])
+            rc = main(["rm", "nonexistent", "--yes"])
             assert rc == 1
             err = capsys.readouterr().err
             assert "no matching" in err.lower()
@@ -574,6 +574,6 @@ class TestRmErrors:
         ):
             # The env is found in listing, so it shouldn't print "already gone"
             # during normal flow. This test verifies normal deletion works.
-            rc = main(["env", "rm", "demo", "--yes"])
+            rc = main(["rm", "demo", "--yes"])
             assert rc == 0
             assert not env_path.exists()

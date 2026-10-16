@@ -10,7 +10,7 @@ from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_info(args) -> int:
-    """Handle ``hubenv env info NAME`` — show detailed environment metadata."""
+    """Handle ``hubenv info NAME`` — show detailed environment metadata."""
     config = PantryStore()
 
     pantry_dir = Path(args.pantry) if args.pantry else None
@@ -66,7 +66,7 @@ def _print_archive_block(name: str, shelf_path: Path) -> None:
         size = can.stat().st_size
         print(f"    Archive:    {can}  ({size} bytes)")
     else:
-        print(f"    Archive:    NOT ARCHIVED — run: hubenv env save {name}")
+        print(f"    Archive:    NOT ARCHIVED — run: hubenv save {name}")
 
 
 def _can_for_shelf(name: str, shelf_path: Path) -> Optional[Path]:

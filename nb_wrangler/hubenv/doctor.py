@@ -48,7 +48,7 @@ def check_spec_only_shelves(config: PantryStore) -> dict:
         "check": "spec-only shelves",
         "pass": False,
         "detail": f"spec-only (no can yet): {names}",
-        "hint": "Run `hubenv env save <name>` for each to make it restorable.",
+        "hint": "Run `hubenv save <name>` for each to make it restorable.",
     }
 
 
@@ -186,7 +186,7 @@ def kernel_missing_result(name: str) -> dict:
         "check": "kernel-JSON sanity",
         "pass": False,
         "detail": f"kernel spec for '{name}' not found",
-        "hint": f"Run `hubenv env register {name}` to create it.",
+        "hint": f"Run `hubenv register {name}` to create it.",
     }
 
 
@@ -196,7 +196,7 @@ def kernel_json_missing_result(name: str, dir_path: Path) -> dict:
         "check": "kernel-JSON sanity",
         "pass": False,
         "detail": f"kernel.json missing in {dir_path}",
-        "hint": f"Re-register: `hubenv env register {name}`",
+        "hint": f"Re-register: `hubenv register {name}`",
     }
 
 
@@ -206,7 +206,7 @@ def kernel_invalid_result(name: str) -> dict:
         "check": "kernel-JSON sanity",
         "pass": False,
         "detail": f"invalid kernel.json for '{name}'",
-        "hint": f"Re-register: `hubenv env register {name}`",
+        "hint": f"Re-register: `hubenv register {name}`",
     }
 
 
@@ -216,7 +216,7 @@ def kernel_no_argv_result(name: str) -> dict:
         "check": "kernel-JSON sanity",
         "pass": False,
         "detail": f"kernel.json for '{name}' has no argv",
-        "hint": f"Re-register: `hubenv env register {name}`",
+        "hint": f"Re-register: `hubenv register {name}`",
     }
 
 

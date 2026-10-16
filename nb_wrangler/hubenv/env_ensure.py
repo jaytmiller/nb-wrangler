@@ -19,7 +19,7 @@ class EnsureArgs:
 
 
 def cmd_env_ensure(args) -> int:
-    """Handle ``hubenv env ensure`` — idempotent ensure an env is available.
+    """Handle ``hubenv ensure`` — idempotent ensure an env is available.
 
     1. If a live env exists -> no-op.
     2. Else if an archive shelf exists -> restore it (reuse Phase 3 restore).
@@ -41,7 +41,7 @@ def cmd_env_ensure(args) -> int:
     if not matches:
         get_logger().error(
             f"No live environment and no archive shelf for '{args.name}'. "
-            f"Run `hubenv env create ... --name {args.name}` first."
+            f"Run `hubenv create ... --name {args.name}` first."
         )
         return 1
 
@@ -55,7 +55,7 @@ def cmd_env_ensure(args) -> int:
 
 
 def cmd_env_register(args) -> int:
-    """Handle ``hubenv env register`` — (re)register the Jupyter kernel."""
+    """Handle ``hubenv register`` — (re)register the Jupyter kernel."""
     em = EnvironmentManager()
 
     display_name = args.display_name or args.name
@@ -73,7 +73,7 @@ def cmd_env_register(args) -> int:
 
 
 def cmd_env_unregister(args) -> int:
-    """Handle ``hubenv env unregister`` — remove the Jupyter kernel spec."""
+    """Handle ``hubenv unregister`` — remove the Jupyter kernel spec."""
     em = EnvironmentManager()
 
     if args.dry_run:

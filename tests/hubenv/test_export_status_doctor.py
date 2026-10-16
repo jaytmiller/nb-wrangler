@@ -418,7 +418,7 @@ class TestDoctor:
             "check": "spec-only shelves",
             "pass": False,
             "detail": "spec-only (no can yet): unsaved",
-            "hint": "Run `hubenv env save <name>` for each to make it restorable.",
+            "hint": "Run `hubenv save <name>` for each to make it restorable.",
         }
         with (
             _patch_nbw_root(tmp_path),

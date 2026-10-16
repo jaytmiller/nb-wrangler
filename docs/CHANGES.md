@@ -1,3 +1,9 @@
+**v0.9.4** (unreleased) change notes (since v0.9.3):
+
+### Breaking Changes
+
+- **`hubenv env ...` flattened to top-level verbs** (`nb_wrangler/hubenv/parser.py`, `nb_wrangler/hubenv/cli.py`). The former `hubenv env <verb>` command group — all 14 env verbs (`create`, `save`, `restore`, `ls`, `info`, `install`, `uninstall`, `relock`, `rm`, `ensure`, `register`, `unregister`, `activate`, `deactivate`) — is now invoked directly: `hubenv env create` → `hubenv create`, `hubenv env save` → `hubenv save`, and so on. `hubenv var ...` and `hubenv data ...` are unchanged. A bare `hubenv env` (with no verb) is no longer a valid command and is rejected with exit code `2`. Scripts and shell snippets that call `hubenv env ...` must be updated to the flat form.
+
 **v0.9.3** change notes (since v0.9.2):
 
 ### Bug Fixes

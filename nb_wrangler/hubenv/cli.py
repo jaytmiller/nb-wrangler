@@ -98,16 +98,17 @@ def _setup_config(args) -> None:
 
 
 def _resolve_command_path(args) -> Optional[str]:
-    """Build a dotted command path like ``env.create`` from the parsed args."""
-    if args.command == "env" and args.env_command:
-        return f"env.{args.env_command}"
+    """Build a command path (e.g. ``var.ls``) from the parsed args.
+
+    Environment verbs are top-level commands, so they simply return their own
+    name (``create``, ``ls``, …). Not consumed by any code path today — kept for
+    future logging/telemetry.
+    """
     if args.command == "var" and args.var_command:
         return f"var.{args.var_command}"
     if args.command == "data" and args.data_command:
         return f"data.{args.data_command}"
-    if args.command in ("export", "status", "doctor", "completions"):
-        return args.command
-    return None
+    return args.command
 
 
 def _main(argv: Optional[list[str]] = None) -> int:
@@ -126,13 +127,13 @@ def _main(argv: Optional[list[str]] = None) -> int:
     _setup_config(args)
 
     dispatch = {
-        "env": _dispatch_env,
         "var": _dispatch_var,
         "data": _dispatch_data,
         "export": cmd_export,
         "status": cmd_status,
         "doctor": cmd_doctor,
         "completions": cmd_completions,
+        **_ENV_DISPATCH,
     }
     handler = dispatch.get(args.command)
     if handler is None:
@@ -152,7 +153,8 @@ def _cmd_not_implemented(name: str) -> int:
 # Dispatch (dict-based to keep cyclomatic complexity low)
 # ---------------------------------------------------------------------------
 
-# Environment subcommand dispatch table — replaces a 13-branch if/elif chain.
+# Environment verb dispatch table — flattened to top-level commands and merged
+# into the main dispatch dict (see ``_main``).
 _ENV_DISPATCH = {
     "create": cmd_env_create,
     "save": cmd_env_save,
@@ -185,19 +187,6 @@ _DATA_DISPATCH = {
     "pack": cmd_data_pack,
     "clean": cmd_data_clean,
 }
-
-
-def _dispatch_env(args) -> int:
-    """Route ``hubenv env`` subcommands via dict lookup."""
-    if not args.env_command:
-        print(
-            "hubenv env: sub-command required. Use one of: " + ", ".join(_ENV_DISPATCH)
-        )
-        return 0
-    handler = _ENV_DISPATCH.get(args.env_command)
-    if handler is None:
-        return _cmd_not_implemented(args.env_command)
-    return handler(args)
 
 
 def _dispatch_var(args) -> int:

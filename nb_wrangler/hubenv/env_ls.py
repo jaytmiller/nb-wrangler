@@ -7,7 +7,7 @@ from nb_wrangler.hubenv.config import PantryStore
 
 
 def cmd_env_ls(args) -> int:
-    """Handle ``hubenv env ls`` — list live envs and pantry shelves."""
+    """Handle ``hubenv ls`` — list live envs and pantry shelves."""
     config = PantryStore()
 
     pantry_dir = Path(args.pantry) if args.pantry else None

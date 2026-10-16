@@ -8,12 +8,12 @@ from nb_wrangler.hubenv.env_spec import update_and_save_spec
 
 
 def cmd_env_install(args) -> int:
-    """Handle ``hubenv env install``."""
+    """Handle ``hubenv install``."""
     return cmd_env_pkg_action(args, "install")
 
 
 def cmd_env_uninstall(args) -> int:
-    """Handle ``hubenv env uninstall``."""
+    """Handle ``hubenv uninstall``."""
     return cmd_env_pkg_action(args, "uninstall")
 
 
@@ -107,6 +107,6 @@ def print_relock_suggestion(name, no_relock) -> None:
     """Print the relock suggestion unless suppressed."""
     if not no_relock:
         print(
-            f"Spec updated. Run `hubenv env relock {name}` "
+            f"Spec updated. Run `hubenv relock {name}` "
             f"to re-curate locks and validate."
         )

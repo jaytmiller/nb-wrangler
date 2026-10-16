@@ -1,4 +1,4 @@
-"""Tests for hubenv env install/uninstall + hubenv env relock (Phase 5)."""
+"""Tests for hubenv install/uninstall + hubenv relock (Phase 5)."""
 
 from subprocess import CompletedProcess
 from unittest.mock import patch
@@ -97,7 +97,7 @@ def _read_shelf_spec(tmp_path, name="demo"):
 
 
 class TestInstall:
-    """Tests for hubenv env install."""
+    """Tests for hubenv install."""
 
     def test_install_updates_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -111,7 +111,7 @@ class TestInstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "pandas"])
+            rc = main(["install", "demo", "numpy", "pandas"])
 
         assert rc == 0
         spec_path = _spec_path(tmp_path)
@@ -134,11 +134,11 @@ class TestInstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy"])
+            rc = main(["install", "demo", "numpy"])
 
         assert rc == 0
         out = capsys.readouterr().out
-        assert "hubenv env relock" in out
+        assert "hubenv relock" in out
         assert "demo" in out
 
     def test_install_no_relock(self, tmp_path, capsys):
@@ -153,11 +153,11 @@ class TestInstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "--no-relock"])
+            rc = main(["install", "demo", "numpy", "--no-relock"])
 
         assert rc == 0
         out = capsys.readouterr().out
-        assert "hubenv env relock" not in out
+        assert "hubenv relock" not in out
 
     def test_install_dry_run(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -171,7 +171,7 @@ class TestInstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "pandas", "--dry-run"])
+            rc = main(["install", "demo", "numpy", "pandas", "--dry-run"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -193,7 +193,7 @@ class TestInstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "--dry-run"])
+            rc = main(["install", "demo", "numpy", "--dry-run"])
 
         assert rc == 0
         spec_path = _spec_path(tmp_path)
@@ -216,7 +216,7 @@ class TestInstall:
             ) as mock_env_run,
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "numpy", "--using", "uv"])
+            rc = main(["install", "demo", "numpy", "--using", "uv"])
 
         assert rc == 0
         call_args = mock_env_run.call_args
@@ -243,7 +243,7 @@ class TestInstall:
             _patch_wl_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "install", "demo", "scipy", "--using", "mamba"])
+            rc = main(["install", "demo", "scipy", "--using", "mamba"])
 
         assert rc == 0
 
@@ -261,7 +261,7 @@ class TestInstall:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(False),
         ):
-            rc = main(["env", "install", "nonexistent", "numpy"])
+            rc = main(["install", "nonexistent", "numpy"])
 
         assert rc == 1
         err = capsys.readouterr().err
@@ -279,7 +279,7 @@ class TestInstall:
             _patch_env_run(1),  # failure
             _patch_handle_result(False),
         ):
-            rc = main(["env", "install", "demo", "numpy"])
+            rc = main(["install", "demo", "numpy"])
 
         assert rc == 1
         # spec should not be updated on failure
@@ -293,7 +293,7 @@ class TestInstall:
 
 
 class TestUninstall:
-    """Tests for hubenv env uninstall."""
+    """Tests for hubenv uninstall."""
 
     def test_uninstall_removes_from_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -313,7 +313,7 @@ class TestUninstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "uninstall", "demo", "numpy"])
+            rc = main(["uninstall", "demo", "numpy"])
 
         assert rc == 0
         updated = _read_shelf_spec(tmp_path)
@@ -339,11 +339,11 @@ class TestUninstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "uninstall", "demo", "numpy", "--no-relock"])
+            rc = main(["uninstall", "demo", "numpy", "--no-relock"])
 
         assert rc == 0
         out = capsys.readouterr().out
-        assert "hubenv env relock" not in out
+        assert "hubenv relock" not in out
 
     def test_uninstall_dry_run(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -363,7 +363,7 @@ class TestUninstall:
             _patch_env_run(0),
             _patch_handle_result(True),
         ):
-            rc = main(["env", "uninstall", "demo", "numpy", "--dry-run"])
+            rc = main(["uninstall", "demo", "numpy", "--dry-run"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -382,7 +382,7 @@ class TestUninstall:
 
 
 class TestRelock:
-    """Tests for hubenv env relock."""
+    """Tests for hubenv relock."""
 
     def test_relock_dry_run(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -405,7 +405,7 @@ class TestRelock:
                 return_value=compiled,
             ),
         ):
-            rc = main(["env", "relock", "demo", "--dry-run"])
+            rc = main(["relock", "demo", "--dry-run"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -434,7 +434,7 @@ class TestRelock:
                 return_value=["numpy==1.26.4"],
             ),
         ):
-            rc = main(["env", "relock", "demo", "--dry-run"])
+            rc = main(["relock", "demo", "--dry-run"])
 
         assert rc == 0
         # Spec should still have unpinned numpy
@@ -464,7 +464,7 @@ class TestRelock:
                 return_value=compiled,
             ),
         ):
-            rc = main(["env", "relock", "demo"])
+            rc = main(["relock", "demo"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -491,7 +491,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(True),
         ):
-            rc = main(["env", "relock", "demo"])
+            rc = main(["relock", "demo"])
 
         assert rc == 0
         out = capsys.readouterr().out
@@ -504,7 +504,7 @@ class TestRelock:
             _patch_nbw_root(tmp_path),
             _patch_env_exists(False),
         ):
-            rc = main(["env", "relock", "nonexistent"])
+            rc = main(["relock", "nonexistent"])
 
         assert rc == 1
         err = capsys.readouterr().err
@@ -530,7 +530,7 @@ class TestRelock:
                 return_value=None,
             ),
         ):
-            rc = main(["env", "relock", "demo"])
+            rc = main(["relock", "demo"])
 
         assert rc == 1
 
@@ -659,9 +659,9 @@ class TestParser:
 
         parser = build_parser()
         args = parser.parse_args(
-            ["env", "install", "demo", "numpy", "pandas", "--using", "uv"]
+            ["install", "demo", "numpy", "pandas", "--using", "uv"]
         )
-        assert args.env_command == "install"
+        assert args.command == "install"
         assert args.name == "demo"
         assert args.packages == ["numpy", "pandas"]
         assert args.using == "uv"
@@ -672,8 +672,8 @@ class TestParser:
         from nb_wrangler.hubenv.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["env", "uninstall", "demo", "numpy", "--no-relock"])
-        assert args.env_command == "uninstall"
+        args = parser.parse_args(["uninstall", "demo", "numpy", "--no-relock"])
+        assert args.command == "uninstall"
         assert args.name == "demo"
         assert args.packages == ["numpy"]
         assert args.no_relock is True
@@ -682,8 +682,8 @@ class TestParser:
         from nb_wrangler.hubenv.cli import build_parser
 
         parser = build_parser()
-        args = parser.parse_args(["env", "relock", "demo", "--dry-run"])
-        assert args.env_command == "relock"
+        args = parser.parse_args(["relock", "demo", "--dry-run"])
+        assert args.command == "relock"
         assert args.name == "demo"
         assert args.dry_run is True
 
@@ -692,7 +692,7 @@ class TestParser:
 
         parser = build_parser()
         try:
-            parser.parse_args(["env", "install", "demo"])
+            parser.parse_args(["install", "demo"])
         except SystemExit:
             return
         raise AssertionError("Expected SystemExit for missing packages")
@@ -702,7 +702,7 @@ class TestParser:
 
         parser = build_parser()
         try:
-            parser.parse_args(["env", "install", "demo", "numpy", "--using", "cargo"])
+            parser.parse_args(["install", "demo", "numpy", "--using", "cargo"])
         except SystemExit:
             return
         raise AssertionError("Expected SystemExit for invalid --using")

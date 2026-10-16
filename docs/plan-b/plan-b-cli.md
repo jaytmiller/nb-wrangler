@@ -1,5 +1,11 @@
 # Persistent Platform Environments CLI (`hubenv`)
 
+> **Note (added after this plan was written):** the `env` command group has since
+> been flattened — `hubenv env X` is now `hubenv X` (e.g. `hubenv env create` →
+> `hubenv create`), with all 14 env verbs promoted to top level. See
+> `docs/plans/hubenv-flatten-plan.md`. `hubenv var ...` and `hubenv data ...`
+> are unchanged.
+
 ## Scope
 
 This describes the proposed CLI for users and admins managing PPEs (Persistent

@@ -1,4 +1,4 @@
-"""Tests for hubenv env create --dry-run and seed building (Phase 1)."""
+"""Tests for hubenv create --dry-run and seed building (Phase 1)."""
 
 from unittest.mock import patch
 
@@ -26,14 +26,13 @@ def _set_config(tmp_path):
 
 
 class TestDryRun:
-    """Tests for hubenv env create --dry-run."""
+    """Tests for hubenv create --dry-run."""
 
     def test_dry_run_empty_prints_spec(self, capsys):
         from nb_wrangler.hubenv.cli import main
 
         rc = main(
             [
-                "env",
                 "create",
                 "--from-empty",
                 "--name",
@@ -57,7 +56,6 @@ class TestDryRun:
 
         rc = main(
             [
-                "env",
                 "create",
                 "--from-requirements",
                 str(req),
@@ -81,7 +79,6 @@ class TestDryRun:
         )
         rc = main(
             [
-                "env",
                 "create",
                 "--from-mamba-spec",
                 str(spec_file),
@@ -109,7 +106,6 @@ class TestDryRun:
         )
         rc = main(
             [
-                "env",
                 "create",
                 "--from-wrangler-spec",
                 str(spec_file),
@@ -132,7 +128,7 @@ class TestDryRun:
         with patch(
             "nb_wrangler.environment.EnvironmentManager.create_environment"
         ) as mock_create:
-            rc = main(["env", "create", "--from-empty", "--name", "demo", "--dry-run"])
+            rc = main(["create", "--from-empty", "--name", "demo", "--dry-run"])
             assert rc == 0
             mock_create.assert_not_called()
 

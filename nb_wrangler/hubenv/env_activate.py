@@ -20,7 +20,7 @@ def cmd_env_activate(args) -> int:
         get_logger().error(
             f"Environment '{args.name}' does not exist locally "
             f"(looked under {em.nbw_mm_dir / 'envs'}). "
-            f"Restore it first with `hubenv env ensure {args.name}`."
+            f"Restore it first with `hubenv ensure {args.name}`."
         )
         return 1
     env_path = em.env_live_path(args.name)

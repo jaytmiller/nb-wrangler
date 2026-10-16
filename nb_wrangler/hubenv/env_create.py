@@ -1,6 +1,6 @@
 """env create subcommand: seed, build, and persist environments.
 
-Every ``hubenv env create`` invocation (all five ``--from-*`` sources) now
+Every ``hubenv create`` invocation (all five ``--from-*`` sources) now
 performs the essentials of bringing an environment into a usable state:
 
 1. Build the live environment (``mamba create``), or verify an already-installed
@@ -17,11 +17,11 @@ restorable and shows as "spec-only" in ``status``/``ls``/``info``.  Two ways
 to archive:
 
 * pass ``--save`` to ``env create`` to pack the can immediately, or
-* run ``hubenv env save NAME`` later (the suggested next step).
+* run ``hubenv save NAME`` later (the suggested next step).
 
 The heavy, potentially slow step remains explicit and separate:
 
-* ``hubenv env relock`` — re-curate the spec / refresh lock files
+* ``hubenv relock`` — re-curate the spec / refresh lock files
 """
 
 import tempfile
@@ -48,7 +48,7 @@ from nb_wrangler.utils import yaml_dumps
 
 
 def cmd_env_create(args) -> int:
-    """Handle ``hubenv env create``: build the live env, then persist essentials."""
+    """Handle ``hubenv create``: build the live env, then persist essentials."""
     seed = build_seed_dict(args)
 
     if args.dry_run:
@@ -141,8 +141,7 @@ def _save_after_create(args) -> int:
 def print_save_hint(name: str) -> None:
     """Remind the user that the env is not yet archived."""
     print(
-        f"Not archived yet. Run `hubenv env save {name}` "
-        f"to create the restoreable can."
+        f"Not archived yet. Run `hubenv save {name}` " f"to create the restoreable can."
     )
 
 

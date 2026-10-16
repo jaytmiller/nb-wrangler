@@ -1,4 +1,4 @@
-"""Seed-spec builders for ``hubenv env create``.
+"""Seed-spec builders for ``hubenv create``.
 
 Each builder accepts the common ``name``/``python`` arguments plus a
 source-specific argument, and returns a mamba-spec dict suitable for

@@ -1,5 +1,11 @@
 # Plan: Adapting `hubenv` to `nb_wrangler` Conventions
 
+> **Note (added after this plan was written):** the `env` command group has since
+> been flattened to top-level verbs — `hubenv env create` is now `hubenv create`
+> (all 14 env verbs are top-level; `hubenv var ...` and `hubenv data ...` are
+> unchanged). See `docs/plans/hubenv-flatten-plan.md`. The "subcommand-based"
+> characterization below still holds: the verbs are now top-level subcommands.
+
 ## Context
 
 `docs/conventions.md` documents the coding conventions used throughout the
