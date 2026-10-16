@@ -25,7 +25,7 @@ def aggregate_status(config: PantryStore) -> dict:
     shelves = config.list_shelves()
     kernelspecs = list_kernelspecs()
     kernel_names = {k.lower() for k in kernelspecs}
-    envs = build_status_envs(live_envs, shelves, kernel_names)
+    envs = build_status_envs(config, live_envs, shelves, kernel_names)
     return {
         "active_env": active_env,
         "active_pantry": os.environ.get("NBW_PANTRY")
@@ -38,29 +38,66 @@ def aggregate_status(config: PantryStore) -> dict:
     }
 
 
-def build_status_envs(live_envs, shelves, kernel_names) -> list[dict]:
-    """Build list of env status dicts from live envs and shelves."""
+def _state_for(live: bool, has_shelf: bool, has_can: bool) -> str:
+    """Derive the self-describing state string for an environment.
+
+    - live + can        -> "live+archived"
+    - live + no can     -> "live+spec-only"
+    - no live + can     -> "archived"
+    - no live + no can  -> "spec-only"
+    - live only (no shelf) -> "live"
+    """
+    if live and has_can:
+        return "live+archived"
+    if live and has_shelf and not has_can:
+        return "live+spec-only"
+    if live:
+        return "live"
+    if has_can:
+        return "archived"
+    if has_shelf:
+        return "spec-only"
+    return "unknown"
+
+
+def build_status_envs(
+    config: PantryStore, live_envs, shelves, kernel_names
+) -> list[dict]:
+    """Build list of env status dicts from live envs and shelves.
+
+    Uses :meth:`PantryStore.has_can` as the single source of truth for
+    "actually archived" — a shelf directory alone is NOT archived.
+    """
     envs: dict[str, dict] = {}
     for e in live_envs:
-        envs[e["name"]] = {
-            "name": e["name"],
-            "state": "live",
+        name = e["name"]
+        has_can = config.has_can(name)
+        envs[name] = {
+            "name": name,
+            "state": _state_for(True, config.has_shelf(name), has_can),
+            "live": True,
+            "can": has_can,
             "live_path": str(e["path"]),
             "pantry": None,
-            "kernel_registered": e["name"].lower() in kernel_names,
+            "kernel_registered": name.lower() in kernel_names,
         }
     for s in shelves:
-        if s["name"] not in envs:
-            envs[s["name"]] = {
-                "name": s["name"],
-                "state": "archived",
+        name = s["name"]
+        has_can = config.has_can(name)
+        if name not in envs:
+            envs[name] = {
+                "name": name,
+                "state": _state_for(False, True, has_can),
+                "live": False,
+                "can": has_can,
                 "live_path": None,
                 "pantry": str(s["pantry"]),
-                "kernel_registered": s["name"].lower() in kernel_names,
+                "kernel_registered": name.lower() in kernel_names,
             }
-        elif envs[s["name"]]["state"] == "live":
-            envs[s["name"]]["state"] = "both"
-            envs[s["name"]]["pantry"] = str(s["pantry"])
+        else:
+            envs[name]["pantry"] = str(s["pantry"])
+            envs[name]["state"] = _state_for(True, True, has_can)
+            envs[name]["can"] = has_can
     return list(envs.values())
 
 
@@ -84,13 +121,19 @@ def print_status_table(status: dict) -> None:
     print(f"Active env:     {status['active_env'] or '(none)'}")
     print(f"Active pantry:  {status['active_pantry']}")
     print()
-    print(f"{'ENV':<20} {'STATE':<10} {'LIVE':<36} {'PANTRY':<28} {'KERNEL'}")
-    print("-" * 104)
+    print(
+        f"{'ENV':<20} {'STATE':<16} {'LIVE':<36} {'PANTRY':<28} {'KERNEL':<12} {'ARCHIVED'}"
+    )
+    print("-" * 126)
     for env in sorted(status["environments"], key=lambda x: x["name"]):
         kernel = "registered" if env["kernel_registered"] else "absent"
         live = str(env["live_path"] or "-")
         pantry = str(env["pantry"] or "-")
-        print(f"{env['name']:<20} {env['state']:<10} {live:<36} {pantry:<28} {kernel}")
+        archived = "yes" if env["can"] else "no (spec-only)"
+        print(
+            f"{env['name']:<20} {env['state']:<16} {live:<36} "
+            f"{pantry:<28} {kernel:<12} {archived}"
+        )
     print()
     print("Pantries:")
     for p in status["pantries"]:

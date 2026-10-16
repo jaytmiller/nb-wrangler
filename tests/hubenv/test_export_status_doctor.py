@@ -56,6 +56,7 @@ def _all_checks_context(**overrides):
         ("nb_wrangler.hubenv.doctor.check_pantry_writability", "pantry"),
         ("nb_wrangler.hubenv.doctor.check_efs_mount", "efs"),
         ("nb_wrangler.hubenv.doctor.check_kernel_json_sanity", "kernel"),
+        ("nb_wrangler.hubenv.doctor.check_spec_only_shelves", "spec_only"),
     ]
     for target, key in patches:
         stack.enter_context(
@@ -372,7 +373,7 @@ class TestDoctor:
         data = json.loads(out)
         assert "checks" in data
         assert "all_pass" in data
-        assert len(data["checks"]) == 4
+        assert len(data["checks"]) == 5
 
     def test_doctor_table_output(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -406,7 +407,29 @@ class TestDoctor:
         assert rc == 1
         out = capsys.readouterr().out
         assert "FAIL" in out
-        assert "3/4 checks passed" in out
+        assert "4/5 checks passed" in out
+
+    def test_doctor_flags_spec_only_shelf(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        _write_spec(tmp_path, "unsaved", _make_spec("unsaved"))
+
+        fail = {
+            "check": "spec-only shelves",
+            "pass": False,
+            "detail": "spec-only (no can yet): unsaved",
+            "hint": "Run `hubenv env save <name>` for each to make it restorable.",
+        }
+        with (
+            _patch_nbw_root(tmp_path),
+            _all_checks_context(spec_only=fail),
+        ):
+            rc = main(["doctor"])
+
+        assert rc == 1
+        out = capsys.readouterr().out
+        assert "unsaved" in out
+        assert "env save" in out
 
 
 # ---------------------------------------------------------------------------
@@ -473,3 +496,35 @@ class TestExportHelpers:
         assert "python=3.11" in conda
         assert "numpy" in pip
         assert "pandas" in pip
+
+
+class TestSpecOnlyDoctorCheck:
+    """Direct tests for the new 'spec-only shelves' doctor check."""
+
+    def test_pass_when_all_archived(self, tmp_path):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.doctor import check_spec_only_shelves
+
+        with _patch_nbw_root(tmp_path):
+            store = PantryStore()
+            _write_spec(tmp_path, "demo", _make_spec("demo"))
+            can = store.env_can_path("demo")
+            can.parent.mkdir(parents=True, exist_ok=True)
+            can.write_bytes(b"can-data")
+            check = check_spec_only_shelves(store)
+
+        assert check["check"] == "spec-only shelves"
+        assert check["pass"] is True
+
+    def test_fail_on_spec_only(self, tmp_path):
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.doctor import check_spec_only_shelves
+
+        with _patch_nbw_root(tmp_path):
+            store = PantryStore()
+            _write_spec(tmp_path, "demo", _make_spec("demo"))
+            check = check_spec_only_shelves(store)
+
+        assert check["pass"] is False
+        assert "demo" in check["detail"]
+        assert "env save" in check["hint"]

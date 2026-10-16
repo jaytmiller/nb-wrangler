@@ -320,6 +320,12 @@ def _add_create_args(p) -> None:
         "and kernel registration. Use for temporary or CI scratch envs.",
     )
     p.add_argument(
+        "--save",
+        action="store_true",
+        help="Archive the environment into a pantry can immediately after "
+        "creation (equivalent to a subsequent `hubenv env save NAME`).",
+    )
+    p.add_argument(
         "--dry-run",
         action="store_true",
         help="Print the seeded spec without installing",

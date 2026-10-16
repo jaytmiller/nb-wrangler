@@ -29,7 +29,7 @@ def cmd_env_restore(args) -> int:
     shelf = NbwShelf(shelf_path, pantry_path=pantry_path)
     can_path = shelf.env_archive_path(args.name, DEFAULT_ARCHIVE_FORMAT)
 
-    if _check_archive_exists(can_path):
+    if _check_archive_exists(shelf, args.name, can_path):
         return 1
 
     if not args.force:
@@ -54,12 +54,20 @@ def cmd_env_restore(args) -> int:
     return 0
 
 
-def _check_archive_exists(can_path) -> bool:
-    """Validate can-path exists; print error if missing. Returns True on error."""
-    if not can_path.exists():
-        get_logger().error(f"No archive (can) found at {can_path}")
-        return True
-    return False
+def _check_archive_exists(shelf, name: str, can_path) -> bool:
+    """Validate can-path exists; print error if missing. Returns True on error.
+
+    Distinctly names the "spec-only" state (a shelf + spec exist but no can
+    has been packed yet) so the user knows to run ``hubenv env save NAME``.
+    """
+    if can_path.exists():
+        return False
+    get_logger().error(
+        f"Environment '{name}' has a shelf spec at {shelf.path} but no archive "
+        f"(can) at {can_path}."
+    )
+    get_logger().info(f"Run: hubenv env save {name}   to create the restoreable can.")
+    return True
 
 
 def _check_idempotent_skip(shelf, config, name) -> bool:

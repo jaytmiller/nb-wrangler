@@ -69,6 +69,7 @@ from .constants import (
     NBW_ROOT,
     DATA_GET_TIMEOUT,
     ARCHIVE_TIMEOUT,
+    DEFAULT_ARCHIVE_FORMAT,
 )
 
 
@@ -341,6 +342,35 @@ class NbwPantrySet(WranglerLoggable):
         if target is None:
             target = self.pantry_dirs[0]
         return target / "shelves" / name / "nbw-wrangler-spec.yaml"
+
+    def has_shelf(self, name: str) -> bool:
+        """Return True if a shelf directory for *name* exists in any pantry."""
+        for pantry in self.pantries:
+            if (pantry.shelves / name).is_dir():
+                return True
+        return False
+
+    def env_can_path(self, name: str) -> Optional[Path]:
+        """Return the packed-env can path for *name*, if its shelf exists.
+
+        Uses the first (highest-priority) pantry that contains a shelf named
+        *name*.  Returns ``None`` when no shelf exists for *name*, so callers
+        can distinguish "never saved" from "saved at this path".
+        """
+        shelf = self.get_shelf(name)
+        if not shelf.path.exists():
+            return None
+        return shelf.env_archive_path(name, DEFAULT_ARCHIVE_FORMAT)
+
+    def has_can(self, name: str) -> bool:
+        """Return True if a packed-env can for *name* exists on disk.
+
+        A shelf directory (and its spec) alone does NOT count — the actual
+        ``archives/env-<name>.<fmt>`` file must be present.  This is the
+        single source of truth for "is this env actually archived?".
+        """
+        can = self.env_can_path(name)
+        return can is not None and can.exists()
 
     def is_writable(self, pantry: str | Path) -> bool:
         """Return True if *pantry* exists and the user can write to it."""

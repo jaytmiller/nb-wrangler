@@ -284,6 +284,40 @@ class TestE2EFlow:
         mock_create.assert_not_called()
         assert not (root / "envs" / "demo").exists()
 
+    def test_create_with_save_archives_immediately(self, _ppe_env, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        root = _ppe_env["root"]
+        pantry = _ppe_env["pantry"]
+        (root / "envs" / "demo").mkdir(parents=True)
+
+        with (
+            _patch_create_env(),
+            _patch_register(True),
+            _patch_pack(pantry, True),
+            _patch_sha256("deadbeef"),
+        ):
+            rc = main(["env", "create", "--from-empty", "--name", "demo", "--save"])
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "archived and restorable" in out
+        can = pantry / "shelves" / "demo" / "archives" / "env-demo.tar"
+        assert can.exists()
+
+    def test_create_without_save_prints_hint(self, _ppe_env, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        root = _ppe_env["root"]
+        (root / "envs" / "demo").mkdir(parents=True)
+
+        with _patch_create_env(), _patch_register(True):
+            rc = main(["env", "create", "--from-empty", "--name", "demo"])
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "hubenv env save demo" in out
+
     def test_install_dry_run_does_not_change_spec(self, _ppe_env, capsys):
         """Install dry-run should not write the spec."""
         from nb_wrangler.hubenv.cli import main

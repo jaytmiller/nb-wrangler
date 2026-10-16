@@ -21,16 +21,19 @@ def _set_config(tmp_path):
     )
 
 
-def _make_pantry(tmp_path, name="p1", with_shelves=None, writable=True):
-    """Create a pantry with optional shelves."""
+def _make_pantry(tmp_path, name="p1", with_shelves=None, writable=True, archived=True):
+    """Create a pantry with optional shelves.
+
+    Set ``archived=False`` to create spec-only shelves (no can file)."""
     pantry = tmp_path / name
     pantry.mkdir()
     for shelf_name in with_shelves or []:
         shelf = pantry / "shelves" / shelf_name
         archives = shelf / "archives"
         archives.mkdir(parents=True)
-        (archives / f"env-{shelf_name}.tar").write_text("fake")
-        (archives / "last-save.sha256").write_text("abc123\n")
+        if archived:
+            (archives / f"env-{shelf_name}.tar").write_text("fake")
+            (archives / "last-save.sha256").write_text("abc123\n")
     if not writable:
         import os
 
@@ -185,6 +188,52 @@ class TestLs:
             assert "dev" in out
             assert "prod" not in out
 
+    def test_ls_archive_column_header(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"])
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "ls"])
+            out = capsys.readouterr().out
+            assert "ARCHIVE" in out
+
+    def test_ls_archived_shows_hash(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=True)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "ls"])
+            out = capsys.readouterr().out
+            assert "abc123" in out  # truncated save hash shown
+
+    def test_ls_spec_only_shows_marker(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=False)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "ls"])
+            out = capsys.readouterr().out
+            assert "spec-only" in out
+
+    def test_ls_json_can_field(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=False)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "ls", "--format", "json"])
+            data = json.loads(capsys.readouterr().out)
+            assert data["shelves"][0]["can"] is False
+
+        p2 = _make_pantry(tmp_path, "p2", with_shelves=["demo"], archived=True)
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p2]):
+            main(["env", "ls", "--format", "json"])
+            data = json.loads(capsys.readouterr().out)
+            assert data["shelves"][0]["can"] is True
+
 
 # ---------------------------------------------------------------------------
 # hubenv env info
@@ -272,6 +321,46 @@ class TestInfo:
             out = capsys.readouterr().out
             assert "Live env" in out
 
+    def test_info_archived_shows_can(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=True)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "info", "demo"])
+            out = capsys.readouterr().out
+            assert "Archive" in out
+            assert "env-demo.tar" in out
+            assert "NOT ARCHIVED" not in out
+
+    def test_info_spec_only_shows_hint(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=False)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "info", "demo"])
+            out = capsys.readouterr().out
+            assert "NOT ARCHIVED" in out
+            assert "hubenv env save demo" in out
+
+    def test_info_json_can_field(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=False)
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            main(["env", "info", "demo", "--format", "json"])
+            data = json.loads(capsys.readouterr().out)
+            assert data["shelves"][0]["can"] is False
+            assert data["shelves"][0]["can_path"] is None
+
+        p2 = _make_pantry(tmp_path, "p2", with_shelves=["demo"], archived=True)
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p2]):
+            main(["env", "info", "demo", "--format", "json"])
+            data = json.loads(capsys.readouterr().out)
+            assert data["shelves"][0]["can"] is True
+            assert "env-demo.tar" in data["shelves"][0]["can_path"]
+
 
 # ---------------------------------------------------------------------------
 # Config methods
@@ -331,3 +420,31 @@ class TestConfigMethods:
             config = HubenvConfig()
             envs = config.list_live_envs()
             assert len(envs) == 0
+
+    def test_has_can_archived(self, tmp_path):
+        from nb_wrangler.hubenv.config import HubenvConfig
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=True)
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            config = HubenvConfig()
+            assert config.has_can("demo") is True
+            assert config.has_shelf("demo") is True
+
+    def test_has_can_spec_only(self, tmp_path):
+        from nb_wrangler.hubenv.config import HubenvConfig
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=["demo"], archived=False)
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            config = HubenvConfig()
+            assert config.has_can("demo") is False
+            assert config.has_shelf("demo") is True  # shelf dir exists
+
+    def test_has_can_missing(self, tmp_path):
+        from nb_wrangler.hubenv.config import HubenvConfig
+
+        p1 = _make_pantry(tmp_path, "p1", with_shelves=[])
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [p1]):
+            config = HubenvConfig()
+            assert config.has_can("demo") is False
+            assert config.has_shelf("demo") is False
+            assert config.env_can_path("demo") is None

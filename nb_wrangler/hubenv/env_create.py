@@ -11,8 +11,16 @@ performs the essentials of bringing an environment into a usable state:
 Users who only need a throwaway live environment (CI, scratch) pass
 ``--ephemeral`` to skip step 2 entirely.
 
-The heavy, potentially slow steps remain explicit and separate:
-* ``hubenv env save``   — archive the live env into a pantry ``can``
+Note that "persist" here means the shelf spec + kernel only — it does NOT
+create an archive ``can``.  A shelf with a spec but no can is *not*
+restorable and shows as "spec-only" in ``status``/``ls``/``info``.  Two ways
+to archive:
+
+* pass ``--save`` to ``env create`` to pack the can immediately, or
+* run ``hubenv env save NAME`` later (the suggested next step).
+
+The heavy, potentially slow step remains explicit and separate:
+
 * ``hubenv env relock`` — re-curate the spec / refresh lock files
 """
 
@@ -28,6 +36,7 @@ from nb_wrangler.hubenv._common import (
 )
 from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+from nb_wrangler.hubenv.env_save import _do_save
 from nb_wrangler.hubenv.seeds import (
     seed_from_empty,
     seed_from_existing_env,
@@ -60,7 +69,13 @@ def cmd_env_create(args) -> int:
         )
         return 0
 
-    return _persist_essentials(args, seed)
+    rc = _persist_essentials(args, seed)
+    if rc != 0:
+        return rc
+    if args.save:
+        return _save_after_create(args)
+    print_save_hint(args.name)
+    return 0
 
 
 def build_seed_dict(args) -> dict:
@@ -113,6 +128,22 @@ def _persist_essentials(args, seed) -> int:
         f"registered. Shelf spec: {store.shelf_spec_path(args.name)}"
     )
     return 0
+
+
+def _save_after_create(args) -> int:
+    """Archive the just-created env into a pantry can (``--save``)."""
+    rc = _do_save(PantryStore(), args.name, args.pantry, force=False)
+    if rc == 0:
+        print(f"Environment '{args.name}' is archived and restorable.")
+    return rc
+
+
+def print_save_hint(name: str) -> None:
+    """Remind the user that the env is not yet archived."""
+    print(
+        f"Not archived yet. Run `hubenv env save {name}` "
+        f"to create the restoreable can."
+    )
 
 
 def _build_store(args) -> Optional[PantryStore]:

@@ -1,7 +1,10 @@
 """env info subcommand: show detailed environment metadata."""
 
 from pathlib import Path
+from typing import Optional
 
+from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
+from nb_wrangler.pantry import NbwShelf
 from nb_wrangler.hubenv._common import get_logger, print_shadowing_warnings
 from nb_wrangler.hubenv.config import PantryStore
 
@@ -52,24 +55,46 @@ def print_info_table(name: str, shelves: list[dict], live_envs: list[dict]) -> N
         print(f"    Path:       {entry['path']}")
         print(f"    Writable:   {writable}")
         print(f"    Save hash:  {hash_short}")
+        _print_archive_block(name, entry["path"])
         print()
+
+
+def _print_archive_block(name: str, shelf_path: Path) -> None:
+    """Print the can/archive line for the shelf at *shelf_path*."""
+    can = _can_for_shelf(name, Path(shelf_path))
+    if can is not None:
+        size = can.stat().st_size
+        print(f"    Archive:    {can}  ({size} bytes)")
+    else:
+        print(f"    Archive:    NOT ARCHIVED — run: hubenv env save {name}")
+
+
+def _can_for_shelf(name: str, shelf_path: Path) -> Optional[Path]:
+    """Return the can path for *shelf_path* if the file exists, else None."""
+    can = NbwShelf(shelf_path).env_archive_path(name, DEFAULT_ARCHIVE_FORMAT)
+    return can if can.exists() else None
 
 
 def print_info_json(name: str, shelves: list[dict], live_envs: list[dict]) -> None:
     """Print JSON-style info for *name*."""
     import json
 
-    result = {
-        "name": name,
-        "shelves": [
+    shelves_out = []
+    for s in shelves:
+        can = _can_for_shelf(s["name"], Path(s["path"]))
+        shelves_out.append(
             {
                 "name": s["name"],
                 "pantry": str(s["pantry"]),
                 "writable": s["writable"],
                 "save_hash": s["save_hash"],
+                "can": can is not None,
+                "can_path": str(can) if can else None,
             }
-            for s in shelves
-        ],
+        )
+    result = {
+        "name": name,
+        "shelves": shelves_out,
         "live_env": next(
             (
                 {"name": e["name"], "path": str(e["path"])}

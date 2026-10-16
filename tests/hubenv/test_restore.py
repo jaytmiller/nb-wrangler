@@ -101,6 +101,16 @@ class TestRestoreHappyPath:
             err = capsys.readouterr().err
             assert "no archive" in err.lower()
 
+    def test_restore_no_can_suggests_save(self, tmp_path, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, with_can=False)
+
+        with patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]):
+            main(["env", "restore", "demo"])
+            err = capsys.readouterr().err
+            assert "hubenv env save demo" in err
+
     def test_restore_no_shelf_returns_error(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
 

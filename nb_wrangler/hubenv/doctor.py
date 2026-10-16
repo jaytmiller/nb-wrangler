@@ -27,7 +27,29 @@ def run_doctor_checks(config: PantryStore) -> list[dict]:
         check_pantry_writability(config),
         check_efs_mount(config),
         check_kernel_json_sanity(),
+        check_spec_only_shelves(config),
     ]
+
+
+def check_spec_only_shelves(config: PantryStore) -> dict:
+    """Flag shelves that have a spec but no packed can (not restorable)."""
+    spec_only = [
+        s["name"] for s in config.list_shelves() if not config.has_can(s["name"])
+    ]
+    if not spec_only:
+        return {
+            "check": "spec-only shelves",
+            "pass": True,
+            "detail": "all shelves have an archive can",
+            "hint": "",
+        }
+    names = ", ".join(sorted(spec_only))
+    return {
+        "check": "spec-only shelves",
+        "pass": False,
+        "detail": f"spec-only (no can yet): {names}",
+        "hint": "Run `hubenv env save <name>` for each to make it restorable.",
+    }
 
 
 def check_mamba_availability() -> dict:
