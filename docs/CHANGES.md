@@ -1,4 +1,4 @@
-**v0.9.4** (unreleased) change notes (since v0.9.3):
+**v0.10.0** (unreleased) change notes (since v0.9.3):
 
 ### Breaking Changes
 
