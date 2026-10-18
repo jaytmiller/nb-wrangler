@@ -181,6 +181,27 @@ class TestRmYes:
             assert not env_path.exists()
             assert not (pantry / "shelves" / "demo").exists()
 
+    def test_yes_removes_at_boot_snippet(self, tmp_path, capsys):
+        """rm removes the env's at-boot snippet if present."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, "p1", with_shelves=["demo"])
+        home = tmp_path / "home"
+        home.mkdir()
+        hubenv_dir = home / ".hubenv"
+        hubenv_dir.mkdir()
+        snippet = hubenv_dir / "env-demo.sh"
+        snippet.write_text("# hubenv ensure demo\n")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch.dict(os.environ, {"HOME": str(home)}),
+        ):
+            rc = main(["rm", "demo", "--yes"])
+
+        assert rc == 0
+        assert not snippet.exists()
+
     def test_yes_no_prompt(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
 
@@ -362,11 +383,12 @@ class TestRmGlobs:
         ):
             rc = main(["rm", "demo*"])
             assert rc == 1
-            out = capsys.readouterr().out
-            assert "demo1" in out
-            assert "demo2" in out
+            captured = capsys.readouterr()
+            assert "demo1" in captured.out
+            assert "demo2" in captured.out
             mock_input.assert_called_once()
-            assert "y/N" in mock_input.call_args[0][0]
+            assert mock_input.call_args[0] == ()
+            assert "y/N" in captured.err
 
 
 # ---------------------------------------------------------------------------

@@ -16,6 +16,15 @@ if TYPE_CHECKING:
     from nb_wrangler.config import WranglerConfig
 
 
+class HubenvError(Exception):
+    """Base error for hubenv with a clean message and exit code."""
+
+    def __init__(self, message: str, exit_code: int = 1):
+        super().__init__(message)
+        self.message = message
+        self.exit_code = exit_code
+
+
 def get_logger():
     """Return the configured logger for hubenv commands."""
     return get_configured_logger()
@@ -24,6 +33,13 @@ def get_logger():
 def get_config() -> "WranglerConfig":
     """Return the current WranglerConfig (must be set via _setup_config)."""
     return get_args_config()
+
+
+def store_for(args) -> PantryStore:
+    """Return a PantryStore scoped to args.pantry if set, else the default chain."""
+    if getattr(args, "pantry", None):
+        return PantryStore(paths=[Path(args.pantry)])
+    return PantryStore()
 
 
 def print_exports(name: str, store: PantryStore) -> None:

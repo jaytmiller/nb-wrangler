@@ -147,6 +147,14 @@ class TestParser:
             return
         raise AssertionError("Expected SystemExit for conflicting seed sources")
 
+    def test_unknown_flag_rejected(self):
+        """Unknown flags are a strict argparse error (exit 2), not ignored."""
+        from nb_wrangler.hubenv.cli import main
+
+        with pytest.raises(SystemExit) as exc:
+            main(["create", "--from-empty", "--name", "demo", "--bogus-flag"])
+        assert exc.value.code == 2
+
 
 # ---------------------------------------------------------------------------
 # Not-implemented stub tests
@@ -506,6 +514,92 @@ class TestCreateFromExistingEnv:
             )
 
         assert rc == 1
+
+
+# ---------------------------------------------------------------------------
+# RE-03: probe-first ordering + clean seed errors
+# ---------------------------------------------------------------------------
+
+
+class TestCreateProbeOrderAndSeedErrors:
+    """The target probe runs first; seed failures are clean errors (RE-03)."""
+
+    @pytest.fixture(autouse=True)
+    def _set_config(self, tmp_path):
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                spec_file="",
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+
+    def test_seed_failure_is_clean_error(self, tmp_path, capsys):
+        """A failing seed probe yields a clean message + exit 1 (no traceback)."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = tmp_path / "pantry"
+        pantry.mkdir(exist_ok=True)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch(
+                "nb_wrangler.hubenv.seeds._run_mamba_export",
+                side_effect=ValueError("mamba env export failed for 'ghost'"),
+            ),
+            patch.object(EnvironmentManager, "environment_exists", return_value=True),
+        ):
+            rc = main(
+                [
+                    "create",
+                    "--from-existing-env",
+                    "ghost",
+                    "--name",
+                    "myproject",
+                ]
+            )
+
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "Failed to seed spec" in err
+        assert "Traceback" not in err
+
+    def test_exists_probe_runs_before_seed_build(self, capsys):
+        """The existence probe runs before any seed work, even under --dry-run."""
+        from types import SimpleNamespace
+
+        from nb_wrangler.hubenv.env_create import cmd_env_create
+
+        calls = []
+
+        def _probe(name):
+            calls.append("exists")
+            return False
+
+        def _seed(args):
+            calls.append("seed")
+            return {"name": "demo", "channels": ["conda-forge"], "dependencies": []}
+
+        args = SimpleNamespace(
+            name="demo",
+            dry_run=True,
+            from_empty=True,
+            from_requirements=None,
+            from_mamba_spec=None,
+            from_wrangler_spec=None,
+            from_existing_env=None,
+            python=None,
+        )
+        with (
+            patch.object(EnvironmentManager, "environment_exists", side_effect=_probe),
+            patch("nb_wrangler.hubenv.env_create.build_seed_dict", side_effect=_seed),
+        ):
+            rc = cmd_env_create(args)
+
+        assert rc == 0
+        assert calls == ["exists", "seed"]
 
 
 # ---------------------------------------------------------------------------

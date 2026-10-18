@@ -222,6 +222,11 @@ def _add_var_ls_args(p) -> None:
         default="table",
         help="Output format (default: table)",
     )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict shelf search to a single pantry directory",
+    )
 
 
 def _add_var_add_args(p) -> None:
@@ -233,6 +238,11 @@ def _add_var_add_args(p) -> None:
         metavar="VAR=VALUE",
         help="One or more VAR=VALUE assignments to add/update",
     )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict shelf search to a single pantry directory",
+    )
 
 
 def _add_var_rm_args(p) -> None:
@@ -243,6 +253,11 @@ def _add_var_rm_args(p) -> None:
         nargs="+",
         metavar="GLOB",
         help="Glob pattern(s) matching variable names to remove",
+    )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict shelf search to a single pantry directory",
     )
 
 
@@ -585,6 +600,11 @@ def _add_export_args(p) -> None:
         default="-",
         metavar="FILE",
         help="Output file (default: '-' for stdout)",
+    )
+    p.add_argument(
+        "--pantry",
+        default=None,
+        help="Restrict shelf search to a single pantry directory",
     )
 
 

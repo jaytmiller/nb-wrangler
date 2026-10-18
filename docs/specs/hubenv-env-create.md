@@ -138,25 +138,29 @@ the stderr text.
 
 ### 5.1 `--dry-run` (all sources)
 
-1. `seed = build_seed_dict(args)` → dict
-2. `spec_yaml = yaml_dumps(seed)` → YAML string
-3. `print(spec_yaml)` to stdout
-4. `return 0`
+1. `_probe_target(args)` — cheap existence probe (logs INFO if the target
+   already exists; non-fatal)
+2. `seed = _seed(args)` → dict (wraps `build_seed_dict`; RE-03)
+3. `spec_yaml = yaml_dumps(seed)` → YAML string
+4. `print(spec_yaml)` to stdout
+5. `return 0`
 
 **No** environment is created. **No** shelf spec is written. **No** kernel is
 registered. **No** file system side effects.
 
-> **Note:** even for `--dry-run`, `build_seed_dict(args)` runs *before* the
-> dry-run branch, so the `--from-existing-env` source still executes its two
-> read-only subprocesses (`mamba env export` and `pip freeze`) to build the
-> spec. The other four sources are purely in-memory. This means
-> `--from-existing-env --dry-run` requires the source env to already exist in
-> mamba, or it will raise `ValueError` (unhandled, exit 1) rather than a clean
-> preview.
+> **Note:** even for `--dry-run`, the target existence probe
+> (`_probe_target`) and then the seed build (`_seed` → `build_seed_dict`)
+> run *before* the dry-run branch, so the `--from-existing-env` source still
+> executes its two read-only subprocesses (`mamba env export` and
+> `pip freeze`) to build the spec. The other four sources are purely
+> in-memory. A failed seed (e.g. the source env missing so the probes fail)
+> raises `ValueError`/`OSError`, which `_seed` wraps in `HubenvError`
+> ("Failed to seed spec for 'NAME': …") — a clean stderr message with exit
+> 1 and no traceback (RE-03 resolved in v0.10.0).
 
 ### 5.2 Build + persist (default, all sources)
 
-After `build_seed_dict(args)` produces the seed, `cmd_env_create`:
+After `_seed(args)` (RE-03) produces the seed, `cmd_env_create`:
 
 1. **Build the live env**:
    - `--from-existing-env`: `_onboard_existing_env` — verify the source env
@@ -209,7 +213,7 @@ the environment is assumed to already exist in mamba.
 | Install failure (mamba create non-zero) — no persistence | `1` |
 | `--from-existing-env` source not found in mamba — no persistence | `1` |
 | No writable pantry (and no valid `--pantry`) — build may have succeeded, but no spec/kernel | `1` |
-| Seed builder raises `ValueError` (e.g. `mamba env export` or `pip freeze` fails) | **Uncaught** — `cli.main()` only catches `HubenvError` and `KeyboardInterrupt`. `ValueError` propagates out of `main()`, Python prints the full traceback to stderr, and the process exits with code `1`. This is a known rough edge; a clean `HubenvError`-wrapped message is not shown for this path. |
+| Seed probe/build fails (e.g. `--from-existing-env` source missing; `mamba env export` / `pip freeze` fail) | `1` — caught by `_seed` and re-raised as `HubenvError("Failed to seed spec for 'NAME': …", exit_code=1)`; `cli.main()` prints the clean message to stderr, no traceback (RE-03 resolved) |
 
 ---
 
@@ -238,9 +242,12 @@ and where the seed comes from.
 - `--from-existing-env`: if the source environment does not exist in mamba
   (checked via path existence at `NBW_MM/envs/<name>`), the command exits
   `1` with a clear error and no shelf spec is written.
-- The seed is still built (subprocesses run) **before** the existence check,
-  so a `ValueError` from a failed `mamba env export` will propagate as an
-  unhandled exception rather than a clean exit-1.
+- Ordering (RE-03 resolved): `_probe_target` runs **before** the seed work
+  (even under `--dry-run`); the seed build itself wraps `build_seed_dict`
+  in `except (ValueError, OSError)`, so a failed `mamba env export` /
+  `pip freeze` yields a clean `HubenvError` message
+  ("Failed to seed spec for 'NAME': …") with exit `1` — never an unhandled
+  traceback.
 - If the build step (`create_environment` or the existence check) fails,
   `_persist_essentials` is never reached — no spec write, no kernel
   registration.

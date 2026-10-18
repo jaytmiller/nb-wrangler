@@ -5,8 +5,7 @@ Handles ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-sp
 
 from pathlib import Path
 
-from nb_wrangler.hubenv._common import get_logger
-from nb_wrangler.hubenv.config import PantryStore
+from nb_wrangler.hubenv._common import get_logger, store_for
 from nb_wrangler.hubenv.env_spec import (
     extract_pip_packages,
     load_hubenv_spec,
@@ -17,7 +16,7 @@ from nb_wrangler.utils import yaml_dumps
 
 def cmd_export(args) -> int:
     """Handle ``hubenv export NAME [--to-mamba-spec|--to-requirements|--to-wrangler-spec] [-o FILE|-]``."""
-    config = PantryStore()
+    config = store_for(args)
     spec_path = config.shelf_spec_path(args.name)
     if not spec_path.exists():
         get_logger().error(f"No spec found for env '{args.name}'.")
@@ -31,7 +30,13 @@ def cmd_export(args) -> int:
 def format_export(spec: dict, args) -> str:
     """Format the spec according to the chosen export flags."""
     if args.to_requirements:
-        return spec_to_requirements(spec)
+        output = spec_to_requirements(spec)
+        if not output:
+            get_logger().warning(
+                f"spec for '{args.name}' has no pip packages; "
+                "empty requirements output"
+            )
+        return output
     if args.to_wrangler_spec:
         return yaml_dumps(mamba_to_wrangler(spec["name"], spec))
     return yaml_dumps(spec)  # default: mamba spec

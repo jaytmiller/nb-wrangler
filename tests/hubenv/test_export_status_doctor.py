@@ -54,7 +54,6 @@ def _all_checks_context(**overrides):
     patches = [
         ("nb_wrangler.hubenv.doctor.check_mamba_availability", "mamba"),
         ("nb_wrangler.hubenv.doctor.check_pantry_writability", "pantry"),
-        ("nb_wrangler.hubenv.doctor.check_efs_mount", "efs"),
         ("nb_wrangler.hubenv.doctor.check_kernel_json_sanity", "kernel"),
         ("nb_wrangler.hubenv.doctor.check_spec_only_shelves", "spec_only"),
     ]
@@ -237,6 +236,46 @@ class TestExport:
         err = capsys.readouterr().err
         assert "no spec" in err.lower()
 
+    def test_export_to_requirements_empty_warns(self, tmp_path, capsys):
+        """Empty ``--to-requirements`` output warns but still exits 0 (RE-10)."""
+        from nb_wrangler.hubenv.cli import main
+
+        spec = _make_spec(with_pip=False)
+        _write_spec(tmp_path, "demo", spec)
+
+        with _patch_nbw_root(tmp_path):
+            rc = main(["export", "demo", "--to-requirements", "-o", "-"])
+
+        assert rc == 0
+        out = capsys.readouterr()
+        assert out.out.strip() == ""
+        assert "no pip packages" in out.err
+
+    def test_export_scoped_by_pantry_flag(self, tmp_path, capsys):
+        """``--pantry`` scopes the shelf search for export (RE-12)."""
+        from nb_wrangler.hubenv.cli import main
+        from nb_wrangler.hubenv.config import PantryStore
+        from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+
+        real = tmp_path / "real"
+        save_hubenv_spec(
+            PantryStore(paths=[real]),
+            "demo",
+            _make_spec(),
+        )
+        empty = tmp_path / "empty"
+        empty.mkdir()
+
+        with _patch_nbw_root(tmp_path):
+            rc = main(["export", "demo", "-o", "-", "--pantry", str(real)])
+        assert rc == 0
+        assert "name: demo" in capsys.readouterr().out
+
+        with _patch_nbw_root(tmp_path):
+            rc = main(["export", "demo", "-o", "-", "--pantry", str(empty)])
+        assert rc == 1
+        assert "no spec" in capsys.readouterr().err.lower()
+
 
 # ---------------------------------------------------------------------------
 # status tests
@@ -353,7 +392,7 @@ class TestDoctor:
         fail = {"check": "fail", "pass": False, "detail": "bad", "hint": "fix"}
         with (
             _patch_nbw_root(tmp_path),
-            _all_checks_context(mamba=fail, pantry=fail, efs=fail, kernel=fail),
+            _all_checks_context(mamba=fail, pantry=fail, kernel=fail),
         ):
             rc = main(["doctor"])
 
@@ -373,7 +412,7 @@ class TestDoctor:
         data = json.loads(out)
         assert "checks" in data
         assert "all_pass" in data
-        assert len(data["checks"]) == 5
+        assert len(data["checks"]) == 4
 
     def test_doctor_table_output(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -407,7 +446,7 @@ class TestDoctor:
         assert rc == 1
         out = capsys.readouterr().out
         assert "FAIL" in out
-        assert "4/5 checks passed" in out
+        assert "3/4 checks passed" in out
 
     def test_doctor_flags_spec_only_shelf(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main

@@ -309,11 +309,13 @@ class TestRestoreAtBoot:
     """Tests for --at-boot snippet writing."""
 
     def test_at_boot_writes_snippet(self, tmp_path, capsys):
+        """--at-boot writes the snippet and prints the manual `source` hint."""
         from nb_wrangler.hubenv.cli import main
 
         pantry = _make_pantry(tmp_path)
         home = tmp_path / "home"
         home.mkdir()
+        snippet = home / ".hubenv" / "env-demo.sh"
 
         with (
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
@@ -324,20 +326,26 @@ class TestRestoreAtBoot:
             rc = main(["restore", "demo", "--at-boot"])
 
         assert rc == 0
-        snippet = home / ".hubenv" / "env-demo.sh"
         assert snippet.exists()
         content = snippet.read_text()
         assert "NBW_ACTIVE_ENV" in content
         assert "hubenv ensure demo" in content
 
-    def test_at_boot_appends_to_bashrc(self, tmp_path, capsys):
+        out = capsys.readouterr().out
+        assert "At-boot snippet written to" in out
+        assert "To use it at shell startup" in out
+        assert "source" in out and "env-demo.sh" in out
+
+    def test_at_boot_does_not_touch_bashrc(self, tmp_path, capsys):
+        """--at-boot writes the snippet but never edits the shell rc file."""
         from nb_wrangler.hubenv.cli import main
 
         pantry = _make_pantry(tmp_path)
         home = tmp_path / "home"
         home.mkdir()
         bashrc = home / ".bashrc"
-        bashrc.write_text("# existing content\n")
+        original = "# existing content\n"
+        bashrc.write_text(original)
 
         with (
             patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
@@ -348,29 +356,18 @@ class TestRestoreAtBoot:
             rc = main(["restore", "demo", "--at-boot"])
 
         assert rc == 0
-        content = bashrc.read_text()
-        assert "source ~/.hubenv/env-demo.sh" in content
-        assert content.count("source ~/.hubenv/env-demo.sh") == 1
+        assert bashrc.read_text() == original
 
-    def test_at_boot_idempotent_no_duplicate(self, tmp_path, capsys):
-        from nb_wrangler.hubenv.cli import main
+    def test_at_boot_rewrite_is_idempotent(self, tmp_path, capsys):
+        """Writing the at-boot snippet twice leaves exactly one snippet file."""
+        from nb_wrangler.hubenv.env_restore import write_at_boot_snippet
 
-        pantry = _make_pantry(tmp_path)
         home = tmp_path / "home"
         home.mkdir()
-        bashrc = home / ".bashrc"
-        bashrc.write_text(
-            "# existing\n# Added by hubenv\nsource ~/.hubenv/env-demo.sh\n"
-        )
 
-        with (
-            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
-            patch.dict(os.environ, {"HOME": str(home)}),
-            _patch_unpack_env(True),
-            _patch_register_env(True),
-        ):
-            rc = main(["restore", "demo", "--at-boot"])
+        with patch.dict(os.environ, {"HOME": str(home)}):
+            write_at_boot_snippet("demo")
+            write_at_boot_snippet("demo")
 
-        assert rc == 0
-        content = bashrc.read_text()
-        assert content.count("source ~/.hubenv/env-demo.sh") == 1
+        assert len(list((home / ".hubenv").glob("env-*.sh"))) == 1
+        assert (home / ".hubenv" / "env-demo.sh").exists()

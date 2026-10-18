@@ -34,26 +34,33 @@ from typing import Callable, Optional
 # Each entry maps a group command to the list of sub-commands it accepts.
 # ``_TOP_LEVEL_ONLY`` lists commands that *do not* take a sub-command.
 _HUBENV_COMMAND_TREE: dict[str, list[str]] = {
-    "env": [
-        "create",
-        "save",
-        "restore",
-        "ls",
-        "info",
-        "install",
-        "uninstall",
-        "relock",
-        "rm",
-        "ensure",
-        "register",
-        "unregister",
-    ],
     "var": ["add", "rm", "ls"],
     "data": ["ls", "download", "unpack", "pack", "clean"],
     "completions": ["bash", "zsh", "fish"],
 }
 
-_TOP_LEVEL_ONLY = ["export", "status", "doctor"]
+# Environment verbs are flattened to the top level (``hubenv create`` rather
+# than ``hubenv env create``); these take no sub-command, so they complete
+# directly after ``hubenv``.
+_TOP_LEVEL_ONLY = [
+    "create",
+    "save",
+    "restore",
+    "ls",
+    "info",
+    "install",
+    "uninstall",
+    "relock",
+    "rm",
+    "ensure",
+    "register",
+    "unregister",
+    "activate",
+    "deactivate",
+    "export",
+    "status",
+    "doctor",
+]
 
 
 def _all_groups() -> list[str]:
@@ -195,30 +202,29 @@ def _zsh_desc(cmd: str) -> str:
 
 # Short descriptions for each command/group, for a friendlier completion.
 _FISH_DESCRIPTIONS: dict[str, str] = {
-    "env": "Environment management",
-    "var": "Manage environment variables",
-    "data": "Manage data archives",
+    "create": "Create a new environment",
+    "save": "Pack a live environment into a pantry archive",
+    "restore": "Unpack a saved environment and register kernel",
+    "ls": "List live envs and pantry shelves",
+    "info": "Show detailed info for an environment",
+    "install": "Install packages into a live environment",
+    "uninstall": "Uninstall packages from a live environment",
+    "relock": "Re-curate locks and validate the implicit spec",
+    "rm": "Delete environments from live and/or archive",
+    "ensure": "Idempotently ensure an env is available",
+    "register": "Register Jupyter kernel for an environment",
+    "unregister": "Unregister Jupyter kernel for an environment",
+    "activate": "Print a shell snippet that activates an environment by path",
+    "deactivate": "Print a shell snippet that deactivates the current mamba env",
     "export": "Export environment spec",
     "status": "Show system state summary",
     "doctor": "Run self-test checks",
+    "var": "Manage environment variables",
+    "data": "Manage data archives",
     "completions": "Print shell completion scripts",
 }
 
 _FISH_SUBCODESCRIPTIONS: dict[str, dict[str, str]] = {
-    "env": {
-        "create": "Create a new environment",
-        "save": "Pack a live environment into a pantry archive",
-        "restore": "Unpack a saved environment and register kernel",
-        "ls": "List live envs and pantry shelves",
-        "info": "Show detailed info for an environment",
-        "install": "Install packages into a live environment",
-        "uninstall": "Uninstall packages from a live environment",
-        "relock": "Re-curate locks and validate the implicit spec",
-        "rm": "Delete environments from live and/or archive",
-        "ensure": "Idempotently ensure an env is available",
-        "register": "Register Jupyter kernel for an environment",
-        "unregister": "Unregister Jupyter kernel for an environment",
-    },
     "var": {
         "add": "Add or update env vars",
         "rm": "Remove env vars by glob",

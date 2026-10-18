@@ -4,6 +4,27 @@
 
 - **`hubenv env ...` flattened to top-level verbs** (`nb_wrangler/hubenv/parser.py`, `nb_wrangler/hubenv/cli.py`). The former `hubenv env <verb>` command group — all 14 env verbs (`create`, `save`, `restore`, `ls`, `info`, `install`, `uninstall`, `relock`, `rm`, `ensure`, `register`, `unregister`, `activate`, `deactivate`) — is now invoked directly: `hubenv env create` → `hubenv create`, `hubenv env save` → `hubenv save`, and so on. `hubenv var ...` and `hubenv data ...` are unchanged. A bare `hubenv env` (with no verb) is no longer a valid command and is rejected with exit code `2`. Scripts and shell snippets that call `hubenv env ...` must be updated to the flat form.
 
+### Behavior Changes
+
+These tighten or correct `hubenv` behavior; scripts that relied on the old quirks must be updated (per the flatten precedent above we record the changes here rather than ship compatibility shims). See `docs/plans/hubenv-rough-edges-plan.md` and `docs/specs/hubenv.md` §7 (all 13 rough edges resolved in v0.10.0).
+
+- **Strict flag parsing** (`nb_wrangler/hubenv/cli.py`): `parse_known_args` replaced with `parse_args`, so unknown flags/sub-commands (e.g. `hubenv create --nam demo`) are argparse usage errors with exit code `2` instead of being silently dropped.
+- **Bare `hubenv var` / `hubenv data` now exit `1`** (previously `0`) when no sub-command is given (`nb_wrangler/hubenv/cli.py`).
+- **`hubenv var add` no longer auto-creates a shelf** (`nb_wrangler/hubenv/var.py`): it requires an existing shelf spec and fails with exit `1` plus the hint "Create it first: hubenv create NAME --from-empty" (previously the empty-seed fallback silently created a spec-only shelf as a side effect). `var rm` behavior is unchanged (no-match remains a no-op).
+- **`hubenv var ls --export --format json` is rejected** (`nb_wrangler/hubenv/var.py`): the two output modes are now mutually exclusive (usage error, exit `1`); previously JSON silently won over `--export`.
+- **`hubenv create` reports seed failures cleanly** (`nb_wrangler/hubenv/env_create.py`): `--from-existing-env` probes no longer leak a raw `ValueError` traceback — the probe is wrapped in `HubenvError` ("Failed to seed spec for 'NAME': …", exit `1`), and the cheap target-existence probe now runs before the seed build (even under `--dry-run`).
+- **`hubenv restore --at-boot` / `hubenv rm` no longer touch `~/.bashrc`** (`nb_wrangler/hubenv/env_restore.py`, `nb_wrangler/hubenv/env_rm.py`): `--at-boot` only writes `~/.hubenv/env-<name>.sh` and prints the `source` instruction for the user to add to their shell startup; `hubenv rm` now best-effort removes that snippet when it deletes an env.
+- **`hubenv ensure --display-name` is now honored** (`nb_wrangler/hubenv/env_ensure.py`, `nb_wrangler/hubenv/env_restore.py`): the delegated kernel registration uses the supplied display name (falling back to the env name) instead of always the env name.
+- **`hubenv export --to-requirements` warns on empty output** (`nb_wrangler/hubenv/export.py`): a spec with no pip packages still exits `0`, but now prints a stderr warning instead of a silent empty result.
+- **`hubenv doctor` no longer checks EFS** (`nb_wrangler/hubenv/doctor.py`): the Linux-only `/proc/mounts`-based EFS check was removed; doctor now runs 4 checks (mamba/micromamba, pantry writability, kernel-JSON sanity, spec-only shelves). Non-EFS / non-Linux installs no longer see a red EFS row.
+- **`hubenv rm` confirmation prompt goes to stderr** (`nb_wrangler/hubenv/env_rm.py`): the "Proceed? (y/N)" prompt was on stdout, mixing with the machine-readable plan print; it is now on stderr (answer still read from stdin).
+
+### New Features
+
+- **`--pantry` on `export` and `var ls` / `var add` / `var rm`** (`nb_wrangler/hubenv/parser.py`, `_common.py`, `export.py`, `var.py`): these commands now accept `--pantry PATH` to scope pantry lookups to a single pantry (via `_common.store_for`), matching the other 7 pantry-aware verbs. `data *`, `status`, `doctor`, `register`/`unregister`, `activate`/`deactivate` intentionally remain default-chain only.
+- **Shell completions match the flattened command tree** (`nb_wrangler/hubenv/completions.py`): the embedded command tree now covers all 20 top-level verbs (including `activate`/`deactivate`, previously missing) and no generated script suggests the removed `hubenv env <verb>` shape.
+
+
 **v0.9.3** change notes (since v0.9.2):
 
 ### Bug Fixes

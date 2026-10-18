@@ -44,7 +44,9 @@ def cmd_env_restore(args) -> int:
     record_restore_hash(config, args.name, save_hash)
 
     em = EnvironmentManager()
-    em.register_environment(args.name, args.name, {})
+    em.register_environment(
+        args.name, getattr(args, "display_name", None) or args.name, {}
+    )
 
     print_exports(args.name, config)
 
@@ -133,7 +135,11 @@ def record_restore_hash(config: PantryStore, name: str, save_hash: str) -> None:
 
 
 def write_at_boot_snippet(name: str) -> None:
-    """Write a guarded, idempotent snippet for startup restore."""
+    """Write a guarded, idempotent snippet for startup restore.
+
+    Writes the snippet file and prints the manual ``source`` instruction; it
+    never edits the shell's rc file (user decides where to source from).
+    """
     snippet_dir = Path.home() / ".hubenv"
     snippet_dir.mkdir(parents=True, exist_ok=True)
     snippet_path = snippet_dir / f"env-{name}.sh"
@@ -147,14 +153,16 @@ def write_at_boot_snippet(name: str) -> None:
     )
     snippet_path.write_text(snippet)
 
-    # Append source line to .bashrc if not already present
-    bashrc = Path.home() / ".bashrc"
-    marker = f"source ~/.hubenv/env-{name}.sh"
-    if not bashrc.exists() or marker not in bashrc.read_text():
-        with bashrc.open("a") as f:
-            f.write(f"\n# Added by hubenv\n{marker}\n")
-        print(f"Appended to {bashrc}: {marker}")
     print(f"At-boot snippet written to {snippet_path}")
+    print("To use it at shell startup, add this line to your rc file:")
+    print(f"    source {snippet_path}")
+
+
+def remove_at_boot_snippet(name: str) -> None:
+    """Remove a startup snippet if present. Logs one line to stderr."""
+    snippet_path = Path.home() / ".hubenv" / f"env-{name}.sh"
+    snippet_path.unlink(missing_ok=True)
+    get_logger().info(f"Removed at-boot snippet {snippet_path} (if present).")
 
 
 # Silence unused import warnings

@@ -11,9 +11,15 @@ from nb_wrangler.hubenv.env_restore import cmd_env_restore, find_restore_shelf
 class EnsureArgs:
     """Minimal args namespace for delegating to ``cmd_env_restore``."""
 
-    def __init__(self, name: str, pantry: Optional[str] = None):
+    def __init__(
+        self,
+        name: str,
+        pantry: Optional[str] = None,
+        display_name: Optional[str] = None,
+    ):
         self.name = name
         self.pantry = pantry
+        self.display_name = display_name
         self.force = False
         self.at_boot = False
 
@@ -35,7 +41,9 @@ def cmd_env_ensure(args) -> int:
         return 0
 
     # 2. Look for a shelf to restore
-    matches = find_restore_shelf(config, EnsureArgs(args.name, args.pantry))
+    matches = find_restore_shelf(
+        config, EnsureArgs(args.name, args.pantry, display_name=args.display_name)
+    )
     if matches is None:
         return 1
     if not matches:
@@ -50,7 +58,7 @@ def cmd_env_ensure(args) -> int:
         print(f"Dry-run: would restore '{args.name}' from {matches[0][1]}")
         return 0
 
-    restore_args = EnsureArgs(args.name, args.pantry)
+    restore_args = EnsureArgs(args.name, args.pantry, display_name=args.display_name)
     return cmd_env_restore(restore_args)
 
 

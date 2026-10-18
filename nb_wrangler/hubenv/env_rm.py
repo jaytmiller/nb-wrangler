@@ -1,12 +1,14 @@
 """env rm subcommand: delete environments from live and/or archive."""
 
 import shutil
+import sys
 from fnmatch import fnmatch
 from pathlib import Path
 
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv._common import get_logger
 from nb_wrangler.hubenv.config import PantryStore
+from nb_wrangler.hubenv.env_restore import remove_at_boot_snippet
 
 
 def cmd_env_rm(args) -> int:
@@ -143,8 +145,9 @@ def print_rm_plan(targets):
 
 def prompt_rm_confirmation():
     """Prompt for confirmation. Returns True if confirmed."""
+    print("Proceed? (y/N): ", end="", file=sys.stderr, flush=True)
     try:
-        response = input("Proceed? (y/N): ").strip().lower()
+        response = input().strip().lower()
     except EOFError:
         return False
     return response in ("y", "yes")
@@ -166,6 +169,7 @@ def do_rm(targets):
                 ok = True
             if ok:
                 print(f"Removed {t['type']} '{t['name']}' at {path}")
+                remove_at_boot_snippet(t["name"])
             else:
                 get_logger().warning(f"Could not remove {t['name']}")
                 failures += 1

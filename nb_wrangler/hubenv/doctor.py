@@ -25,7 +25,6 @@ def run_doctor_checks(config: PantryStore) -> list[dict]:
     return [
         check_mamba_availability(),
         check_pantry_writability(config),
-        check_efs_mount(config),
         check_kernel_json_sanity(),
         check_spec_only_shelves(config),
     ]
@@ -91,46 +90,6 @@ def check_pantry_writability(config: PantryStore) -> dict:
         "detail": "No writable pantries",
         "hint": f"Check permissions on: {', '.join(all_paths)}",
     }
-
-
-def check_efs_mount(config: PantryStore) -> dict:
-    """Check EFS mount status for pantry paths."""
-    info = detect_efs_mount(config)
-    if info:
-        return {"check": "EFS mount", "pass": True, "detail": info, "hint": ""}
-    return {
-        "check": "EFS mount",
-        "pass": False,
-        "detail": "No EFS mount detected on pantry paths",
-        "hint": "Check that EFS is mounted at the pantry path.",
-    }
-
-
-def detect_efs_mount(config: PantryStore) -> str:
-    """Detect EFS mount for any pantry path."""
-    mounts = read_proc_mounts()
-    for pantry in config.pantry_dirs:
-        if not pantry.exists():
-            continue
-        for _, mount_point, fstype, _ in mounts:
-            if "efs" in fstype.lower() or "efs" in mount_point.lower():
-                if str(pantry).startswith(mount_point):
-                    return f"{pantry} on {fstype} ({mount_point})"
-    return ""
-
-
-def read_proc_mounts() -> list[tuple[str, str, str, str]]:
-    """Parse /proc/mounts and return (device, mount_point, fstype, options)."""
-    results: list[tuple[str, str, str, str]] = []
-    try:
-        with open("/proc/mounts") as f:
-            for line in f:
-                parts = line.split()
-                if len(parts) >= 4:
-                    results.append((parts[0], parts[1], parts[2], parts[3]))
-    except OSError:
-        pass
-    return results
 
 
 def check_kernel_json_sanity() -> dict:

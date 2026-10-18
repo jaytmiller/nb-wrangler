@@ -4,14 +4,18 @@ import fnmatch
 import json
 
 from nb_wrangler.environment import EnvironmentManager
-from nb_wrangler.hubenv.config import PantryStore
-from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv._common import get_logger, store_for
 from nb_wrangler.hubenv.env_spec import load_hubenv_spec, save_hubenv_spec
 
 
 def cmd_var_ls(args) -> int:
     """Handle ``hubenv var ls NAME [GLOB...]``."""
-    config = PantryStore()
+    if args.export and args.format == "json":
+        get_logger().error(
+            "--export and --format json are mutually exclusive; choose one."
+        )
+        return 1
+    config = store_for(args)
     spec = load_hubenv_spec(config, args.name)
     env_vars = spec.get("environment_vars") or {}
     filtered = filter_vars_by_glob(env_vars, args.globs)
@@ -64,7 +68,13 @@ def print_var_ls_json(env_vars: dict, name: str) -> None:
 
 def cmd_var_add(args) -> int:
     """Handle ``hubenv var add NAME VAR=VALUE...``."""
-    config = PantryStore()
+    config = store_for(args)
+    if not config.shelf_spec_path(args.name).exists():
+        get_logger().error(
+            f"No spec found for env '{args.name}'. "
+            f"Create it first: hubenv create {args.name} --from-empty"
+        )
+        return 1
     try:
         updates = parse_var_assignments(args.assignments)
     except ValueError as exc:
@@ -100,7 +110,7 @@ def print_var_add_result(name: str, updates: dict[str, str]) -> None:
 
 def cmd_var_rm(args) -> int:
     """Handle ``hubenv var rm NAME GLOB...``."""
-    config = PantryStore()
+    config = store_for(args)
     spec = load_hubenv_spec(config, args.name)
     env_vars = spec.get("environment_vars") or {}
     spec["environment_vars"] = env_vars

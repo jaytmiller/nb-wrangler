@@ -95,6 +95,29 @@ def _ls_patch(tmp_path):
 
 
 # ---------------------------------------------------------------------------
+# bare group command (no sub-command)
+# ---------------------------------------------------------------------------
+
+
+class TestBareGroups:
+    """Bare group commands without a sub-command exit 1."""
+
+    def test_bare_var_exits_1(self, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        rc = main(["var"])
+        assert rc == 1
+        assert "sub-command required" in capsys.readouterr().err
+
+    def test_bare_data_exits_1(self, capsys):
+        from nb_wrangler.hubenv.cli import main
+
+        rc = main(["data"])
+        assert rc == 1
+        assert "sub-command required" in capsys.readouterr().err
+
+
+# ---------------------------------------------------------------------------
 # var ls
 # ---------------------------------------------------------------------------
 
@@ -140,6 +163,18 @@ class TestVarLs:
         out = capsys.readouterr().out
         assert "export DEBUG=1" in out
         assert "export PATH=/x" in out
+
+    def test_ls_export_json_mutually_exclusive(self, tmp_path, capsys):
+        """--export and --format json together are a usage error (RE-08)."""
+        from nb_wrangler.hubenv.cli import main
+
+        _write_spec(tmp_path, "demo", {"DEBUG": "1"})
+        with _ls_patch(tmp_path):
+            rc = main(["var", "ls", "demo", "--export", "--format", "json"])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "mutually exclusive" in err
+        assert "DEBUG" not in capsys.readouterr().out
 
     def test_ls_json(self, tmp_path, capsys):
         """--format json prints a JSON object."""
@@ -258,6 +293,76 @@ class TestVarAdd:
         assert rc == 0
         spec = _read_spec(tmp_path, "demo")
         assert spec["environment_vars"] == {"DEBUG": "1"}
+
+    def test_add_unknown_shelf_rejected(self, tmp_path, capsys):
+        """add on a shelf without a spec errors with a create hint (RE-11)."""
+        from nb_wrangler.hubenv.cli import main
+
+        with _base_patch(tmp_path):
+            rc = main(["var", "add", "ghost", "A=1"])
+        err = capsys.readouterr().err
+        assert rc == 1
+        assert "No spec found" in err
+        assert "hubenv create ghost" in err
+        assert not (tmp_path / "pantry" / "shelves" / "ghost").exists()
+
+
+# ---------------------------------------------------------------------------
+# --pantry flag (RE-12)
+# ---------------------------------------------------------------------------
+
+
+def _make_scoped_pantry(tmp_path, label, env_vars=None):
+    """Create a pantry dir *label* with one shelf 'demo' under it."""
+    from nb_wrangler.hubenv.config import PantryStore
+    from nb_wrangler.hubenv.env_spec import save_hubenv_spec
+
+    root = tmp_path / label
+    spec = {"name": "demo", "channels": ["conda-forge"], "dependencies": []}
+    if env_vars is not None:
+        spec["environment_vars"] = env_vars
+    save_hubenv_spec(PantryStore(paths=[root]), "demo", spec)
+    return root
+
+
+class TestVarLsPantry:
+    """``--pantry`` scopes the shelf search for var ls (RE-12)."""
+
+    def test_ls_scoped_pantry(self, tmp_path, capsys):
+        """var ls reads from the ``--pantry`` dir, not the default chain."""
+        from nb_wrangler.hubenv.cli import main
+
+        real = _make_scoped_pantry(tmp_path, "real", {"A": "1"})
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        with _ls_patch(tmp_path):
+            rc = main(["var", "ls", "demo", "--pantry", str(real)])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "A" in out and "1" in out
+        with _ls_patch(tmp_path):
+            rc = main(["var", "ls", "demo", "--pantry", str(empty)])
+        assert rc == 0
+        assert "no environment variables" in capsys.readouterr().out.lower()
+
+    def test_add_scoped_pantry(self, tmp_path, capsys):
+        """var add writes to the spec in the ``--pantry`` dir (RE-12)."""
+        from nb_wrangler.hubenv.cli import main
+
+        real = _make_scoped_pantry(tmp_path, "real", {})
+        empty = tmp_path / "empty"
+        empty.mkdir()
+        with _base_patch(tmp_path) as p_reg:
+            rc = main(["var", "add", "demo", "DEBUG=1", "--pantry", str(real)])
+        assert rc == 0
+        assert "Set DEBUG=1" in capsys.readouterr().out
+        p_reg.assert_called_once()
+        spec_file = real / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+        assert "DEBUG" in spec_file.read_text()
+        with _base_patch(tmp_path):
+            rc = main(["var", "add", "demo", "DEBUG=1", "--pantry", str(empty)])
+        assert rc == 1
+        assert "No spec found" in capsys.readouterr().err
 
 
 # ---------------------------------------------------------------------------

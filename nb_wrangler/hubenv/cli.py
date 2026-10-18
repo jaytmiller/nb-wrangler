@@ -8,6 +8,7 @@ from typing import Optional
 
 from nb_wrangler.config import WranglerConfig, set_args_config
 from nb_wrangler.logger import WranglerLogger, get_configured_logger
+from nb_wrangler.hubenv._common import HubenvError
 from nb_wrangler.constants import __version__
 from nb_wrangler.hubenv.parser import build_parser
 from nb_wrangler.hubenv.completions_cmd import cmd_completions
@@ -36,16 +37,6 @@ from nb_wrangler.hubenv.data import (
 )
 from nb_wrangler.hubenv.status import cmd_status
 from nb_wrangler.hubenv.doctor import cmd_doctor
-
-
-class HubenvError(Exception):
-    """Base error for hubenv with a clean message and exit code."""
-
-    def __init__(self, message: str, exit_code: int = 1):
-        super().__init__(message)
-        self.message = message
-        self.exit_code = exit_code
-
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -114,7 +105,7 @@ def _resolve_command_path(args) -> Optional[str]:
 def _main(argv: Optional[list[str]] = None) -> int:
     """Actual command dispatch without error wrapping."""
     parser = build_parser()
-    args, _ = parser.parse_known_args(argv)
+    args = parser.parse_args(argv)
 
     if args.version:
         print(__version__)
@@ -195,7 +186,7 @@ def _dispatch_var(args) -> int:
         get_configured_logger().error(
             "hubenv var: sub-command required. Use one of: ls, add, rm"
         )
-        return 0
+        return 1
     handler = _VAR_DISPATCH.get(args.var_command)
     if handler is None:
         return _cmd_not_implemented(args.var_command)
@@ -209,7 +200,7 @@ def _dispatch_data(args) -> int:
             "hubenv data: sub-command required. Use one of: ls, download, "
             "unpack, pack, clean"
         )
-        return 0
+        return 1
     handler = _DATA_DISPATCH.get(args.data_command)
     if handler is None:
         return _cmd_not_implemented(args.data_command)

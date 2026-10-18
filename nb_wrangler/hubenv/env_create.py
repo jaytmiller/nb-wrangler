@@ -30,6 +30,7 @@ from typing import Optional
 
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv._common import (
+    HubenvError,
     get_logger,
     print_exports,
     print_no_writable_pantry,
@@ -49,7 +50,8 @@ from nb_wrangler.utils import yaml_dumps
 
 def cmd_env_create(args) -> int:
     """Handle ``hubenv create``: build the live env, then persist essentials."""
-    seed = build_seed_dict(args)
+    _probe_target(args)
+    seed = _seed(args)
 
     if args.dry_run:
         print(yaml_dumps(seed))
@@ -76,6 +78,33 @@ def cmd_env_create(args) -> int:
         return _save_after_create(args)
     print_save_hint(args.name)
     return 0
+
+
+def _probe_target(args) -> None:
+    """Run the target existence probe before any seed work (RE-03).
+
+    Runs even under ``--dry-run`` so the cheap probe precedes the slower
+    ``mamba env export`` / ``pip freeze`` seed steps.  Non-fatal: creation
+    proceeds and ``create_environment`` reports the real outcome.
+    """
+    if EnvironmentManager().environment_exists(args.name):
+        get_logger().info(f"Environment '{args.name}' already exists.")
+
+
+def _seed(args) -> dict:
+    """Build the seed dict, converting probe failures into a clean error.
+
+    ``build_seed_dict`` raises ``ValueError`` / ``OSError`` when a seed source
+    cannot be read (e.g. ``mamba env export`` or ``pip freeze`` fails).  Those
+    are wrapped in a :class:`HubenvError` so ``cli.main()`` prints a clean
+    message and exits 1 instead of leaking a raw traceback (RE-03).
+    """
+    try:
+        return build_seed_dict(args)
+    except (ValueError, OSError) as exc:
+        raise HubenvError(
+            f"Failed to seed spec for '{args.name}': {exc}", exit_code=1
+        ) from exc
 
 
 def build_seed_dict(args) -> dict:

@@ -102,6 +102,40 @@ class TestEnsure:
             rc = main(["ensure", "demo"])
             assert rc == 0
 
+    def test_ensure_archive_restores_display_name(self, tmp_path, capsys):
+        """ensure --display-name threads through to kernel registration."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, save_hash="abc123")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            _patch_env_exists(False),
+            _patch_unpack_env(True),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["ensure", "demo", "--display-name", "My Env"])
+            assert rc == 0
+            mock_reg.assert_called_once_with("demo", "My Env", {})
+
+    def test_ensure_archive_restores_default_display_name(self, tmp_path, capsys):
+        """ensure without --display-name registers kernel as the env name."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, save_hash="abc123")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            _patch_env_exists(False),
+            _patch_unpack_env(True),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["ensure", "demo"])
+            assert rc == 0
+            mock_reg.assert_called_once_with("demo", "demo", {})
+
     def test_ensure_neither_live_nor_archive_errors(self, tmp_path, capsys):
         """When neither live env nor archive exists, ensure errors."""
         from nb_wrangler.hubenv.cli import main

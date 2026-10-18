@@ -454,8 +454,10 @@ class TestCompletions:
         out = capsys.readouterr().out
         assert "hubenv_completion_function" in out
         assert "complete -F" in out
-        assert "env" in out
-        assert "create" in out
+        # Top-level env verbs are flattened into the ``top=`` word list.
+        assert "create save restore" in out
+        assert "activate" in out
+        assert "deactivate" in out
 
     def test_zsh_completion_script(self, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -464,8 +466,9 @@ class TestCompletions:
         assert rc == 0
         out = capsys.readouterr().out
         assert "#compdef hubenv" in out
-        assert "env" in out
-        assert "create" in out
+        # Top-level env verbs carry their descriptions as ``name:desc`` entries.
+        assert "create:Create a new environment" in out
+        assert "activate" in out
 
     def test_fish_completion_script(self, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -475,15 +478,18 @@ class TestCompletions:
         out = capsys.readouterr().out
         assert "complete -c hubenv" in out
         assert "__fish_use_subcommand" in out
-        assert "env" in out
+        # Top-level env verbs complete at the subcommand position.
         assert "create" in out
+        assert "activate" in out
+        assert "deactivate" in out
 
-    def test_fish_sees_subcommand_for_env(self, capsys):
+    def test_fish_sees_subcommand_for_var(self, capsys):
         from nb_wrangler.hubenv.cli import main
 
         main(["completions", "fish"])
         out = capsys.readouterr().out
-        assert "__fish_seen_subcommand_from env" in out
+        assert "__fish_seen_subcommand_from var" in out
+        assert "__fish_seen_subcommand_from env" not in out
 
     def test_completions_invalid_shell_errors(self, capsys):
         """Invalid shell should produce argparse error (exit 2)."""
