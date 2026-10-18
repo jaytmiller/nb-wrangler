@@ -82,10 +82,12 @@ All five seed builders return a dict of this shape:
 ### 4.1 `seed_from_empty(name, python)`
 
 ```
-dependencies = [f"python={python}"?] + ["pip"]
+dependencies = [f"python={python}"?] + ["pip", {"pip": TARGET_PACKAGES}]
 ```
 
-No pip sub-dict is emitted (there are no pip packages yet).
+A `{"pip": TARGET_PACKAGES}` sub-dict is always appended so an empty
+environment installs at least the minimum packages needed to support
+hubenv functions in it (e.g. `ipykernel` for kernel registration).
 
 ### 4.2 `seed_from_requirements(name, files, python)`
 
@@ -97,7 +99,7 @@ Each file's non-blank, non-`#`-prefixed lines (stripped) are collected in file
 order into the single `pip:` list. **The `{"pip": [...]}` entry is always
 appended**, even when `files` is empty (zero-arg `--from-requirements`) — in
 that case the pip list is `[]`. This is *not* identical to
-`seed_from_empty`, which emits no `{"pip": [...]}` sub-dict at all.
+`seed_from_empty`, which always emits the baseline `TARGET_PACKAGES` pip list.
 
 ### 4.3 `seed_from_mamba_spec(name, path)`
 

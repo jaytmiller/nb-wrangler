@@ -47,6 +47,8 @@ class TestDryRun:
         assert "name: demo" in out
         assert "python=3.11" in out
         assert "conda-forge" in out
+        # The empty env installs at least the hubenv support packages.
+        assert "ipykernel" in out
 
     def test_dry_run_requirements_prints_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -148,6 +150,7 @@ class TestSeedBuilders:
         assert spec["name"] == "demo"
         assert "python=3.11" in spec["dependencies"]
         assert "pip" in spec["dependencies"]
+        assert self._has_target_packages(spec)
 
     def test_seed_from_empty_without_python(self):
         from nb_wrangler.hubenv.seeds import seed_from_empty
@@ -155,6 +158,16 @@ class TestSeedBuilders:
         spec = seed_from_empty("demo")
         assert "python=3.11" not in spec["dependencies"]
         assert "pip" in spec["dependencies"]
+        assert self._has_target_packages(spec)
+
+    @staticmethod
+    def _has_target_packages(spec) -> bool:
+        from nb_wrangler.constants import TARGET_PACKAGES
+
+        pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
+        assert pip_deps == [{"pip": list(TARGET_PACKAGES)}]
+        assert "ipykernel" in pip_deps[0]["pip"]
+        return True
 
     def test_seed_from_requirements_strips_comments(self, tmp_path):
         from nb_wrangler.hubenv.seeds import seed_from_requirements

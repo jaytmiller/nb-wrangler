@@ -8,7 +8,7 @@ serialization with ``nb_wrangler.utils.yaml_dumps``.
 import subprocess
 from pathlib import Path
 
-from nb_wrangler.constants import NBW_MAMBA_CMD
+from nb_wrangler.constants import NBW_MAMBA_CMD, TARGET_PACKAGES
 from nb_wrangler.utils import get_yaml
 
 
@@ -26,8 +26,15 @@ def _base_spec(name: str, python: str | None = None) -> dict:
 
 
 def seed_from_empty(name: str, python: str | None = None) -> dict:
-    """Build a mamba spec for an empty environment."""
-    return _base_spec(name, python)
+    """Build a mamba spec for an empty environment.
+
+    Always installs the minimum ``TARGET_PACKAGES`` (e.g. ``ipykernel``
+    for kernel registration) as pip dependencies so the created
+    environment can support hubenv functions.
+    """
+    spec = _base_spec(name, python)
+    spec["dependencies"].append({"pip": list(TARGET_PACKAGES)})
+    return spec
 
 
 def _read_requirements(path: str | Path) -> list[str]:
