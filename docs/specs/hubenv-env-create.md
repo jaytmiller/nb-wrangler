@@ -79,6 +79,14 @@ All five seed builders return a dict of this shape:
 }
 ```
 
+**Every builder guarantees the baseline `TARGET_PACKAGES` pip section**: the
+`pip` conda package appears in `dependencies`, and a single `{"pip": […]}`
+sub-dict contains every `TARGET_PACKAGES` entry (e.g. `uv`, `pip`,
+`ipykernel`, `jupyter`, `cython`, `setuptools`, `wheel`) merged with any
+packages the source already listed (existing packages first, de-duplicated,
+order-preserved). This ensures the created environment can support hubenv
+functions (e.g. kernel registration via `ipykernel`).
+
 ### 4.1 `seed_from_empty(name, python)`
 
 ```
@@ -96,26 +104,28 @@ deps = [f"python={python}"?, "pip", {"pip": [pkg1, pkg2, …]}]
 ```
 
 Each file's non-blank, non-`#`-prefixed lines (stripped) are collected in file
-order into the single `pip:` list. **The `{"pip": [...]}` entry is always
-appended**, even when `files` is empty (zero-arg `--from-requirements`) — in
-that case the pip list is `[]`. This is *not* identical to
-`seed_from_empty`, which always emits the baseline `TARGET_PACKAGES` pip list.
+order into the single `pip:` list, then the baseline `TARGET_PACKAGES` are
+merged in (existing packages first, de-duplicated). **The `{"pip": [...]}`
+entry is always present** — even when `files` is empty (zero-arg
+`--from-requirements`), the pip list contains at least the
+`TARGET_PACKAGES` baseline.
 
 ### 4.3 `seed_from_mamba_spec(name, path)`
 
-The YAML file is loaded verbatim; only `spec["name"] = name` is overridden.
-`channels` and `dependencies` from the file are kept as-is. If the file
-omits `channels`, the resulting dict will not have the key (mamba will use
-its own default channels).
+The YAML file is loaded; `spec["name"] = name` is overridden and the baseline
+`TARGET_PACKAGES` are merged into the `pip:` section (created if absent).
+`channels` and `dependencies` from the file are otherwise kept as-is. If the
+file omits `channels`, the resulting dict will not have the key (mamba will
+use its own default channels).
 
 ### 4.4 `seed_from_wrangler_spec(name, path)`
 
 Reads from the wrangler spec:
 - `image_spec_header.python_version` → `python=…` conda dep (if present)
 - `extra_mamba_packages` → conda deps (each non-`"pip"` entry inserted before `pip`)
-- `extra_pip_packages` → `{"pip": […]}` sub-dict (always appended, even if empty)
+- `extra_pip_packages` → `{"pip": […]}` sub-dict, then the baseline `TARGET_PACKAGES` are merged in (existing packages first, de-duplicated)
 
-`pip` is always included exactly once in the conda deps.
+`pip` is always included exactly once in the conda deps, and the `{"pip": […]}` sub-dict is always present (at least the `TARGET_PACKAGES` baseline).
 
 ### 4.5 `seed_from_existing_env(name, env_name, python)`
 
@@ -129,7 +139,10 @@ Parse rules:
 - All conda deps are kept **except** any entry starting with `python` (stripped).
 - If `--python` is given, `python=<version>` is inserted as the first conda dep.
 - `pip` (the conda package) is ensured to appear exactly once in deps.
-- If `pip freeze` returned a non-empty list, a `{"pip": […]}` entry is appended last.
+- When `pip freeze` returned a non-empty list, those packages are placed in a
+  trailing `{"pip": […]}` entry; in either case the baseline `TARGET_PACKAGES`
+  are merged in so the pip section is always present (existing packages first,
+  de-duplicated).
 
 If either subprocess fails (non-zero return code), `ValueError` is raised with
 the stderr text.
@@ -288,6 +301,14 @@ channels:
 dependencies:
   - python=3.11
   - pip
+  - pip:
+      - uv
+      - pip
+      - ipykernel
+      - jupyter
+      - cython
+      - setuptools
+      - wheel
 ```
 
 ### 10.2 `--from-requirements req.txt --name demo --python 3.11 --dry-run`
@@ -303,6 +324,13 @@ dependencies:
   - pip:
       - numpy>=1.20
       - pandas
+      - uv
+      - pip
+      - ipykernel
+      - jupyter
+      - cython
+      - setuptools
+      - wheel
 ```
 
 (The list under the inline `pip:` mapping is indented one level deeper than the

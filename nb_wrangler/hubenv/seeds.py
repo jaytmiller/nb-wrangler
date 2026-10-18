@@ -25,6 +25,47 @@ def _base_spec(name: str, python: str | None = None) -> dict:
     }
 
 
+def _find_pip_section(deps: list) -> dict | None:
+    """Return the first ``{"pip": [...]}`` sub-dict in *deps*, else None."""
+    for dep in deps or []:
+        if isinstance(dep, dict) and "pip" in dep:
+            return dep
+    return None
+
+
+def _merge_packages(existing, required) -> list:
+    """Return *existing* + *required* de-duplicated, order-preserved."""
+    seen: set = set()
+    merged: list = []
+    for pkg in list(existing) + list(required):
+        if pkg not in seen:
+            seen.add(pkg)
+            merged.append(pkg)
+    return merged
+
+
+def _ensure_target_packages(spec: dict) -> dict:
+    """Ensure *spec* installs all ``TARGET_PACKAGES`` as pip packages.
+
+    Guarantees the ``pip`` conda package is a dependency and that the
+    spec's ``pip`` section (created if absent) contains every
+    ``TARGET_PACKAGES`` entry merged with any existing pip packages.
+    Returns *spec* for chaining.
+    """
+    deps = spec.setdefault("dependencies", [])
+    if not any(isinstance(d, str) and d == "pip" for d in deps):
+        # Insert the pip conda package before the first sub-dict, else append.
+        idx = next((i for i, d in enumerate(deps) if isinstance(d, dict)), len(deps))
+        deps.insert(idx, "pip")
+    section = _find_pip_section(deps)
+    existing = section["pip"] if section is not None and section.get("pip") else []
+    if section is None:
+        deps.append({"pip": _merge_packages(existing, TARGET_PACKAGES)})
+    else:
+        section["pip"] = _merge_packages(existing, TARGET_PACKAGES)
+    return spec
+
+
 def seed_from_empty(name: str, python: str | None = None) -> dict:
     """Build a mamba spec for an empty environment.
 
@@ -33,7 +74,7 @@ def seed_from_empty(name: str, python: str | None = None) -> dict:
     environment can support hubenv functions.
     """
     spec = _base_spec(name, python)
-    spec["dependencies"].append({"pip": list(TARGET_PACKAGES)})
+    _ensure_target_packages(spec)
     return spec
 
 
@@ -51,21 +92,34 @@ def _read_requirements(path: str | Path) -> list[str]:
 def seed_from_requirements(
     name: str, files: list[str], python: str | None = None
 ) -> dict:
-    """Build a mamba spec from one or more requirements files."""
+    """Build a mamba spec from one or more requirements files.
+
+    Merges the baseline ``TARGET_PACKAGES`` (e.g. ``ipykernel`` for kernel
+    registration) alongside the requested requirements so the created
+    environment can support hubenv functions.
+    """
     spec = _base_spec(name, python)
     pip_packages: list[str] = []
     for f in files:
         pip_packages.extend(_read_requirements(f))
     spec["dependencies"].append({"pip": pip_packages})
+    _ensure_target_packages(spec)
     return spec
 
 
 def seed_from_mamba_spec(name: str, path: str | Path) -> dict:
-    """Load a mamba spec YAML and override the environment name."""
+    """Load a mamba spec YAML, override the name, and add baseline pip pkgs.
+
+    Preserves the source spec's channels and dependencies as-is, but always
+    guarantees ``TARGET_PACKAGES`` are installed as pip packages so the
+    created environment can support hubenv functions regardless of what the
+    source spec lists.
+    """
     yaml = get_yaml()
     with open(path) as fh:
         spec = yaml.load(fh)
     spec["name"] = name
+    _ensure_target_packages(spec)
     return spec
 
 
@@ -88,9 +142,10 @@ def seed_from_wrangler_spec(name: str, path: str | Path) -> dict:
         if pkg != "pip":
             spec["dependencies"].insert(-1, pkg)  # before "pip"
 
-    # Add extra pip packages
+    # Add extra pip packages, then guarantee the baseline TARGET_PACKAGES.
     extra_pip = wspec.get("extra_pip_packages", []) or []
     spec["dependencies"].append({"pip": list(extra_pip)})
+    _ensure_target_packages(spec)
 
     return spec
 
@@ -180,6 +235,10 @@ def seed_from_existing_env(name: str, env_name: str, python: str | None = None) 
     with *name*, and returns a spec dict suitable for serialization
     with ``yaml_dumps``.
 
+    The baseline ``TARGET_PACKAGES`` are always merged into the pip
+    section (even when the source environment has none) so the target
+    can support hubenv functions.
+
     Raises ``ValueError`` if the environment cannot be found or the
     required subcommands fail.
     """
@@ -188,4 +247,5 @@ def seed_from_existing_env(name: str, env_name: str, python: str | None = None) 
     pip_packages = _run_pip_freeze(env_name)
     if pip_packages:
         _add_pip_section(spec, pip_packages)
+    _ensure_target_packages(spec)
     return spec

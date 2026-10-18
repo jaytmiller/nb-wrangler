@@ -169,14 +169,30 @@ class TestSeedBuilders:
         assert "ipykernel" in pip_deps[0]["pip"]
         return True
 
+    @staticmethod
+    def _pip_packages(spec) -> list[str]:
+        """Return the single pip sub-dict's package list from a mamba view."""
+        pip_deps = [
+            d for d in spec["dependencies"] if isinstance(d, dict) and "pip" in d
+        ]
+        assert len(pip_deps) == 1, f"expected one pip section, got {pip_deps}"
+        return pip_deps[0]["pip"]
+
     def test_seed_from_requirements_strips_comments(self, tmp_path):
+        from nb_wrangler.constants import TARGET_PACKAGES
         from nb_wrangler.hubenv.seeds import seed_from_requirements
 
         req = tmp_path / "requirements.txt"
         req.write_text("numpy>=1.20\n# comment\n\npandas\n")
         spec = seed_from_requirements("demo", [str(req)])
-        pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
-        assert pip_deps == [{"pip": ["numpy>=1.20", "pandas"]}]
+        pip_list = self._pip_packages(spec)
+        # Requested packages are present and comment/blank lines are dropped.
+        assert "numpy>=1.20" in pip_list
+        assert "pandas" in pip_list
+        assert all(p for p in pip_list)
+        # The baseline TARGET_PACKAGES are always installed alongside them.
+        for pkg in TARGET_PACKAGES:
+            assert pkg in pip_list
 
     def test_seed_from_mamba_spec_overrides_name(self, tmp_path):
         from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
@@ -208,3 +224,53 @@ class TestSeedBuilders:
         pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
         assert "requests" in pip_deps[0]["pip"]
         assert "matplotlib" in pip_deps[0]["pip"]
+
+    def test_seed_from_mamba_spec_includes_target_packages(self, tmp_path):
+        from nb_wrangler.constants import TARGET_PACKAGES
+        from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
+
+        spec_file = tmp_path / "env.yaml"
+        spec_file.write_text("name: old-name\ndependencies:\n  - numpy\n")
+        spec = seed_from_mamba_spec("new-name", str(spec_file))
+        # The source spec's own conda dependency is preserved.
+        assert "numpy" in spec["dependencies"]
+        # Baseline TARGET_PACKAGES are guaranteed as pip packages.
+        pip_list = self._pip_packages(spec)
+        for pkg in TARGET_PACKAGES:
+            assert pkg in pip_list
+
+    def test_seed_from_wrangler_spec_includes_target_packages(self, tmp_path):
+        from nb_wrangler.constants import TARGET_PACKAGES
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        spec_file = tmp_path / "wrangler.yaml"
+        spec_file.write_text(
+            "image_spec_header:\n"
+            "  python_version: 3.11\n"
+            "extra_pip_packages:\n  - requests\n"
+        )
+        spec = seed_from_wrangler_spec("demo", str(spec_file))
+        pip_list = self._pip_packages(spec)
+        assert "requests" in pip_list
+        for pkg in TARGET_PACKAGES:
+            assert pkg in pip_list
+
+    def test_seed_from_existing_env_includes_target_packages(self):
+        from unittest.mock import patch
+
+        from nb_wrangler.constants import TARGET_PACKAGES
+        from nb_wrangler.hubenv.seeds import seed_from_existing_env
+
+        export = "name: src\nchannels:\n  - conda-forge\ndependencies:\n  - numpy\n"
+        with (
+            patch(
+                "nb_wrangler.hubenv.seeds._run_mamba_export",
+                return_value=export,
+            ),
+            patch("nb_wrangler.hubenv.seeds._run_pip_freeze", return_value=[]),
+        ):
+            spec = seed_from_existing_env("target", "src")
+        # Even with no pip packages in the source, the baseline is guaranteed.
+        pip_list = self._pip_packages(spec)
+        for pkg in TARGET_PACKAGES:
+            assert pkg in pip_list
