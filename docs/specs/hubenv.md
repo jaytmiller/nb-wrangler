@@ -153,19 +153,15 @@ one command but never contradict them.
 - `main` wraps dispatch in `try/except`:
   - `HubenvError` → log `exc.message` to stderr, return `exc.exit_code`.
   - `KeyboardInterrupt` → log "Interrupted." (INFO), return **130**.
-  - **Any other exception propagates** (traceback + exit 1). Note this no
-    longer applies to `create` seed-probe failures — those raise
-    `HubenvError` (RE-02/RE-03, resolved).
+  - **Any other exception propagates** (traceback + exit 1).
 - Parsing uses strict `argparse` (`parse_args`) — unknown flags and
-  positionals are rejected as argparse usage errors (exit **2**). Flag
-  typos (e.g. `hubenv create --nam …`) are no longer silently dropped
-  (RE-01, resolved).
+  positionals are rejected as argparse usage errors (exit **2**).
 - `--version` prints `nb_wrangler.constants.__version__` and exits **0**.
 - No command → `parser.print_help()`, exit **0**.
 - Dispatch is dict-based: env verbs in `_ENV_DISPATCH`, `var.*` in
   `_dispatch_var`, `data.*` in `_dispatch_data`, utilities in `_main`.
   A non-empty sub-parser that receives no sub-command logs an error and
-  returns **1** (RE-09, resolved; previously returned 0).
+  returns **1**.
 - The legacy `"not yet implemented"` path (`_cmd_not_implemented`, exit
   **2**) is reachable only for names that are not in any dispatch table;
   with the current parser it is not reachable for user input.
@@ -225,16 +221,8 @@ Known stdout contents per command (what a script may parse):
 | `2` | argparse usage errors (unknown flag/sub-command — parsing is strict, §4.1); the "Not implemented" dispatch path (unreachable via the current parser) |
 | `130` | Interrupted (Ctrl-C / `KeyboardInterrupt`) |
 
-Explicit per-command results resolved in v0.10.0: `var ls` with `--export`
-plus `--format json` (RE-08), bare `var`/`data` with no sub-command
-(RE-09), and `var add` with no shelf spec (RE-11) all exit **1**;
-`export --to-requirements` on a spec with no pip packages still exits
-**0** with a stderr warning (RE-10); a failed `create` seed probe exits
-**1** with a clean message (RE-02/RE-03).
-
 Handlers signal results by **returning int** and logging errors to stderr.
-`cmd_env_create` is the one handler that *raises* `HubenvError`
-(seed-probe failures — RE-02/RE-03, resolved): `main()` catches it,
+`cmd_env_create` is the one handler that *raises* `HubenvError`; `main()` catches it,
 logs its message to stderr, and returns its `exit_code`.
 
 ### 4.5 Pantry resolution rules
@@ -243,7 +231,7 @@ logs its message to stderr, and returns its `exit_code`.
   shelf is not there, the command fails with a clear message (it does not
   fall back to the chain).
 - Offered by: `create`, `save`, `restore`, `ls`, `info`, `rm`, `ensure`,
-  and (RE-12, resolved) `export`, `var ls`, `var add`, `var rm` — the
+  `export`, `var ls`, `var add`, `var rm` — the
   spec consumers resolve the store via `_common.store_for(args)`.
   `status`, `doctor`, `data *`, `register`, `unregister`, `activate`, and
   `deactivate` intentionally do **not** accept `--pantry` (they are
@@ -287,9 +275,7 @@ Interactions with the shelf spec go through `env_spec.py`:
   (`name`/`channels`/`dependencies`/`environment_vars`);
   `wrangler_to_mamba` converts on load.
 - Load when the shelf spec is missing falls back to `seed_from_empty(name, None)`
-  (deps `["pip"]`) so first-mutation commands have a well-typed seed
-  (the auto-seed observation is RE-11; `var add` now guards against it,
-  RE-11 resolved).
+  (deps `["pip"]`) so first-mutation commands have a well-typed seed.
 - `save_hubenv_spec` coerces via `_coerce_to_wrangler` and writes with
   `mkdir(parents=True, exist_ok=True)` — **overwrites unconditionally**
   (no confirmation, no backup).
@@ -323,12 +309,6 @@ Key arguments: one of `--from-empty | --from-requirements FILE… |
 `--name` (required), `--display-name`, `--python`, `--pantry`,
 `--ephemeral`, `--save`, `--dry-run`.
 
-Rough edges: `--from-existing-env` probes run **before** the existence
-check, and even under `--dry-run`; a failed probe now raises `HubenvError`
-with a clean "Failed to seed spec for 'NAME': …" message (exit 1, no
-traceback) — RE-03 resolved in v0.10.0. `--save` hard-codes
-`force=False` (no `--force` on `create`).
-
 #### `hubenv save NAME`
 
 Purpose: pack a live env into a pantry can and record the save hash.
@@ -345,9 +325,6 @@ Behavior (`env_save.py`):
 6. Persist `last-save.sha256`; print `Saved environment '<name>' to <path>`.
 
 Shared by `create --save` (`_save_after_create` wraps the same `_do_save`).
-
-Rough edges: none material (the global RE-01/RE-02 are resolved in
-v0.10.0).
 
 Detailed spec target: `docs/specs/hubenv-env-save.md`.
 
@@ -366,15 +343,14 @@ Behavior (`env_restore.py`):
    "already restored (idempotent skip)" + exports, exit 0.
 4. `NbwShelf.unpack_environment(...)`; success → record restore hash.
 5. `register_environment(name, display_name, {})` — `display_name` is
-   `--display-name` or falls back to `NAME` (RE-07 resolved in v0.10.0).
+   `--display-name` or falls back to `NAME`.
 6. Print exports; `--at-boot` → see below.
 
 `--at-boot` (`write_at_boot_snippet`): writes a guarded snippet to
 `~/.hubenv/env-<name>.sh` (setting `NBW_ACTIVE_ENV` and running
 `hubenv ensure <name> 2>/dev/null || true`) and prints the `source`
-instruction for the user to add to their shell startup — see RE-04
-resolved in v0.10.0 (no automatic `~/.bashrc` edit; `hubenv rm` removes
-the snippet via `remove_at_boot_snippet`).
+instruction for the user to add to their shell startup (no automatic 
+`~/.bashrc` edit; `hubenv rm` removes the snippet via `remove_at_boot_snippet`).
 
 Detailed spec target: `docs/specs/hubenv-env-restore.md`.
 
@@ -392,10 +368,6 @@ Behavior (`env_ensure.py`):
 2. Shelf found → `--dry-run` prints one "would restore" line; else
    `cmd_env_restore` (which does unpacking + kernel registration).
 3. No shelf → exit 1 with `hubenv create ... --name NAME` suggestion.
-
-Rough edges: RE-07 resolved in v0.10.0 (`--display-name` is threaded
-through `EnsureArgs` and honored by the delegated restore); the sub-group
-dispatch style still differs from the env verbs.
 
 Detailed spec target: `docs/specs/hubenv-env-ensure.md`.
 
@@ -464,18 +436,12 @@ Behavior (`env_rm.py`) — a 5-step pipeline:
    to set `NBW_PANTRY` / `--pantry`); paths outside the safe roots
    (`$NBW_MM/envs` or `<pantry>/shelves`) are **refused** (exit 1) —
    `is_safe_rm_path` is the path-escape guard.
-4. **Print plan**; **prompt** "Proceed? (y/N)" (written to **stderr** —
-   RE-13 resolved in v0.10.0) unless `-y` (EOF → abort, exit 1). The `rm`
-   prompt is the only interactive one in the CLI.
+4. **Print plan**; **prompt** "Proceed? (y/N)" (written to **stderr**) 
+   unless `-y` (EOF → abort, exit 1). The `rm` prompt is the only interactive
+   one in the CLI.
 5. **Execute**: live → `unregister_environment` + `delete_environment`;
    shelf → `shutil.rmtree`; already-gone → reported, not an error;
    best-effort removal of now-empty `shelves/` dirs.
-
-Rough edges: RE-13 resolved in v0.10.0 — the confirmation `input()` prompt
-now goes to **stderr**, keeping stdout machine-readable (the plan print
-stays on stdout); `--live`/`--archived`/`--both` are a non-required mutually
-exclusive group. `rm` also best-effort removes any `--at-boot` snippet
-(`remove_at_boot_snippet`) for each env it deletes (RE-04 resolved).
 
 Detailed spec target: `docs/specs/hubenv-env-rm.md`.
 
@@ -577,10 +543,6 @@ Checks (`doctor.py`), in order:
 4. **spec-only shelves** — any shelf without a can → FAIL with hint
    "Run `hubenv save <name>`…".
 
-RE-05 resolved in v0.10.0: the old EFS-mount check
-(`read_proc_mounts`, Linux-only, failing when no EFS mount sat under
-a pantry path) was removed entirely, so doctor is now 4 checks.
-
 Exit: 0 if all pass, else 1. Table or JSON (`{checks:[…], all_pass}`) —
 JSON has two parallel shapes (`checks`/`all_pass` vs. per-check
 `pass`/`detail`/`hint`).
@@ -606,11 +568,10 @@ Behavior (`export.py`):
 - `--output "-"` → stdout (default); else write file + one "Exported spec …"
   line.
 
-Rough edges: RE-10 resolved in v0.10.0 — `--to-requirements` on a spec
-without pip packages still exits 0, but now prints a **stderr warning**
-("spec for 'NAME' has no pip packages; empty requirements output") instead
-of silently emitting an empty string; `--to-mamba-spec` is the no-flag
-default, matching the help text.
+`--to-requirements` on a spec without pip packages still exits 0, but now 
+prints a **stderr warning** ("spec for 'NAME' has no pip packages; empty 
+requirements output") instead of silently emitting an empty string; 
+`--to-mamba-spec` is the no-flag default, matching the help text.
 
 #### `hubenv var ls NAME [GLOB…]`
 
@@ -624,8 +585,7 @@ Behavior (`var.py`): filters by glob (empty → all); prints table
 (`--format json`). **`--export` and `--format json` are mutually
 exclusive** — passing both is a usage error (stderr
 "--export and --format json are mutually exclusive; choose one.", exit 1)
-— RE-08 resolved in v0.10.0. Pantry lookup honors `--pantry` (RE-12
-resolved). No spec → empty view (no error); "(no environment variables
+— Pantry lookup honors `--pantry`.  No spec → empty view (no error); "(no environment variables
 defined for '<name>')" marker.
 
 #### `hubenv var add NAME VAR=VALUE…`
@@ -637,11 +597,9 @@ Synopsis: `hubenv var add NAME VAR=VALUE… [--pantry PATH]`
 
 Behavior: **spec-exists guard first** (before any mutation): no shelf
 spec → stderr "No spec found for env 'NAME'. Create it first:
-hubenv create NAME --from-empty" + exit 1 — RE-11 resolved in v0.10.0
-(the old empty-seed fallback no longer *creates* the shelf as a side
-effect; `var rm` is unaffected). Pantry lookup honors `--pantry` (RE-12
-resolved). Then: parse assignments (first `=` only; malformed → "not a
-VAR=VALUE assignment" + exit 1); load spec; update dict;
+hubenv create NAME --from-empty" + exit 1 — 
+Pantry lookup honors `--pantry`. Then: parse assignments (first `=` only; 
+malformed → "not a VAR=VALUE assignment" + exit 1); load spec; update dict;
 `save_hubenv_spec`; `refresh_kernel_vars` (re-register with the new vars;
 failure → warning, spec kept). Prints one `Set …` line per var +
 "Kernel refreshed for '<name>'."
@@ -697,13 +655,6 @@ hard-coded command tree; unknown shell → stderr message + exit 1; supported
 → the script on stdout (no trailing newline beyond the generator's own),
 exit 0. Doc-usage: `eval "$(hubenv completions bash)"`, write to
 `$fpath[1]/_hubenv`, or `~/.config/fish/completions/hubenv.fish`.
-
-Rough edges: RE-06 resolved in v0.10.0 — the embedded command tree now
-matches the flattened CLI surface: all 20 top-level verbs are complete
-(14 env verbs including `ls`/`info`/`register`/`unregister`, plus
-`export`, `status`, `doctor`, `var`, `data`, `completions`, with
-`activate`/`deactivate` added), and no generated script suggests the old
-`hubenv env <verb>` shape.
 
 #### `hubenv --version` / (no command)
 
