@@ -57,6 +57,14 @@ These tighten or correct `hubenv` behavior; scripts that relied on the old quirk
 
 - **Fixed `--packages-ignore-versions` path bug** (`nb_wrangler/compiler.py`). `_strip_versions_from_requirements` previously embedded the *full filesystem path* of each requirements file into the stripped output filename (e.g. `stripped_/home/.../aperture_photometry/requirements.txt_abc123.txt`). Path separators were interpreted as directory separators, so the stripped file was written to a nested path that never matched what the compiler subsequently looked for, causing a `FileNotFoundError`. The filename now uses only `Path(req_file).name`, keeping stripped files flat in the output directory while the sha256 hash continues to disambiguate duplicate basenames.
 
+### Behavior Changes
+
+- **`--print-repo-tags` now resolves tags against the live remote** (`nb_wrangler/wrangler.py`).
+  _Provenance note: this rework was previously listed under v0.9.0, but per git history (commits `fdc3011`, `fb76b8b`) it first landed after the `v0.9.1` tag; the note was moved here for accuracy against the actual released code._
+  - Uses `git ls-remote --tags <url>` (no clone required) to enumerate tags for each repo URL.
+  - Version-prefix refs (e.g. `2026.2`) are resolved to the highest `x.y.z` tag with the greatest numeric `z`.
+  - Non-version refs (e.g. `main`) are returned as-is when no matching tags are found.
+
 ---
 
 **v0.9.1** change notes (since v0.9.0):
@@ -107,10 +115,7 @@ These tighten or correct `hubenv` behavior; scripts that relied on the old quirk
   - New top-level `environment_vars:` spec section, like variables in `refdata_dependencies.yaml` but specified directly in the wrangler spec; merged into refdata during data collection.
   - New `test_environment_vars:` spec section injects test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run.
 
-- **`--print-repo-tags` Enhancement**
-  - Now uses `git ls-remote --tags` (no clone required) to enumerate tags for each repo URL.
-  - Version-prefix refs (e.g. `2026.2`) are resolved to the highest `x.y.z` tag with the greatest numeric `z`.
-  - Non-version refs (e.g. `main`) are returned as-is when no matching tags are found.
+- **`--print-repo-tags` flag** added to print one `url ref` line per spec repository. As of this release it printed the spec's `ref`/`resolved_ref` without querying remotes; the `git ls-remote --tags` rework shipped in **v0.9.2** (see those notes).
 
 ### Spec & Validation
 
