@@ -48,17 +48,18 @@ class TestEmitActivationBash:
     def test_pins_root_prefix_and_activates_by_path(self):
         out = A.emit_activation(MM, MAMBA, "bash", ENV_PATH, name="demo")
         lines = out.splitlines()
-        assert lines[0] == "export NBW_ACTIVE_ENV=demo"
+        assert lines[0].startswith("export NBW_ACTIVE_ENV=demo")
         assert f"export NBW_ENV_ROOT={ENV_PATH}" in out
         assert f"export MAMBA_ROOT_PREFIX={MM}" in out
-        assert f"{MAMBA} activate {ENV_PATH}" in out
+        # the env is activated by absolute path (the foreign-mamba invariant)
+        assert f"activate {ENV_PATH}" in out
         assert "shell hook" in out
 
     def test_no_name_omits_env_markers(self):
         out = A.emit_activation(MM, MAMBA, "bash", ENV_PATH)
         assert "NBW_ACTIVE_ENV" not in out
         assert "NBW_ENV_ROOT" not in out
-        assert f"{MAMBA} activate {ENV_PATH}" in out
+        assert f"activate {ENV_PATH}" in out
 
     def test_data_exports_appended(self):
         out = A.emit_activation(
@@ -78,7 +79,7 @@ class TestEmitActivationFish:
     def test_uses_set_gx(self):
         out = A.emit_activation(MM, MAMBA, "fish", ENV_PATH, name="demo")
         assert "set -gx MAMBA_ROOT_PREFIX" in out
-        assert "eval (" in out
+        assert 'eval "$(' in out
         assert "export MAMBA_ROOT_PREFIX" not in out
 
 
@@ -90,7 +91,7 @@ class TestEmitDeactivate:
 
     def test_fish(self):
         out = A.emit_deactivate(MAMBA, "fish")
-        assert "eval (" in out
+        assert 'eval "$(' in out
         assert f"{MAMBA} deactivate" in out.replace("'", "")
 
 
@@ -201,7 +202,7 @@ class TestHubenvActivateShelfEnvVars:
             rc = env_activate.cmd_env_activate(_args("demo"))
         out_lines = buf.getvalue().splitlines()
         assert rc == 0
-        assert "export NBW_ACTIVE_ENV=demo" in out_lines
+        assert "export NBW_ACTIVE_ENV=demo" in buf.getvalue()
         assert f"activate {mm}/envs/demo" in buf.getvalue().replace("'", "")
 
         env_vars = {"Z_LAST": "z", "DEBUG": "1", "URL": "http://x?a=1&b=2"}

@@ -71,8 +71,9 @@ def activation_lines(
     return [
         _export_line("MAMBA_ROOT_PREFIX", nbw_mm, shell),
         _hook_line(os.path.basename(mamba_cmd), shell),
-        f'{_q(os.path.basename(mamba_cmd))} activate {_q(env_path)}; ',
+        f"{_q(os.path.basename(mamba_cmd))} activate {_q(env_path)}; ",
     ]
+
 
 def emit_activation(
     nbw_mm: str,
