@@ -3,6 +3,8 @@
 import json
 import os
 
+from tabulate import tabulate
+
 from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv.config import PantryStore
 
@@ -116,29 +118,47 @@ def list_kernelspecs() -> dict:
         return {}
 
 
+def _build_env_rows(envs: list[dict]) -> list[list[str]]:
+    """Return one table row per environment, sorted by name."""
+    rows = []
+    for env in sorted(envs, key=lambda x: x["name"]):
+        rows.append(
+            [
+                env["name"],
+                env["state"],
+                str(env["live_path"] or "-"),
+                str(env["pantry"] or "-"),
+                "registered" if env["kernel_registered"] else "absent",
+                "yes" if env["can"] else "no (spec-only)",
+            ]
+        )
+    return rows
+
+
 def print_status_table(status: dict) -> None:
     """Print status as a human-readable table."""
     print(f"Active env:     {status['active_env'] or '(none)'}")
     print(f"Active pantry:  {status['active_pantry']}")
     print()
     print(
-        f"{'ENV':<20} {'STATE':<16} {'LIVE':<36} {'PANTRY':<28} {'KERNEL':<12} {'ARCHIVED'}"
-    )
-    print("-" * 126)
-    for env in sorted(status["environments"], key=lambda x: x["name"]):
-        kernel = "registered" if env["kernel_registered"] else "absent"
-        live = str(env["live_path"] or "-")
-        pantry = str(env["pantry"] or "-")
-        archived = "yes" if env["can"] else "no (spec-only)"
-        print(
-            f"{env['name']:<20} {env['state']:<16} {live:<36} "
-            f"{pantry:<28} {kernel:<12} {archived}"
+        tabulate(
+            _build_env_rows(status["environments"]),
+            headers=["ENV", "STATE", "LIVE", "PANTRY", "KERNEL", "ARCHIVED"],
+            tablefmt="grid",
         )
+    )
     print()
     print("Pantries:")
-    for p in status["pantries"]:
-        writable = "r/w" if p["writable"] else "r/o"
-        print(f"  {p['path']} ({writable})")
+    pantry_rows = [
+        [str(p["path"]), "r/w" if p["writable"] else "r/o"] for p in status["pantries"]
+    ]
+    print(
+        tabulate(
+            pantry_rows,
+            headers=["PATH", "Writable"],
+            tablefmt="grid",
+        )
+    )
 
 
 def print_status_json(status: dict) -> None:

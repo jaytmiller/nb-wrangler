@@ -6,6 +6,8 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
+from tabulate import tabulate
+
 from nb_wrangler.hubenv.config import PantryStore
 
 
@@ -183,12 +185,17 @@ def print_doctor_table(checks: list[dict]) -> None:
     """Print doctor check results as a table."""
     print("hubenv doctor — self-test results")
     print("=" * 80)
-    for c in checks:
-        status = "PASS" if c["pass"] else "FAIL"
-        print(f"  [{status}] {c['check']}")
-        print(f"        {c['detail']}")
-        if c["hint"]:
-            print(f"        hint: {c['hint']}")
+    rows = [
+        [c["check"], "PASS" if c["pass"] else "FAIL", c["detail"], c["hint"]]
+        for c in checks
+    ]
+    print(
+        tabulate(
+            rows,
+            headers=["CHECK", "STATUS", "DETAIL", "HINT"],
+            tablefmt="grid",
+        )
+    )
     print("=" * 80)
     passed = sum(1 for c in checks if c["pass"])
     print(f"{passed}/{len(checks)} checks passed")

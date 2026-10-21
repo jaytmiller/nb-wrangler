@@ -29,7 +29,8 @@ dependencies = [
     "uv",
     "setuptools",
     "httpx",
-    "ddtrace"
+    "ddtrace",
+    "tabulate>=0.9.0",
 ]
 
 [project.optional-dependencies]
@@ -58,3 +59,12 @@ include = [
 [project.scripts]
 nbw = "nb_wrangler.cli:main"
 hubenv = "nb_wrangler.hubenv.cli:main"
+
+[tool.mypy]
+# types-tabulate stub package is not installed in the dev environment and
+# pip is unavailable for mypy --install-types, so treat tabulate as untyped
+# rather than failing the mypy lint.
+
+[[tool.mypy.overrides]]
+module = ["tabulate"]
+ignore_missing_imports = true

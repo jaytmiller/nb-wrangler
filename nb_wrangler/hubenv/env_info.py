@@ -3,6 +3,8 @@
 from pathlib import Path
 from typing import Optional
 
+from tabulate import tabulate
+
 from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
 from nb_wrangler.pantry import NbwShelf
 from nb_wrangler.hubenv._common import get_logger, print_shadowing_warnings
@@ -31,6 +33,19 @@ def cmd_env_info(args) -> int:
     return 0
 
 
+def _indent(text: str, spaces: int = 4) -> str:
+    """Indent every line of *text* by *spaces* spaces."""
+    return "\n".join(" " * spaces + line for line in text.splitlines())
+
+
+def _archive_display(name: str, shelf_path: Path) -> str:
+    """Return the archive display string for the shelf at *shelf_path*."""
+    can = _can_for_shelf(name, Path(shelf_path))
+    if can is None:
+        return f"NOT ARCHIVED — run: hubenv save {name}"
+    return f"{can}  ({can.stat().st_size} bytes)"
+
+
 def print_info_table(name: str, shelves: list[dict], live_envs: list[dict]) -> None:
     """Print table-style info for *name*."""
     print(f"Environment: {name}")
@@ -51,22 +66,15 @@ def print_info_table(name: str, shelves: list[dict], live_envs: list[dict]) -> N
         writable = "r/o" if not entry["writable"] else "r/w"
         hash_short = entry["save_hash"] or "none"
         print(f"  Shelf {i + 1}:")
-        print(f"    Pantry:     {entry['pantry']}")
-        print(f"    Path:       {entry['path']}")
-        print(f"    Writable:   {writable}")
-        print(f"    Save hash:  {hash_short}")
-        _print_archive_block(name, entry["path"])
+        rows = [
+            ["Pantry", str(entry["pantry"])],
+            ["Path", str(entry["path"])],
+            ["Writable", writable],
+            ["Save hash", hash_short],
+            ["Archive", _archive_display(name, entry["path"])],
+        ]
+        print(_indent(tabulate(rows, tablefmt="plain")))
         print()
-
-
-def _print_archive_block(name: str, shelf_path: Path) -> None:
-    """Print the can/archive line for the shelf at *shelf_path*."""
-    can = _can_for_shelf(name, Path(shelf_path))
-    if can is not None:
-        size = can.stat().st_size
-        print(f"    Archive:    {can}  ({size} bytes)")
-    else:
-        print(f"    Archive:    NOT ARCHIVED — run: hubenv save {name}")
 
 
 def _can_for_shelf(name: str, shelf_path: Path) -> Optional[Path]:
