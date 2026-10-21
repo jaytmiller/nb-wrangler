@@ -120,16 +120,50 @@ hubenv restore my-env
 
 ## Using the environment
 
+### Activating
+
 Activate a shell with the exported snippet (output is safe for `eval`):
 
 ```bash
 eval "$(hubenv activate my-env)"
 ```
 
-Or pick the registered kernel (display name) in JupyterLab — the registered
-kernel spec already carries the environment's variables.
+Alternately:
 
-Manage packages:
+```bash
+hubenv activate my-env >my-env-on
+source my-env-on
+```
+
+Or pick the registered kernel (display name) in JupyterLab to assign it to
+the current notebook.
+
+### Deactivating
+
+If hubenv is installed,  inverse of activating:
+
+```bash
+eval $(hubenv deactivate) 
+```
+
+or
+
+```bash
+hubenv deactivate >my-env-off
+source my-env-off
+```
+
+or (if hubenv is not installed in `my-env`)
+
+```bash
+mamba deactivate
+
+# -or - 
+
+micromamba deactivate
+```
+
+## Manage packages:
 
 ```bash
 hubenv install my-env "pandas>=2"        # hubenv suggests `relock` after this
@@ -137,7 +171,7 @@ hubenv uninstall my-env pandas
 hubenv relock my-env                     # re-curate pip locks / refresh the spec
 ```
 
-Inspect state:
+## Inspect state:
 
 ```bash
 hubenv ls                 # live envs + pantry shelves
@@ -155,13 +189,42 @@ hubenv rm --live team-* -y    # live only, glob, no prompt
 
 ## Quick recipe
 
+hubenv is centered around creating persistent environments on the science platforms while
+maintaining acceptable install and reuse performance.  consequently,  there is typically
+a first session where you set up,  and then you restore the environment on subsequent
+logins / server spawns.
+
+### First session setup
+
+You can setup and use your own environment based on a list of pip packages in `reqs.txt`
+with something like the following:
+
 ```bash
 hubenv create --name v2  --from-requirements reqs.txt --python 3.11
-hubenv save   --name v2                # now restorable
+hubenv save v2                         # now restorable
 eval "$(hubenv activate v2)"           # use it
 hubenv ls                              # confirm
 ```
 
+### 2nd through Nth sessions
+
+For your next sessions,  you can restore exactly the environment you installed
+during session #1 from its archive rather than reinstalling it:
+
+```bash
+hubenv restore v2
+eval "$(hubenv activate v2)"           # use it
+hubenv ls                              # confirm
+```
+
+To avoid repeatedly unpacking your environment when putting the above in an RC file
+such as .bashrc,  use `hubenv ensure v2` that conditionally restores v2 only when
+it is not already restored.
+
+## Troubleshooting
+
 If creation fails midway, `hubenv rm --dry-run my-env` to see what would be
-removed, then `hubenv create --name my-env …` again — `create` is additive,
-and partial shelves are shown as spec-only until saved.
+removed, omit the `--dry-run` to actually perform the removal if the dry-run
+looked ok, then `hubenv create --name my-env …` when you're ready to try again.
+
+Also potentially useful is `--verbose` to display DEBUG log messages.
