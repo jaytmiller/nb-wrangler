@@ -53,15 +53,15 @@ def _q(value: str) -> str:
 def _export_line(var: str, value: str, shell: str) -> str:
     """Emit a shell-appropriate ``VAR=value`` assignment line."""
     if shell == "fish":
-        return f"set -gx {var} {_q(value)}"
-    return f"export {var}={_q(value)}"
+        return f"set -gx {var} {_q(value)}; "
+    return f"export {var}={_q(value)}; "
 
 
 def _hook_line(mamba_cmd: str, shell: str) -> str:
     """Emit a shell-appropriate line that installs the mamba activate hook."""
     if shell == "fish":
-        return f"eval ({_q(mamba_cmd)} shell hook)"
-    return f'eval "$({_q(mamba_cmd)} shell hook 2>/dev/null)"'
+        return f'eval "$({_q(mamba_cmd)} shell hook)"; '
+    return f'eval "$({_q(mamba_cmd)} shell hook 2>/dev/null)"; '
 
 
 def activation_lines(
@@ -70,10 +70,9 @@ def activation_lines(
     """Common activation snippet lines: pin root prefix, hook, activate by path."""
     return [
         _export_line("MAMBA_ROOT_PREFIX", nbw_mm, shell),
-        _hook_line(mamba_cmd, shell),
-        f"{_q(mamba_cmd)} activate {_q(env_path)}",
+        _hook_line(os.path.basename(mamba_cmd), shell),
+        f'{_q(os.path.basename(mamba_cmd))} activate {_q(env_path)}; ',
     ]
-
 
 def emit_activation(
     nbw_mm: str,
