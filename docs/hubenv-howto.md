@@ -35,7 +35,9 @@ hubenv doctor
 
 ## Creating a new environment
 
-`hubenv create` requires exactly **one** seed source, plus a `--name`:
+`hubenv create` requires exactly **one** seed source. `--name` is required
+only for `--from-empty` / `--from-requirements`; for the other three sources
+the name is derived (see the "Name default" column below):
 
 ```bash
 hubenv create \
@@ -45,13 +47,13 @@ hubenv create \
 
 Seed source options (mutually exclusive):
 
-| Flag                | Uses what                                      |
-| :------------------ | :--------------------------------------------- |
-| `--from-empty`      | Nothing — an empty env (`pip` + optional Python) |
-| `--from-requirements FILE…` | One or more pip requirements files   |
-| `--from-mamba-spec FILE`   | An existing mamba/conda spec YAML    |
-| `--from-wrangler-spec FILE`| A complete nb-wrangler spec YAML     |
-| `--from-existing-env ENV_NAME` | Imports an env already present in mamba |
+| Flag                | Uses what                                      | Name default (no `--name`) |
+| :------------------ | :--------------------------------------------- | :-------------------------- |
+| `--from-empty`      | Nothing — an empty env (`pip` + optional Python) | *required* |
+| `--from-requirements FILE…` | One or more pip requirements files   | *required* |
+| `--from-mamba-spec FILE`   | An existing mamba/conda spec YAML    | spec's `name`, else file stem |
+| `--from-wrangler-spec FILE`| A complete nb-wrangler spec YAML     | header `kernel_name`, else `image_name`, else file stem |
+| `--from-existing-env ENV_NAME` | Imports an env already present in mamba | imported env's own name |
 
 Useful flags:
 
@@ -87,8 +89,8 @@ hubenv create --name sci --from-requirements reqs.txt --dry-run
 # Plain notebook env, Python 3.11
 hubenv create --name sci --from-requirements reqs.txt --python 3.11
 
-# Import an env you already built by hand
-hubenv create --name sci --from-existing-env sci-raw
+# Import an env you already built by hand (keeps its own name)
+hubenv create --from-existing-env sci-raw
 
 # Build + archive in one shot (restorable)
 hubenv create --name sci --from-requirements reqs.txt --save

@@ -134,6 +134,22 @@ class TestDryRun:
             assert rc == 0
             mock_create.assert_not_called()
 
+    def test_dry_run_without_name_derives_it(self, tmp_path, capsys):
+        """No ``--name``: name is derived from the wrangler spec header."""
+        from nb_wrangler.hubenv.cli import main
+
+        spec_file = tmp_path / "wrangler.yaml"
+        spec_file.write_text(
+            "image_spec_header:\n"
+            "  kernel_name: astro-py\n"
+            "  python_version: 3.11\n"
+        )
+        rc = main(["create", "--from-wrangler-spec", str(spec_file), "--dry-run"])
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "name: astro-py" in out
+        assert "python=3.11" in out
+
 
 # ---------------------------------------------------------------------------
 # Seed builders
@@ -202,6 +218,24 @@ class TestSeedBuilders:
         spec = seed_from_mamba_spec("new-name", str(spec_file))
         assert spec["name"] == "new-name"
 
+    def test_seed_from_mamba_spec_defaults_name_to_spec_name(self, tmp_path):
+        """No explicit name: defaults to the spec file's own ``name``."""
+        from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
+
+        spec_file = tmp_path / "env.yaml"
+        spec_file.write_text("name: old-name\ndependencies:\n  - numpy\n")
+        spec = seed_from_mamba_spec(None, str(spec_file))
+        assert spec["name"] == "old-name"
+
+    def test_seed_from_mamba_spec_defaults_name_to_file_stem(self, tmp_path):
+        """No explicit name and no spec ``name``: defaults to the file stem."""
+        from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
+
+        spec_file = tmp_path / "my-spec.yaml"
+        spec_file.write_text("channels:\n  - conda-forge\ndependencies:\n  - numpy\n")
+        spec = seed_from_mamba_spec(None, str(spec_file))
+        assert spec["name"] == "my-spec"
+
     def test_seed_from_wrangler_spec_extracts_packages(self, tmp_path):
         from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
 
@@ -224,6 +258,55 @@ class TestSeedBuilders:
         pip_deps = [d for d in spec["dependencies"] if isinstance(d, dict)]
         assert "requests" in pip_deps[0]["pip"]
         assert "matplotlib" in pip_deps[0]["pip"]
+
+    def test_seed_from_wrangler_spec_defaults_name_to_kernel_name(self, tmp_path):
+        """No explicit name: defaults to the header's ``kernel_name``."""
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        spec_file = tmp_path / "wrangler.yaml"
+        spec_file.write_text(
+            "image_spec_header:\n"
+            "  kernel_name: astro-py\n"
+            "  python_version: 3.11\n"
+        )
+        spec = seed_from_wrangler_spec(None, str(spec_file))
+        assert spec["name"] == "astro-py"
+
+    def test_seed_from_wrangler_spec_falls_back_to_image_name(self, tmp_path):
+        """No ``kernel_name``: falls back to the header's ``image_name``."""
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        spec_file = tmp_path / "wrangler.yaml"
+        spec_file.write_text(
+            "image_spec_header:\n" "  image_name: img-x\n" "  python_version: 3.11\n"
+        )
+        spec = seed_from_wrangler_spec(None, str(spec_file))
+        assert spec["name"] == "img-x"
+
+    def test_seed_from_wrangler_spec_defaults_name_to_file_stem(self, tmp_path):
+        """No ``kernel_name``/``image_name``: falls back to the file stem."""
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        spec_file = tmp_path / "my-wrangler.yaml"
+        spec_file.write_text("image_spec_header:\n" "  python_version: 3.11\n")
+        spec = seed_from_wrangler_spec(None, str(spec_file))
+        assert spec["name"] == "my-wrangler"
+
+    def test_seed_from_wrangler_spec_python_override(self, tmp_path):
+        """An explicit *python* overrides the header's ``python_version``."""
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        spec_file = tmp_path / "wrangler.yaml"
+        spec_file.write_text(
+            "image_spec_header:\n"
+            "  kernel_name: astro-py\n"
+            "  python_version: 3.11\n"
+            "extra_pip_packages:\n  - requests\n"
+        )
+        spec = seed_from_wrangler_spec("demo", str(spec_file), "3.10")
+        assert spec["name"] == "demo"
+        assert "python=3.10" in spec["dependencies"]
+        assert not any(d == "python=3.11" for d in spec["dependencies"])
 
     def test_seed_from_mamba_spec_includes_target_packages(self, tmp_path):
         from nb_wrangler.constants import TARGET_PACKAGES

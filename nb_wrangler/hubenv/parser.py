@@ -315,7 +315,14 @@ def _add_create_args(p) -> None:
         metavar="ENV_NAME",
         help="Import an existing mamba environment into the PPE lifecycle",
     )
-    p.add_argument("--name", required=True, help="Environment name")
+    p.add_argument(
+        "--name",
+        default=None,
+        help="Environment name. Required for --from-empty and --from-requirements; "
+        "optional for the other sources, where it defaults to the source's own "
+        "name (mamba spec name or file stem, wrangler spec kernel_name or "
+        "image_name or file stem, imported env name).",
+    )
     p.add_argument("--display-name", default=None, help="Jupyter kernel display name")
     p.add_argument("--python", default=None, help="Python version (e.g. 3.11)")
     p.add_argument(

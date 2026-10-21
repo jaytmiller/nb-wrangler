@@ -52,6 +52,10 @@ def cmd_env_create(args) -> int:
     """Handle ``hubenv create``: build the live env, then persist essentials."""
     _probe_target(args)
     seed = _seed(args)
+    # Source-derived name (e.g. --from-existing-env without --name) lands
+    # on args.name only after the seed is built; downstream steps all
+    # read it from there.
+    args.name = seed["name"]
 
     if args.dry_run:
         print(yaml_dumps(seed))
@@ -84,11 +88,16 @@ def _probe_target(args) -> None:
     """Run the target existence probe before any seed work (RE-03).
 
     Runs even under ``--dry-run`` so the cheap probe precedes the slower
-    ``mamba env export`` / ``pip freeze`` seed steps.  Non-fatal: creation
-    proceeds and ``create_environment`` reports the real outcome.
+    ``mamba env export`` / ``pip freeze`` seed steps.  Skipped when the
+    name is ``None`` (source-derived name flows resolve it after the
+    seed build).  Non-fatal: creation proceeds and ``create_environment``
+    reports the real outcome.
     """
-    if EnvironmentManager().environment_exists(args.name):
-        get_logger().info(f"Environment '{args.name}' already exists.")
+    name = args.name
+    if not name:
+        return
+    if EnvironmentManager().environment_exists(name):
+        get_logger().info(f"Environment '{name}' already exists.")
 
 
 def _seed(args) -> dict:
@@ -111,6 +120,11 @@ def build_seed_dict(args) -> dict:
     """Build the seeded mamba-spec dict from the chosen source."""
     name = args.name
     python = args.python
+    if (args.from_empty or args.from_requirements) and name is None:
+        raise HubenvError(
+            "--name is required for --from-empty and --from-requirements",
+            exit_code=1,
+        )
     if args.from_empty:
         return seed_from_empty(name, python)
     if args.from_requirements:
@@ -118,7 +132,7 @@ def build_seed_dict(args) -> dict:
     if args.from_mamba_spec:
         return seed_from_mamba_spec(name, args.from_mamba_spec)
     if args.from_wrangler_spec:
-        return seed_from_wrangler_spec(name, args.from_wrangler_spec)
+        return seed_from_wrangler_spec(name, args.from_wrangler_spec, python)
     if args.from_existing_env:
         return seed_from_existing_env(name, args.from_existing_env, python)
     # Should not reach here due to mutually-exclusive required group

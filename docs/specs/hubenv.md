@@ -306,7 +306,10 @@ kernel); `--save` additionally packs the can.
 Key arguments: one of `--from-empty | --from-requirements FILE… |
 --from-mamba-spec FILE | --from-wrangler-spec FILE |
 --from-existing-env ENV_NAME` (mutually exclusive, exactly one),
-`--name` (required), `--display-name`, `--python`, `--pantry`,
+`--name` (required only for `--from-empty` / `--from-requirements`; derived
+otherwise: mamba spec `name` or file stem, wrangler spec `kernel_name` or
+`image_name` or file stem, imported env name for `--from-existing-env`),
+`--display-name`, `--python`, `--pantry`,
 `--ephemeral`, `--save`, `--dry-run`.
 
 #### `hubenv save NAME`

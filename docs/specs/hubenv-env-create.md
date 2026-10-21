@@ -29,11 +29,17 @@ Users who only need a throwaway live environment (CI, scratch) pass
 ## 2. Command synopsis
 
 ```
-hubenv create --name NAME SOURCE_FLAG [SOURCE_ARGS] [OPTIONS]
+hubenv create SOURCE [OPTIONS]
 ```
 
 where at least one of the mutually-exclusive source flags must be present,
 and exactly one (enforced by argparse `add_mutually_exclusive_group(required=True)`).
+
+`--name NAME` is required for `--from-empty` / `--from-requirements` and
+optional for the other three sources, where it defaults to the source's own
+name (mamba spec's `name` or file stem, wrangler spec's `kernel_name` or
+`image_name` or file stem, source environment name for
+`--from-existing-env`).
 
 ---
 
@@ -45,7 +51,7 @@ and exactly one (enforced by argparse `add_mutually_exclusive_group(required=Tru
 |---|---|---|
 | `--from-empty` | *(none)* | Build a minimally-populated spec. Dependencies: pinned python (if `--python` given) + `pip`. |
 | `--from-requirements` | `FILE…` (zero or more, `nargs="*"`) | Parse each named file's non-blank, non-`#`-prefixed lines into a `pip:` dependency section. |
-| `--from-mamba-spec` | `FILE` (single) | Load a valid mamba/conda-spec YAML; override its `name` with `--name`; keep channels and dependencies as-is. |
+| `--from-mamba-spec` | `FILE` (single) | Load a valid mamba/conda-spec YAML; override its `name` with `--name` (default: the spec's own `name`, else the file stem); keep channels and dependencies as-is. |
 | `--from-wrangler-spec` | `FILE` (single) | Read `image_spec_header.python_version`, `extra_mamba_packages`, and `extra_pip_packages` from a fully-formed wrangler spec; rebuild a mamba-spec dict. |
 | `--from-existing-env` | `ENV_NAME` (single) | Export the package set of an existing mamba environment via `mamba env export` + `pip freeze`; build a mamba-spec dict from that. The env itself is not (re)created — it must already exist in mamba. |
 
@@ -53,7 +59,7 @@ and exactly one (enforced by argparse `add_mutually_exclusive_group(required=Tru
 
 | Flag | Required / Default | Description |
 |---|---|---|
-| `--name` | **required** | Name of the target environment (mamba env name, shelf name, kernel name — all the same string). |
+| `--name` | required for `--from-empty` / `--from-requirements`; optional (derived default) otherwise | Name of the target environment (mamba env name, shelf name, kernel name — all the same string). Defaults to the source's own name: the mamba spec's `name` (or file stem), the wrangler spec's `kernel_name` (then `image_name`, then file stem), or the imported environment name for `--from-existing-env`. |
 | `--display-name` | optional, `None` | Jupyter kernel display name. Defaults to `--name` when omitted. |
 | `--python` | optional, `None` | Python version pin (e.g. `3.11`). Appended as `python=3.11` conda dependency for `--from-empty` and `--from-requirements`; used to override the python pin in `--from-wrangler-spec` and `--from-existing-env`; ignored by `--from-mamba-spec` (which preserves the spec file's own dependencies verbatim). |
 | `--pantry` | optional, `None` | Pantry directory to target. When set, `PantryStore(paths=[Path(value)])` is used so the shelf spec is written under that specific pantry and is not resolved via the default `NBW_PANTRY_DIRS` chain. When omitted, the first writable pantry is used. |
@@ -73,7 +79,7 @@ All five seed builders return a dict of this shape:
 
 ```python
 {
-    "name": str,           # always --name
+    "name": str,           # --name, or derived from the source (see §3.2)
     "channels": list[str], # always ["conda-forge"] unless overridden by the source
     "dependencies": list,  # conda string deps + optional {"pip": [str, …]} dict
 }
@@ -112,16 +118,20 @@ entry is always present** — even when `files` is empty (zero-arg
 
 ### 4.3 `seed_from_mamba_spec(name, path)`
 
-The YAML file is loaded; `spec["name"] = name` is overridden and the baseline
-`TARGET_PACKAGES` are merged into the `pip:` section (created if absent).
-`channels` and `dependencies` from the file are otherwise kept as-is. If the
-file omits `channels`, the resulting dict will not have the key (mamba will
-use its own default channels).
+The YAML file is loaded; `spec["name"]` is overridden with *name* when it is
+not `None` (otherwise defaulted to the file's own `name`, then the file
+stem), and the baseline `TARGET_PACKAGES` are merged into the `pip:` section
+(created if absent). `channels` and `dependencies` from the file are
+otherwise kept as-is. If the file omits `channels`, the resulting dict will
+not have the key (mamba will use its own default channels).
 
-### 4.4 `seed_from_wrangler_spec(name, path)`
+### 4.4 `seed_from_wrangler_spec(name, path, python)`
 
 Reads from the wrangler spec:
-- `image_spec_header.python_version` → `python=…` conda dep (if present)
+- name: *name* when given, else the header's `kernel_name` (then `image_name`,
+  then the file stem)
+- `image_spec_header.python_version` → `python=…` conda dep (if present),
+  unless *python* is given, which overrides it
 - `extra_mamba_packages` → conda deps (each non-`"pip"` entry inserted before `pip`)
 - `extra_pip_packages` → `{"pip": […]}` sub-dict, then the baseline `TARGET_PACKAGES` are merged in (existing packages first, de-duplicated)
 
@@ -134,10 +144,14 @@ Two subprocess calls:
 2. `mamba run -n <env_name> pip freeze` → package list
 
 Parse rules:
-- `name` is overridden with `--name`.
+- `name` is overridden with *name* when it is not `None` (otherwise the
+  import defaults to *env_name* — seamless name reuse).
 - `channels` are preserved from the export (default `conda-forge` if absent).
-- All conda deps are kept **except** any entry starting with `python` (stripped).
-- If `--python` is given, `python=<version>` is inserted as the first conda dep.
+- All conda deps are kept **except** any entry starting with `python`; when
+  *python* (i.e. `--python`) is omitted, the source env's own python pin
+  (first entry starting with `python`) is restored as the first dep.
+- If *python* is given, `python=<version>` is inserted as the first conda dep
+  (replacing the source pin).
 - `pip` (the conda package) is ensured to appear exactly once in deps.
 - When `pip freeze` returned a non-empty list, those packages are placed in a
   trailing `{"pip": […]}` entry; in either case the baseline `TARGET_PACKAGES`
@@ -229,6 +243,7 @@ the environment is assumed to already exist in mamba.
 | `--from-existing-env` source not found in mamba — no persistence | `1` |
 | No writable pantry (and no valid `--pantry`) — build may have succeeded, but no spec/kernel | `1` |
 | Seed probe/build fails (e.g. `--from-existing-env` source missing; `mamba env export` / `pip freeze` fail) | `1` — caught by `_seed` and re-raised as `HubenvError("Failed to seed spec for 'NAME': …", exit_code=1)`; `cli.main()` prints the clean message to stderr, no traceback (RE-03 resolved) |
+| `--name` missing for `--from-empty` / `--from-requirements` (validated in `build_seed_dict`) | `1` — clean `HubenvError("--name is required for --from-empty and --from-requirements")` on stderr, no traceback |
 
 ---
 

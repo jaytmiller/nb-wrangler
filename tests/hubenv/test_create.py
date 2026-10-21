@@ -79,15 +79,23 @@ class TestParser:
         assert args.python == "3.11"
         assert args.from_empty is True
 
-    def test_create_requires_name(self):
-        from nb_wrangler.hubenv.cli import build_parser
+    def test_create_requires_name(self, capsys):
+        """``--from-empty`` still needs ``--name``; now a clean error, exit 1."""
+        from nb_wrangler.hubenv.cli import main
 
-        parser = build_parser()
-        try:
-            parser.parse_args(["create", "--from-empty"])
-        except SystemExit:
-            return
-        raise AssertionError("Expected SystemExit for missing --name")
+        rc = main(["create", "--from-empty"])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "--name is required" in err
+
+    def test_create_requirements_requires_name(self, capsys):
+        """``--from-requirements`` still needs ``--name``; exit 1, clean error."""
+        from nb_wrangler.hubenv.cli import main
+
+        rc = main(["create", "--from-requirements", "req.txt"])
+        assert rc == 1
+        err = capsys.readouterr().err
+        assert "--name is required" in err
 
     def test_create_mutually_exclusive_sources(self):
         from nb_wrangler.hubenv.cli import build_parser
@@ -226,7 +234,8 @@ class TestSeedFromExistingEnv:
         assert "requests==2.31.0" in pip_deps
         assert "scipy==1.11.0" in pip_deps
 
-    def test_seed_strips_python_without_override(self):
+    def test_seed_defaults_name_to_source_env_name(self):
+        """No ``--name``: defaults to the source environment's own name."""
         from nb_wrangler.hubenv.seeds import seed_from_existing_env
 
         with (
@@ -236,10 +245,9 @@ class TestSeedFromExistingEnv:
             ),
             patch("nb_wrangler.hubenv.seeds._run_pip_freeze", return_value=[]),
         ):
-            spec = seed_from_existing_env("myproject", "astro-py")
+            spec = seed_from_existing_env(None, "astro-py")
 
-        conda_deps = [d for d in spec["dependencies"] if isinstance(d, str)]
-        assert not any(d.startswith("python") for d in conda_deps)
+        assert spec["name"] == "astro-py"
 
     def test_seed_python_override(self):
         from nb_wrangler.hubenv.seeds import seed_from_existing_env
@@ -256,6 +264,25 @@ class TestSeedFromExistingEnv:
         conda_deps = [d for d in spec["dependencies"] if isinstance(d, str)]
         assert "python=3.10" in conda_deps
         assert not any(d == "python=3.11.5" for d in conda_deps)
+
+    def test_seed_preserves_source_python_without_override(self):
+        """No ``--python``: the source env's own pin is restored as the
+        first (and only) conda python dep."""
+        from nb_wrangler.hubenv.seeds import seed_from_existing_env
+
+        with (
+            patch(
+                "nb_wrangler.hubenv.seeds._run_mamba_export",
+                return_value=_CANNED_EXPORT_YAML,
+            ),
+            patch("nb_wrangler.hubenv.seeds._run_pip_freeze", return_value=[]),
+        ):
+            spec = seed_from_existing_env("myproject", "astro-py")
+
+        conda_deps = [d for d in spec["dependencies"] if isinstance(d, str)]
+        assert conda_deps[0] == "python=3.11.5"
+        python_deps = [d for d in conda_deps if d.startswith("python")]
+        assert python_deps == ["python=3.11.5"]
 
     def test_seed_no_duplicate_pip(self):
         from nb_wrangler.hubenv.seeds import seed_from_existing_env
@@ -482,6 +509,25 @@ class TestCreateFromExistingEnv:
         shadow = (
             tmp_path / "pantry" / "shelves" / "myproject" / "nbw-wrangler-spec.yaml"
         )
+        assert not shadow.exists()
+
+    def test_import_dry_run_defaults_name_to_source_env(self, tmp_path, capsys):
+        """No ``--name``: imported env's name is used; dry-run writes nothing."""
+        from nb_wrangler.hubenv.cli import main
+
+        with (
+            patch(
+                "nb_wrangler.hubenv.seeds._run_mamba_export",
+                return_value=_CANNED_EXPORT_YAML,
+            ),
+            patch("nb_wrangler.hubenv.seeds._run_pip_freeze", return_value=[]),
+        ):
+            rc = main(["create", "--from-existing-env", "astro-py", "--dry-run"])
+
+        assert rc == 0
+        out = capsys.readouterr().out
+        assert "name: astro-py" in out
+        shadow = tmp_path / "pantry" / "shelves" / "astro-py" / "nbw-wrangler-spec.yaml"
         assert not shadow.exists()
 
     def test_import_not_found(self, tmp_path):

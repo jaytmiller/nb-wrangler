@@ -107,30 +107,46 @@ def seed_from_requirements(
     return spec
 
 
-def seed_from_mamba_spec(name: str, path: str | Path) -> dict:
-    """Load a mamba spec YAML, override the name, and add baseline pip pkgs.
+def seed_from_mamba_spec(name: str | None, path: str | Path) -> dict:
+    """Load a mamba spec YAML, default the name, and add baseline pip pkgs.
 
     Preserves the source spec's channels and dependencies as-is, but always
     guarantees ``TARGET_PACKAGES`` are installed as pip packages so the
     created environment can support hubenv functions regardless of what the
     source spec lists.
+
+    When *name* is ``None`` (no ``--name``), it defaults to the source spec's
+    own ``name`` field, or the spec file's stem if absent.
     """
     yaml = get_yaml()
     with open(path) as fh:
-        spec = yaml.load(fh)
+        spec = yaml.load(fh) or {}
+    if name is None:
+        name = spec.get("name") or Path(path).stem
     spec["name"] = name
     _ensure_target_packages(spec)
     return spec
 
 
-def seed_from_wrangler_spec(name: str, path: str | Path) -> dict:
-    """Build a mamba spec from a wrangler spec YAML file."""
+def seed_from_wrangler_spec(
+    name: str | None, path: str | Path, python: str | None = None
+) -> dict:
+    """Build a mamba spec from a wrangler spec YAML file.
+
+    *name* (``None`` when no ``--name``) defaults to the header's
+    ``kernel_name``, then ``image_name``, then the file stem.  *python*
+    (``None`` when no ``--python``) defaults to the header's
+    ``python_version``.
+    """
     yaml = get_yaml()
     with open(path) as fh:
         wspec = yaml.load(fh)
 
     header = wspec.get("image_spec_header", {}) or {}
-    python = header.get("python_version")
+    if name is None:
+        name = header.get("kernel_name") or header.get("image_name") or Path(path).stem
+    if python is None:
+        python = header.get("python_version")
     if python:
         python = str(python).strip()
 
@@ -197,23 +213,28 @@ def _parse_pip_freeze(text: str) -> list[str]:
 def _parse_env_export(yaml_text: str, name: str, python: str | None) -> dict:
     """Parse env-export YAML into a mamba-spec dict.
 
-    Overrides the environment name, strips the ``pip:`` sub-dict and any
-    ``python=`` entry from conda dependencies (caller may pass *python*
-    to pin a specific version), and ensures ``pip`` is present as a
-    conda dependency.
+    Overrides the environment name, strips the ``pip:`` sub-dict from
+    conda dependencies.  When no *python* override is given, the source
+    env's own python pin (first conda dep starting with ``python``) is
+    preserved instead of being dropped.
     """
     yaml = get_yaml()
     export = yaml.load(yaml_text) or {}
     channels = export.get("channels") or ["conda-forge"]
     deps: list = []
+    source_python: str | None = None
     for dep in export.get("dependencies", []):
         if isinstance(dep, dict) and "pip" in dep:
             continue
         if isinstance(dep, str) and dep.startswith("python"):
+            if source_python is None:
+                source_python = dep
             continue
         deps.append(dep)
     if python:
         deps.insert(0, f"python={python}")
+    elif source_python:
+        deps.insert(0, source_python)
     if not any(isinstance(d, str) and d == "pip" for d in deps):
         deps.append("pip")
     return {
@@ -228,12 +249,14 @@ def _add_pip_section(spec: dict, pip_packages: list[str]) -> None:
     spec["dependencies"].append({"pip": list(pip_packages)})
 
 
-def seed_from_existing_env(name: str, env_name: str, python: str | None = None) -> dict:
+def seed_from_existing_env(
+    name: str | None, env_name: str, python: str | None = None
+) -> dict:
     """Build a mamba-spec dict from an existing mamba environment.
 
-    Exports the package set of *env_name*, overrides the target name
-    with *name*, and returns a spec dict suitable for serialization
-    with ``yaml_dumps``.
+    Exports the package set of *env_name*; when *name* is ``None``
+    (no ``--name``) it defaults to *env_name* so the import is seamless.
+    Returns a spec dict suitable for serialization with ``yaml_dumps``.
 
     The baseline ``TARGET_PACKAGES`` are always merged into the pip
     section (even when the source environment has none) so the target
@@ -243,6 +266,8 @@ def seed_from_existing_env(name: str, env_name: str, python: str | None = None) 
     required subcommands fail.
     """
     yaml_text = _run_mamba_export(env_name)
+    if name is None:
+        name = env_name
     spec = _parse_env_export(yaml_text, name, python)
     pip_packages = _run_pip_freeze(env_name)
     if pip_packages:
