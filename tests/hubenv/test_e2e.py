@@ -300,8 +300,8 @@ class TestE2EFlow:
             rc = main(["create", "--from-empty", "--name", "demo", "--save"])
 
         assert rc == 0
-        out = capsys.readouterr().out
-        assert "archived and restorable" in out
+        err = capsys.readouterr().err
+        assert "archived and restorable" in err
         can = pantry / "shelves" / "demo" / "archives" / "env-demo.tar"
         assert can.exists()
 
@@ -315,8 +315,8 @@ class TestE2EFlow:
             rc = main(["create", "--from-empty", "--name", "demo"])
 
         assert rc == 0
-        out = capsys.readouterr().out
-        assert "hubenv save demo" in out
+        err = capsys.readouterr().err
+        assert "hubenv save demo" in err
 
     def test_install_dry_run_does_not_change_spec(self, _ppe_env, capsys):
         """Install dry-run should not write the spec."""

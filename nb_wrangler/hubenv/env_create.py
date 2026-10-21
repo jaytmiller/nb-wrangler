@@ -177,13 +177,13 @@ def _save_after_create(args) -> int:
     """Archive the just-created env into a pantry can (``--save``)."""
     rc = _do_save(PantryStore(), args.name, args.pantry, force=False)
     if rc == 0:
-        print(f"Environment '{args.name}' is archived and restorable.")
+        get_logger().info(f"Environment '{args.name}' is archived and restorable.")
     return rc
 
 
 def print_save_hint(name: str) -> None:
     """Remind the user that the env is not yet archived."""
-    print(
+    get_logger().warning(
         f"Not archived yet. Run `hubenv save {name}` " f"to create the restoreable can."
     )
 
