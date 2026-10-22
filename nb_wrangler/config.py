@@ -118,6 +118,7 @@ class WranglerConfig:
     spec_ignore_hash: bool = False
     spec_update_hash: bool = False
     spec_disable_dev_overrides: bool = False
+    spec_readonly: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_print_exports: bool = False
@@ -237,6 +238,7 @@ class WranglerConfig:
             spec_validate=args.spec_validate,
             spec_ignore_hash=args.spec_ignore_hash,
             spec_update_hash=args.spec_update_hash,
+            spec_readonly=args.spec_readonly,
             data_reset_spec=args.data_reset_spec,
             data_collect=args.data_collect,
             data_list=args.data_list,

@@ -615,6 +615,14 @@ def parse_args():
         dest="spec_ignore_hash",
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
     )
+    spec_group.add_argument(
+        "--spec-readonly",
+        action="store_true",
+        dest="spec_readonly",
+        help="Treat the source spec as read-only.  A step that would write to the "
+        "source spec because its content changed is refused (warn + abort).  Unchanged "
+        "saves are byte-for-byte no-ops.",
+    )
     dev_group.add_argument(
         "--spec-disable-dev-overrides",
         action="store_true",

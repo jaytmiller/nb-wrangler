@@ -71,6 +71,7 @@ class SpecManager(
         self._is_validated = False
         self._source_file: Path = Path()
         self._initial_spec_sha256 = None
+        self._baseline_content_fp: str | None = None
 
         self.validator = SpecValidator(self)
 
@@ -581,6 +582,7 @@ class SpecManager(
             else:
                 self.inline_mamba_spec = None
             self.logger.debug(f"Loaded spec from {str(spec_file)}.")
+            self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
@@ -607,31 +609,100 @@ class SpecManager(
         output_filepath = self.output_spec(output_dir)
         return self.save_spec_as(output_filepath, add_sha256=add_sha256)
 
+    def _content_fp(self) -> str:
+        """Fingerprint of the spec ignoring ``date_updated`` and ``spec_sha256``.
+
+        Temporarily blanks those two fields, hashes the serialized spec, then
+        restores them via ``finally``.  This is the "content" used to detect a
+        real change (stable across date/hash refreshes).  Specs without a
+        ``system`` section are hashed unmodified.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return utils.sha256_str(self.to_string())
+        date_present = "date_updated" in system
+        hash_present = "spec_sha256" in system
+        orig_date = system.get("date_updated")
+        orig_hash = system.get("spec_sha256")
+        system.pop("date_updated", None)
+        system.pop("spec_sha256", None)
+        try:
+            return utils.sha256_str(self.to_string())
+        finally:
+            if date_present:
+                system["date_updated"] = orig_date
+            if hash_present:
+                system["spec_sha256"] = orig_hash
+
+    def _content_changed(self) -> bool:
+        """True when actual content differs from the loaded source baseline."""
+        if self._baseline_content_fp is None:
+            return True
+        return self._content_fp() != self._baseline_content_fp
+
+    def _readonly_source_write(self, output_path: Path | str) -> bool:
+        """True when output_path is the loaded source spec file itself."""
+        if not self._source_file:
+            return False
+        return Path(output_path).resolve() == self._source_file.resolve()
+
+    def _update_meta(self, add_sha256: bool) -> None:
+        """Refresh date/hash metadata after a real content change."""
+        self.refresh_date_updated()
+        if add_sha256:
+            hash = self.add_sha256()
+            self.logger.debug(f"Setting spec_sha256 to {hash}.")
+        else:
+            self.system.pop("spec_sha256", None)
+            self.logger.debug(
+                "Not updating spec_sha256 sum; Removing potentially outdated sum."
+            )
+
+    def _write_spec(self, output_path: Path | str) -> None:
+        """Write the current serialized spec to output_path."""
+        output_path = Path(output_path)
+        if output_path.exists():
+            self.logger.debug(
+                f"Output file {output_path} already exists and will be "
+                "removed and overwritten."
+            )
+            output_path.unlink()
+        self.logger.debug(f"Writing spec to {output_path}.")
+        with output_path.open("w+") as f:
+            f.write(self.to_string())
+        self.logger.debug(f"Spec file saved to {output_path}.")
+
     def save_spec_as(
         self, output_filepath: Path | str, add_sha256: bool = False
     ) -> bool:
-        """Save the current YAML spec to a file."""
+        """Save the current YAML spec to a file.
+
+        ``system.date_updated`` and ``system.spec_sha256`` change only when the
+        actual content changes.  An unchanged save to the source is a byte-for-byte
+        no-op; an unchanged copy is re-serialized as-is.  With ``--spec-readonly``
+        a source write that would change content is refused (warn + abort).
+        """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
-            self.refresh_date_updated()
-            if add_sha256:
-                hash = self.add_sha256()
-                self.logger.debug(f"Setting spec_sha256 to {hash}.")
+            is_source = self._readonly_source_write(output_path)
+            changed = self._content_changed()
+            if changed and is_source and self.config.spec_readonly:
+                return self.logger.error(
+                    "--spec-readonly: refusing to modify source spec "
+                    f"{self._source_file} (content changed)."
+                )
+            if changed:
+                self._update_meta(add_sha256)
+            if (not changed) and is_source:
+                self.logger.debug(
+                    f"Spec content unchanged; source {self._source_file} "
+                    "left untouched."
+                )
             else:
-                self.system.pop("spec_sha256", None)
-                self.logger.debug(
-                    "Not updating spec_sha256 sum; Removing potentially outdated sum."
-                )
-            if output_path.exists():
-                self.logger.debug(
-                    f"Output file {output_filepath} already exists and will be removed and overwritten."
-                )
-                output_path.unlink()  # Remove existing file if it
-            self.logger.debug(f"Writing spec to {output_filepath}.")
-            with output_path.open("w+") as f:
-                f.write(self.to_string())
-            self.logger.debug(f"Spec file saved to {output_filepath}.")
+                self._write_spec(output_path)
+                if changed and is_source:
+                    self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
             return self.logger.exception(

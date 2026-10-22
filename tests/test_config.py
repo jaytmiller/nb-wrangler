@@ -130,6 +130,7 @@ class TestFromArgs:
             print_repo_tags=False,
             spec_list=False,
             spec_add=False,
+            spec_readonly=False,
             spi_branch="",
             spi_commit_message=[""],
             spi_inject_reqs=False,
