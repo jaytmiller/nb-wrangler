@@ -49,7 +49,9 @@ does not include a .venv; hence when needed use "python" instead of
 - Keep functions and methods simple and target SLOC within the 5-20 line range.
 - In general use wrangler's logger module and subprocess execution routines.
 - Add or update focused tests for behavior changes.
+- Minimize changes to the nbw app and nb_wrangler/*.py when implementing or modifying the hubenv app.
 - Run relevant linting and tests; report commands not run and why.
+- Do not modify .git or its contents.  Do not commit or push changes.
 - Ask before changing public APIs, spec format.
 
 ## Documentation
