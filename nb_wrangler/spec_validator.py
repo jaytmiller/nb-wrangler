@@ -47,7 +47,13 @@ class SpecValidator(WranglerLoggable):
 
     def _validate_environment_spec(self) -> bool:
         """
-        Validates the environment definition, enforcing one of four mutually exclusive methods.
+        Validates the environment definition method.
+
+        A wrangler-side definition may use `python_version` (simple definition)
+        and/or an inline mamba spec (second YAML document); the two may
+        coexist, in which case the header values take precedence over the
+        inline spec's name/python pin (resolved at the consuming side).  An
+        external `environment_spec` remains mutually exclusive with both.
         """
         no_errors = True
 
@@ -56,28 +62,24 @@ class SpecValidator(WranglerLoggable):
         has_inline_mamba_spec = self.sm.inline_mamba_spec is not None
         has_environment_spec = self.sm.environment_spec is not None
 
-        # Count defined methods
-        methods_defined = sum(
-            [has_python_version, has_inline_mamba_spec, has_environment_spec]
-        )
-
-        # Validate exactly one method is used
-        if methods_defined == 0:
+        if has_environment_spec and (has_python_version or has_inline_mamba_spec):
+            return self.logger.error(
+                "Multiple environment definitions found. `environment_spec` "
+                "is mutually exclusive with `python_version` and an inline mamba spec."
+            )
+        if not (has_python_version or has_inline_mamba_spec or has_environment_spec):
             return self.logger.error(
                 "No environment definition found. Specify `python_version`, an inline mamba spec, or an external `environment_spec`."
             )
-        if methods_defined > 1:
-            return self.logger.error(
-                "Multiple environment definitions found. `python_version`, inline mamba spec, and `environment_spec` are mutually exclusive."
-            )
 
-        # Validate the specific method used
-        if has_python_version:
-            no_errors = self._validate_simple_definition() and no_errors
+        # Validate the specific method used (inline wins over simple for
+        # hybrid specs, external is exclusive and checked above)
+        if has_environment_spec:
+            no_errors = self._validate_external_spec() and no_errors
         elif has_inline_mamba_spec:
             no_errors = self._validate_inline_spec() and no_errors
-        elif has_environment_spec:
-            no_errors = self._validate_external_spec() and no_errors
+        else:  # has_python_version
+            no_errors = self._validate_simple_definition() and no_errors
 
         # Validate header fields
         no_errors = (
@@ -106,22 +108,14 @@ class SpecValidator(WranglerLoggable):
         return no_errors
 
     def _validate_inline_spec(self) -> bool:
-        """Validate inline mamba spec."""
+        """Validate inline mamba spec (second YAML document).
+
+        The header may also carry ``kernel_name``/``python_version`` — they
+        coexist with the inline mamba spec and take precedence over its
+        ``name``/python pin when resolved by the consumer.  This validator
+        only requires the second document to be a dict with a ``name`` field.
+        """
         no_errors = True
-        if "python_version" in self.sm.header:
-            no_errors = (
-                self.logger.error(
-                    "`python_version` must not be in the header when using an inline spec."
-                )
-                and no_errors
-            )
-        if "kernel_name" in self.sm.header:
-            no_errors = (
-                self.logger.error(
-                    "`kernel_name` must not be in the header when using an inline spec."
-                )
-                and no_errors
-            )
         if (
             not isinstance(self.sm.inline_mamba_spec, dict)
             or "name" not in self.sm.inline_mamba_spec

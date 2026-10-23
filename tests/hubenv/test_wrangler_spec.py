@@ -49,8 +49,8 @@ extra_pip_packages:
   - requests
 """
 
-# doc1 must omit kernel_name/python_version in the inline form; name & python
-# live in the second document.
+# doc2 carries the name & python pin for the inline form; the header may
+# additionally carry kernel_name/python_version (header wins on conflict).
 _INLINE_SRC = """\
 image_spec_header:
   image_name: src2
@@ -103,6 +103,34 @@ dependencies:
   - pip:
       - "scikit-learn==1.0.0-cp310-cp310-manylinux_2_17"
       - plain-pkg
+"""
+
+# Hybrid inline spec: header kernel_name/python_version differ from the
+# second document's name/python pin — header must win the delegation.
+_HYBRID_SRC = """\
+image_spec_header:
+  image_name: hybrid
+  kernel_name: hybrid-header
+  python_version: "3.11"
+  display_name: hybrid
+  deployment_name: wrangler
+  valid_on: 1970-01-01
+  expires_on: 2099-12-31
+repositories: {}
+extra_mamba_packages:
+  - scipy
+extra_pip_packages:
+  - pandas
+---
+name: hybrid-inline
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - pip
+  - pip:
+      - scikit-learn
 """
 
 
@@ -180,8 +208,9 @@ class TestTwoForms:
         assert w.get(INLINE_FLAG) is True
         assert "python=3.10" in w["dependencies"]
 
-    def test_inline_header_omits_name_python(self, _set_config):
-        """Inline doc1 must not carry kernel_name/python_version (validator rule)."""
+    def test_inline_header_carries_effective_name_python(self, _set_config):
+        """The saved inline shelf spec's header records the effective
+        ``kernel_name`` (CLI-won here) and ``python_version`` (doc2 pin)."""
         src = _write(_set_config / "src.yaml", _INLINE_SRC)
         seed = seed_from_wrangler_spec("demo", str(src))
         store = _pantry(_set_config)
@@ -190,8 +219,8 @@ class TestTwoForms:
 
         docs = list(u.get_yaml().load_all(store.shelf_spec_path("demo").read_text()))
         header = docs[0].get("image_spec_header") or {}
-        assert "kernel_name" not in header
-        assert "python_version" not in header
+        assert header.get("kernel_name") == "demo"
+        assert header.get("python_version") == "3.10"
         assert header.get("name") is None  # no name slot in doc1 for inline
 
 
@@ -265,6 +294,35 @@ class TestPrecedence:
         )
         assert seed.get(INLINE_FLAG) is True
 
+    def test_inline_header_overrides_doc2(self, _set_config, caplog):
+        """Header kernel_name/python_version differ from doc2: header wins;
+        the saved shelf spec stays a valid two-doc inline spec with the
+        header recording the effective values."""
+        import logging
+
+        import nb_wrangler.utils as u
+
+        caplog.set_level(logging.INFO)
+        src = _write(_set_config / "hybrid.yaml", _HYBRID_SRC)
+        seed = seed_from_wrangler_spec(None, str(src))
+        assert seed["name"] == "hybrid-header"
+        assert any(
+            d == "python=3.11" for d in seed["dependencies"] if isinstance(d, str)
+        )
+        assert "Using wrangler header name 'hybrid-header' instead of" in caplog.text
+        assert seed.get(INLINE_FLAG) is True
+
+        store = _pantry(_set_config)
+        save_hubenv_spec(store, "hybrid-header", seed)
+        path = store.shelf_spec_path("hybrid-header")
+        _assert_valid_spec(path)
+        assert "\n---\n" in path.read_text()  # form preserved
+        docs = list(u.get_yaml().load_all(path.read_text()))
+        header = docs[0].get("image_spec_header") or {}
+        assert header.get("kernel_name") == "hybrid-header"
+        assert header.get("python_version") == "3.11"
+        assert docs[1].get("name") == "hybrid-header"  # doc2 aligned to header
+
     def test_simple_python_missing_from_all_sources_raises(self, _set_config):
         """Simple form with no python anywhere must raise ValueError."""
         src = (
@@ -306,9 +364,8 @@ class TestInlineOverride:
         src = _write(_set_config / "src.yaml", _INLINE_SRC)
         seed = seed_from_wrangler_spec("cli2", str(src), "3.13")
         out = caplog.text
-        assert "Overriding seed name from 'src2' to 'cli2'" in out
-        assert "Overriding seed python from '3.10' to '3.13'" in out
-        assert "(CLI)" in out
+        assert "Overriding name from 'src2' to 'cli2' (CLI)." in out
+        assert "Overriding python from '3.10' to '3.13' (CLI)." in out
         # stale pin cleared & replaced
         py = [
             d

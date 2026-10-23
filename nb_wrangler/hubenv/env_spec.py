@@ -45,14 +45,14 @@ def python_version(conda: list) -> str | None:
     return None
 
 
-def _required_image_header(
-    name: str, python_version: str | None, inline: bool = False
-) -> dict:
+def _required_image_header(name: str, python_version: str | None) -> dict:
     """Scaffold the required ``image_spec_header`` fields for a valid spec.
 
-    For the wrangler "inline spec" form (*inline* True) ``kernel_name`` is
-    omitted and ``python_version`` is never set — nbw's validator forbids both
-    when an inline mamba spec (second YAML doc) is present.
+    ``kernel_name`` is always set to *name* — even in the "inline spec"
+    form, where it may coexist with the inline mamba spec (second YAML doc)
+    and take precedence over it.  ``python_version`` is set when a Python pin
+    was resolved; it likewise may coexist with the inline form.  The caller
+    adds an empty pin for simple-definition specs that lack a resolved pin.
     """
     header = {
         "image_name": name,
@@ -62,11 +62,8 @@ def _required_image_header(
         "valid_on": "1970-01-01",
         "expires_on": "2099-12-31",
     }
-    if inline:
-        header.pop("kernel_name", None)
-    else:
-        if python_version:
-            header["python_version"] = str(python_version)
+    if python_version:
+        header["python_version"] = str(python_version)
     return header
 
 
@@ -94,8 +91,10 @@ def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict
     ``name/channels/dependencies/environment_vars`` from the view map onto
     ``image_spec_header``, ``extra_mamba_packages``, ``extra_pip_packages``,
     ``environment_vars`` respectively.  *inline* True builds the wrangler "
-    inline spec" form: the header omits ``kernel_name``/``python_version``
-    (they live in the inline mamba seed).
+    inline spec" form (two YAML documents, the mamba view as doc 2); in both
+    forms the header's ``kernel_name`` and (when resolvable) ``python_version``
+    always reflect the effective values and may coexist with the inline
+    mamba seed.
     """
     conda, pip = split_conda_pip(mamba_spec.get("dependencies") or [])
     py = python_version(conda)
@@ -104,7 +103,7 @@ def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict
         for d in conda
         if not (isinstance(d, str) and d.startswith("python=")) and d != "pip"
     ]
-    header = _required_image_header(name, py, inline=inline)
+    header = _required_image_header(name, py)
     # When a real python version was not pinned, simple-definition mode
     # requires one; fall back to an empty pin so validation passes.
     if not inline and py is None:

@@ -51,8 +51,8 @@ Seed source options (mutually exclusive):
 | :------------------ | :--------------------------------------------- | :-------------------------- |
 | `--from-empty`      | Nothing — an empty env (`pip` + optional Python) | *required* |
 | `--from-requirements FILE…` | One or more pip requirements files   | *required* |
-| `--from-mamba-spec FILE`   | An existing mamba/conda spec YAML    | spec's `name`, else file stem |
-| `--from-wrangler-spec FILE`| A complete nb-wrangler spec YAML     | header `kernel_name`, else `image_name`, else file stem |
+| `--from-mamba-spec FILE`   | An existing mamba/conda spec YAML    | spec's `name` (error if absent) |
+| `--from-wrangler-spec FILE`| A complete nb-wrangler spec YAML     | header `kernel_name`, else `image_name`, else inline mamba spec `name` (error if none) |
 | `--from-existing-env ENV_NAME` | Imports an env already present in mamba | imported env's own name |
 
 Useful flags:

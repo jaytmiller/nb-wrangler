@@ -115,25 +115,19 @@ def _is_compiled_pip(pkg: str) -> bool:
 def _apply_name_python(
     spec: dict, name: str, python: str | None, old_python: str | None
 ) -> None:
-    """Record CLI overrides on the seed: name, python dep, and clear stale lock.
+    """Apply the resolved name/python pin to *spec*; clear stale pins.
 
     The seed's name/python are set to *name*/the resolved *python*; when the
-    python changes the stale pin and any compiled pip lock are cleared, each
-    with a descriptive log line.
+    python changes the stale pin and any compiled pip lock are cleared (each
+    with a descriptive log line).  Logging of which source won the name/python
+    delegation happens at the resolution site (``seed_from_wrangler_spec``).
     """
-    old_name = spec.get("name")
-    if old_name and old_name != name:
-        get_logger().info(f"Overriding seed name from '{old_name}' to '{name}' (CLI).")
     spec["name"] = name
     if python:
         python = str(python).strip()
         if python != old_python:
             _clear_python_dep(spec["dependencies"])
             spec["dependencies"].insert(0, f"python={python}")
-            get_logger().info(
-                f"Overriding seed python from '{old_python}' to '{python}' "
-                "(CLI); cleared stale python pin."
-            )
             _clear_stale_pip_lock(spec, old_python, python)
 
 
@@ -243,21 +237,25 @@ def seed_from_requirements(
 
 
 def seed_from_mamba_spec(name: str | None, path: str | Path) -> dict:
-    """Load a mamba spec YAML, default the name, and add baseline pip pkgs.
+    """Load a mamba spec YAML, resolve the name, and add baseline pip pkgs.
 
+    *name* (``None`` when no ``--name``) defaults to the spec's own ``name``
+    field only; a spec without one raises ``ValueError`` (pass ``--name``).
     Preserves the source spec's channels and dependencies as-is, but always
     guarantees ``TARGET_PACKAGES`` are installed as pip packages so the
     created environment can support hubenv functions regardless of what the
     source spec lists.
-
-    When *name* is ``None`` (no ``--name``), it defaults to the source spec's
-    own ``name`` field, or the spec file's stem if absent.
     """
     yaml = get_yaml()
     with open(path) as fh:
         spec = yaml.load(fh) or {}
     if name is None:
-        name = spec.get("name") or Path(path).stem
+        name = spec.get("name")
+        if not name:
+            raise ValueError(
+                f"Mamba spec '{path}' has no 'name' field; pass --name to "
+                "name the environment."
+            )
     spec["name"] = name
     _ensure_target_packages(spec)
     return spec
@@ -268,15 +266,18 @@ def seed_from_wrangler_spec(
 ) -> dict:
     """Build a mamba spec from a wrangler spec YAML file.
 
-    *name* (``None`` when no ``--name``) resolves as CLI > header
-    ``kernel_name``/``image_name`` > inline spec ``name`` > file stem.
-    *python* (``None`` when no ``--python``) resolves as CLI > header
-    ``python_version`` > inline spec python.  In the simple form a Python pin is
-    required: if it is absent from every source, a ``ValueError`` is raised
-    (wrapped in ``HubenvError`` on the ``create`` path).  When the source carries
-    a second YAML document (inline mamba seed) the seed is built from it with the
-    CLI name/python overrides applied and recorded (option 1); otherwise it is
-    derived from the header package lists.
+    *name* (``None`` when no ``--name``) resolves along the delegation
+    hierarchy CLI > header ``kernel_name``/``image_name`` > inline mamba spec
+    ``name``; no name at any level raises ``ValueError``.  *python* (``None``
+    when no ``--python``) resolves as CLI > header ``python_version`` >
+    inline mamba spec pin.  When the wrangler header and the inline mamba
+    spec both carry a value (no CLI value), the header wins and the override
+    is logged.  When the CLI value differs from the source, the override is
+    logged.  In the simple form a Python pin is required: if it is absent from
+    every source, a ``ValueError`` is raised (wrapped in ``HubenvError`` on
+    the ``create`` path).  When the source carries a second YAML document
+    (inline mamba seed) the seed is built from it with the resolved name/
+    python applied; otherwise it is derived from the header package lists.
     """
     yaml = get_yaml()
     with open(path) as fh:
@@ -284,18 +285,50 @@ def seed_from_wrangler_spec(
     wspec, inline_doc2 = docs[0], docs[1] if len(docs) > 1 else None
     header = wspec.get("image_spec_header", {}) or {}
     inline = inline_doc2 is not None
+    # Name: CLI > header (kernel_name > image_name) > inline mamba spec.
+    header_name = header.get("kernel_name") or header.get("image_name")
+    inline_name = inline_doc2.get("name") if inline_doc2 else None
     if name is None:
-        name = (
-            header.get("kernel_name")
-            or header.get("image_name")
-            or (inline_doc2.get("name") if inline_doc2 else None)
-            or Path(path).stem
-        )
+        name = header_name or inline_name
+        if header_name is not None and inline_name is not None and name != inline_name:
+            get_logger().info(
+                f"Using wrangler header name '{header_name}' instead of "
+                f"inline mamba spec name '{inline_name}'."
+            )
+        if name is None:
+            raise ValueError(
+                f"Wrangler spec '{path}' defines no environment name "
+                "(missing header kernel_name/image_name and inline mamba "
+                "spec name); pass --name."
+            )
+    else:
+        source_name = header_name or inline_name
+        if source_name is not None and name != source_name:
+            get_logger().info(
+                f"Overriding name from '{source_name}' to '{name}' (CLI)."
+            )
+
+    # Python: CLI > header python_version > inline mamba spec pin.
+    header_python = header.get("python_version")
+    inline_python = _python_from_spec(inline_doc2) if inline_doc2 else None
     if python is None:
-        python = header.get("python_version") or (
-            _python_from_spec(inline_doc2) if inline_doc2 else None
-        )
-    if python:
+        python = header_python or inline_python
+        if (
+            header_python is not None
+            and inline_python is not None
+            and str(header_python) != str(inline_python)
+        ):
+            get_logger().info(
+                f"Using wrangler header python_version '{header_python}' "
+                f"instead of inline mamba spec python '{inline_python}'."
+            )
+    else:
+        source_python = header_python or inline_python
+        if source_python is not None and str(python).strip() != str(source_python):
+            get_logger().info(
+                f"Overriding python from '{source_python}' to '{python}' (CLI)."
+            )
+    if python is not None:
         python = str(python).strip()
     if inline_doc2 is None and not python:
         raise ValueError(

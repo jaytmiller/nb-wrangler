@@ -37,9 +37,10 @@ and exactly one (enforced by argparse `add_mutually_exclusive_group(required=Tru
 
 `--name NAME` is required for `--from-empty` / `--from-requirements` and
 optional for the other three sources, where it defaults to the source's own
-name (mamba spec's `name` or file stem, wrangler spec's `kernel_name` or
-`image_name` or file stem, source environment name for
-`--from-existing-env`).
+name via the hierarchy CLI > wrangler spec header > mamba spec (mamba spec
+`name`, wrangler spec `kernel_name` or `image_name` or inline mamba spec
+`name`, source environment name for `--from-existing-env`); no name at any
+level is a clean error.
 
 ---
 
@@ -51,7 +52,7 @@ name (mamba spec's `name` or file stem, wrangler spec's `kernel_name` or
 |---|---|---|
 | `--from-empty` | *(none)* | Build a minimally-populated spec. Dependencies: pinned python (if `--python` given) + `pip`. |
 | `--from-requirements` | `FILE…` (zero or more, `nargs="*"`) | Parse each named file's non-blank, non-`#`-prefixed lines into a `pip:` dependency section. |
-| `--from-mamba-spec` | `FILE` (single) | Load a valid mamba/conda-spec YAML; override its `name` with `--name` (default: the spec's own `name`, else the file stem); keep channels and dependencies as-is. |
+| `--from-mamba-spec` | `FILE` (single) | Load a valid mamba/conda-spec YAML; override its `name` with `--name` (default: the spec's own `name` — a spec without a `name` field is an error); keep channels and dependencies as-is. |
 | `--from-wrangler-spec` | `FILE` (single) | Read `image_spec_header.python_version`, `extra_mamba_packages`, and `extra_pip_packages` from a fully-formed wrangler spec; rebuild a mamba-spec dict. |
 | `--from-existing-env` | `ENV_NAME` (single) | Export the package set of an existing mamba environment via `mamba env export` + `pip freeze`; build a mamba-spec dict from that. The env itself is not (re)created — it must already exist in mamba. |
 
@@ -59,7 +60,7 @@ name (mamba spec's `name` or file stem, wrangler spec's `kernel_name` or
 
 | Flag | Required / Default | Description |
 |---|---|---|
-| `--name` | required for `--from-empty` / `--from-requirements`; optional (derived default) otherwise | Name of the target environment (mamba env name, shelf name, kernel name — all the same string). Defaults to the source's own name: the mamba spec's `name` (or file stem), the wrangler spec's `kernel_name` (then `image_name`, then file stem), or the imported environment name for `--from-existing-env`. |
+| `--name` | required for `--from-empty` / `--from-requirements`; optional (derived default) otherwise | Name of the target environment (mamba env name, shelf name, kernel name — all the same string). Defaults via the hierarchy CLI > wrangler spec header > mamba spec to the source's own name: the mamba spec's `name`, the wrangler spec's `kernel_name` (then `image_name`, then inline mamba spec `name`), or the imported environment name for `--from-existing-env`; no name at any level is a clean error. |
 | `--display-name` | optional, `None` | Jupyter kernel display name. Defaults to `--name` when omitted. |
 | `--python` | optional, `None` | Python version pin (e.g. `3.11`). Appended as `python=3.11` conda dependency for `--from-empty` and `--from-requirements`; used to override the python pin in `--from-wrangler-spec` and `--from-existing-env`; ignored by `--from-mamba-spec` (which preserves the spec file's own dependencies verbatim). |
 | `--pantry` | optional, `None` | Pantry directory to target. When set, `PantryStore(paths=[Path(value)])` is used so the shelf spec is written under that specific pantry and is not resolved via the default `NBW_PANTRY_DIRS` chain. When omitted, the first writable pantry is used. |
@@ -119,11 +120,12 @@ entry is always present** — even when `files` is empty (zero-arg
 ### 4.3 `seed_from_mamba_spec(name, path)`
 
 The YAML file is loaded; `spec["name"]` is overridden with *name* when it is
-not `None` (otherwise defaulted to the file's own `name`, then the file
-stem), and the baseline `TARGET_PACKAGES` are merged into the `pip:` section
-(created if absent). `channels` and `dependencies` from the file are
-otherwise kept as-is. If the file omits `channels`, the resulting dict will
-not have the key (mamba will use its own default channels).
+not `None` (otherwise defaulted to the file's own `name`; if that is absent
+the seed fails with a clean error asking for `--name`), and the baseline
+`TARGET_PACKAGES` are merged into the `pip:` section (created if absent).
+`channels` and `dependencies` from the file are otherwise kept as-is. If the
+file omits `channels`, the resulting dict will not have the key (mamba will
+use its own default channels).
 
 ### 4.4 `seed_from_wrangler_spec(name, path, python)`
 
@@ -133,14 +135,15 @@ inline form — see `docs/spec-format.md`):
 - **Form detection**: `load_all` splits the file; a second YAML document (an
   inline mamba seed) yields the **inline** form, otherwise **simple**.
 - **Inline form**: the seed is built from doc 2 (its `name`/`channels`/`dependencies`
-  recipe, kept byte-intact) with CLI name/python overrides applied and recorded
-  (stale python pin cleared, with a descriptive log); doc 1's
+  recipe, kept byte-intact) with the resolved name/python applied (stale python
+  pin cleared, with a descriptive log); doc 1's
   `extra_mamba_packages`/`extra_pip_packages` layer on top. The resulting seed
-  is marked `INLINE_FLAG` so it re-saves as the two-doc form.
+  is marked `INLINE_FLAG` so it re-saves as the two-doc form with the header
+  recording the effective `kernel_name`/`python_version`.
 - **Simple form**: the seed is derived from doc 1's header (`kernel_name`,
   `python_version`) + `extra_mamba_packages`/`extra_pip_packages`.
-- **Name**: CLI `--name` > header `kernel_name`/`image_name` > inline `name` >
-  file stem.
+- **Name**: CLI `--name` > header `kernel_name`/`image_name` > inline `name`
+  (clean error if absent from every level).
 - **Python**: CLI `--python` > header `python_version` > inline python. In the
   simple form a pin is required: absent from all sources → `ValueError` (wrapped
   in `HubenvError` on the `create` path).

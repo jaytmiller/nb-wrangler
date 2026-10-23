@@ -6,6 +6,35 @@ import pytest
 
 from nb_wrangler.config import WranglerConfig, set_args_config
 
+# Hybrid inline spec: header kernel_name/python_version differ from the
+# second document's name/python pin — exercises the header > inline
+# delegation (permitted by the relaxed wrangler spec format).
+_HYBRID_SRC = """\
+image_spec_header:
+  image_name: hybrid
+  kernel_name: hybrid-header
+  display_name: hybrid
+  deployment_name: wrangler
+  valid_on: 1970-01-01
+  expires_on: 2099-12-31
+  python_version: "3.11"
+repositories: {}
+extra_mamba_packages:
+  - scipy
+extra_pip_packages:
+  - pandas
+---
+name: hybrid-inline
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - numpy
+  - pip
+  - pip:
+      - scikit-learn
+"""
+
 
 @pytest.fixture(autouse=True)
 def _set_config(tmp_path):
@@ -227,14 +256,14 @@ class TestSeedBuilders:
         spec = seed_from_mamba_spec(None, str(spec_file))
         assert spec["name"] == "old-name"
 
-    def test_seed_from_mamba_spec_defaults_name_to_file_stem(self, tmp_path):
-        """No explicit name and no spec ``name``: defaults to the file stem."""
+    def test_seed_from_mamba_spec_no_name_raises(self, tmp_path):
+        """No explicit name and no spec ``name``: a clean error, no stem."""
         from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
 
         spec_file = tmp_path / "my-spec.yaml"
         spec_file.write_text("channels:\n  - conda-forge\ndependencies:\n  - numpy\n")
-        spec = seed_from_mamba_spec(None, str(spec_file))
-        assert spec["name"] == "my-spec"
+        with pytest.raises(ValueError, match="has no 'name' field"):
+            seed_from_mamba_spec(None, str(spec_file))
 
     def test_seed_from_wrangler_spec_extracts_packages(self, tmp_path):
         from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
@@ -283,14 +312,14 @@ class TestSeedBuilders:
         spec = seed_from_wrangler_spec(None, str(spec_file))
         assert spec["name"] == "img-x"
 
-    def test_seed_from_wrangler_spec_defaults_name_to_file_stem(self, tmp_path):
-        """No ``kernel_name``/``image_name``: falls back to the file stem."""
+    def test_seed_from_wrangler_spec_no_name_raises(self, tmp_path):
+        """No ``kernel_name``/``image_name`` and no inline ``name``: clean error."""
         from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
 
         spec_file = tmp_path / "my-wrangler.yaml"
         spec_file.write_text("image_spec_header:\n" "  python_version: 3.11\n")
-        spec = seed_from_wrangler_spec(None, str(spec_file))
-        assert spec["name"] == "my-wrangler"
+        with pytest.raises(ValueError, match="defines no environment name"):
+            seed_from_wrangler_spec(None, str(spec_file))
 
     def test_seed_from_wrangler_spec_python_override(self, tmp_path):
         """An explicit *python* overrides the header's ``python_version``."""
@@ -307,6 +336,54 @@ class TestSeedBuilders:
         assert spec["name"] == "demo"
         assert "python=3.10" in spec["dependencies"]
         assert not any(d == "python=3.11" for d in spec["dependencies"])
+
+    def _hybrid_seed(self, tmp_path, name=None, python=None):
+        from nb_wrangler.hubenv.seeds import seed_from_wrangler_spec
+
+        src = tmp_path / "hybrid.yaml"
+        src.write_text(_HYBRID_SRC)
+        return seed_from_wrangler_spec(name, str(src), python)
+
+    def test_seed_from_wrangler_spec_header_wins_over_inline_name(
+        self, tmp_path, caplog
+    ):
+        """Header name != inline name (no CLI): header wins, override logged."""
+        import logging
+
+        caplog.set_level(logging.INFO)
+        spec = self._hybrid_seed(tmp_path)
+        assert spec["name"] == "hybrid-header"
+        assert (
+            "Using wrangler header name 'hybrid-header' instead of "
+            "inline mamba spec name 'hybrid-inline'."
+        ) in caplog.text
+
+    def test_seed_from_wrangler_spec_header_wins_over_inline_python(
+        self, tmp_path, caplog
+    ):
+        """Header python != inline pin (no CLI): header wins, override logged."""
+        import logging
+
+        caplog.set_level(logging.INFO)
+        spec = self._hybrid_seed(tmp_path)
+        assert "python=3.11" in spec["dependencies"]
+        assert not any(d == "python=3.10" for d in spec["dependencies"])
+        assert (
+            "Using wrangler header python_version '3.11' instead of "
+            "inline mamba spec python '3.10'."
+        ) in caplog.text
+
+    def test_seed_from_wrangler_spec_cli_overrides_logged(self, tmp_path, caplog):
+        """CLI values differ from header: both overrides logged (CLI)."""
+        import logging
+
+        caplog.set_level(logging.INFO)
+        spec = self._hybrid_seed(tmp_path, name="cli-env", python="3.12")
+        assert spec["name"] == "cli-env"
+        assert "python=3.12" in spec["dependencies"]
+        out = caplog.text
+        assert "Overriding name from 'hybrid-header' to 'cli-env' (CLI)." in out
+        assert "Overriding python from '3.11' to '3.12' (CLI)." in out
 
     def test_seed_from_mamba_spec_includes_target_packages(self, tmp_path):
         from nb_wrangler.constants import TARGET_PACKAGES

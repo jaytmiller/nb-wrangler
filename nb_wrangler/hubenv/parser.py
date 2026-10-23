@@ -320,8 +320,8 @@ def _add_create_args(p) -> None:
         default=None,
         help="Environment name. Required for --from-empty and --from-requirements; "
         "optional for the other sources, where it defaults to the source's own "
-        "name (mamba spec name or file stem, wrangler spec kernel_name or "
-        "image_name or file stem, imported env name).",
+        "name (mamba spec name, wrangler spec kernel_name or image_name or "
+        "inline mamba spec name, imported env name).",
     )
     p.add_argument("--display-name", default=None, help="Jupyter kernel display name")
     p.add_argument("--python", default=None, help="Python version (e.g. 3.11)")

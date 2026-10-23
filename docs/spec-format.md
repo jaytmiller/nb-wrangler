@@ -91,16 +91,21 @@ This section provides metadata about the image and Python environment.
    - **display_name**: The name as it will appear in the JupyterLab kernel selection list (e.g., `TESS`).
    - **description**: A brief description of the image and its purpose.
    - **valid_on** and **expires_on**: Dates specifying when the image becomes valid and when it expires, respectively.
-   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments and is mutually exclusive with an inline mamba spec (see [Two Environment-Definition Forms](#two-environment-definition-forms)).
+   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments. It may also coexist with an inline mamba spec, in which case it takes precedence over the inline spec's `python=` pin (see [Two Environment-Definition Forms](#two-environment-definition-forms)).
 
 ## Two Environment-Definition Forms
 
-A wrangler spec defines the kernel environment in exactly **one** of two mutually-exclusive forms. Exactly one method of defining the environment must be present.
+A wrangler spec defines the kernel environment in exactly **one** of two
+forms (single-document "simple", or two-document "inline"). The two
+environment-definition methods (`python_version` in the header and an inline
+mamba spec) may now **coexist** in the inline form: when they disagree, the
+header wins over the inline mamba spec.  The external `environment_spec` form
+remains mutually exclusive with both.
 
 | Form | Documents | `image_spec_header` |
 |------|-----------|---------------------|
 | **Simple** | single YAML document | **requires** `kernel_name` **and** `python_version` |
-| **Inline** | two YAML documents (separated by `---`) | must **not** contain `kernel_name` or `python_version`; the environment name and python pin live in the second document |
+| **Inline** | two YAML documents (separated by `---`) | may also contain `kernel_name`/`python_version`; when present, they take precedence over the second document's `name`/python pin |
 
 In the **inline** form the second YAML document is a bare mamba spec that must have a `name`:
 
@@ -131,7 +136,7 @@ dependencies:
       - requests
 ```
 
-The inline mamba spec is mamba-clean: it carries the environment's `name`, `channels`, and `dependencies` (including its `python=…` dependency), but **not** `environment_vars` — environment variables live in the first document's top-level `environment_vars`. When a second YAML document is present, `nb-wrangler` forbids `kernel_name` and `python_version` in the header: the kernel name is taken from the second document's `name`, and the python version from its `python=…` dependency. The two forms are enforced by `nb_wrangler.spec_validator` (`_validate_simple_definition` vs `_validate_inline_spec`), which are mutually exclusive.
+The inline mamba spec is mamba-clean: it carries the environment's `name`, `channels`, and `dependencies` (including its `python=…` dependency), but **not** `environment_vars` — environment variables live in the first document's top-level `environment_vars`. When a second YAML document is present, the header may still carry `kernel_name`/`python_version`; they are now permitted, and when both the header and the second document define a value, the header wins (the second document's `name`/`python=…` pin is used only when the header does not define one). Name/python resolution follows the hierarchy CLI > wrangler spec header > inline mamba spec, and the inline validator (`_validate_inline_spec`) only requires the second document to be a dictionary with a `name`.
 
 ### **repositories**
 This section defines a dictionary of the git repositories that contain notebooks. Each repository is given a short, memorable name that will be used to refer to it in the `selected_notebooks` section.
