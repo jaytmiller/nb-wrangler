@@ -6,6 +6,8 @@ from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.hubenv._common import get_logger, print_exports
 from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_restore import cmd_env_restore, find_restore_shelf
+from nb_wrangler.hubenv.env_spec import spec_display_name
+from nb_wrangler.pantry import NbwShelf
 
 
 class EnsureArgs:
@@ -63,10 +65,19 @@ def cmd_env_ensure(args) -> int:
 
 
 def cmd_env_register(args) -> int:
-    """Handle ``hubenv register`` — (re)register the Jupyter kernel."""
-    em = EnvironmentManager()
+    """Handle ``hubenv register`` — (re)register the Jupyter kernel.
 
-    display_name = args.display_name or args.name
+    Display name resolves as CLI > recorded shelf-spec ``display_name`` >
+    env name.
+    """
+    em = EnvironmentManager()
+    display_name = args.display_name
+    if display_name is None:
+        matches = PantryStore().find_shelves(args.name)
+        if matches:
+            shelf = NbwShelf(matches[0][1], pantry_path=matches[0][0])
+            display_name = spec_display_name(shelf.spec_path)
+    display_name = display_name or args.name
 
     if args.dry_run:
         print(f"Dry-run: would register kernel '{args.name}' as '{display_name}'")

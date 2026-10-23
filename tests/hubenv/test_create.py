@@ -249,7 +249,10 @@ class TestSeedFromExistingEnv:
 
         assert spec["name"] == "astro-py"
 
-    def test_seed_python_override(self):
+    def test_seed_python_override(self, caplog):
+        import logging
+
+        caplog.set_level(logging.INFO)
         from nb_wrangler.hubenv.seeds import seed_from_existing_env
 
         with (
@@ -264,6 +267,7 @@ class TestSeedFromExistingEnv:
         conda_deps = [d for d in spec["dependencies"] if isinstance(d, str)]
         assert "python=3.10" in conda_deps
         assert not any(d == "python=3.11.5" for d in conda_deps)
+        assert "Overriding python from '3.11.5' to '3.10' (CLI)." in caplog.text
 
     def test_seed_preserves_source_python_without_override(self):
         """No ``--python``: the source env's own pin is restored as the
@@ -806,6 +810,83 @@ class TestDefaultPersist:
         assert rc == 1
         mock_register.assert_not_called()
         assert not self._shelf_spec(_pantry, "demo").exists()
+
+    def test_from_mamba_spec_display_name_registered_and_recorded(
+        self, tmp_path, _pantry
+    ):
+        """CLI ``--display-name``: kernel registered under it and recorded in
+        the saved shelf spec header."""
+        import nb_wrangler.utils as u
+
+        from nb_wrangler.hubenv.cli import main
+
+        mspec = tmp_path / "mamba-spec.yaml"
+        mspec.write_text(_MAMBA_SPEC_YAML)
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(EnvironmentManager, "create_environment", return_value=True),
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(
+                [
+                    "create",
+                    "--from-mamba-spec",
+                    str(mspec),
+                    "--name",
+                    "demo",
+                    "--display-name",
+                    "My Env",
+                ]
+            )
+
+        assert rc == 0
+        mock_register.assert_called_once_with("demo", "My Env", {})
+        docs = list(
+            u.get_yaml().load_all(self._shelf_spec(_pantry, "demo").read_text())
+        )
+        assert (docs[0].get("image_spec_header") or {}).get("display_name") == "My Env"
+
+    def test_from_wrangler_spec_display_header_wins(self, tmp_path, _pantry):
+        """Wrangler source with no CLI flag: the header's ``display_name``
+        wins over the env name (CLI is highest precedence)."""
+        import nb_wrangler.utils as u
+
+        from nb_wrangler.hubenv.cli import main
+
+        wspec = tmp_path / "wrangler-spec.yaml"
+        wspec.write_text(
+            "image_spec_header:\n"
+            "  image_name: old-name\n"
+            "  kernel_name: old-name\n"
+            "  display_name: Old Env\n"
+            '  python_version: "3.11"\n'
+            "repositories: {}\n"
+            "extra_mamba_packages:\n"
+            "  - numpy=1.26.0\n"
+            "extra_pip_packages:\n"
+            "  - requests==2.31.0\n"
+        )
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(EnvironmentManager, "create_environment", return_value=True),
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=True
+            ) as mock_register,
+        ):
+            rc = main(["create", "--from-wrangler-spec", str(wspec)])
+
+        assert rc == 0
+        mock_register.assert_called_once_with("old-name", "Old Env", {})
+        docs = list(
+            u.get_yaml().load_all(self._shelf_spec(_pantry, "old-name").read_text())
+        )
+        assert (docs[0].get("image_spec_header") or {}).get("display_name") == "Old Env"
 
 
 # ---------------------------------------------------------------------------

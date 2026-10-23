@@ -64,6 +64,27 @@ def _patch_env_exists(exists=True):
     )
 
 
+def _spec_with_display(pantry, display_name):
+    """Write a wrangler spec into the demo shelf carrying *display_name*."""
+    spec = pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+    spec.write_text(
+        "image_spec_header:\n"
+        "  kernel_name: demo\n"
+        f"  display_name: {display_name}\n"
+        "  deployment_name: wrangler\n"
+        '  python_version: "3.11"\n'
+        "  valid_on: 1970-01-01\n"
+        "  expires_on: 2099-12-31\n"
+        "repositories: {}\n"
+        "system:\n"
+        '  spec_version: "2.3"\n'
+        '  spec_sha256: "' + "a" * 64 + '"\n'
+        '  date_updated: "2026-01-01T00:00:00"\n'
+        "extra_pip_packages: []\n"
+    )
+    return spec
+
+
 # ---------------------------------------------------------------------------
 # ensure
 # ---------------------------------------------------------------------------
@@ -136,6 +157,25 @@ class TestEnsure:
             assert rc == 0
             mock_reg.assert_called_once_with("demo", "demo", {})
 
+    def test_ensure_cli_display_name_wins_over_shelf(self, tmp_path, capsys):
+        """CLI --display-name takes precedence over the shelf spec's recorded
+        display_name in the delegated restore."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path, save_hash="abc123")
+        _spec_with_display(pantry, "Fancy Demo")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            _patch_env_exists(False),
+            _patch_unpack_env(True),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["ensure", "demo", "--display-name", "CLI Demo"])
+            assert rc == 0
+            mock_reg.assert_called_once_with("demo", "CLI Demo", {})
+
     def test_ensure_neither_live_nor_archive_errors(self, tmp_path, capsys):
         """When neither live env nor archive exists, ensure errors."""
         from nb_wrangler.hubenv.cli import main
@@ -204,6 +244,10 @@ class TestRegister:
 
         with (
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch(
+                "nb_wrangler.hubenv.config.NBW_PANTRY_DIRS",
+                [tmp_path / "empty-pantry"],
+            ),
             _patch_register_env(True) as mock_reg,
         ):
             rc = main(["register", "demo"])
@@ -230,6 +274,10 @@ class TestRegister:
 
         with (
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch(
+                "nb_wrangler.hubenv.config.NBW_PANTRY_DIRS",
+                [tmp_path / "empty-pantry"],
+            ),
             _patch_register_env(True) as mock_reg,
         ):
             rc = main(["register", "demo", "--dry-run"])
@@ -244,10 +292,54 @@ class TestRegister:
 
         with (
             patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch(
+                "nb_wrangler.hubenv.config.NBW_PANTRY_DIRS",
+                [tmp_path / "empty-pantry"],
+            ),
             _patch_register_env(False),
         ):
             rc = main(["register", "demo"])
             assert rc == 1
+
+    def test_register_uses_shelf_display_name(self, tmp_path, capsys):
+        """No CLI --display-name: kernel registers under the shelf spec's
+        recorded display_name."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path)
+        _spec_with_display(pantry, "Fancy Demo")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["register", "demo"])
+
+        assert rc == 0
+        mock_reg.assert_called_once_with("demo", "Fancy Demo", {})
+        out = capsys.readouterr().out
+        assert "Fancy Demo" in out
+
+    def test_register_cli_display_name_wins_over_shelf(self, tmp_path, capsys):
+        """CLI --display-name takes precedence over the shelf spec's
+        recorded display_name."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path)
+        _spec_with_display(pantry, "Fancy Demo")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["register", "demo", "--display-name", "CLI Demo"])
+
+        assert rc == 0
+        mock_reg.assert_called_once_with("demo", "CLI Demo", {})
+        out = capsys.readouterr().out
+        assert "CLI Demo" in out
 
 
 # ---------------------------------------------------------------------------

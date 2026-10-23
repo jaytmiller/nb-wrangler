@@ -59,8 +59,8 @@ Useful flags:
 
 | Flag             | Effect                                                              |
 | :--------------- | :------------------------------------------------------------------ |
-| `--python 3.11`  | Pin the Python version                                               |
-| `--display-name` | Jupyter kernel display name (default: the env name)                 |
+| `--python 3.11`  | Pin the Python version (overrides the source spec/env pin, clears stale compiled pip locks) |
+| `--display-name` | Jupyter kernel display name (default: the wrangler spec's `display_name`, then the env name) |
 | `--pantry DIR`   | Target pantry (default: first writable pantry)                      |
 | `--dry-run`      | Print the seeded spec to stdout; install nothing                    |
 | `--ephemeral`    | Build only the live env — no shelf spec, no kernel (scratch/CI use) |

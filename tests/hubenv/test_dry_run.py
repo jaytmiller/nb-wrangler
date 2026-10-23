@@ -434,3 +434,91 @@ class TestSeedBuilders:
         pip_list = self._pip_packages(spec)
         for pkg in TARGET_PACKAGES:
             assert pkg in pip_list
+
+    def test_seed_from_mamba_spec_python_override_and_preserve(self, tmp_path, caplog):
+        """CLI *python* replaces the spec's own pin (logged); no CLI preserves it."""
+        import logging
+
+        caplog.set_level(logging.INFO)
+        from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
+
+        spec_file = tmp_path / "env.yaml"
+        spec_file.write_text(
+            "name: old-name\nchannels:\n  - conda-forge\ndependencies:\n"
+            "  - python=3.11\n  - numpy\n"
+        )
+        spec = seed_from_mamba_spec("new-name", str(spec_file), python="3.12")
+        assert "python=3.12" in spec["dependencies"]
+        assert not any(
+            d == "python=3.11" for d in spec["dependencies"] if isinstance(d, str)
+        )
+        assert "numpy" in spec["dependencies"]  # other deps preserved
+        assert "Overriding python from '3.11' to '3.12' (CLI)." in caplog.text
+
+        spec = seed_from_mamba_spec("new-name", str(spec_file))
+        assert "python=3.11" in spec["dependencies"]  # source pin kept
+
+    def test_seed_from_mamba_spec_python_change_clears_compiled_lock(
+        self, tmp_path, caplog
+    ):
+        """A python bump drops stale compiled pip lock entries (logged)."""
+        import logging
+
+        caplog.set_level(logging.INFO)
+        from nb_wrangler.hubenv.seeds import seed_from_mamba_spec
+
+        spec_file = tmp_path / "env.yaml"
+        spec_file.write_text(
+            "name: old-name\nchannels:\n  - conda-forge\ndependencies:\n"
+            "  - python=3.11\n  - pip\n"
+            "  - pip:\n"
+            '    - "scikit-learn==1.0.0-cp311-cp311-manylinux_2_17"\n'
+            "    - plain-pkg\n"
+        )
+        spec = seed_from_mamba_spec(None, str(spec_file), python="3.12")
+        assert "python=3.12" in spec["dependencies"]
+        pip_list = self._pip_packages(spec)
+        assert not any("cp311" in p for p in pip_list)
+        assert "plain-pkg" in pip_list
+        assert (
+            "Cleared 1 stale compiled pip lock entries for python '3.11'; "
+            "seed now targets python '3.12'."
+        ) in caplog.text
+
+    def test_seed_display_name_flags_and_defaults(self, tmp_path):
+        """Every seed builder stores the resolved display name in the seed."""
+        import nb_wrangler.hubenv.seeds as seeds
+
+        assert seeds.seed_from_empty("a")["name"] == "a"
+        assert seeds.seed_from_empty("a")[seeds.DISPLAY_NAME_FLAG] == "a"
+        assert (
+            seeds.seed_from_empty("a", display_name="D A")[seeds.DISPLAY_NAME_FLAG]
+            == "D A"
+        )
+
+        req = tmp_path / "requirements.txt"
+        req.write_text("numpy\n")
+        assert (
+            seeds.seed_from_requirements("b", [str(req)], display_name="D B")[
+                seeds.DISPLAY_NAME_FLAG
+            ]
+            == "D B"
+        )
+        assert (
+            seeds.seed_from_requirements("b", [str(req)])[seeds.DISPLAY_NAME_FLAG]
+            == "b"
+        )
+
+        mspec = tmp_path / "m.yaml"
+        mspec.write_text(
+            "name: m\nchannels:\n  - conda-forge\ndependencies:\n  - numpy\n"
+        )
+        assert (
+            seeds.seed_from_mamba_spec(None, str(mspec))[seeds.DISPLAY_NAME_FLAG] == "m"
+        )
+        assert (
+            seeds.seed_from_mamba_spec(None, str(mspec), display_name="D M")[
+                seeds.DISPLAY_NAME_FLAG
+            ]
+            == "D M"
+        )

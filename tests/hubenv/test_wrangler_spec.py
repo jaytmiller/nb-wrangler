@@ -19,6 +19,7 @@ from nb_wrangler.hubenv.env_spec import (
     save_hubenv_spec,
 )
 from nb_wrangler.hubenv.seeds import (
+    DISPLAY_NAME_FLAG,
     INLINE_FLAG,
     seed_from_empty,
     seed_from_wrangler_spec,
@@ -169,11 +170,11 @@ def _assert_valid_spec(path):
     assert sm.validate_sha256() is True
 
 
-def _seed(src: str, name=None, python=None, tmp_path=None):
+def _seed(src: str, name=None, python=None, display_name=None, tmp_path=None):
     p = Path(tmp_path or "/tmp") / "src.yaml"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(src)
-    return seed_from_wrangler_spec(name, str(p), python)
+    return seed_from_wrangler_spec(name, str(p), python, display_name)
 
 
 # ---------------------------------------------------------------------------
@@ -474,3 +475,65 @@ class TestRelock:
             d["pip"] for d in w["dependencies"] if isinstance(d, dict) and "pip" in d
         )
         assert "a==1" in pip and "b==2" in pip
+
+
+# ---------------------------------------------------------------------------
+# 7. Display name (CLI > header > name, recorded in the saved header)
+# ---------------------------------------------------------------------------
+
+
+class TestDisplayName:
+    """Display name resolves CLI > header ``display_name`` > name and round-trips
+    through the saved shelf spec."""
+
+    def test_header_display_name_wins_without_cli(self, _set_config):
+        seed = _seed(_SIMPLE_SRC, name=None, python=None, tmp_path=_set_config)
+        assert seed[DISPLAY_NAME_FLAG] == "srcenv"
+
+        seed = _seed(_INLINE_SRC, name=None, python=None, tmp_path=_set_config)
+        assert seed[DISPLAY_NAME_FLAG] == "src2"
+
+    def test_cli_display_name_wins_and_is_logged(self, _set_config, caplog):
+        import logging
+
+        caplog.set_level(logging.INFO)
+        seed = _seed(
+            _SIMPLE_SRC,
+            name="demo",
+            python="3.11",
+            display_name="CLI Display",
+            tmp_path=_set_config,
+        )
+        assert seed[DISPLAY_NAME_FLAG] == "CLI Display"
+        assert (
+            "Overriding display name from 'srcenv' to 'CLI Display' (CLI)."
+            in caplog.text
+        )
+
+    def test_display_name_recorded_in_saved_header_round_trip(self, _set_config):
+        import nb_wrangler.utils as u
+
+        seed = _seed(
+            _SIMPLE_SRC,
+            name="demo",
+            python="3.11",
+            display_name="CLI Display",
+            tmp_path=_set_config,
+        )
+        store = _pantry(_set_config)
+        save_hubenv_spec(store, "demo", seed)
+        path = store.shelf_spec_path("demo")
+        _assert_valid_spec(path)
+        docs = list(u.get_yaml().load_all(path.read_text()))
+        assert (docs[0].get("image_spec_header") or {}).get(
+            "display_name"
+        ) == "CLI Display"
+
+        w = load_hubenv_spec(store, "demo")
+        assert w.get(DISPLAY_NAME_FLAG) == "CLI Display"
+        save_hubenv_spec(store, "demo", w)
+        _assert_valid_spec(path)
+        docs = list(u.get_yaml().load_all(path.read_text()))
+        assert (docs[0].get("image_spec_header") or {}).get("display_name") == (
+            "CLI Display"
+        )

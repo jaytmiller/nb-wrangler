@@ -8,6 +8,7 @@ from nb_wrangler.environment import EnvironmentManager
 from nb_wrangler.pantry import NbwShelf
 from nb_wrangler.hubenv._common import get_logger, print_exports
 from nb_wrangler.hubenv.config import PantryStore
+from nb_wrangler.hubenv.env_spec import spec_display_name
 
 
 def cmd_env_restore(args) -> int:
@@ -44,9 +45,12 @@ def cmd_env_restore(args) -> int:
     record_restore_hash(config, args.name, save_hash)
 
     em = EnvironmentManager()
-    em.register_environment(
-        args.name, getattr(args, "display_name", None) or args.name, {}
+    display_name = (
+        getattr(args, "display_name", None)
+        or spec_display_name(shelf.spec_path)
+        or args.name
     )
+    em.register_environment(args.name, display_name, {})
 
     print_exports(args.name, config)
 

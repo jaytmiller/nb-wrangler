@@ -61,8 +61,8 @@ level is a clean error.
 | Flag | Required / Default | Description |
 |---|---|---|
 | `--name` | required for `--from-empty` / `--from-requirements`; optional (derived default) otherwise | Name of the target environment (mamba env name, shelf name, kernel name — all the same string). Defaults via the hierarchy CLI > wrangler spec header > mamba spec to the source's own name: the mamba spec's `name`, the wrangler spec's `kernel_name` (then `image_name`, then inline mamba spec `name`), or the imported environment name for `--from-existing-env`; no name at any level is a clean error. |
-| `--display-name` | optional, `None` | Jupyter kernel display name. Defaults to `--name` when omitted. |
-| `--python` | optional, `None` | Python version pin (e.g. `3.11`). Appended as `python=3.11` conda dependency for `--from-empty` and `--from-requirements`; used to override the python pin in `--from-wrangler-spec` and `--from-existing-env`; ignored by `--from-mamba-spec` (which preserves the spec file's own dependencies verbatim). |
+| `--display-name` | optional, `None` | Jupyter kernel display name. Resolves CLI > wrangler spec header `display_name` > env name (only the wrangler source has a spec field); the effective value is recorded in the saved shelf spec header and is what `create`/`restore`/`register`/`ensure` register the kernel under (CLI always wins). |
+| `--python` | optional, `None` | Python version pin (e.g. `3.11`). Appended as `python=3.11` conda dependency for `--from-empty` and `--from-requirements`; resolves CLI > source pin for `--from-wrangler-spec` (header/inline), `--from-mamba-spec` (the spec's `python=` dep, previously ignored), and `--from-existing-env` (the source env's pin). Overrides are logged, and stale compiled pip lock entries are cleared when the pin changes. |
 | `--pantry` | optional, `None` | Pantry directory to target. When set, `PantryStore(paths=[Path(value)])` is used so the shelf spec is written under that specific pantry and is not resolved via the default `NBW_PANTRY_DIRS` chain. When omitted, the first writable pantry is used. |
 | `--ephemeral` | optional, `False` | Build the live environment only; skip shelf-spec persistence and kernel registration. Use for temporary or CI scratch envs. |
 | `--dry-run` | optional, `False` | Build and print the seeded mamba-spec dict as YAML to stdout; return 0 without installing, writing any shelf spec, registering any kernel, or modifying the filesystem. |
@@ -117,17 +117,20 @@ entry is always present** — even when `files` is empty (zero-arg
 `--from-requirements`), the pip list contains at least the
 `TARGET_PACKAGES` baseline.
 
-### 4.3 `seed_from_mamba_spec(name, path)`
-
+### 4.3 `seed_from_mamba_spec(name, path, python, display_name)`
+ 
 The YAML file is loaded; `spec["name"]` is overridden with *name* when it is
 not `None` (otherwise defaulted to the file's own `name`; if that is absent
 the seed fails with a clean error asking for `--name`), and the baseline
 `TARGET_PACKAGES` are merged into the `pip:` section (created if absent).
-`channels` and `dependencies` from the file are otherwise kept as-is. If the
+`channels` and `dependencies` from the file are otherwise kept as-is, except
+the `python=` dep when *python* (i.e. `--python`) is given: the CLI pin then
+replaces the file's pin (logged, stale compiled pip lock entries cleared) —
+previously the CLI pin was ignored and the file's pin always won.  If the
 file omits `channels`, the resulting dict will not have the key (mamba will
 use its own default channels).
 
-### 4.4 `seed_from_wrangler_spec(name, path, python)`
+### 4.4 `seed_from_wrangler_spec(name, path, python, display_name)`
 
 Reads the wrangler spec YAML, which may be **one or two documents** (simple vs
 inline form — see `docs/spec-format.md`):
@@ -147,26 +150,30 @@ inline form — see `docs/spec-format.md`):
 - **Python**: CLI `--python` > header `python_version` > inline python. In the
   simple form a pin is required: absent from all sources → `ValueError` (wrapped
   in `HubenvError` on the `create` path).
+- **Display name**: CLI `--display-name` > header `display_name` > env name.
+  The effective value is recorded in the saved shelf spec header (and honored
+  by `restore`/`register`/`ensure`).
 - The baseline `TARGET_PACKAGES` are merged into the pip list (existing
   packages first, de-duplicated).
 
 `pip` is always included exactly once in the conda deps, and the `{"pip": […]}` sub-dict is always present (at least the `TARGET_PACKAGES` baseline).
 
-### 4.5 `seed_from_existing_env(name, env_name, python)`
-
+### 4.5 `seed_from_existing_env(name, env_name, python, display_name)`
+ 
 Two subprocess calls:
 1. `mamba env export -n <env_name> --no-builds` → parsed YAML
 2. `mamba run -n <env_name> pip freeze` → package list
-
+ 
 Parse rules:
 - `name` is overridden with *name* when it is not `None` (otherwise the
   import defaults to *env_name* — seamless name reuse).
 - `channels` are preserved from the export (default `conda-forge` if absent).
-- All conda deps are kept **except** any entry starting with `python`; when
-  *python* (i.e. `--python`) is omitted, the source env's own python pin
-  (first entry starting with `python`) is restored as the first dep.
-- If *python* is given, `python=<version>` is inserted as the first conda dep
-  (replacing the source pin).
+- All conda deps are kept **except** any entry starting with `python`; the
+  source env's pin is the fallback.
+- `python` resolves as CLI > source env's pin (logged on override, stale
+  compiled pip lock entries cleared), so `--python` now genuinely overrides
+  an imported env's python (previously the CLI value was already applied but
+  without logging).
 - `pip` (the conda package) is ensured to appear exactly once in deps.
 - When `pip freeze` returned a non-empty list, those packages are placed in a
   trailing `{"pip": […]}` entry; in either case the baseline `TARGET_PACKAGES`

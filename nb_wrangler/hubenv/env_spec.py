@@ -15,9 +15,16 @@ any nbw step that resolves the same shelf spec) consume the file unchanged.
 """
 
 import datetime
+from pathlib import Path
+
 from nb_wrangler.constants import WRANGLER_SPEC_VERSION
 from nb_wrangler.hubenv.config import PantryStore
-from nb_wrangler.hubenv.seeds import INLINE_FLAG, _strip_internal_flags, seed_from_empty
+from nb_wrangler.hubenv.seeds import (
+    DISPLAY_NAME_FLAG,
+    INLINE_FLAG,
+    _strip_internal_flags,
+    seed_from_empty,
+)
 from nb_wrangler.utils import get_yaml, sha256_str, yaml_dumps
 
 # ---------------------------------------------------------------------------
@@ -85,7 +92,12 @@ def _required_system() -> dict:
     }
 
 
-def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict:
+def mamba_to_wrangler(
+    name: str,
+    mamba_spec: dict,
+    inline: bool = False,
+    display_name: str | None = None,
+) -> dict:
     """Convert a hubenv mamba-view dict to a full valid wrangler spec.
 
     ``name/channels/dependencies/environment_vars`` from the view map onto
@@ -94,7 +106,8 @@ def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict
     inline spec" form (two YAML documents, the mamba view as doc 2); in both
     forms the header's ``kernel_name`` and (when resolvable) ``python_version``
     always reflect the effective values and may coexist with the inline
-    mamba seed.
+    mamba seed.  The header's ``display_name`` is *display_name* (the
+    effective display name), defaulting to *name*.
     """
     conda, pip = split_conda_pip(mamba_spec.get("dependencies") or [])
     py = python_version(conda)
@@ -104,6 +117,8 @@ def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict
         if not (isinstance(d, str) and d.startswith("python=")) and d != "pip"
     ]
     header = _required_image_header(name, py)
+    if display_name:
+        header["display_name"] = display_name
     # When a real python version was not pinned, simple-definition mode
     # requires one; fall back to an empty pin so validation passes.
     if not inline and py is None:
@@ -184,11 +199,13 @@ def to_wrangler_yaml(name: str, spec: dict) -> str:
 
     Emits the form the source was created in (single-doc "simple", or
     two-doc "inline" mamba seed) with a valid ``spec_sha256`` and a fresh
-    ``date_updated``.
+    ``date_updated``.  The effective display name (from the seed's internal
+    flag, else *name*) is recorded in the header.
     """
     inline = bool(spec.get(INLINE_FLAG, False))
+    display = spec.get(DISPLAY_NAME_FLAG) or name
     seed = _strip_internal_flags(spec)
-    wspec = mamba_to_wrangler(name, seed, inline=inline)
+    wspec = mamba_to_wrangler(name, seed, inline=inline, display_name=display)
     wspec["system"]["date_updated"] = datetime.datetime.now().isoformat()
     doc2 = _mamba_clean(seed) if inline else None
     _compute_spec_sha256(wspec, doc2)
@@ -203,6 +220,24 @@ def to_wrangler_yaml(name: str, spec: dict) -> str:
 def shelf_spec_path(config: PantryStore, name: str):
     """Return the path to the shelf spec for *name* (see PantryStore)."""
     return config.shelf_spec_path(name)
+
+
+def spec_display_name(spec_path: Path) -> str | None:
+    """Return the ``display_name`` recorded in the shelf spec at *spec_path*,
+    or ``None`` when the file is absent, unreadable, or the header field is
+    unset/empty.
+
+    Read at kernel-registration time so that create/restore/register/ensure
+    all register the kernel under the same display name.
+    """
+    if not spec_path.exists():
+        return None
+    try:
+        docs = list(get_yaml().load_all(spec_path.read_text())) or [{}]
+    except OSError:
+        return None
+    header = (docs[0] or {}).get("image_spec_header") or {}
+    return header.get("display_name") or None
 
 
 def load_hubenv_spec(config: PantryStore, name) -> dict:
@@ -226,6 +261,9 @@ def load_hubenv_spec(config: PantryStore, name) -> dict:
                 view["environment_vars"] = dict(env_vars)
         else:
             view = wrangler_to_mamba(name, docs[0])
+        display = spec_display_name(spec_path)
+        if display:
+            view[DISPLAY_NAME_FLAG] = display
         view[INLINE_FLAG] = len(docs) > 1
         return view
     return seed_from_empty(name, None)

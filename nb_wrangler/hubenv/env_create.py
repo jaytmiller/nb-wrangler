@@ -39,6 +39,7 @@ from nb_wrangler.hubenv.config import PantryStore
 from nb_wrangler.hubenv.env_spec import save_hubenv_spec
 from nb_wrangler.hubenv.env_save import _do_save
 from nb_wrangler.hubenv.seeds import (
+    DISPLAY_NAME_FLAG,
     seed_from_empty,
     seed_from_existing_env,
     seed_from_mamba_spec,
@@ -122,21 +123,22 @@ def build_seed_dict(args) -> dict:
     """Build the seeded mamba-spec dict from the chosen source."""
     name = args.name
     python = args.python
+    display = args.display_name
     if (args.from_empty or args.from_requirements) and name is None:
         raise HubenvError(
             "--name is required for --from-empty and --from-requirements",
             exit_code=1,
         )
     if args.from_empty:
-        return seed_from_empty(name, python)
+        return seed_from_empty(name, python, display)
     if args.from_requirements:
-        return seed_from_requirements(name, args.from_requirements, python)
+        return seed_from_requirements(name, args.from_requirements, python, display)
     if args.from_mamba_spec:
-        return seed_from_mamba_spec(name, args.from_mamba_spec)
+        return seed_from_mamba_spec(name, args.from_mamba_spec, python, display)
     if args.from_wrangler_spec:
-        return seed_from_wrangler_spec(name, args.from_wrangler_spec, python)
+        return seed_from_wrangler_spec(name, args.from_wrangler_spec, python, display)
     if args.from_existing_env:
-        return seed_from_existing_env(name, args.from_existing_env, python)
+        return seed_from_existing_env(name, args.from_existing_env, python, display)
     # Should not reach here due to mutually-exclusive required group
     raise ValueError("No seed source specified")
 
@@ -164,7 +166,7 @@ def _persist_essentials(args, seed) -> int:
     save_hubenv_spec(store, args.name, seed)
 
     em = EnvironmentManager()
-    display_name = args.display_name or args.name
+    display_name = seed.get(DISPLAY_NAME_FLAG) or args.name
     em.register_environment(args.name, display_name, {})
 
     print_exports(args.name, store)

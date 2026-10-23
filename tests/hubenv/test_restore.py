@@ -52,6 +52,27 @@ def _patch_register_env(return_value=True):
     )
 
 
+def _spec_with_display(pantry, display_name):
+    """Write a wrangler spec into the demo shelf carrying *display_name*."""
+    spec = pantry / "shelves" / "demo" / "nbw-wrangler-spec.yaml"
+    spec.write_text(
+        "image_spec_header:\n"
+        "  kernel_name: demo\n"
+        f"  display_name: {display_name}\n"
+        "  deployment_name: wrangler\n"
+        '  python_version: "3.11"\n'
+        "  valid_on: 1970-01-01\n"
+        "  expires_on: 2099-12-31\n"
+        "repositories: {}\n"
+        "system:\n"
+        '  spec_version: "2.3"\n'
+        '  spec_sha256: "' + "a" * 64 + '"\n'
+        '  date_updated: "2026-01-01T00:00:00"\n'
+        "extra_pip_packages: []\n"
+    )
+    return spec
+
+
 # ---------------------------------------------------------------------------
 # Happy path
 # ---------------------------------------------------------------------------
@@ -134,6 +155,24 @@ class TestRestoreHappyPath:
         ):
             rc = main(["restore", "demo"])
             assert rc == 1
+
+    def test_restore_registers_with_shelf_display_name(self, tmp_path, capsys):
+        """No CLI --display-name: kernel registers under the shelf spec's
+        recorded display_name."""
+        from nb_wrangler.hubenv.cli import main
+
+        pantry = _make_pantry(tmp_path)
+        _spec_with_display(pantry, "Fancy Demo")
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [pantry]),
+            _patch_unpack_env(True),
+            _patch_register_env(True) as mock_reg,
+        ):
+            rc = main(["restore", "demo"])
+
+        assert rc == 0
+        mock_reg.assert_called_once_with("demo", "Fancy Demo", {})
 
 
 # ---------------------------------------------------------------------------

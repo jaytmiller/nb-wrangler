@@ -323,7 +323,12 @@ def _add_create_args(p) -> None:
         "name (mamba spec name, wrangler spec kernel_name or image_name or "
         "inline mamba spec name, imported env name).",
     )
-    p.add_argument("--display-name", default=None, help="Jupyter kernel display name")
+    p.add_argument(
+        "--display-name",
+        default=None,
+        help="Jupyter kernel display name (defaults to the wrangler spec's "
+        "display_name, then env name).",
+    )
     p.add_argument("--python", default=None, help="Python version (e.g. 3.11)")
     p.add_argument(
         "--pantry",
