@@ -127,13 +127,25 @@ not have the key (mamba will use its own default channels).
 
 ### 4.4 `seed_from_wrangler_spec(name, path, python)`
 
-Reads from the wrangler spec:
-- name: *name* when given, else the header's `kernel_name` (then `image_name`,
-  then the file stem)
-- `image_spec_header.python_version` → `python=…` conda dep (if present),
-  unless *python* is given, which overrides it
-- `extra_mamba_packages` → conda deps (each non-`"pip"` entry inserted before `pip`)
-- `extra_pip_packages` → `{"pip": […]}` sub-dict, then the baseline `TARGET_PACKAGES` are merged in (existing packages first, de-duplicated)
+Reads the wrangler spec YAML, which may be **one or two documents** (simple vs
+inline form — see `docs/spec-format.md`):
+
+- **Form detection**: `load_all` splits the file; a second YAML document (an
+  inline mamba seed) yields the **inline** form, otherwise **simple**.
+- **Inline form**: the seed is built from doc 2 (its `name`/`channels`/`dependencies`
+  recipe, kept byte-intact) with CLI name/python overrides applied and recorded
+  (stale python pin cleared, with a descriptive log); doc 1's
+  `extra_mamba_packages`/`extra_pip_packages` layer on top. The resulting seed
+  is marked `INLINE_FLAG` so it re-saves as the two-doc form.
+- **Simple form**: the seed is derived from doc 1's header (`kernel_name`,
+  `python_version`) + `extra_mamba_packages`/`extra_pip_packages`.
+- **Name**: CLI `--name` > header `kernel_name`/`image_name` > inline `name` >
+  file stem.
+- **Python**: CLI `--python` > header `python_version` > inline python. In the
+  simple form a pin is required: absent from all sources → `ValueError` (wrapped
+  in `HubenvError` on the `create` path).
+- The baseline `TARGET_PACKAGES` are merged into the pip list (existing
+  packages first, de-duplicated).
 
 `pip` is always included exactly once in the conda deps, and the `{"pip": […]}` sub-dict is always present (at least the `TARGET_PACKAGES` baseline).
 
@@ -212,11 +224,16 @@ After `_seed(args)` (RE-03) produces the seed, `cmd_env_create`:
    a. `_build_store(args)` → `PantryStore(paths=[Path(args.pantry)])` when
       `--pantry` is set, otherwise `PantryStore()`; return `None` (with a
       clear error) when no writable pantry is available → `return 1`.
-   b. `save_hubenv_spec(store, args.name, seed)`:
+   b. `save_hubenv_spec(store, args.name, seed)` (delegates to
+      `to_wrangler_yaml`):
       - Resolves shelf path: `<target_pantry>/shelves/<name>/nbw-wrangler-spec.yaml`.
-      - Converts the mamba-view dict to a full wrangler spec via `mamba_to_wrangler()`.
+      - Emits a full valid wrangler spec in the form the seed was created in
+        (single-doc "simple", or two-doc "inline" when `INLINE_FLAG` is set);
+        stamps a fresh `date_updated` and computes a valid `spec_sha256`.
       - Creates parent directories (`mkdir(parents=True, exist_ok=True)`).
-      - Writes the YAML to disk.
+      - Writes the YAML to disk, byte-exact vs nbw's `SpecManager.to_string`
+        (`\n---\n` separator, no trailing newline), so the file passes
+        `SpecManager.load_and_validate` + `validate_sha256`.
    c. `em.register_environment(args.name, display_name, {})` where
       `display_name = args.display_name or args.name`:
       - Runs: `mamba run -n <name> python -m ipykernel install --user --name '<name>' --display-name '<display_name>'`

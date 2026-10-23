@@ -9,7 +9,7 @@ from nb_wrangler.hubenv._common import get_logger, store_for
 from nb_wrangler.hubenv.env_spec import (
     extract_pip_packages,
     load_hubenv_spec,
-    mamba_to_wrangler,
+    to_wrangler_yaml,
 )
 from nb_wrangler.utils import yaml_dumps
 
@@ -38,7 +38,7 @@ def format_export(spec: dict, args) -> str:
             )
         return output
     if args.to_wrangler_spec:
-        return yaml_dumps(mamba_to_wrangler(spec["name"], spec))
+        return to_wrangler_yaml(spec["name"], spec)
     return yaml_dumps(spec)  # default: mamba spec
 
 

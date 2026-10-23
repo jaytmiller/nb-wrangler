@@ -91,7 +91,47 @@ This section provides metadata about the image and Python environment.
    - **display_name**: The name as it will appear in the JupyterLab kernel selection list (e.g., `TESS`).
    - **description**: A brief description of the image and its purpose.
    - **valid_on** and **expires_on**: Dates specifying when the image becomes valid and when it expires, respectively.
-   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments and is mutually exclusive with `environment_spec` or an inline mamba spec.
+   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments and is mutually exclusive with an inline mamba spec (see [Two Environment-Definition Forms](#two-environment-definition-forms)).
+
+## Two Environment-Definition Forms
+
+A wrangler spec defines the kernel environment in exactly **one** of two mutually-exclusive forms. Exactly one method of defining the environment must be present.
+
+| Form | Documents | `image_spec_header` |
+|------|-----------|---------------------|
+| **Simple** | single YAML document | **requires** `kernel_name` **and** `python_version` |
+| **Inline** | two YAML documents (separated by `---`) | must **not** contain `kernel_name` or `python_version`; the environment name and python pin live in the second document |
+
+In the **inline** form the second YAML document is a bare mamba spec that must have a `name`:
+
+```yaml
+# ---- first document (header + lists) ----
+image_spec_header:
+  image_name: hubenv-env
+  display_name: HubEnv
+  deployment_name: wrangler
+  valid_on: 1970-01-01
+  expires_on: 2099-12-31
+extra_mamba_packages:
+  - scipy
+extra_pip_packages:
+  - pandas
+environment_vars:
+  MY_VAR: "hello"
+---
+# ---- second document (inline mamba spec) ----
+name: hubenv-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pip
+  - pip:
+      - requests
+```
+
+The inline mamba spec is mamba-clean: it carries the environment's `name`, `channels`, and `dependencies` (including its `python=…` dependency), but **not** `environment_vars` — environment variables live in the first document's top-level `environment_vars`. When a second YAML document is present, `nb-wrangler` forbids `kernel_name` and `python_version` in the header: the kernel name is taken from the second document's `name`, and the python version from its `python=…` dependency. The two forms are enforced by `nb_wrangler.spec_validator` (`_validate_simple_definition` vs `_validate_inline_spec`), which are mutually exclusive.
 
 ### **repositories**
 This section defines a dictionary of the git repositories that contain notebooks. Each repository is given a short, memorable name that will be used to refer to it in the `selected_notebooks` section.

@@ -17,8 +17,8 @@ any nbw step that resolves the same shelf spec) consume the file unchanged.
 import datetime
 from nb_wrangler.constants import WRANGLER_SPEC_VERSION
 from nb_wrangler.hubenv.config import PantryStore
-from nb_wrangler.hubenv.seeds import seed_from_empty
-from nb_wrangler.utils import get_yaml, yaml_dumps
+from nb_wrangler.hubenv.seeds import INLINE_FLAG, _strip_internal_flags, seed_from_empty
+from nb_wrangler.utils import get_yaml, sha256_str, yaml_dumps
 
 # ---------------------------------------------------------------------------
 # mamba-view <-> full-wrangler-spec conversions
@@ -45,8 +45,15 @@ def python_version(conda: list) -> str | None:
     return None
 
 
-def _required_image_header(name: str, python_version: str | None) -> dict:
-    """Scaffold the required ``image_spec_header`` fields for a valid spec."""
+def _required_image_header(
+    name: str, python_version: str | None, inline: bool = False
+) -> dict:
+    """Scaffold the required ``image_spec_header`` fields for a valid spec.
+
+    For the wrangler "inline spec" form (*inline* True) ``kernel_name`` is
+    omitted and ``python_version`` is never set — nbw's validator forbids both
+    when an inline mamba spec (second YAML doc) is present.
+    """
     header = {
         "image_name": name,
         "kernel_name": name,
@@ -55,32 +62,40 @@ def _required_image_header(name: str, python_version: str | None) -> dict:
         "valid_on": "1970-01-01",
         "expires_on": "2099-12-31",
     }
-    if python_version:
-        header["python_version"] = str(python_version)
+    if inline:
+        header.pop("kernel_name", None)
+    else:
+        if python_version:
+            header["python_version"] = str(python_version)
     return header
 
 
 def _required_system() -> dict:
-    """Scaffold the required ``system`` section for a valid spec."""
+    """Scaffold the required ``system`` section for a valid spec.
+
+    Key order matters: nbw's loader (_content_fp) pops ``date_updated`` and
+    ``spec_sha256`` then re-appends them, so they must be last (date_updated
+    then spec_sha256) for the stored hash to survive a load round-trip.
+    """
     return {
         "spec_version": str(WRANGLER_SPEC_VERSION),
-        "spec_sha256": None,
         "spi": {
             "repo": "https://github.com/spacetelescope/science-platform-images.git"
         },
         "nb-wrangler": {"repo": "https://github.com/spacetelescope/nb-wrangler.git"},
         "date_updated": datetime.datetime.now().isoformat(),
+        "spec_sha256": None,
     }
 
 
-def mamba_to_wrangler(name: str, mamba_spec: dict) -> dict:
+def mamba_to_wrangler(name: str, mamba_spec: dict, inline: bool = False) -> dict:
     """Convert a hubenv mamba-view dict to a full valid wrangler spec.
 
-    ``name/channels/dependencies/environment_vars`` from the view map
-    onto ``image_spec_header``, ``extra_mamba_packages``,
-    ``extra_pip_packages``, ``environment_vars`` respectively.
-    All validator-required scaffolding (``image_spec_header`` keys,
-    ``repositories``, ``system.spi``) is filled in.
+    ``name/channels/dependencies/environment_vars`` from the view map onto
+    ``image_spec_header``, ``extra_mamba_packages``, ``extra_pip_packages``,
+    ``environment_vars`` respectively.  *inline* True builds the wrangler "
+    inline spec" form: the header omits ``kernel_name``/``python_version``
+    (they live in the inline mamba seed).
     """
     conda, pip = split_conda_pip(mamba_spec.get("dependencies") or [])
     py = python_version(conda)
@@ -89,10 +104,10 @@ def mamba_to_wrangler(name: str, mamba_spec: dict) -> dict:
         for d in conda
         if not (isinstance(d, str) and d.startswith("python=")) and d != "pip"
     ]
-    header = _required_image_header(name, py)
+    header = _required_image_header(name, py, inline=inline)
     # When a real python version was not pinned, simple-definition mode
     # requires one; fall back to an empty pin so validation passes.
-    if py is None:
+    if not inline and py is None:
         header["python_version"] = ""
     wspec: dict = {
         "image_spec_header": header,
@@ -136,16 +151,49 @@ def wrangler_to_mamba(name: str, wspec: dict) -> dict:
     return view
 
 
-def _coerce_to_wrangler(name: str, spec: dict) -> dict:
-    """Coerce *spec* (mamba view or already-full wrangler) to a valid wrangler spec.
+def _mamba_clean(view: dict) -> dict:
+    """Return a mamba-clean doc 2: no environment_vars, no internal flags."""
+    clean = _strip_internal_flags(view)
+    clean.pop("environment_vars", None)
+    return clean
 
-    A dict that already carries an ``image_spec_header`` is treated as a
-    hand-authored wrangler spec and left untouched.  Anything else is
-    assumed to be a mamba view and converted.
+
+def _write_two_docs(doc1: dict, doc2: dict | None) -> str:
+    """Serialize doc1 (+ doc2) exactly as nbw's SpecManager.to_string() does."""
+    out = yaml_dumps(doc1)
+    if doc2 is not None:
+        out += "\n---\n" + yaml_dumps(doc2)
+    return out
+
+
+def _compute_spec_sha256(doc1: dict, doc2: dict | None) -> None:
+    """Set ``doc1['system']['spec_sha256']`` to a valid hash.
+
+    Matches nbw's ``SpecManager.add_sha256``: blank the field, hash the
+    two-document serialization, then restore.
     """
-    if isinstance(spec, dict) and "image_spec_header" in (spec or {}):
-        return spec
-    return mamba_to_wrangler(name, spec)
+    system = doc1["system"]
+    system["spec_sha256"] = ""
+    content = yaml_dumps(doc1)
+    if doc2 is not None:
+        content += "\n---\n" + yaml_dumps(doc2)
+    system["spec_sha256"] = sha256_str(content)
+
+
+def to_wrangler_yaml(name: str, spec: dict) -> str:
+    """Return a full valid wrangler-spec YAML for the mamba-view *spec*.
+
+    Emits the form the source was created in (single-doc "simple", or
+    two-doc "inline" mamba seed) with a valid ``spec_sha256`` and a fresh
+    ``date_updated``.
+    """
+    inline = bool(spec.get(INLINE_FLAG, False))
+    seed = _strip_internal_flags(spec)
+    wspec = mamba_to_wrangler(name, seed, inline=inline)
+    wspec["system"]["date_updated"] = datetime.datetime.now().isoformat()
+    doc2 = _mamba_clean(seed) if inline else None
+    _compute_spec_sha256(wspec, doc2)
+    return _write_two_docs(wspec, doc2)
 
 
 # ---------------------------------------------------------------------------
@@ -162,30 +210,39 @@ def load_hubenv_spec(config: PantryStore, name) -> dict:
     """Return the mamba-view for *name*.
 
     When the shelf spec exists on disk in full-wrangler form, convert it
-    back to the mamba view.  When no shelf spec exists yet (e.g. a first
-    ``var ls`` on an uncreated env), fall back to the base empty view so
-    downstream handlers have a well-typed seed to mutate.
+    back to the mamba view.  A two-document (inline mamba seed) spec yields
+    a view built from the second document (the seed) so the inline form
+    round-trips; ``INLINE_FLAG`` marks the form for re-save.  When no shelf
+    spec exists yet, fall back to the base empty view.
     """
     spec_path = config.shelf_spec_path(name)
     if spec_path.exists():
         yaml = get_yaml()
         with open(spec_path) as f:
-            wspec = yaml.load(f) or {}
-        return wrangler_to_mamba(name, wspec)
+            docs = list(yaml.load_all(f)) or [{}]
+        if len(docs) > 1:
+            view = dict(docs[1])
+            env_vars = docs[0].get("environment_vars") or {}
+            if env_vars:
+                view["environment_vars"] = dict(env_vars)
+        else:
+            view = wrangler_to_mamba(name, docs[0])
+        view[INLINE_FLAG] = len(docs) > 1
+        return view
     return seed_from_empty(name, None)
 
 
 def save_hubenv_spec(config: PantryStore, name, spec) -> None:
     """Persist *spec* to the shelf.
 
-    *spec* may be the mamba-view (the typical hubenv call site) or an
-    already-full wrangler spec.  The on-disk representation is always the
-    full-wrangler form so the file validates under ``SpecManager``.
+    *spec* is the mamba-view (the typical hubenv call site).  The on-disk
+    representation is always the full-wrangler form: a single document in
+    "simple" form or a two-document inline-mamba-seed form matching the
+    source, always with a valid ``spec_sha256`` and ``date_updated``.
     """
     spec_path = config.shelf_spec_path(name)
     spec_path.parent.mkdir(parents=True, exist_ok=True)
-    wspec = _coerce_to_wrangler(name, spec)
-    spec_path.write_text(yaml_dumps(wspec))
+    spec_path.write_text(to_wrangler_yaml(name, spec))
 
 
 def update_and_save_spec(config, name, packages, action, using) -> None:

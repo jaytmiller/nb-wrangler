@@ -77,8 +77,8 @@ Useful flags:
    run `hubenv save <name>`.
 
 Note that step 2 is *not* archiving: a shelf with a spec but no can shows as
-**spec-only** in `hubenv ls`/`status` and is **not** restorable on another
-machine until you save it.
+**spec-only** in `hubenv ls`/`status` and is **not** restorable in another
+science platform session until you save it.
 
 ### Examples
 
@@ -110,15 +110,32 @@ hubenv save my-env            # or: hubenv create … --save
 - `--pantry DIR` — specific pantry; `--force` — overwrite an existing can;
   `--dry-run` — show planned paths.
 
-On any other machine (or a fresh container with the same pantry) bring it back:
+For any other notebook session (or a fresh container with the same pantry) bring it back:
 
 ```bash
 hubenv ensure my-env     # idempotent: no-op if live, restore can if missing
 # or explicitly:
-hubenv restore my-env
+hubenv restore my-env    # always runs,  even if live environment already exists
 ```
 
-## Using the environment
+### Reproducing the env with nbw
+
+The shelf's `nbw-wrangler-spec.yaml` is a *full valid wrangler spec* (single-doc
+"simple" or two-doc "inline"), so `nbw` can drive it directly to rebuild the
+locked environment — no nbw-side changes:
+
+```bash
+# 1. Populate the spec's `out` section (compiled mamba spec + pip reqs)
+nbw <pantry>/shelves/my-env/nbw-wrangler-spec.yaml --curate
+
+# 2. Rebuild the locked env from those precompiled outputs
+nbw <pantry>/shelves/my-env/nbw-wrangler-spec.yaml --reinstall
+```
+
+`--reinstall` requires the `out` section to already hold the compiled outputs
+(`mamba_spec`, `pip_compiler_output`) — that is what `--curate` populates. Run
+`--curate` first (or ensure an `out` section exists) before `--reinstall`,
+else it errors with "This workflow requires a precompiled spec with outputs".
 
 ### Activating
 

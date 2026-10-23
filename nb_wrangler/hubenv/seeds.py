@@ -9,7 +9,13 @@ import subprocess
 from pathlib import Path
 
 from nb_wrangler.constants import NBW_MAMBA_CMD, TARGET_PACKAGES
+from nb_wrangler.hubenv._common import get_logger
 from nb_wrangler.utils import get_yaml
+
+# Internal marker in a hubenv mamba-view dict: ``True`` when the view derives
+# from a wrangler spec that carries an inline mamba seed (second YAML document).
+# Stripped before any dict is handed to mamba or written as doc 2.
+INLINE_FLAG = "_hubenv_inline"
 
 
 def _base_spec(name: str, python: str | None = None) -> dict:
@@ -63,6 +69,135 @@ def _ensure_target_packages(spec: dict) -> dict:
         deps.append({"pip": _merge_packages(existing, TARGET_PACKAGES)})
     else:
         section["pip"] = _merge_packages(existing, TARGET_PACKAGES)
+    return spec
+
+
+# -- inline wrangler-seed helpers (option 1: override name/python, keep recipe) --
+
+
+def _strip_internal_flags(spec: dict) -> dict:
+    """Return *spec* minus hubenv-internal keys (safe to hand to mamba)."""
+    if not isinstance(spec, dict):
+        return spec
+    return {
+        k: v
+        for k, v in spec.items()
+        if not isinstance(k, str) or not k.startswith("_hubenv_")
+    }
+
+
+def _python_from_spec(spec: dict) -> str | None:
+    """Return the pinned python version from a mamba spec's dependencies."""
+    for dep in spec.get("dependencies") or []:
+        if isinstance(dep, str) and dep.startswith("python="):
+            return dep.split("=", 1)[1].strip()
+    return None
+
+
+def _clear_python_dep(deps: list) -> None:
+    """Remove any ``python``/``python3.x`` string dependency from *deps*."""
+    deps[:] = [d for d in deps if not (isinstance(d, str) and d.startswith("python"))]
+
+
+def _is_compiled_pip(pkg: str) -> bool:
+    """Heuristic: is *pkg* a compiled/locked pip entry (python-version specific)?"""
+    if not isinstance(pkg, str):
+        return False
+    lowered = pkg.lower()
+    return (
+        "sha256" in lowered
+        or "cp3." in lowered
+        or "py3." in lowered
+        or ("manylinux" in lowered or "file://" in lowered)
+    )
+
+
+def _apply_name_python(
+    spec: dict, name: str, python: str | None, old_python: str | None
+) -> None:
+    """Record CLI overrides on the seed: name, python dep, and clear stale lock.
+
+    The seed's name/python are set to *name*/the resolved *python*; when the
+    python changes the stale pin and any compiled pip lock are cleared, each
+    with a descriptive log line.
+    """
+    old_name = spec.get("name")
+    if old_name and old_name != name:
+        get_logger().info(f"Overriding seed name from '{old_name}' to '{name}' (CLI).")
+    spec["name"] = name
+    if python:
+        python = str(python).strip()
+        if python != old_python:
+            _clear_python_dep(spec["dependencies"])
+            spec["dependencies"].insert(0, f"python={python}")
+            get_logger().info(
+                f"Overriding seed python from '{old_python}' to '{python}' "
+                "(CLI); cleared stale python pin."
+            )
+            _clear_stale_pip_lock(spec, old_python, python)
+
+
+def _apply_header_extras(spec: dict, header: dict) -> None:
+    """Merge the wrangler header's lists into the seed (wrangler lists win)."""
+    deps = spec.setdefault("dependencies", [])
+    insert_at = next((i for i, d in enumerate(deps) if isinstance(d, dict)), len(deps))
+    for pkg in header.get("extra_mamba_packages") or []:
+        if isinstance(pkg, dict) or pkg == "pip" or pkg in deps:
+            continue
+        deps.insert(insert_at, pkg)
+        insert_at += 1
+    section = _find_pip_section(deps)
+    if section is None:
+        section = {"pip": []}
+        deps.append(section)
+    for pkg in header.get("extra_pip_packages") or []:
+        if pkg not in section["pip"]:
+            section["pip"].append(pkg)
+
+
+def _clear_stale_pip_lock(spec: dict, old_python: str | None, new_python: str) -> None:
+    """Drop compiled (python-version-specific) pip entries; log what was cleared.
+
+    Plain (uncompiled) package names are python-independent and preserved.
+    """
+    section = _find_pip_section(spec.get("dependencies") or [])
+    if section is None:
+        return
+    pip = section.get("pip")
+    if not pip:
+        return
+    compiled = [p for p in pip if _is_compiled_pip(p)]
+    if not compiled:
+        return
+    section["pip"] = [p for p in pip if not _is_compiled_pip(p)]
+    get_logger().info(
+        f"Cleared {len(compiled)} stale compiled pip lock entries for python "
+        f"'{old_python}'; seed now targets python '{new_python}'."
+    )
+
+
+def _build_inline_seed(doc2: dict, name: str, python: str | None, doc1: dict) -> dict:
+    """Build the inline seed from the mamba seed + doc1's extra package lists.
+
+    doc1 is the wrangler spec's first document (top-level
+    ``extra_mamba_packages`` / ``extra_pip_packages`` are merged in).
+    """
+    spec = dict(doc2 or {})
+    spec.setdefault("dependencies", [])
+    _apply_name_python(spec, name, python, _python_from_spec(spec))
+    _apply_header_extras(spec, doc1)
+    _ensure_target_packages(spec)
+    return spec
+
+
+def _build_simple_seed(name: str, python: str | None, wspec: dict) -> dict:
+    """Build the simple-form seed from a wrangler spec's header + lists."""
+    spec = _base_spec(name, python)
+    for pkg in wspec.get("extra_mamba_packages") or []:
+        if pkg != "pip":
+            spec["dependencies"].insert(-1, pkg)
+    spec["dependencies"].append({"pip": list(wspec.get("extra_pip_packages") or [])})
+    _ensure_target_packages(spec)
     return spec
 
 
@@ -133,36 +268,46 @@ def seed_from_wrangler_spec(
 ) -> dict:
     """Build a mamba spec from a wrangler spec YAML file.
 
-    *name* (``None`` when no ``--name``) defaults to the header's
-    ``kernel_name``, then ``image_name``, then the file stem.  *python*
-    (``None`` when no ``--python``) defaults to the header's
-    ``python_version``.
+    *name* (``None`` when no ``--name``) resolves as CLI > header
+    ``kernel_name``/``image_name`` > inline spec ``name`` > file stem.
+    *python* (``None`` when no ``--python``) resolves as CLI > header
+    ``python_version`` > inline spec python.  In the simple form a Python pin is
+    required: if it is absent from every source, a ``ValueError`` is raised
+    (wrapped in ``HubenvError`` on the ``create`` path).  When the source carries
+    a second YAML document (inline mamba seed) the seed is built from it with the
+    CLI name/python overrides applied and recorded (option 1); otherwise it is
+    derived from the header package lists.
     """
     yaml = get_yaml()
     with open(path) as fh:
-        wspec = yaml.load(fh)
-
+        docs = list(yaml.load_all(fh)) or [{}]
+    wspec, inline_doc2 = docs[0], docs[1] if len(docs) > 1 else None
     header = wspec.get("image_spec_header", {}) or {}
+    inline = inline_doc2 is not None
     if name is None:
-        name = header.get("kernel_name") or header.get("image_name") or Path(path).stem
+        name = (
+            header.get("kernel_name")
+            or header.get("image_name")
+            or (inline_doc2.get("name") if inline_doc2 else None)
+            or Path(path).stem
+        )
     if python is None:
-        python = header.get("python_version")
+        python = header.get("python_version") or (
+            _python_from_spec(inline_doc2) if inline_doc2 else None
+        )
     if python:
         python = str(python).strip()
-
-    spec = _base_spec(name, python)
-
-    # Add extra mamba packages (skip "pip" since it's already a dependency)
-    extra_mamba = wspec.get("extra_mamba_packages", []) or []
-    for pkg in extra_mamba:
-        if pkg != "pip":
-            spec["dependencies"].insert(-1, pkg)  # before "pip"
-
-    # Add extra pip packages, then guarantee the baseline TARGET_PACKAGES.
-    extra_pip = wspec.get("extra_pip_packages", []) or []
-    spec["dependencies"].append({"pip": list(extra_pip)})
-    _ensure_target_packages(spec)
-
+    if inline_doc2 is None and not python:
+        raise ValueError(
+            f"No Python pin for simple-form wrangler spec '{name}' "
+            f"({path}): pass --python or set "
+            "'image_spec_header.python_version' in the spec."
+        )
+    if inline_doc2 is not None:
+        spec = _build_inline_seed(inline_doc2, name, python, wspec)
+    else:
+        spec = _build_simple_seed(name, python, wspec)
+    spec[INLINE_FLAG] = inline
     return spec
 
 

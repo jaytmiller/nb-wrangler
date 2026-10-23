@@ -44,6 +44,7 @@ from nb_wrangler.hubenv.seeds import (
     seed_from_mamba_spec,
     seed_from_requirements,
     seed_from_wrangler_spec,
+    _strip_internal_flags,
 )
 from nb_wrangler.utils import yaml_dumps
 
@@ -64,7 +65,8 @@ def cmd_env_create(args) -> int:
     if args.from_existing_env:
         rc = _onboard_existing_env(args)
     else:
-        rc = install_environment(args.name, yaml_dumps(seed))
+        # Strip hubenv-internal flags so mamba sees only a clean seed.
+        rc = install_environment(args.name, yaml_dumps(_strip_internal_flags(seed)))
     if rc != 0:
         return rc
 

@@ -120,7 +120,9 @@ guess — the user must pass `--pantry`.
 ~/.nbw-pantry/                        # NBW_PANTRY (chain element)
 ├── shelves/
 │   └── <name>/                       # SHELF
-│       ├── nbw-wrangler-spec.yaml    # SHELF SPEC (full wrangler spec on disk)
+│       ├── nbw-wrangler-spec.yaml    # SHELF SPEC (full valid wrangler spec:
+│       │                             # single-doc "simple" or two-doc
+│       │                             # "inline", always w/ valid spec_sha256)
 │       └── archives/
 │           ├── <name>.tar            # CAN
 │           ├── data-*                # DATA ARCHIVES (hubenv data *)
@@ -266,19 +268,33 @@ logs its message to stderr, and returns its `exit_code`.
 
 ### 4.8 Spec model (mamba view ↔ wrangler spec)
 
-Interactions with the shelf spec go through `env_spec.py`:
+Interactions with the shelf spec go through `env_spec.py`. The file on disk is
+*always* a **full valid wrangler spec** in one of two mutually-exclusive forms
+(see `docs/spec-format.md`):
 
-- **On disk** the shard spec is *always* a full valid wrangler spec
-  (`mamba_to_wrangler` scaffolds `image_spec_header`, `repositories`,
-  `system`, `extra_mamba_packages`/`extra_pip_packages`).
-- **In memory / CLI** hubenv speaks the *mamba view*
-  (`name`/`channels`/`dependencies`/`environment_vars`);
-  `wrangler_to_mamba` converts on load.
-- Load when the shelf spec is missing falls back to `seed_from_empty(name, None)`
-  (deps `["pip"]`) so first-mutation commands have a well-typed seed.
-- `save_hubenv_spec` coerces via `_coerce_to_wrangler` and writes with
-  `mkdir(parents=True, exist_ok=True)` — **overwrites unconditionally**
-  (no confirmation, no backup).
+- **Simple** (default): a single YAML document; the header requires
+  `kernel_name` + `python_version` and carries `extra_mamba_packages` /
+  `extra_pip_packages`.
+- **Inline** (only when the source carries an explicit mamba seed): two YAML
+  documents separated by `---`; the header must **not** hold `kernel_name` /
+  `python_version` (they live in doc 2), and doc 2 is a mamba-clean seed
+  (`name`, `channels`, `dependencies`; no `environment_vars`).
+
+- `mamba_to_wrangler` scaffolds `image_spec_header`, `repositories`, `system`,
+  and the `extra_*_packages` lists; the emitted form follows the source (an
+  inline seed → two-doc, otherwise single-doc).
+- `load_hubenv_spec` reads via `yaml.load_all`; a two-doc spec yields a view
+  built from doc 2 (with doc-1 `environment_vars` merged in), flagged
+  `INLINE_FLAG` so the form round-trips; one-doc specs convert via
+  `wrangler_to_mamba`.
+- Load with no shelf spec falls back to `seed_from_empty(name, None)`
+  (deps `["pip"]`) so first-mutation commands get a well-typed seed.
+- `save_hubenv_spec` writes via `to_wrangler_yaml`, which emits the source's
+  form, stamps a fresh `date_updated`, and always writes a valid
+  `spec_sha256` (shared `sha256_str`, `\n---\n` separator, no trailing newline
+  — byte-exact vs `SpecManager.to_string` + `add_sha256`), and **overwrites
+  unconditionally** (no confirmation, no backup). The resulting file always
+  passes `SpecManager.load_and_validate` + `validate_sha256`.
 
 ---
 
@@ -679,13 +695,19 @@ them.
   package list and `environment_vars`.
 - `env_spec.py` is the only read/write path (load/save/update). Commands
   must not hand-edit the YAML.
-- On-disk = full wrangler spec (valid under `SpecManager`); in-memory =
-  mamba view. Conversion is transparent.
-- `save_hubenv_spec` overwrites unconditionally; `update_and_save_spec`
-  is the canonical add/remove path (dedup on add, base-name removal on
-  remove, pip/conda routing by `--using`).
-
-### 6.2 Kernel-registration contract
+- On-disk = full wrangler spec in exactly one of the two mutually-exclusive
+  forms (simple 1-doc / inline 2-doc, see `docs/spec-format.md`), valid under
+  `SpecManager`; in-memory = mamba view. Conversion is transparent and the
+  form round-trips.
+- `save_hubenv_spec` overwrites unconditionally and always writes a valid
+  `spec_sha256`, so the file stays valid under
+  `SpecManager.load_and_validate` + `validate_sha256` across save/relock.
+- `relock` re-pins the pip section in every document (doc-1
+  `extra_pip_packages`; and the doc-2 `pip:` list for the inline form), then
+  refreshes `date_updated` + `spec_sha256`; `--dry-run` writes nothing.
+- `update_and_save_spec` is the canonical add/remove path (dedup on add,
+  base-name removal on remove, pip/conda routing by `--using`), and also
+  re-stamps a valid `spec_sha256`.
 
 - Register: `register_environment(name, display_name, env_vars)` (a
   `mamba run -n name python -m ipykernel install …` step).
@@ -720,11 +742,11 @@ them.
 
 ## 7. Known rough edges & open questions
 
-The thirteen rough edges identified during decomposition are **all resolved
-in v0.10.0** (per `docs/plans/hubenv-rough-edges-plan.md`). The table
-below keeps the original pre-fix descriptions as design context; the
-Status column records the resolution. New behavioral observations should
-be appended here with a fresh ID.
+The original thirteen rough edges identified during decomposition are **all
+resolved in v0.10.0** (per `docs/plans/hubenv-rough-edges-plan.md`); RE-14
+additionally records the two-form shadow-spec change (v0.11.0). The table below
+keeps the pre-fix descriptions as design context; the Status column records the
+resolution. New behavioral observations should be appended here with a fresh ID.
 
 | ID | Location | Description (pre-fix observation) | Status (v0.10.0) |
 |---|---|---|---|
@@ -741,6 +763,7 @@ be appended here with a fresh ID.
 | RE-11 | `var.py` / `env_spec.py` | `var add`/`var rm` on an env with no shelf spec **creates** the shelf (via the `seed_from_empty` fallback) and writes a spec containing only the `environment_vars` — a side-effect not advertised by the help text. | **Resolved** — `var add` requires an existing shelf spec (exit 1 + "Create it first: hubenv create NAME --from-empty"); no auto-creation; `var rm` was already a no-op on a missing shelf (§5.5 `var add`). |
 | RE-12 | `cli.py` / `parser.py` | `status`, `doctor`, `var`, `data`, `export`, `register`, `unregister`, `activate`, `deactivate` do **not** accept `--pantry`; they use the default `NBW_PANTRY` chain only. Only `create/save/restore/ls/info/rm/ensure` offer `--pantry`. | **Resolved (partial)** — `export`, `var ls`, `var add`, `var rm` now accept `--pantry` via `_common.store_for` (11 verbs total); `data*`, `status`, `doctor`, `register`/`unregister`, `activate`/`deactivate` remain deliberately out of scope (§4.5, §5.5). |
 | RE-13 | `env_rm.py:prompt_rm_confirmation` | The interactive `Proceed? (y/N)` prompt reads from stdin and writes to **stdout** (mixed with the plan print), so the "stdout is machine-readable" discipline is bent by the only interactive command. | **Resolved** — the prompt goes to **stderr** (stdout stays machine-readable) (§5.2 `rm`). |
+| RE-14 | `seeds.py` / `env_spec.py` | The shelf ("shadow") spec was a hubenv-specific YAML that nbw could not validate or consume; `spec_sha256` was missing or could drift from nbw's serialization, so `nbw --curate`/`--reinstall` could not use the shadow spec. | **Resolved (v0.11.0)** — the shadow spec is always a full valid wrangler spec in one of two mutually-exclusive forms (simple 1-doc / inline 2-doc, see `docs/spec-format.md`); `save_hubenv_spec`/`to_wrangler_yaml` emit the source's form with a byte-valid `spec_sha256` (shared `sha256_str`, `\n---\n` separator, no trailing newline); the file passes `SpecManager.load_and_validate` + `validate_sha256` and round-trips through save/relock. |
 
 ---
 
