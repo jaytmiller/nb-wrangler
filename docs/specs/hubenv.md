@@ -347,7 +347,7 @@ Behavior (`env_save.py`):
 
 Shared by `create --save` (`_save_after_create` wraps the same `_do_save`).
 
-Detailed spec target: `docs/specs/hubenv-env-save.md`.
+> **Detailed spec: [`hubenv-env-save.md`](hubenv-env-save.md).**
 
 #### `hubenv restore NAME`
 
@@ -373,7 +373,7 @@ Behavior (`env_restore.py`):
 instruction for the user to add to their shell startup (no automatic 
 `~/.bashrc` edit; `hubenv rm` removes the snippet via `remove_at_boot_snippet`).
 
-Detailed spec target: `docs/specs/hubenv-env-restore.md`.
+> **Detailed spec: [`hubenv-env-restore.md`](hubenv-env-restore.md).**
 
 #### `hubenv ensure NAME`
 
@@ -390,7 +390,7 @@ Behavior (`env_ensure.py`):
    `cmd_env_restore` (which does unpacking + kernel registration).
 3. No shelf → exit 1 with `hubenv create ... --name NAME` suggestion.
 
-Detailed spec target: `docs/specs/hubenv-env-ensure.md`.
+> **Detailed spec: [`hubenv-env-ensure.md`](hubenv-env-ensure.md).**
 
 ### 5.2 Environment mutation
 
@@ -419,7 +419,7 @@ Rough edges: the spec update is a *silent* mutation — a failed installer
 leaves the spec unmodified (that ordering holds); the spec write is
 unconditional (`save_hubenv_spec` overwrite).
 
-Detailed spec target: `docs/specs/hubenv-env-install-uninstall.md`.
+> **Detailed spec: [`hubenv-env-install-uninstall.md`](hubenv-env-install-uninstall.md).**
 
 #### `hubenv relock NAME`
 
@@ -440,7 +440,7 @@ Rough edges: only pip packages are relocked (conda deps are touched by
 install/uninstall but not re-pinned here); compiler failure surfaces as an
 exit 1 without always naming the offending package.
 
-Detailed spec target: `docs/specs/hubenv-env-relock.md`.
+> **Detailed spec: [`hubenv-env-relock.md`](hubenv-env-relock.md).**
 
 #### `hubenv rm NAME…`
 
@@ -464,7 +464,7 @@ Behavior (`env_rm.py`) — a 5-step pipeline:
    shelf → `shutil.rmtree`; already-gone → reported, not an error;
    best-effort removal of now-empty `shelves/` dirs.
 
-Detailed spec target: `docs/specs/hubenv-env-rm.md`.
+> **Detailed spec: [`hubenv-env-rm.md`](hubenv-env-rm.md).**
 
 ### 5.3 Kernel & shell
 
@@ -504,7 +504,7 @@ Behavior (`env_activate.py`):
   `var ls NAME --export`); shell auto-detected (`activation.detect_shell`).
 - `deactivate`: `activation.emit_deactivate(...)`; always exit 0.
 
-Detailed spec target (shared): `docs/specs/hubenv-kernel-and-shell.md`.
+> **Detailed spec: [`hubenv-kernel-and-shell.md`](hubenv-kernel-and-shell.md).**
 
 ### 5.4 Inspection
 
@@ -568,8 +568,8 @@ Exit: 0 if all pass, else 1. Table or JSON (`{checks:[…], all_pass}`) —
 JSON has two parallel shapes (`checks`/`all_pass` vs. per-check
 `pass`/`detail`/`hint`).
 
-Detailed spec target (shared): `docs/specs/hubenv-inspection.md`
-(loudly cover `ls`, `info`, `status`, `doctor`).
+> **Detailed spec: [`hubenv-inspection.md`](hubenv-inspection.md).**
+> (Covers `ls`, `info`, `status`, and `doctor`.)
 
 ### 5.5 Spec & vars
 
@@ -635,8 +635,8 @@ Behavior: remove matches (no match → "No matching variables …" + exit 0,
 spec untouched); otherwise save + kernel refresh; one `Removed …` line per
 var. No dry-run (the spec write is unconditional).
 
-Detailed spec target (shared): `docs/specs/hubenv-var.md`; `hubenv export`
-→ `docs/specs/hubenv-export.md`.
+> **Detailed spec: [`hubenv-var.md`](hubenv-var.md).** `hubenv export` is
+> covered by [`hubenv-export-status-doctor.md`](hubenv-export-status-doctor.md).
 
 ### 5.6 Data
 
@@ -660,7 +660,7 @@ directly (all others delegate to `data_manager`); `data ls` has no
 shares the `_dispatch_data` style of `var` (bare `data` → exit 1, RE-09
 resolved).
 
-Detailed spec target: `docs/specs/hubenv-data.md`.
+> **Detailed spec: [`hubenv-data.md`](hubenv-data.md).**
 
 ### 5.7 Tooling
 
@@ -676,6 +676,8 @@ hard-coded command tree; unknown shell → stderr message + exit 1; supported
 → the script on stdout (no trailing newline beyond the generator's own),
 exit 0. Doc-usage: `eval "$(hubenv completions bash)"`, write to
 `$fpath[1]/_hubenv`, or `~/.config/fish/completions/hubenv.fish`.
+
+> **Detailed spec: [`hubenv-completions.md`](hubenv-completions.md).**
 
 #### `hubenv --version` / (no command)
 
