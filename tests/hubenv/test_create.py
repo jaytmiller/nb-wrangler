@@ -811,6 +811,30 @@ class TestDefaultPersist:
         mock_register.assert_not_called()
         assert not self._shelf_spec(_pantry, "demo").exists()
 
+    def test_register_failure_exit_1(self, tmp_path, _pantry, capsys):
+        """Kernel registration failure: exit 1, no exports, no "ready" line,
+        but the shelf spec (already written) remains."""
+        from nb_wrangler.hubenv.cli import main
+
+        with (
+            patch("nb_wrangler.hubenv.config.NBW_ROOT", tmp_path),
+            patch("nb_wrangler.hubenv.config.NBW_PANTRY_DIRS", [_pantry]),
+            patch.object(
+                EnvironmentManager, "create_environment", return_value=True
+            ) as mock_create,
+            patch.object(
+                EnvironmentManager, "register_environment", return_value=False
+            ) as mock_register,
+        ):
+            rc = main(["create", "--from-empty", "--name", "demo"])
+
+        assert rc == 1
+        mock_create.assert_called_once()
+        mock_register.assert_called_once()
+        assert self._shelf_spec(_pantry, "demo").exists()
+        out = capsys.readouterr().out
+        assert "export NBW_ACTIVE_ENV" not in out
+
     def test_from_mamba_spec_display_name_registered_and_recorded(
         self, tmp_path, _pantry
     ):

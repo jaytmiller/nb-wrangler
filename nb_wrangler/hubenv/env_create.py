@@ -60,7 +60,9 @@ def cmd_env_create(args) -> int:
     args.name = seed["name"]
 
     if args.dry_run:
-        print(yaml_dumps(seed))
+        # Strip hubenv-internal flags so stdout holds the clean mamba spec
+        # (same guarantee as the install path).
+        print(yaml_dumps(_strip_internal_flags(seed)))
         return 0
 
     if args.from_existing_env:
@@ -158,7 +160,8 @@ def _persist_essentials(args, seed) -> int:
     """Write the shelf spec, register the kernel, and print exports.
 
     Shared by all five sources so the default is a complete, usable, and
-    restorable environment.
+    restorable environment.  Kernel registration failure returns ``1``
+    (after the spec write) without printing exports or the "ready" line.
     """
     store = _build_store(args)
     if store is None:
@@ -167,7 +170,9 @@ def _persist_essentials(args, seed) -> int:
 
     em = EnvironmentManager()
     display_name = seed.get(DISPLAY_NAME_FLAG) or args.name
-    em.register_environment(args.name, display_name, {})
+    if not em.register_environment(args.name, display_name, {}):
+        # handle_result already logged the failure details.
+        return 1
 
     print_exports(args.name, store)
     get_logger().info(

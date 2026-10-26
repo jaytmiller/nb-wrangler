@@ -24,6 +24,10 @@ into the hubenv "Persistent Platform Environment" (PPE) lifecycle:
 Users who only need a throwaway live environment (CI, scratch) pass
 `--ephemeral` to skip step 2 entirely.
 
+Archiving the fresh environment into a pantry `can` is explicit: pass
+`--save` to pack it immediately after step 2, or run `hubenv save <name>`
+later (without `--save`, create prints a save reminder — see §5.2 step 3).
+
 ---
 
 ## 2. Command synopsis
@@ -65,7 +69,8 @@ level is a clean error.
 | `--python` | optional, `None` | Python version pin (e.g. `3.11`). Appended as `python=3.11` conda dependency for `--from-empty` and `--from-requirements`; resolves CLI > source pin for `--from-wrangler-spec` (header/inline), `--from-mamba-spec` (the spec's `python=` dep, previously ignored), and `--from-existing-env` (the source env's pin). Overrides are logged, and stale compiled pip lock entries are cleared when the pin changes. |
 | `--pantry` | optional, `None` | Pantry directory to target. When set, `PantryStore(paths=[Path(value)])` is used so the shelf spec is written under that specific pantry and is not resolved via the default `NBW_PANTRY_DIRS` chain. When omitted, the first writable pantry is used. |
 | `--ephemeral` | optional, `False` | Build the live environment only; skip shelf-spec persistence and kernel registration. Use for temporary or CI scratch envs. |
-| `--dry-run` | optional, `False` | Build and print the seeded mamba-spec dict as YAML to stdout; return 0 without installing, writing any shelf spec, registering any kernel, or modifying the filesystem. |
+| `--dry-run` | optional, `False` | Build and print the seeded mamba-spec dict as YAML to stdout (internal `_hubenv_*` flags stripped — §5.1); return 0 without installing, writing any shelf spec, registering any kernel, or modifying the filesystem. |
+| `--save` | optional, `False` | After a fully successful build + persist, archive the new environment into a pantry can by delegating to the shared `_do_save` (documented in `hubenv-env-save.md` §4) with `force=False` — so an **existing** can is an error (exit `1`) *after* the environment has already been created. Without `--save`, create prints a `hubenv save` reminder instead (see §5.2 step 3). |
 
 ### 3.3 Global flags (inherited from top-level hubenv parser)
 
@@ -192,7 +197,11 @@ the stderr text.
 1. `_probe_target(args)` — cheap existence probe (logs INFO if the target
    already exists; non-fatal)
 2. `seed = _seed(args)` → dict (wraps `build_seed_dict`; RE-03)
-3. `spec_yaml = yaml_dumps(seed)` → YAML string
+3. `spec_yaml = yaml_dumps(_strip_internal_flags(seed))` → YAML string of the
+   canonical mamba-spec shape: the hubenv-internal flags
+   (`_hubenv_display_name`, `_hubenv_inline`) are removed, so stdout never
+   carries keys that mamba would not understand (same guarantee as the install
+   path in §5.2 step 1)
 4. `print(spec_yaml)` to stdout
 5. `return 0`
 
@@ -245,14 +254,34 @@ After `_seed(args)` (RE-03) produces the seed, `cmd_env_create`:
         (`\n---\n` separator, no trailing newline), so the file passes
         `SpecManager.load_and_validate` + `validate_sha256`.
    c. `em.register_environment(args.name, display_name, {})` where
-      `display_name = args.display_name or args.name`:
+      `display_name = seed["_hubenv_display_name"] or args.name` — the resolved
+      display name the seed builder recorded (CLI `--display-name` > wrangler
+      spec header `display_name` > env name; §3.2, §4.4):
       - Runs: `mamba run -n <name> python -m ipykernel install --user --name '<name>' --display-name '<display_name>'`
       - On success: INFO log `"Registered environment <name> as a jupyter kernel making it visible to JupyterLab as '<display_name>'."`
+      - **On failure** (`register_environment` returns `False`): its
+        `handle_result` already logs ERROR `"Failed to register environment
+        <name> as a jupyter kernel:"` with details; `_persist_essentials`
+        returns `1` **without** printing exports or the "ready" INFO line, and
+        `cmd_env_create` exits `1`. The shelf spec has already been written
+        (step b) and the live env remains usable via
+        `mamba activate <name>` — re-run kernel registration once ipykernel
+        is installed in it.
    d. `print_exports(args.name, store)`:
       - `export NBW_ACTIVE_ENV=<name>`
       - `export NBW_ENV_ROOT=<live_envs_root>/<name>`
    e. INFO log `"Environment '<name>' is ready. Kernel '<display_name>' registered. Shelf spec: <path>"`.
    f. `return 0`
+
+3. **Save or hint** (only reached without `--ephemeral`):
+   a. `--save`: `_save_after_create(args)` → `_do_save(PantryStore(), name,
+      args.pantry, force=False)` (documented in `hubenv-env-save.md` §4.3); on
+      success logs INFO `"Environment '<name>' is archived and restorable."`
+      and returns the save's exit code — in particular an **existing** can is
+      exit `1` (hard-coded `force=False`) *after* the environment was created.
+   b. No `--save`: `print_save_hint(name)` — WARNING log on stderr
+      `"Not archived yet. Run `hubenv save <name>` to create the restoreable
+      can."` — then `return 0`.
 
 For `--from-existing-env`, **no** call to `create_environment` is made —
 the environment is assumed to already exist in mamba.
@@ -265,12 +294,14 @@ the environment is assumed to already exist in mamba.
 |---|---|
 | Dry-run success | `0` |
 | Ephemeral build success (live env ready, no persistence) | `0` |
-| Full success (build OK, spec saved, kernel registered) | `0` |
+| Full success (build OK, spec saved, kernel registered, then save-or-hint step per §5.2 step 3) | `0` |
+| Kernel registration failure (the `ipykernel install` inside `register_environment` exits non-zero) — build + shelf spec completed, **no** exports, no "ready" line | `1` |
 | Install failure (mamba create non-zero) — no persistence | `1` |
 | `--from-existing-env` source not found in mamba — no persistence | `1` |
 | No writable pantry (and no valid `--pantry`) — build may have succeeded, but no spec/kernel | `1` |
 | Seed probe/build fails (e.g. `--from-existing-env` source missing; `mamba env export` / `pip freeze` fail) | `1` — caught by `_seed` and re-raised as `HubenvError("Failed to seed spec for 'NAME': …", exit_code=1)`; `cli.main()` prints the clean message to stderr, no traceback (RE-03 resolved) |
 | `--name` missing for `--from-empty` / `--from-requirements` (validated in `build_seed_dict`) | `1` — clean `HubenvError("--name is required for --from-empty and --from-requirements")` on stderr, no traceback |
+| `--save`: target can already exists (hard-coded `force=False`) or can packing fails (see `hubenv-env-save.md` §5) — the environment is **already created** | `1` |
 
 ---
 
@@ -291,6 +322,13 @@ and where the seed comes from.
 | Registers kernel (`--ephemeral`) | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Prints exports (unless `--ephemeral`) | ✅ | ✅ | ✅ | ✅ | ✅ |
 | Temp spec file created/deleted | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Packs a pantry can (with `--save`) | ✅ | ✅ | ✅ | ✅ | ✅ |
+| Packs a pantry can (without `--save`) | ❌ | ❌ | ❌ | ❌ | ❌ |
+
+`--save` is orthogonal to the source flag: when the build + persist succeed, it
+archives the just-created environment into a pantry can *after* persistence
+(§5.2 step 3; behavior documented in `hubenv-env-save.md` §4.3). Without
+`--save`, the save hint is printed instead (§10.3).
 
 ---
 
@@ -311,6 +349,15 @@ and where the seed comes from.
 - `--ephemeral` short-circuits before `_persist_essentials`; the live env is
   fully usable via `mamba activate <name>` but no shelf spec exists and the
   kernel is not visible to JupyterLab.
+- `--save` combinations that never reach the save step: with `--dry-run` the
+  command returns at the print step, and with `--ephemeral` at the persist
+  step — in both cases `--save` is **silently ignored** (the parser accepts
+  the combination with no error) and no can is packed.
+- Kernel registration failure: the command exits `1` *after* the shelf spec
+  has been written (and, unless `--ephemeral`, after the live env was built);
+  no exports are printed and the "ready" INFO line is not logged (see §5.2
+  step 2c). The live env remains usable via `mamba activate <name>`, and the
+  can can still be packed later via `hubenv save <name>`.
 - Building into a non-writable pantry (or all default pantries read-only)
   returns `1` after a clear error; the build step (if any) still ran.
 
@@ -388,7 +435,13 @@ export NBW_ACTIVE_ENV=myproject
 export NBW_ENV_ROOT=/home/user/.nbw-live/mm/envs/myproject
 ```
 
-(The closing INFO log line `"Environment 'myproject' is ready. Kernel 'My Project' registered. Shelf spec: <path>"` appears on stderr.)
+(Shown without `--save`; on stderr the closing INFO log line
+`"Environment 'myproject' is ready. Kernel 'My Project' registered. Shelf spec: <path>"`
+is followed by the WARNING save hint
+`"Not archived yet. Run `hubenv save myproject` to create the restoreable can."`
+With `--save`, the hint is replaced by the can packing (its INFO/ERROR output
+per `hubenv-env-save.md` §6) and the closing INFO `"Environment 'myproject'
+is archived and restorable."` on success.)
 
 ### 10.4 `--from-empty --name demo --ephemeral`
 

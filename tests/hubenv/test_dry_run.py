@@ -78,6 +78,8 @@ class TestDryRun:
         assert "conda-forge" in out
         # The empty env installs at least the hubenv support packages.
         assert "ipykernel" in out
+        # No hubenv-internal flags (e.g. _hubenv_display_name) leak to stdout.
+        assert "_hubenv_" not in out
 
     def test_dry_run_requirements_prints_spec(self, tmp_path, capsys):
         from nb_wrangler.hubenv.cli import main
@@ -151,6 +153,8 @@ class TestDryRun:
         assert "python=3.11" in out
         assert "numpy" in out
         assert "requests" in out
+        # No hubenv-internal flags (e.g. _hubenv_inline, _hubenv_display_name).
+        assert "_hubenv_" not in out
 
     def test_dry_run_does_not_install(self, tmp_path, capsys):
         """Verify no environment is created during dry-run."""
