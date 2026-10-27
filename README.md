@@ -297,6 +297,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--spec-validate`: Validate the spec file.
 - `--spec-update-hash`: Update spec SHA256 hash.
 - `--spec-ignore-hash`: Do not add or verify the spec hash.
+- `--spec-readonly`: Treat the source spec as read-only; any modification (content change or hash repair) is refused.
 - `--spec-add-pip-hashes`: Record PyPI hashes for packages during compilation.
 - `--print-wrangler-repo`: Print the nb-wrangler repository URL associated with this spec.
 - `--print-wrangler-ref`: Print the nb-wrangler repository ref associated with this spec.

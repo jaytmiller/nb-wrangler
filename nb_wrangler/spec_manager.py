@@ -640,6 +640,24 @@ class SpecManager(
             return True
         return self._content_fp() != self._baseline_content_fp
 
+    def _stored_hash_is_valid(self) -> bool:
+        """True when the stored ``spec_sha256`` matches a freshly computed hash.
+
+        Non-mutating counterpart of ``validate_sha256`` (which re-stamps the
+        hash); specs without any stored hash return False.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return False
+        stored = system.get("spec_sha256")
+        if not stored:
+            return False
+        system["spec_sha256"] = ""
+        try:
+            return stored == utils.sha256_str(self.to_string())
+        finally:
+            system["spec_sha256"] = stored
+
     def _readonly_source_write(self, output_path: Path | str) -> bool:
         """True when output_path is the loaded source spec file itself."""
         if not self._source_file:
@@ -677,31 +695,44 @@ class SpecManager(
     ) -> bool:
         """Save the current YAML spec to a file.
 
-        ``system.date_updated`` and ``system.spec_sha256`` change only when the
-        actual content changes.  An unchanged save to the source is a byte-for-byte
-        no-op; an unchanged copy is re-serialized as-is.  With ``--spec-readonly``
-        a source write that would change content is refused (warn + abort).
+        ``system.date_updated`` changes only when the actual content changes.
+        ``system.spec_sha256`` is refreshed when the content changes or, when
+        ``add_sha256`` is requested (e.g. ``--spec-update``), when the stored
+        hash is missing or no longer matches the spec.  An unchanged save to
+        the source with a valid hash is a byte-for-byte no-op; an unchanged
+        copy is re-serialized as-is.  With ``--spec-readonly``, any save to
+        the source that would change it (content change or hash repair) is
+        refused (error + abort).
         """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
             is_source = self._readonly_source_write(output_path)
-            changed = self._content_changed()
-            if changed and is_source and self.config.spec_readonly:
+            content_changed = self._content_changed()
+            hash_stale = add_sha256 and not self._stored_hash_is_valid()
+            if (
+                (content_changed or hash_stale)
+                and is_source
+                and self.config.spec_readonly
+            ):
                 return self.logger.error(
                     "--spec-readonly: refusing to modify source spec "
-                    f"{self._source_file} (content changed)."
+                    f"{self._source_file} (content_changed={content_changed}, "
+                    f"hash_stale={hash_stale})."
                 )
-            if changed:
+            if content_changed:
                 self._update_meta(add_sha256)
-            if (not changed) and is_source:
+            elif hash_stale:
+                hash = self.add_sha256()
+                self.logger.debug(f"Repairing stale spec_sha256 to {hash}.")
+            if (not content_changed and not hash_stale) and is_source:
                 self.logger.debug(
                     f"Spec content unchanged; source {self._source_file} "
                     "left untouched."
                 )
             else:
                 self._write_spec(output_path)
-                if changed and is_source:
+                if (content_changed or hash_stale) and is_source:
                     self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
@@ -785,21 +816,34 @@ class SpecManager(
         self.system["spec_sha256"] = utils.sha256_str(self.to_string())
         return self.system["spec_sha256"]
 
-    def validate_sha256(self) -> bool:
-        """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
+    def validate_sha256(self, defer_repair: bool = False) -> bool:
+        """Validate the sha256 hash of the spec which proves integrity unless we've been hacked.
+
+        With ``defer_repair`` (``--spec-update-hash``), a missing or stale hash is
+        reported as a warning instead of an error, so the run continues to the
+        later ``--spec-update-hash`` step that re-stamps it.  The check is
+        non-mutating in that mode: the stored hash is left in place for repair.
+        """
         expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
+            if defer_repair:
+                return self.logger.warning(
+                    "Spec has no spec_sha256 hash; --spec-update-hash will stamp one."
+                )
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
+        if defer_repair and not self._stored_hash_is_valid():
+            return self.logger.warning(
+                f"Spec-sha256 {expected_hash} is stale or incorrect; "
+                "--spec-update-hash will re-stamp it during this run."
+            )
         self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
         actual_hash = self.add_sha256()
         if expected_hash == actual_hash:
             self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
             return True
-        else:
-            self.logger.error(
-                f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
-            )
-            return False
+        return self.logger.error(
+            f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
+        )
 
     # ---------------------------- validation ----------------------------------
 

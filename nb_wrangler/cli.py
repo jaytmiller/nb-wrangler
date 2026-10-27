@@ -619,9 +619,9 @@ def parse_args():
         "--spec-readonly",
         action="store_true",
         dest="spec_readonly",
-        help="Treat the source spec as read-only.  A step that would write to the "
-        "source spec because its content changed is refused (warn + abort).  Unchanged "
-        "saves are byte-for-byte no-ops.",
+        help="Treat the source spec as read-only: no step writes to it.  Any save "
+        "that would change it (content change or hash repair) is refused "
+        "(error + abort).  Unchanged saves are byte-for-byte no-ops.",
     )
     dev_group.add_argument(
         "--spec-disable-dev-overrides",

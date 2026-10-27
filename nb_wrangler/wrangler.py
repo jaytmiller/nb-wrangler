@@ -977,8 +977,9 @@ class NotebookWrangler(
             return self.logger.warning(
                 "Ignoring spec_sha256 checksum validation. Spec integrity unknown."
             )
-        else:
-            return self.spec_manager.validate_sha256()
+        return self.spec_manager.validate_sha256(
+            defer_repair=self.config.spec_update_hash
+        )
 
     def _validate_spec(self) -> bool:
         if not self.spec_manager.validate():
