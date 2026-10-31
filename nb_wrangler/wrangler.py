@@ -947,28 +947,28 @@ class NotebookWrangler(
         if not self.resolved_environment_name:
             return self.logger.error("No kernel name found to copy spec to.")
         return self.spec_manager.save_spec(
-            self.env_manager.env_live_path(self.resolved_environment_name),
-            add_sha256=not self.config.spec_ignore_hash,
+            self.env_manager.env_live_path(self.resolved_environment_name)
         )
 
     def _save_final_spec(self) -> bool:
         """Overwrite the original spec with the updated spec."""
         self.logger.debug("Updating spec with final results.")
-        no_errors = self.spec_manager.save_spec(
-            Path(self.config.spec_file).parent,
-            add_sha256=not self.config.spec_ignore_hash,
+        source_output = self.spec_manager.output_spec(
+            Path(self.config.spec_file).parent
         )
-        if self.pantry_shelf.spec_path.exists():
-            if not self.spec_manager.save_spec_as(
-                self.pantry_shelf.spec_path, add_sha256=not self.config.spec_ignore_hash
-            ):
+        no_errors = self.spec_manager.update_and_save(
+            source_output, add_sha256=not self.config.spec_ignore_hash
+        )
+        if no_errors and self.pantry_shelf.spec_path.exists():
+            if not self.spec_manager.save_spec_as(self.pantry_shelf.spec_path):
                 self.logger.warning("Failed to save spec to pantry shelf.")
         return no_errors
 
     def _update_spec_sha256(self) -> bool:
-        return self.spec_manager.save_spec(
-            Path(self.config.spec_file).parent, add_sha256=True
+        source_output = self.spec_manager.output_spec(
+            Path(self.config.spec_file).parent
         )
+        return self.spec_manager.update_and_save(source_output, add_sha256=True)
 
     def _validate_spec_sha256(self) -> bool:
         if self.config.spec_ignore_hash:

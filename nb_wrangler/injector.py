@@ -104,10 +104,16 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
         return True
 
     def set_wrangler_spec(self) -> bool:
-        """Write out the wrangler environment spec with a generic name."""
+        """Write out the wrangler environment spec with a generic name.
+
+        A faithful copy of the current spec; a stored ``spec_sha256`` is
+        preserved, and a missing one is set so the archived spec has an identity.
+        """
         out_spec = self.environments_path / "nbw-wrangler-spec.yaml"
         self.logger.info("Saving spec to SPI environments dir: ", out_spec)
-        return self.spec_manager.save_spec(out_spec)
+        return self.spec_manager.save_spec_as(
+            out_spec, add_sha256=self.spec_manager.sha256 is None
+        )
 
     def inject(self, environment_name: str, env_exports: str) -> bool:
         """
@@ -169,9 +175,8 @@ class SpiInjector(WranglerLoggable, WranglerEnvable):
 
         self._inject_assets()
 
-        self.spec_manager.save_spec_as(
-            self.environments_path / "nbw-wrangler-spec.yaml", add_sha256=True
-        )
+        if not self.set_wrangler_spec():
+            return False
 
         return self.logger.info("SPI injection complete.")
 

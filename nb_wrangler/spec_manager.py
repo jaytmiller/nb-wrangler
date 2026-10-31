@@ -591,18 +591,18 @@ class SpecManager(
     def save_spec_as(
         self, output_filepath: Path | str, add_sha256: bool = False
     ) -> bool:
-        """Save the current YAML spec to a file."""
+        """Save the current YAML spec to a file without modifying it.
+        Optionally computes and sets spec_sha256.
+        """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
-            self.refresh_date_updated()
             if add_sha256:
                 hash = self.add_sha256()
                 self.logger.debug(f"Setting spec_sha256 to {hash}.")
             else:
-                self.system.pop("spec_sha256", None)
                 self.logger.debug(
-                    "Not updating spec_sha256 sum; Removing potentially outdated sum."
+                    "Not updating spec_sha256 sum; leaving existing sum unchanged."
                 )
             if output_path.exists():
                 self.logger.debug(
@@ -619,18 +619,34 @@ class SpecManager(
                 e, f"Error saving YAML spec file to {output_filepath}: {e}"
             )
 
+    def update_and_save(self, output: Path | str, add_sha256: bool = False) -> bool:
+        """Designated path for saving an intentional spec update.
+
+        Refreshes date_updated, then writes the current state to output:
+        stamped with a fresh spec_sha256 if add_sha256, otherwise with no
+        spec_sha256 at all. An updated spec must never keep the old hash.
+        """
+        self.refresh_date_updated()
+        if not add_sha256:
+            self.system.pop("spec_sha256", None)
+        return self.save_spec_as(output, add_sha256=add_sha256)
+
     def revise_and_save(
         self,
         output_dir: Path | str,
         add_sha256: bool = False,
         **additional_outputs,
     ) -> bool:
-        """Update spec with computed outputs and save to file."""
+        """Update spec with computed outputs and save to file.
+
+        Thin wrapper over update_and_save: adds the given output data,
+        then saves via the designated update path.
+        """
         try:
             self.logger.info(f"Revising spec file {self._source_file}.")
             for key, value in additional_outputs.items():
                 self.set_output_data(key, value)
-            return self.save_spec(output_dir, add_sha256=add_sha256)
+            return self.update_and_save(self.output_spec(output_dir), add_sha256)
         except Exception as e:
             return self.logger.exception(e, f"Error revising spec file: {e}")
 
@@ -650,9 +666,7 @@ class SpecManager(
 
         if not self.validate():
             return self.logger.error("Spec did not validate following reset.")
-        if not self.save_spec_as(self._source_file):
-            return self.logger.error("Spec save to %s failed...", self._source_file)
-        return True
+        return self.update_and_save(self._source_file)
 
     def reset_spec(self) -> bool:
         """Delete the output field of the spec and make sure the source file reflects it."""
@@ -668,7 +682,7 @@ class SpecManager(
             self.logger.info("Deactivating 'dev_overrides' section of spec.")
             overrides = self._spec.pop("dev_overrides")
             self._spec["deactivated_dev_overrides"] = overrides
-            return self.save_spec_as(self._source_file, add_sha256=True)
+            return self.update_and_save(self._source_file, add_sha256=True)
         return self.logger.info("No 'dev_overrides' section found to deactivate.")
 
     # ---------------------------- hashes, crypto ----------------------------------
@@ -690,9 +704,19 @@ class SpecManager(
             self.logger.warning(f"System spec_sha256 hash '{hash}' is malformed.")
         return hash
 
+    def _compute_sha256(self) -> str:
+        """Compute the spec's sha256 over the serialized spec with
+        spec_sha256 blanked, without modifying in-memory state.
+        """
+        spec_copy = self.to_dict()
+        spec_copy["system"]["spec_sha256"] = ""
+        output_str = utils.yaml_dumps(spec_copy)
+        if getattr(self, "inline_mamba_spec", None) is not None:
+            output_str += "\n---\n" + utils.yaml_dumps(self.inline_mamba_spec)
+        return utils.sha256_str(output_str)
+
     def add_sha256(self) -> str:
-        self.system["spec_sha256"] = ""
-        self.system["spec_sha256"] = utils.sha256_str(self.to_string())
+        self.system["spec_sha256"] = self._compute_sha256()
         return self.system["spec_sha256"]
 
     def validate_sha256(self) -> bool:
@@ -701,7 +725,9 @@ class SpecManager(
         if not expected_hash:
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
         self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
-        actual_hash = self.add_sha256()
+        # Compare against the computed hash without touching in-memory state,
+        # so validation is a pure, non-mutating check of spec integrity.
+        actual_hash = self._compute_sha256()
         if expected_hash == actual_hash:
             self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
             return True
