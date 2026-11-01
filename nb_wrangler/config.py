@@ -132,6 +132,8 @@ class WranglerConfig:
     data_select: str = ".*"
     data_no_validation: bool = False
     data_no_unpack_existing: bool = False
+    # Reduce download progress output when set (nominally via --quiet-downloads).
+    quiet_downloads: bool = False
     data_no_symlinks: bool = False
     data_symlinks: bool = False
     data_clean_symlinks: bool = False
@@ -245,6 +247,7 @@ class WranglerConfig:
             data_select=args.data_select,
             data_no_validation=args.data_no_validation,
             data_no_unpack_existing=args.data_no_unpack_existing,
+            quiet_downloads=getattr(args, "quiet_downloads", False),
             data_no_symlinks=args.data_no_symlinks,
             data_symlinks=args.data_symlinks,
             data_clean_symlinks=args.data_clean_symlinks,

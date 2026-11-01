@@ -168,6 +168,96 @@ class TestRobustGet:
             with pytest.raises(RuntimeError, match="wget is not installed"):
                 robust_get("http://example.com/file.txt")
 
+    def _mock_wget(self, returncode: int = 0, stderr: str = "", stdout: str = ""):
+        process = MagicMock()
+        process.returncode = returncode
+        process.stderr = stderr
+        process.stdout = stdout
+        return process
+
+    def test_default_neither_captures_output_nor_checks_exit(self):
+        # Default behavior: inherited output, exit status not checked.
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch("nb_wrangler.utils.subprocess.run") as mock_run:
+                mock_run.return_value = self._mock_wget(returncode=8)
+                result = robust_get("http://example.com/file.txt", cwd=".")
+                kwargs = mock_run.call_args.kwargs
+        assert isinstance(result, Path)
+        assert kwargs["capture_output"] is False
+
+    def test_default_failure_message_unchanged(self, capsys):
+        import subprocess
+
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch(
+                "nb_wrangler.utils.subprocess.run",
+                side_effect=subprocess.TimeoutExpired("wget", 30),
+            ):
+                with pytest.raises(
+                    DataDownloadError,
+                    match="Failed downloading 'http://example.com/file.txt'.",
+                ):
+                    robust_get("http://example.com/file.txt", cwd=".")
+        captured = capsys.readouterr()
+        assert "ERROR" not in captured.err
+        assert captured.err == ""
+
+    def test_reduced_output_success_captures_and_returns(self, capsys):
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch("nb_wrangler.utils.subprocess.run") as mock_run:
+                mock_run.return_value = self._mock_wget(
+                    returncode=0, stdout="progress bars\n", stderr="some info\n"
+                )
+                result = robust_get(
+                    "http://example.com/file.txt", cwd=".", reduced_output=True
+                )
+                kwargs = mock_run.call_args.kwargs
+        assert isinstance(result, Path)
+        assert kwargs["capture_output"] is True
+        captured = capsys.readouterr()
+        assert captured.out == "" and captured.err == ""
+
+    def test_reduced_output_failure_prints_output_and_raises(self, capsys):
+        stderr = "ERROR 404: Not Found\n"
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch("nb_wrangler.utils.subprocess.run") as mock_run:
+                mock_run.return_value = self._mock_wget(returncode=8, stderr=stderr)
+                with pytest.raises(
+                    DataDownloadError, match="Failed downloading"
+                ) as exc_info:
+                    robust_get(
+                        "http://example.com/file.txt", cwd=".", reduced_output=True
+                    )
+        assert "ERROR 404: Not Found" in str(exc_info.value)
+        captured_err = capsys.readouterr().err
+        assert "wget output" in captured_err
+        assert "ERROR 404: Not Found" in captured_err
+
+    def test_reduced_output_failure_prints_stdout_when_no_stderr(self, capsys):
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch("nb_wrangler.utils.subprocess.run") as mock_run:
+                mock_run.return_value = self._mock_wget(
+                    returncode=8, stdout="some status\n"
+                )
+                with pytest.raises(DataDownloadError, match="Failed downloading"):
+                    robust_get(
+                        "http://example.com/file.txt", cwd=".", reduced_output=True
+                    )
+        assert "some status" in capsys.readouterr().err
+
+    def test_reduced_output_timeout_reports_captured_partial_output(self, capsys):
+        import subprocess
+
+        exc = subprocess.TimeoutExpired("wget", 30)
+        exc.stderr = "partial stderr"
+        with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
+            with patch("nb_wrangler.utils.subprocess.run", side_effect=exc):
+                with pytest.raises(DataDownloadError, match="Failed downloading"):
+                    robust_get(
+                        "http://example.com/file.txt", cwd=".", reduced_output=True
+                    )
+        assert "partial stderr" in capsys.readouterr().err
+
     def test_returns_path_when_wget_available(self, tmp_path):
         with patch("nb_wrangler.utils.shutil.which", return_value="/usr/bin/wget"):
             with patch("nb_wrangler.utils.subprocess.run") as mock_run:

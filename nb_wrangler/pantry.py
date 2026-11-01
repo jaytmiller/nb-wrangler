@@ -210,6 +210,12 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
             no_errors = self.download_data(archive_tuple, force=force) and no_errors
         return no_errors
 
+    def _quiet_downloads(self) -> bool:
+        """Return True if nbw was invoked to reduce download progress output."""
+        from . import config  # deferred to avoid circular import at load time
+
+        return bool(getattr(config.args_config, "quiet_downloads", False))
+
     def download_data(
         self, archive_tuple: tuple[str, str, str, str, str], force: bool = False
     ) -> bool:
@@ -226,6 +232,7 @@ class NbwShelf(WranglerLoggable, WranglerEnvable):
                     cwd=str(archive_path),
                     quiet="",
                     continue_from_error="",
+                    reduced_output=self._quiet_downloads(),
                 )
             except Exception as e:
                 return self.logger.exception(
