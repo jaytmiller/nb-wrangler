@@ -249,10 +249,12 @@ case $NBW_COMMAND in
         ${NBW_MAMBA} activate ${NBW_WRANGLER_ENV}
         ;;
     act*)
-        # Name-based activation delegated to the python CLI (hubenv), which activates
-        # by absolute path and therefore works even under a foreign mamba/micromamba.
+        # Name-based activation via the nbw CLI (shared activation helper), which
+        # activates by absolute path and therefore works even under a foreign
+        # mamba/micromamba.  Delegates like setenv/deact, keeping this script free
+        # of any runtime dependency on the hubenv CLI.
         eval "$("${NBW_MAMBA}" shell hook --shell "${NBW_SHELL}")"
-        eval "$("${NBW_MAMBA}" run -n ${NBW_WRANGLER_ENV} python -m nb_wrangler.hubenv.cli env activate --quiet $* 2>/dev/null)"
+        eval "$("${NBW_MAMBA}" run -n ${NBW_WRANGLER_ENV} python -m nb_wrangler $* --env-activate --quiet 2>/dev/null)"
         ;;
     setenv)
         # source nb-wrangler setenv <spec>: spec-based activation via the python CLI.

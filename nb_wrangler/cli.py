@@ -712,6 +712,41 @@ def parse_args():
     return parsed
 
 
+def _activate_by_name(name: str) -> bool:
+    """Emit the shared shell-activation snippet treating `name` as an
+    existing mamba environment name (rather than a spec), when that makes sense.
+
+    Returns True if a snippet was emitted (the caller should exit 0); returns
+    False so the spec-based path can proceed when `name` is an existing file,
+    an explicit URI, or does not match a live environment (in which case the
+    normal spec loading reports the problem).
+
+    Mirrors the `--env-deactivate` fast path above: uses environment
+    constants only, so it needs no global config setup.
+    """
+    from pathlib import Path
+
+    if "://" in name or Path(name).exists():
+        return False
+    from . import activation
+    from . import constants
+    from .spec_manager import is_base_env_name
+
+    mm_dir = Path(os.environ.get("NBW_MM") or constants.NBW_MM)
+    env_path = mm_dir if is_base_env_name(name) else mm_dir / "envs" / name
+    if not env_path.is_dir():
+        return False
+    snippet = activation.emit_activation(
+        str(mm_dir),
+        constants.NBW_MAMBA_CMD,
+        activation.detect_shell(),
+        str(env_path),
+        name=name,
+    )
+    sys.stdout.write(snippet)
+    return True
+
+
 def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
@@ -726,6 +761,12 @@ def main() -> int:
         sys.stdout.write(
             activation.emit_deactivate(NBW_MAMBA_CMD, activation.detect_shell())
         )
+        return 0
+    if (
+        args.env_activate
+        and args.spec_uri is not None
+        and _activate_by_name(args.spec_uri)
+    ):
         return 0
     if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)

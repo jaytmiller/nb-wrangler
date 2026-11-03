@@ -72,7 +72,7 @@ def _run_bash(
     )
 
 
-def test_act_delegates_to_hubenv_env_activate(tmp_path):
+def test_act_delegates_to_nbw_env_activate_for_name(tmp_path):
     mm = str(tmp_path / "mm")
     log = str(tmp_path / "calls.log")
     _install_fake_mm(mm)
@@ -86,12 +86,15 @@ def test_act_delegates_to_hubenv_env_activate(tmp_path):
     assert res.returncode == 0, res.stderr
     with open(log) as f:
         content = f.read()
-    # The bash act* branch must delegate:
-    #   micromamba run -n demo python -m nb_wrangler.hubenv.cli env activate --quiet demo
+    # The bash act* branch must delegate to the nbw CLI (like setenv/deact),
+    # passing the environment name and --env-activate, keeping the script free
+    # of any runtime dependency on the hubenv CLI:
+    #   micromamba run -n demo python -m nb_wrangler demo --env-activate --quiet
     assert "mm: run" in content, content
     assert " -n demo " in content, content
-    assert "python -m nb_wrangler.hubenv.cli env activate" in content, content
-    assert "--quiet demo" in content, content
+    assert "python -m nb_wrangler demo" in content, content
+    assert "--env-activate --quiet" in content, content
+    assert "hubenv" not in content, content
 
 
 def test_deact_delegates_to_nbw_env_deactivate(tmp_path):

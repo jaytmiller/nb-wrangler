@@ -103,6 +103,59 @@ class TestEquivalence:
         assert core in A.emit_activation(MM, MAMBA, "bash", ENV_PATH, name="demo")
 
 
+class TestNbwActivateByName:
+    """``nbw NAME --env-activate`` activates an existing env by name (the
+    delegation target of the nb-wrangler bash ``act`` branch).  Config-free,
+    like the ``--env-deactivate`` fast path — NBW_MM env var drives the path.
+    """
+
+    def test_existing_env_emits_shared_snippet(self, tmp_path, monkeypatch):
+        from nb_wrangler import cli
+
+        mm = tmp_path / "mm"
+        (mm / "envs" / "demo" / "bin").mkdir(parents=True)
+        (mm / "envs" / "demo" / "bin" / "python").touch()
+        monkeypatch.setenv("NBW_MM", str(mm))
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            assert cli._activate_by_name("demo") is True
+        out = buf.getvalue()
+        assert "export NBW_ACTIVE_ENV=demo" in out
+        assert f"export MAMBA_ROOT_PREFIX={mm}" in out.replace("'", "")
+        assert f"activate {mm}/envs/demo" in out.replace("'", "")
+
+    def test_spec_file_falls_through_to_spec_path(self, tmp_path):
+        from nb_wrangler import cli
+
+        spec = tmp_path / "spec.yaml"
+        spec.write_text("image_spec_header:\n  image_name: demo\n")
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            assert cli._activate_by_name(str(spec)) is False
+        assert buf.getvalue() == ""  # spec-based path must handle it, not name path
+
+    def test_uri_falls_through_to_spec_path(self):
+        from nb_wrangler import cli
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            assert cli._activate_by_name("https://example.com/spec.yaml") is False
+        assert buf.getvalue() == ""
+
+    def test_unknown_name_falls_through(self, tmp_path, monkeypatch):
+        from nb_wrangler import cli
+
+        (tmp_path / "mm" / "envs").mkdir(parents=True)
+        monkeypatch.setenv("NBW_MM", str(tmp_path / "mm"))
+
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            assert cli._activate_by_name("nope") is False
+        assert buf.getvalue() == ""
+
+
 class TestHubenvCmdIntegration:
     def test_activate_emits_absolute_path(self, tmp_path, monkeypatch):
         mm = tmp_path / "mm"
