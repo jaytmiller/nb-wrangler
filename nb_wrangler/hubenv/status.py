@@ -3,9 +3,8 @@
 import json
 import os
 
-from tabulate import tabulate
-
 from nb_wrangler.environment import EnvironmentManager
+from nb_wrangler.hubenv._common import tabulated
 from nb_wrangler.hubenv.config import PantryStore
 
 
@@ -141,7 +140,7 @@ def print_status_table(status: dict) -> None:
     print(f"Active pantry:  {status['active_pantry']}")
     print()
     print(
-        tabulate(
+        tabulated(
             _build_env_rows(status["environments"]),
             headers=["ENV", "STATE", "LIVE", "PANTRY", "KERNEL", "ARCHIVED"],
             tablefmt="grid",
@@ -153,7 +152,7 @@ def print_status_table(status: dict) -> None:
         [str(p["path"]), "r/w" if p["writable"] else "r/o"] for p in status["pantries"]
     ]
     print(
-        tabulate(
+        tabulated(
             pantry_rows,
             headers=["PATH", "Writable"],
             tablefmt="grid",

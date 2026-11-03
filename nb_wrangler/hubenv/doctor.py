@@ -6,8 +6,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 
-from tabulate import tabulate
-
+from nb_wrangler.hubenv._common import tabulated
 from nb_wrangler.hubenv.config import PantryStore
 
 
@@ -190,7 +189,7 @@ def print_doctor_table(checks: list[dict]) -> None:
         for c in checks
     ]
     print(
-        tabulate(
+        tabulated(
             rows,
             headers=["CHECK", "STATUS", "DETAIL", "HINT"],
             tablefmt="grid",

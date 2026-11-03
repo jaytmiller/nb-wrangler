@@ -42,6 +42,26 @@ def store_for(args) -> PantryStore:
     return PantryStore()
 
 
+def tabulated(rows: list, **kwargs) -> str:
+    """Render ``rows`` as an ASCII table via the optional ``tabulate`` dependency.
+
+    ``tabulate`` is needed only for hubenv's human-readable tables
+    (status/info/doctor), not by ``nbw`` itself, so it is imported lazily here
+    instead of at module import time; a plain ``nbw`` install therefore works
+    without it.  Using one of the hubenv table commands without ``tabulate``
+    raises a clean error with an actionable install hint.
+    """
+    try:
+        from tabulate import tabulate
+    except ImportError as exc:
+        raise HubenvError(
+            "The optional 'tabulate' dependency is required for this command. "
+            "Install it with: pip install tabulate "
+            "(or: pip install 'nb-wrangler[hubenv]')."
+        ) from exc
+    return tabulate(rows, **kwargs)
+
+
 def print_exports(name: str, store: PantryStore) -> None:
     """Print eval-able shell exports for environment activation."""
     print(f"export NBW_ACTIVE_ENV={name}")

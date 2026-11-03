@@ -3,11 +3,9 @@
 from pathlib import Path
 from typing import Optional
 
-from tabulate import tabulate
-
 from nb_wrangler.constants import DEFAULT_ARCHIVE_FORMAT
 from nb_wrangler.pantry import NbwShelf
-from nb_wrangler.hubenv._common import get_logger, print_shadowing_warnings
+from nb_wrangler.hubenv._common import get_logger, print_shadowing_warnings, tabulated
 from nb_wrangler.hubenv.config import PantryStore
 
 
@@ -73,7 +71,7 @@ def print_info_table(name: str, shelves: list[dict], live_envs: list[dict]) -> N
             ["Save hash", hash_short],
             ["Archive", _archive_display(name, entry["path"])],
         ]
-        print(_indent(tabulate(rows, tablefmt="plain")))
+        print(_indent(tabulated(rows, tablefmt="plain")))
         print()
 
 
