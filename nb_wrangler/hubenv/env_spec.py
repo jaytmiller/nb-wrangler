@@ -25,7 +25,7 @@ from nb_wrangler.hubenv.seeds import (
     _strip_internal_flags,
     seed_from_empty,
 )
-from nb_wrangler.utils import get_yaml, sha256_str, yaml_dumps
+from nb_wrangler.utils import get_yaml, yaml_dumps
 
 # ---------------------------------------------------------------------------
 # mamba-view <-> full-wrangler-spec conversions
@@ -183,15 +183,13 @@ def _write_two_docs(doc1: dict, doc2: dict | None) -> str:
 def _compute_spec_sha256(doc1: dict, doc2: dict | None) -> None:
     """Set ``doc1['system']['spec_sha256']`` to a valid hash.
 
-    Matches nbw's ``SpecManager.add_sha256``: blank the field, hash the
-    two-document serialization, then restore.
+    Delegates to the single canonical algorithm
+    (``nb_wrangler.spec_manager.canonical_spec_sha256``) so the hash hubenv
+    stamps is byte-for-byte the one ``nbw`` validates against.
     """
-    system = doc1["system"]
-    system["spec_sha256"] = ""
-    content = yaml_dumps(doc1)
-    if doc2 is not None:
-        content += "\n---\n" + yaml_dumps(doc2)
-    system["spec_sha256"] = sha256_str(content)
+    from nb_wrangler.spec_manager import canonical_spec_sha256
+
+    doc1["system"]["spec_sha256"] = canonical_spec_sha256(doc1, doc2)
 
 
 def to_wrangler_yaml(name: str, spec: dict) -> str:

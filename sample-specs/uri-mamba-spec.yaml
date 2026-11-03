@@ -28,7 +28,7 @@ system:
   spi:
     repo: "https://github.com/spacetelescope/science-platform-images.git"
     ref: "main"
-  spec_sha256: 6a8ccd642416acd152b3f4b81120f186fc1e2e57d0d4ca9f09e1aa7027eab9ae
+  spec_sha256: 6e7d5798d5be078c481538db937e4f1f7c457da95c3d0132652671aa41096fc5
   date_updated: '2026-03-04T18:24:14.499946'
 out:
   repositories:

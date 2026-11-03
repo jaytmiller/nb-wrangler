@@ -66,4 +66,4 @@ system:
   archive_format: .tar
   spi:
     repo: https://github.com/jaytmiller/science-platform-images.git
-  spec_sha256: 72a6d7e896c8ce79a483e5e8b8c4454f91d71a3e61cd3f7986be7673b0ac5575
+  spec_sha256: 2b085fd09435403b10175313383aadf0b78d27fe3bbf34c991bdbeee506a0aec

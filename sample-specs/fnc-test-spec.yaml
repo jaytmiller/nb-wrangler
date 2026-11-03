@@ -71,7 +71,7 @@ system:
   nb-wrangler:
     repo: https://github.com/spacetelescope/nb-wrangler.git
     ref: main
-  spec_sha256: d9a01105fb185a42a08ee4d24734e5d1be29d3542bf404a36f25c66126864484
+  spec_sha256: 4ffa5d0afa6b6fa97df648bbd75f2c63cdd34e43f594916e602a06c00233f4d6
   date_updated: '2026-08-07T15:45:45.796304'
 
 refdata_dependencies:

@@ -1,5 +1,6 @@
 import os
 import re
+import json
 import datetime
 from typing import Any, Optional
 from pathlib import Path
@@ -34,6 +35,60 @@ def is_base_env_name(env_name: str | None) -> bool:
     reach this function.
     """
     return env_name == "base"
+
+
+# ---------------------------------------------------------------------------
+# Canonical spec-hashing (single source of the spec_sha256 algorithm)
+# ---------------------------------------------------------------------------
+
+
+def _plain_data(value):
+    """Convert *value* to plain Python structures.
+
+    A JSON round-trip strips all ruamel comment/quote metadata (plus normalizes
+    JSON-able scalars), so the result serializes identically no matter which
+    dumps ran earlier in the process.  Falls back to a deep copy for values
+    a JSON round-trip cannot express.
+    """
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return copy.deepcopy(value)
+
+
+def canonical_spec_sha256(spec: dict, inline_mamba_spec: dict | None = None) -> str:
+    """THE canonical ``spec_sha256`` digest for a wrangler spec.
+
+    Hashes a deterministic serialization: the spec (including any inline
+    mamba document) converted to plain Python data with
+    ``system.spec_sha256`` present-and-blank in the hashed text.  The digest
+    is therefore independent of in-process dump history (ruamel comment
+    state is a known source of order-dependent digests) and treats an
+    absent ``spec_sha256`` key the same as a blank one.  Stamping
+    (``SpecManager.add_sha256``) and validation (``SpecManager.validate_sha256``)
+    both go through this single routine — see ``test_spec_hash_stable.py``.
+    """
+    document = _plain_data(spec)
+    system = document.get("system")
+    if isinstance(system, dict):
+        system["spec_sha256"] = ""
+    text = utils.yaml_dumps(document)
+    if inline_mamba_spec is not None:
+        text += "\n---\n" + utils.yaml_dumps(_plain_data(inline_mamba_spec))
+    return utils.sha256_str(text)
+
+
+def legacy_spec_sha256(source_text: str) -> str:
+    """Legacy migration candidate from a spec file's own text.
+
+    Hashes the file text with the ``spec_sha256`` value blanked: the way
+    on-disk hashes were recorded before the canonical routine existed.
+    Accepted for one release of grace (see ``SpecManager.validate_sha256``).
+    """
+    blanked = re.sub(
+        r"(?m)^(?P<i>\s*spec_sha256:).*$", lambda m: m.group("i") + " ''", source_text
+    )
+    return utils.sha256_str(blanked)
 
 
 _OVERRIDES_SCHEMA: dict[str, Any] = {
@@ -641,10 +696,11 @@ class SpecManager(
         return self._content_fp() != self._baseline_content_fp
 
     def _stored_hash_is_valid(self) -> bool:
-        """True when the stored ``spec_sha256`` matches a freshly computed hash.
+        """True when the stored ``spec_sha256`` matches the canonical hash or,
+        for one release of migration grace, the legacy file-derived candidate.
 
-        Non-mutating counterpart of ``validate_sha256`` (which re-stamps the
-        hash); specs without any stored hash return False.
+        Non-mutating counterpart of ``validate_sha256`` (which reports rather
+        than re-stamps); specs without any stored hash return False.
         """
         system = self._spec.get("system")
         if not isinstance(system, dict):
@@ -652,11 +708,10 @@ class SpecManager(
         stored = system.get("spec_sha256")
         if not stored:
             return False
-        system["spec_sha256"] = ""
-        try:
-            return stored == utils.sha256_str(self.to_string())
-        finally:
-            system["spec_sha256"] = stored
+        if stored == canonical_spec_sha256(self._spec, self.inline_mamba_spec):
+            return True
+        legacy = self._legacy_file_hash()
+        return legacy is not None and stored == legacy
 
     def _readonly_source_write(self, output_path: Path | str) -> bool:
         """True when output_path is the loaded source spec file itself."""
@@ -812,17 +867,35 @@ class SpecManager(
         return hash
 
     def add_sha256(self) -> str:
-        self.system["spec_sha256"] = ""
-        self.system["spec_sha256"] = utils.sha256_str(self.to_string())
+        """Stamp the canonical spec_sha256 (overwriting) and return it."""
+        self.system["spec_sha256"] = canonical_spec_sha256(
+            self._spec, self.inline_mamba_spec
+        )
         return self.system["spec_sha256"]
+
+    def _legacy_file_hash(self) -> str | None:
+        """Legacy migration candidate from the stored source file, or None."""
+        if self._source_file is None or not self._source_file.is_file():
+            return None
+        try:
+            return legacy_spec_sha256(self._source_file.read_text())
+        except OSError:
+            return None
 
     def validate_sha256(self, defer_repair: bool = False) -> bool:
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked.
 
-        With ``defer_repair`` (``--spec-update-hash``), a missing or stale hash is
-        reported as a warning instead of an error, so the run continues to the
-        later ``--spec-update-hash`` step that re-stamps it.  The check is
-        non-mutating in that mode: the stored hash is left in place for repair.
+        The stored hash is accepted when it matches the canonical digest
+        (``canonical_spec_sha256``) or, for one release of migration grace,
+        the legacy candidate derived from the stored file's own text with
+        the hash line blanked.  A mismatch fails with a pointer to the
+        re-stamp commands.  The check is non-mutating: the stored hash is
+        left in place; re-stamping happens via ``--spec-update`` or
+        ``hubenv relock``.
+
+        With ``defer_repair`` (``--spec-update-hash``), a missing or stale
+        hash is reported as a warning instead of an error, so the run
+        continues to the later ``--spec-update-hash`` step that re-stamps it.
         """
         expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
@@ -831,18 +904,18 @@ class SpecManager(
                     "Spec has no spec_sha256 hash; --spec-update-hash will stamp one."
                 )
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
-        if defer_repair and not self._stored_hash_is_valid():
+        if self._stored_hash_is_valid():
+            self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
+            return True
+        if defer_repair:
             return self.logger.warning(
                 f"Spec-sha256 {expected_hash} is stale or incorrect; "
                 "--spec-update-hash will re-stamp it during this run."
             )
-        self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
-        actual_hash = self.add_sha256()
-        if expected_hash == actual_hash:
-            self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
-            return True
+        canonical = canonical_spec_sha256(self._spec, self.inline_mamba_spec)
         return self.logger.error(
-            f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
+            f"Spec-sha256 {expected_hash} did not match canonical hash {canonical}; "
+            "re-stamp with nbw --spec-update or hubenv relock."
         )
 
     # ---------------------------- validation ----------------------------------
