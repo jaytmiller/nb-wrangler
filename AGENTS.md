@@ -55,6 +55,36 @@ does not include a .venv; hence when needed use "python" instead of
 - Do not modify .git or its contents.  Do not commit to git or push changes.
 - Ask before changing public APIs, spec format.
 
+## Post-consolidation governance (single development line)
+
+`nbw` and `hubenv` now share one codebase on one line (`plan-b-rebased`, merging
+into `main`).  These rules keep the two apps from diverging again:
+
+- **Shared surface — protected.** A change to any *nbw* module that `hubenv` builds
+  on, or to a file listed here, touches both apps.  The shared, behavior-affecting
+  surface is: `cli.py`, `config.py`, `constants.py`, `spec_manager.py`,
+  `spec_validator.py`, `pantry.py`, `wrangler.py`, `data_wrangler.py`,
+  `data_manager.py`, `compiler.py`, `registry.py`, `injector.py`, `activation.py`,
+  `utils.py`, the `nb-wrangler` bash script, and `pyproject.toml`.
+- **Any change to a shared-surface file requires the full combined suite to pass
+  and a review note on nbw impact *and* hubenv impact.**  `hubenv`-only modules
+  (`nb_wrangler/hubenv/**`, `tests/hubenv/**`) do not, on their own, require this.
+- **Do not duplicate nbw functionality in hubenv.**  Follow the existing pattern:
+  `hubenv data`/`verify` are thin wrappers over nbw's flag-driven steps.  New hubenv
+  verbs must wrap rather than re-implement download/symlink/compile logic.
+- **No new hard dependencies for hubenv-only features.**  Lazy-import them or ship
+  them as a `pyproject.toml` optional extra (see the `hubenv` extra for `tabulate`).
+- **One spec schema for both apps.**  `spec_validator.py` is shared; any new spec
+  field must be additive and gated by the validator plus `docs/specs/` (see
+  `docs/spec-format` notes).  Both apps must stamp and validate `spec_sha256` via the
+  single canonical routine `nb_wrangler.spec_manager.canonical_spec_sha256`.
+- **Version cadence:** `nbw`-significant changes bump the minor version; hubenv-only
+  changes may ride along but must be listed under a `hubenv:` note in `CHANGES.md` so
+  the dormant/active split stays legible in release notes.
+- **`hubenv` stays inert to `nbw` users** unless they opt in; no top-level `nbw`
+  module may import `nb_wrangler.hubenv` (the only coupling is the `nb-wrangler`
+  bash `act`/`setenv`/`deact` delegation, which now routes through the `nbw` CLI).
+
 ## Documentation
 - README.md
 - documentation under docs/
