@@ -58,6 +58,10 @@ class TestDefaults:
         config = WranglerConfig(workflows=[])
         assert config.data_clean_symlinks is False
 
+    def test_quiet_downloads_default(self):
+        config = WranglerConfig(workflows=[])
+        assert config.quiet_downloads is False
+
 
 class TestFromArgs:
     """Test that common argparse fields map correctly to config attributes."""
@@ -196,6 +200,45 @@ class TestFromArgs:
         args.data_clean_symlinks = True
         result = WranglerConfig.from_args(args)
         assert result.data_clean_symlinks is True
+
+    def test_quiet_downloads_maps_from_args(self, tmp_path):
+        args = self._make_args(str(tmp_path / "repos"))
+        args.quiet_downloads = True
+        result = WranglerConfig.from_args(args)
+        assert result.quiet_downloads is True
+
+    def test_quiet_downloads_defaults_false_when_absent(self, tmp_path):
+        # Backwards-compatible: Namespaces without the new flag default to False.
+        args = self._make_args(str(tmp_path / "repos"))
+        assert not hasattr(args, "quiet_downloads")
+        result = WranglerConfig.from_args(args)
+        assert result.quiet_downloads is False
+
+    def test_cli_parses_quiet_downloads_flag(self):
+        import sys
+
+        from nb_wrangler import cli
+
+        saved_argv = sys.argv
+        try:
+            sys.argv = ["nbw", "--quiet-downloads"]
+            args = cli.parse_args()
+        finally:
+            sys.argv = saved_argv
+        assert args.quiet_downloads is True
+
+    def test_cli_quiet_downloads_default_false(self):
+        import sys
+
+        from nb_wrangler import cli
+
+        saved_argv = sys.argv
+        try:
+            sys.argv = ["nbw"]
+            args = cli.parse_args()
+        finally:
+            sys.argv = saved_argv
+        assert args.quiet_downloads is False
 
     def test_spi_image_test_defaults_to_none(self, tmp_path):
         args = self._make_args(str(tmp_path / "repos"))

@@ -3,6 +3,7 @@
 import os
 import io
 import re
+import sys
 import urllib.parse
 import glob
 
@@ -129,11 +130,15 @@ def robust_get(
     timeout: int = 30,
     continue_from_error: str = "--continue",
     quiet: str = "--no-verbose",
+    reduced_output: bool = False,
 ) -> Path:
     """More tolerant GET for recalitrant Box links wget can handle.
 
     Set continue_from_error to '' if wget's --continue option is not desired.
     Set quiet to '' if wget's --no-verbose option is not desired.
+    Set reduced_output to True to minimize wget progress output: wget output
+    is captured and discarded on success,  and printed to stderr on failure
+    along with a DataDownloadError so failures remain debuggable in CI.
 
     Return <filepath>
     """
@@ -143,27 +148,62 @@ def robust_get(
     if filepath.exists():
         filepath.unlink()
 
-    wget_exe = shutil.which("wget")
-    if not wget_exe:
+    if not shutil.which("wget"):
         raise RuntimeError(
             "wget is not installed.  nb-wrangler data functions required wget for downloading files."
         )
 
+    wget_cmd = ["wget"]
+    for flag in (quiet, continue_from_error):
+        if flag:
+            wget_cmd.append(flag)
+    wget_cmd += ["--timeout", str(timeout), url]
     try:
         # Using wget instead of native code due to recalitrant Box links wget can handle
-        # Two levels of timeout:  wget and subprocess.run.  Output direct to terminal.
-        subprocess.run(
-            ["wget", quiet, continue_from_error, "--timeout", str(timeout), url],
+        # Two levels of timeout:  wget and subprocess.run.
+        result = subprocess.run(
+            wget_cmd,
             timeout=timeout + 5,
             cwd=cwd,
+            capture_output=reduced_output,
+            text=True,
         )
     except Exception as e:
-        # # On failures, poor-man's method is to "delete it all and start over".
+        # On failures, poor-man's method is to "delete it all and start over".
         if not continue_from_error and filepath.exists():
             filepath.unlink()
-        raise DataDownloadError(f"Failed downloading '{url}'.") from e
-
+        _report_wget_failure(
+            url, exc=e, output=_exc_output(e) if reduced_output else None
+        )
+    if reduced_output and result.returncode != 0:
+        if not continue_from_error and filepath.exists():
+            filepath.unlink()
+        _report_wget_failure(url, output=result.stderr or result.stdout or None)
     return filepath
+
+
+def _exc_output(e: BaseException) -> str | None:
+    """Return any captured output attributed to `e`, e.g. a timeout exception."""
+    output = getattr(e, "stderr", None) or getattr(e, "output", None)
+    if isinstance(output, bytes):
+        output = output.decode("utf-8", errors="replace")
+    return output or None
+
+
+def _report_wget_failure(
+    url: str, *, exc: Exception | None = None, output: str | None = None
+) -> None:
+    """Raise DataDownloadError for a failed download, printing any captured
+    wget output to stderr so CI pipelines remain debuggable after failure.
+    """
+    if output:
+        print(f"--- wget output for '{url}' ---\n{output}", file=sys.stderr)
+    message = (
+        f"Failed downloading '{url}'.\n{output}"
+        if output
+        else f"Failed downloading '{url}'."
+    )
+    raise DataDownloadError(message) from exc
 
 
 def uri_to_local_path(uri: str, timeout: int = 30) -> str:

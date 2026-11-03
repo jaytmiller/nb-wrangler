@@ -663,6 +663,14 @@ def parse_args():
         help="Suppress all log output to stderr; only stdout will be visible.",
     )
     misc_group.add_argument(
+        "--quiet-downloads",
+        action="store_true",
+        default=False,
+        dest="quiet_downloads",
+        help="Reduce download progress output: downloader output is captured and shown only if a download fails, "
+        "where it is printed to stderr along with the error so CI pipelines remain debuggable after failures.",
+    )
+    misc_group.add_argument(
         "--debug",
         action="store_true",
         help="Drop into debugging with pdb on exceptions.",

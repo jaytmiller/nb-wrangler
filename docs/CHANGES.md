@@ -1,4 +1,4 @@
-**v0.10.0** (unreleased) change notes (since v0.9.3):
+**v0.10.0** (unreleased) change notes (since v0.9.5):
 
 ### Breaking Changes
 
@@ -28,7 +28,34 @@ These tighten or correct `hubenv` behavior; scripts that relied on the old quirk
 
 - **`--pantry` on `export` and `var ls` / `var add` / `var rm`** (`nb_wrangler/hubenv/parser.py`, `_common.py`, `export.py`, `var.py`): these commands now accept `--pantry PATH` to scope pantry lookups to a single pantry (via `_common.store_for`), matching the other 7 pantry-aware verbs. `data *`, `status`, `doctor`, `register`/`unregister`, `activate`/`deactivate` intentionally remain default-chain only.
 - **Shell completions match the flattened command tree** (`nb_wrangler/hubenv/completions.py`): the embedded command tree now covers all 20 top-level verbs (including `activate`/`deactivate`, previously missing) and no generated script suggests the removed `hubenv env <verb>` shape.
+- **`--quiet-downloads` flag for CI pipelines** (`nb_wrangler/utils.py`, `nb_wrangler/pantry.py`, `nb_wrangler/config.py`): first released on the `0.9.x` line as 0.9.5 (section below) and carried into this consolidated line, so a user upgrading directly from 0.9.4 sees it here as well; see the 0.9.5 entry for the full description and tests.
 
+---
+**v0.9.5** change notes (since v0.9.4):
+
+### New Features
+
+- **`--quiet-downloads` flag for CI pipelines** (`nb_wrangler/cli.py`, `nb_wrangler/config.py`, `nb_wrangler/pantry.py`, `nb_wrangler/utils.py`). When passed, nb-wrangler's data downloads run with reduced wget output: wget's captured output is discarded on success, and on a failed download the output is printed to **stderr** along with the `DataDownloadError` (and included in the error message), so CI pipelines stay quiet on success yet remain debuggable after failures. Behavior without the flag is unchanged — wget output still goes directly to the terminal as before.
+  - `robust_get()` gains a `reduced_output` parameter (`nb_wrangler/utils.py`); new helpers `_exc_output()` and `_report_wget_failure()` isolate the timeout/failure reporting paths, both of which surface captured output.
+  - `WranglerConfig` gains the `quiet_downloads` field (`nb_wrangler/config.py`); `NbwShelf._quiet_downloads()` reads it and passes it through `NbwShelf.download_data()` (`nb_wrangler/pantry.py`).
+  - New tests: `tests/test_quiet_downloads.py`, plus `quiet_downloads` coverage in `tests/test_config.py` and the `reduced_output` failure-path tests in `tests/test_utils.py`.
+
+### Not included in this release (reverted on this line)
+
+- **The "spec-update protocol consolidation" (commit `62ce658`) was reverted from the `0.9.x` line before cutting this release**, deliberately, so that this stable line and the `hubenv` development line (`plan-b-rebased`) can be consolidated without semantic conflict (see `docs/combine-branches.md` for the decision record). Concretely, 0.9.5 does **not** ship:
+  - the `--reinstall`/`--data-reinstall` non-mutation fix for wrangler specs,
+  - the `SpecManager.update_and_save()` designated save path,
+  - the non-mutating `validate_sha256()` (deep-copy hash routine), or
+  - the `SpiInjector.inject()` failure-on-archive-save hardening.
+  - **The goals of that work are still met in the next release line (0.10.0)**, which achieves `--reinstall`/`--data-reinstall` non-mutation through content-aware spec saving (a save to an unchanged source spec is a byte-for-byte no-op). The held-back acceptance suite (`tests/test_readonly_specs.py`, 12 tests) and `docs/plans/readonly-specs-plan.md` are retained as the gate for re-implementing the remaining pieces on `main` after the branch consolidation.
+- **v0.9.4** (tag `v0.9.4` / commit `dabd577`) was a version-bump-only release and therefore has no section of its own; this section covers everything since v0.9.3 that is not already noted above.
+
+### Verification
+
+- `make unit-test`: 298 passed (0.9.4 line was 310; the 12-test `tests/test_readonly_specs.py` suite was removed with the revert above).
+- `make lint/black`, `make lint/flake8`, `make lint/radon`, `make lint/mypy`: clean.
+
+---
 
 **v0.9.3** change notes (since v0.9.2):
 
