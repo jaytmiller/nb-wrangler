@@ -1,7 +1,7 @@
 """Spec validation logic extracted from SpecManager."""
 
 from .logger import WranglerLoggable
-from .constants import WRANGLER_SPEC_VERSION, VALID_ARCHIVE_FORMATS
+from .constants import WRANGLER_SPEC_VERSION, VALID_ARCHIVE_FORMATS, data_flag_enabled
 
 
 class SpecValidator(WranglerLoggable):
@@ -227,6 +227,11 @@ class SpecValidator(WranglerLoggable):
             if "url" not in repo:
                 no_errors = self.logger.error(
                     f"Missing required 'url' field in repository '{name}'."
+                )
+            if "data" in repo and data_flag_enabled(repo["data"]) is None:
+                no_errors = self.logger.error(
+                    f"Invalid 'data' value {repo['data']!r} in repository '{name}'; "
+                    "expected an on/off form (on, yes, true, off, no, false)."
                 )
         return no_errors
 

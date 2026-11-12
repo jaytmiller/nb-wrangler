@@ -1,3 +1,19 @@
+**v0.11.0** change notes (since v0.10.0):
+
+> `v0.10.0` above was still unreleased when this line was started, so 0.10.0 + 0.11.0 ship together; the split keeps the `hubenv` consolidation (0.10.0) and the new spec-format feature (0.11.0) legible per the version cadence rule.
+
+### New Features
+
+- **Per-repository `data: on|off` opt-out in the wrangler spec** (`nb_wrangler/constants.py`, `nb_wrangler/spec_manager.py`, `nb_wrangler/spec_validator.py`, `nb_wrangler/data_wrangler.py`; docs `docs/spec-format.md`, `docs/specs/data-off.md`). Each `repositories:` entry may carry an optional `data` field — `on`/`yes`/`true` (default when omitted) or `off`/`no`/`false`, case-insensitive; invalid values fail spec validation with a clear message. `data: off` excludes that repository from all data handling: `DataWrangler.collect()` no longer includes its `refdata_dependencies.yaml` in the data definition (its notebooks/packages are unaffected), saved `out.data.spec_inputs` entries for repositories turned off after curation are filtered out at read time, and every data step (`collect`, `list`, `download`, `delete`, `update`, `validate`, `unpack`, `pack`, `symlink`, `clean-symlinks`) on the `--data-curate` / `--data-reinstall` workflows or the isolated `--data-*` flag path is a logged success no-op (`<step> skipped: no enabled data declarations (data: off).`) with no download/unpack/network activity. When every declared repository is `data: off` and there is no image-wide `refdata_dependencies:`, `--data-curate` / `--data-reinstall` run to green end-to-end defining well-formed empty declarations (`out.data` = `spec_inputs: {}`, `spec_exports: {}`, `pantry_exports: {}`; exports files written with no `export` lines; environment registered with an empty env-var set). `dev_overrides.repositories.<name>.data` composes through the existing per-repo merge (dev-only opt-out under `--dev`, ignored under `--prod`). The image-wide `refdata_dependencies:` section is deliberately *not* suppressed by `data: off` (documented in `docs/spec-format.md`) — a full data-off spec sets `data: off` on every data-bearing repo and omits that section. The `data` key participates in `spec_sha256`: adopting or toggling it requires the usual re-stamp (`nbw --spec-update` / `hubenv relock`). Tests: `tests/test_data_flag_spec.py`, `tests/test_data_off_pipeline.py` (27 new tests; full unit suite 738 passing).
+
+  - `hubenv:` **zero behavioral change by default** — the key is additive and absent in existing specs, so hubenv users see no difference; `hubenv data download/unpack/pack/clean` remain thin wrappers over the same nbw flag-driven path and inherit the no-op: for a fully data-off shelf spec these verbs exit `0` with a logged skip and no network/archive activity. No new imports of `nb_wrangler.hubenv` anywhere; hubenv stays inert for nbw users.
+
+### Versioning
+
+- `__version__` bumped `0.10.0` → `0.11.0` (nbw-significant additive spec-format change).
+- `WRANGLER_SPEC_VERSION` **kept at 2.3**: the field is purely additive for v0.11.0 (specs without the key behave exactly as before). Note the reverse direction is not compatible — a pre-v0.11.0 validator rejects the key as an unknown repository keyword — so the field should be adopted only on v0.11.0+ toolchains.
+
+---
 **v0.10.0** (unreleased) change notes (since v0.9.5):
 
 ### Breaking Changes

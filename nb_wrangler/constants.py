@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 
 # Version
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 
 WRANGLER_SPEC_VERSION = 2.3
 
@@ -119,6 +119,30 @@ DEFAULT_COLOR_MODE = "auto"
 LOG_FILE = os.environ.get("NBW_LOG_FILE")
 
 DATA_SPEC_NAME = "refdata_dependencies.yaml"
+
+# Accepted values for the optional per-repository `data: on|off` flag
+# (repositories.<name>.data), case-insensitive.  Values survive the
+# yaml_typed_values normalization pass, so both the YAML-string forms
+# (on/off/yes/no) and the normalized bool forms ('True'/'False') match.
+DATA_FLAG_ON = {"on", "yes", "true"}
+DATA_FLAG_OFF = {"off", "no", "false"}
+
+
+def data_flag_enabled(value) -> bool | None:
+    """Normalize a `repositories.<name>.data` value to True (on) / False (off).
+
+    Returns None when the value is absent or not a recognized on/off form;
+    the caller reports the error (the validator does this).
+    """
+    if value is None:
+        return None
+    flag = str(value).strip().lower()
+    if flag in DATA_FLAG_ON:
+        return True
+    if flag in DATA_FLAG_OFF:
+        return False
+    return None
+
 
 DEFAULT_CLEANUP_PATTERNS = [
     "__pycache__",

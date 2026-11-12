@@ -93,7 +93,7 @@ def legacy_spec_sha256(source_text: str) -> str:
 
 _OVERRIDES_SCHEMA: dict[str, Any] = {
     "test_environment_vars": None,
-    "repositories": ["url", "ref"],
+    "repositories": ["url", "ref", "data"],
     "refdata_dependencies": ["install_files", "other_variables", "remote_data"],
     "environment_vars": None,
     "override_pip_versions": [],
@@ -272,6 +272,34 @@ class SpecManager(
     def dev_overrides_repositories(self) -> dict[str, Any]:
         """Return only the repositories that are defined in dev_overrides."""
         return self._spec.get("dev_overrides", {}).get("repositories") or {}
+
+    # ---------------------------- Data-flag properties ----------------------
+    def repo_data_enabled(self, repo_name: str) -> bool:
+        """True (default) unless repositories.<repo>.data is an explicit off form.
+
+        Honors dev_overrides (self.repositories merges them when --dev).
+        Invalid values are already a validation error; they default to enabled
+        here rather than hard-failing data collection.
+        """
+        from .constants import data_flag_enabled
+
+        repo = self.repositories.get(repo_name) or {}
+        if repo.get("data") is None:
+            return True
+        return data_flag_enabled(repo["data"]) is not False
+
+    def data_enabled_repo_names(self) -> list[str]:
+        """Names of declared repositories whose data handling is enabled."""
+        return [name for name in self.repositories if self.repo_data_enabled(name)]
+
+    def data_disabled_repo_names(self) -> list[str]:
+        """Names of declared repositories disabled with data: off."""
+        return [name for name in self.repositories if not self.repo_data_enabled(name)]
+
+    def all_data_disabled(self) -> bool:
+        """True when at least one repository is declared and all are data: off."""
+        repos = list(self.repositories)
+        return bool(repos) and not self.data_enabled_repo_names()
 
     # ---------------------------- Notebook properties -----------------------
     @property
@@ -936,7 +964,7 @@ class SpecManager(
             "shelf_name",
             "manager",
         ],
-        "repositories": ["url", "ref"],
+        "repositories": ["url", "ref", "data"],
         # Assets supports two syntaxes:
         # 1) Flat list of dicts with keys repo, ref, source, destination (and optional contents_only).
         #    Example: [{"repo":"...","ref":"main","source":"/a/","destination":"/b"}]

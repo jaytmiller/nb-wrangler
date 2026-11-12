@@ -42,7 +42,21 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             )
             output_repos = {}
 
-        repo_urls = [repo["url"] for repo in output_repos.values()]
+        disabled = set(self.spec_manager.data_disabled_repo_names())
+        if disabled:
+            for name in sorted(disabled):
+                self.logger.info(
+                    f"Skipping data curation for repo '{name}' (data: off in spec)."
+                )
+        if self._data_disabled():
+            self.logger.info(
+                "Data is disabled for this spec (all repositories are data: off, "
+                "no image-wide refdata_dependencies); defining empty data declarations."
+            )
+
+        repo_urls = [
+            repo["url"] for name, repo in output_repos.items() if name not in disabled
+        ]
         data_validator = RefdataValidator.from_repo_urls(
             self.config.repos_dir, repo_urls
         )
@@ -112,18 +126,54 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
         print(self.get_exports())
         return True
 
+    def _data_disabled(self) -> bool:
+        """True when this spec has no enabled data declarations at all:
+        every declared repository is data: off and there is no image-wide
+        refdata_dependencies section."""
+        return (
+            self.spec_manager.all_data_disabled()
+            and not self.spec_manager.refdata_dependencies
+        )
+
+    def _disabled_repo_dir_names(self) -> set[str]:
+        """Repo directory names (URL stems) of repositories now data: off."""
+        dirs = set()
+        for name in self.spec_manager.data_disabled_repo_names():
+            repo = self.spec_manager.repositories.get(name) or {}
+            dirs.add(Path(repo.get("url") or name).stem)
+        return dirs
+
+    def _enabled_spec_inputs(self, spec_inputs: dict) -> dict:
+        """Drop saved refdata entries owned by a repository now data: off.
+
+        The image-wide nbw-spec entry is never dropped.  This keeps a spec
+        that was curated while a repo was still on consistent after the repo
+        is turned off (reinstall steps then no-op instead of installing it).
+        """
+        disabled_dirs = self._disabled_repo_dir_names()
+        return {
+            path: entry
+            for path, entry in spec_inputs.items()
+            if Path(path).parent.name not in disabled_dirs
+        }
+
     def _get_url_tuples(
         self,
     ) -> tuple[dict[str, Any], list[tuple[str, str, str, str, str]]]:
         data = self.spec_manager.get_output_data("data")
         if not data or "spec_inputs" not in data:
             raise RuntimeError("Data spec inputs not found. Run --data-collect first.")
-        spec_inputs = data["spec_inputs"]
+        spec_inputs = self._enabled_spec_inputs(data["spec_inputs"] or {})
+        data = dict(data, spec_inputs=spec_inputs)
         data_validator = RefdataValidator.from_dict(spec_inputs)
         urls = data_validator.get_data_urls(self.config.data_select)
         return data, urls
 
     def list_data(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data list skipped: no enabled data declarations (data: off)."
+            )
         self.logger.info("Listing selected data archives.")
         try:
             _data, urls = self._get_url_tuples()
@@ -134,6 +184,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             return self.logger.error(f"Failed to list data: {e}")
 
     def download(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data download skipped: no enabled data declarations (data: off)."
+            )
         self.logger.info("Downloading selected data archives.")
         try:
             _data, urls = self._get_url_tuples()
@@ -144,6 +198,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             return self.logger.error(f"Failed to download data: {e}")
 
     def delete(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data delete skipped: no enabled data declarations (data: off)."
+            )
         self.logger.info(
             f"Deleting selected data files of types {self.config.data_delete}."
         )
@@ -158,6 +216,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             return self.logger.error(f"Failed to delete data: {e}")
 
     def update(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data update skipped: no enabled data declarations (data: off)."
+            )
         if self.config.data_no_validation:
             return self.logger.info(
                 "Skipping data validation due to --data-no-validation."
@@ -175,6 +237,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             return self.logger.error(f"Failed to update data metadata: {e}")
 
     def validate(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data validate skipped: no enabled data declarations (data: off)."
+            )
         if self.config.data_no_validation:
             return self.logger.info(
                 "Skipping data validation due to --data-no-validation."
@@ -196,6 +262,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
             return self.logger.error(f"Failed to validate data: {e}")
 
     def unpack(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data unpack skipped: no enabled data declarations (data: off)."
+            )
         self.logger.info("Unpacking downloaded data archives to live locations.")
         if not self.config.data_no_symlinks:
             self.symlink_install_data()
@@ -237,6 +307,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
 
     def symlink_install_data(self) -> bool:
         """Create symlinks from install_data locations to the pantry data directory."""
+        if self._data_disabled():
+            return self.logger.info(
+                "Data symlink skipped: no enabled data declarations (data: off)."
+            )
         try:
             _data, archive_tuples = self._get_url_tuples()
             self.pantry_shelf.symlink_install_data(archive_tuples)
@@ -246,6 +320,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
 
     def clean_symlink_install_data(self) -> bool:
         """Remove stale spec-mode symlinks at install_data paths where the symlink target no longer exists or doesn't point to the current pantry data path."""
+        if self._data_disabled():
+            return self.logger.info(
+                "Data symlink clean skipped: no enabled data declarations (data: off)."
+            )
         try:
             _data, archive_tuples = self._get_url_tuples()
         except RuntimeError as e:
@@ -300,6 +378,10 @@ class DataWrangler(WranglerConfigurable, WranglerLoggable, WranglerWorkflowMixin
         return True
 
     def pack(self) -> bool:
+        if self._data_disabled():
+            return self.logger.info(
+                "Data pack skipped: no enabled data declarations (data: off)."
+            )
         self.logger.info("Packing downloaded data archives from live locations.")
         try:
             _data, urls = self._get_url_tuples()

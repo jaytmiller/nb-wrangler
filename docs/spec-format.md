@@ -144,6 +144,18 @@ This section defines a dictionary of the git repositories that contain notebooks
 Each entry in `repositories` has the following fields:
 - **url**: The URL of the git repository.
 - **ref**: The git branch, tag, or commit hash to use (defaults to `main`).
+- **data** (optional): `on` or `off` (accepted case-insensitively, also `yes`/`no`/`true`/`false`). Defaults to `on` when omitted. Setting `data: off` on a repository **excludes it from all data handling**: its `refdata_dependencies.yaml` (if any) is treated as an empty data declaration — data curation (`--data-curate`) and data reinstallation (`--data-reinstall`) skip it and log `INFO  Skipping data curation for repo '<name>' (data: off in spec).` — while its notebooks and package requirements are unaffected. Any data for that repo saved in a previously-curated spec (`out.data.spec_inputs`) is dropped at read time as well. When **every** data-bearing repository is `data: off` (and there is no image-wide `refdata_dependencies:` section), the whole `--data-curate` / `--data-reinstall` pipeline becomes a successful no-op that defines empty data declarations (`out.data` with empty `spec_inputs`, `spec_exports`, and `pantry_exports`).
+
+```yaml
+repositories:
+  my_repo:
+    url: https://github.com/spacetelescope/my_repo
+    ref: main
+  my_data_repo:
+    url: https://github.com/spacetelescope/my_data_repo
+    ref: main
+    data: off            # EXCLUDE this repo from data curation / reinstallation
+```
 
 ### **dev_overrides**
 This optional top-level section allows developers to temporarily override any top-level sections of the spec for development purposes without modifying the core production-ready configuration.
@@ -158,6 +170,7 @@ dev_overrides:
     your_repo_name:
       url: https://github.com/your-fork/your_repo_name # Override URL for forked development
       ref: your-dev-branch
+      data: off  # Dev-only data opt-out; the production spec is unaffected
     another_repo:
       ref: another-dev-ref
   refdata_dependencies:
@@ -195,7 +208,7 @@ This section is written to the spec by `nbw` during curation and contains the re
 
 Known output fields include:
 
-- **`data`**: Data dependencies collected from notebook repositories' `refdata_dependencies.yaml` files and the top-level `refdata_dependencies` section.
+- **`data`**: Data dependencies collected from notebook repositories' `refdata_dependencies.yaml` files and the top-level `refdata_dependencies` section. For a fully data-off spec (every repository `data: off`, no image-wide `refdata_dependencies`), this field is well-formed but empty: `spec_inputs: {}`, `spec_exports: {}`, `pantry_exports: {}`.
 - **`repositories`**: Resolved repository information including `resolved_ref` for each repository.
 - **`non_mamba_pip_package_files`**: A mapping of `requirements.txt` file paths to their expanded (sorted, version-pinned) package lists. This field is written during `--packages-compile` / `--curate` and reflects the pip requirements discovered via `SpecManager.get_requirements_files()` globbing, including orphan `requirements.txt` files in directories with no notebooks.
 - **`spec_sha256`**: An sha256 hash of the spec when it was last saved, for integrity checking.
@@ -212,6 +225,8 @@ The format follows the same structure as the repository-level `refdata_dependenc
 - **other_variables**: A dictionary of environment variables to set.
 
 See [Reference Data Dependencies](refdata_dependencies.md) for more details on the format.
+
+> **Interaction with `repositories.<name>.data`:** the `refdata_dependencies:` section is image-wide and not tied to any repository, so a repository's `data: off` does **not** suppress it. To make a spec fully data-off, set `data: off` on every data-bearing repository *and* omit (or empty) the top-level `refdata_dependencies:` section. If all repositories are `data: off` but a top-level `refdata_dependencies:` is declared, that image-wide data is still curated/installed.
 
 ### **environment_vars**
 

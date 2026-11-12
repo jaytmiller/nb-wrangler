@@ -213,6 +213,10 @@ clean` (stderr) → exit **1**. (Same pattern as `hubenv var`.)
 - **Wrangler step failures** are reported as a single `False`; the specific
   wrangler error is logged by `NotebookWrangler.main()` (not re-printed by
   the hubenv command).
+- **A fully data-off shelf spec** (every repository `data: off`, no
+  image-wide `refdata_dependencies`) makes `data download`/`unpack`/`pack`/
+  `clean` exit **0** with a logged skip and no network/archive activity — the
+  same contract as `nbw --data-*` (see [`data-off.md`](data-off.md)).
 
 ---
 
