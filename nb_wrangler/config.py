@@ -119,6 +119,7 @@ class WranglerConfig:
     spec_update_hash: bool = False
     spec_disable_dev_overrides: bool = False
     spec_readonly: bool = False
+    spec_legacy_hash: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_print_exports: bool = False
@@ -206,6 +207,7 @@ class WranglerConfig:
             spec_disable_dev_overrides=getattr(
                 args, "spec_disable_dev_overrides", False
             ),
+            spec_legacy_hash=getattr(args, "spec_legacy_hash", False),
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,

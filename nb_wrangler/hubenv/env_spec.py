@@ -25,7 +25,7 @@ from nb_wrangler.hubenv.seeds import (
     _strip_internal_flags,
     seed_from_empty,
 )
-from nb_wrangler.utils import get_yaml, yaml_dumps
+from nb_wrangler.utils import get_yaml, sha256_str, yaml_dumps
 
 # ---------------------------------------------------------------------------
 # mamba-view <-> full-wrangler-spec conversions
@@ -183,12 +183,20 @@ def _write_two_docs(doc1: dict, doc2: dict | None) -> str:
 def _compute_spec_sha256(doc1: dict, doc2: dict | None) -> None:
     """Set ``doc1['system']['spec_sha256']`` to a valid hash.
 
-    Delegates to the single canonical algorithm
-    (``nb_wrangler.spec_manager.canonical_spec_sha256``) so the hash hubenv
-    stamps is byte-for-byte the one ``nbw`` validates against.
+    Canonical (``nb_wrangler.spec_manager.canonical_spec_sha256``) by default
+    so the hash hubenv stamps is byte-for-byte the one ``nbw`` validates
+    against.  Under ``spec_legacy_hash`` (``--spec-legacy-sha256``) stamp the
+    legacy (pre-0.10) digest instead: the sha256 of the exact serialization
+    about to be written with the hash value blanked, so releases predating
+    the canonical routine can still validate these specs.
     """
     from nb_wrangler.spec_manager import canonical_spec_sha256
+    from nb_wrangler import config as wrangler_config
 
+    if bool(getattr(wrangler_config.args_config, "spec_legacy_hash", False)):
+        blanked = {**doc1, "system": {**doc1["system"], "spec_sha256": ""}}
+        doc1["system"]["spec_sha256"] = sha256_str(_write_two_docs(blanked, doc2))
+        return
     doc1["system"]["spec_sha256"] = canonical_spec_sha256(doc1, doc2)
 
 

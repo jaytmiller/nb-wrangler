@@ -79,11 +79,12 @@ def canonical_spec_sha256(spec: dict, inline_mamba_spec: dict | None = None) -> 
 
 
 def legacy_spec_sha256(source_text: str) -> str:
-    """Legacy migration candidate from a spec file's own text.
+    """Legacy (pre-canonical, 0.9.x) digest from a spec file's own text.
 
     Hashes the file text with the ``spec_sha256`` value blanked: the way
     on-disk hashes were recorded before the canonical routine existed.
-    Accepted for one release of grace (see ``SpecManager.validate_sha256``).
+    Permanently accepted by validation (see ``SpecManager.validate_sha256``)
+    and re-producible by stamping under ``--spec-legacy-sha256``.
     """
     blanked = re.sub(
         r"(?m)^(?P<i>\s*spec_sha256:).*$", lambda m: m.group("i") + " ''", source_text
@@ -699,8 +700,13 @@ class SpecManager(
         return self._content_fp() != self._baseline_content_fp
 
     def _stored_hash_is_valid(self) -> bool:
-        """True when the stored ``spec_sha256`` matches the canonical hash or,
-        for one release of migration grace, the legacy file-derived candidate.
+        """True when the stored ``spec_sha256`` matches the canonical digest or
+        the legacy (pre-canonical, file-derived) digest.
+
+        Accepting both digests is permanent by design: specs stamped under
+        either algorithm stay validatable by this code, while the active
+        hash mode (``--spec-legacy-sha256`` or not) decides which digest
+        future stamps produce.
 
         Non-mutating counterpart of ``validate_sha256`` (which reports rather
         than re-stamps); specs without any stored hash return False.
@@ -715,6 +721,48 @@ class SpecManager(
             return True
         legacy = self._legacy_file_hash()
         return legacy is not None and stored == legacy
+
+    def _legacy_digest(self) -> str:
+        """Digest exactly as releases before the canonical routine computed
+        ``spec_sha256``: the in-memory spec with the hash field blanked,
+        serialized through the round-trip dumper (comments and scalar styles
+        preserved; inline mamba document appended), then hashed.  Byte-exact
+        replica of 0.9.x ``add_sha256``.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return utils.sha256_str(self.to_string())
+        had_hash = "spec_sha256" in system
+        orig_hash = system.get("spec_sha256")
+        system["spec_sha256"] = ""
+        try:
+            digest = utils.sha256_str(self.to_string())
+        finally:
+            if had_hash:
+                system["spec_sha256"] = orig_hash
+            else:
+                system.pop("spec_sha256")
+        return digest
+
+    def _stored_matches_active_mode(self) -> bool:
+        """True when the stored hash equals the digest the active hash mode
+        produces for the current content.
+
+        Validation accepts both digests permanently; this is what drives
+        re-stamping: a spec carrying a digest from the other algorithm is
+        'stale' for an ``add_sha256`` save, so ``--spec-update`` converts it
+        to the mode the selected consumers (older releases under
+        ``--spec-legacy-sha256``) can validate.
+        """
+        stored = self.system.get("spec_sha256")
+        if not stored:
+            return False
+        active = (
+            self._legacy_digest()
+            if self.config.spec_legacy_hash
+            else canonical_spec_sha256(self._spec, self.inline_mamba_spec)
+        )
+        return stored == active
 
     def _readonly_source_write(self, output_path: Path | str) -> bool:
         """True when output_path is the loaded source spec file itself."""
@@ -756,18 +804,19 @@ class SpecManager(
         ``system.date_updated`` changes only when the actual content changes.
         ``system.spec_sha256`` is refreshed when the content changes or, when
         ``add_sha256`` is requested (e.g. ``--spec-update``), when the stored
-        hash is missing or no longer matches the spec.  An unchanged save to
-        the source with a valid hash is a byte-for-byte no-op; an unchanged
-        copy is re-serialized as-is.  With ``--spec-readonly``, any save to
-        the source that would change it (content change or hash repair) is
-        refused (error + abort).
+        hash is missing or no longer equals the digest of the active hash mode
+        (canonical, or legacy under ``--spec-legacy-sha256``).  An unchanged
+        save to the source with a mode-matching hash is a byte-for-byte
+        no-op; an unchanged copy is re-serialized as-is.  With
+        ``--spec-readonly``, any save to the source that would change it
+        (content change or hash repair) is refused (error + abort).
         """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
             is_source = self._readonly_source_write(output_path)
             content_changed = self._content_changed()
-            hash_stale = add_sha256 and not self._stored_hash_is_valid()
+            hash_stale = add_sha256 and not self._stored_matches_active_mode()
             if (
                 (content_changed or hash_stale)
                 and is_source
@@ -870,9 +919,15 @@ class SpecManager(
         return hash
 
     def add_sha256(self) -> str:
-        """Stamp the canonical spec_sha256 (overwriting) and return it."""
-        self.system["spec_sha256"] = canonical_spec_sha256(
-            self._spec, self.inline_mamba_spec
+        """Stamp ``spec_sha256`` with the digest of the active hash mode.
+
+        Canonical (default) or legacy pre-0.10 digest under
+        ``--spec-legacy-sha256``; validation accepts both either way.
+        """
+        self.system["spec_sha256"] = (
+            self._legacy_digest()
+            if self.config.spec_legacy_hash
+            else canonical_spec_sha256(self._spec, self.inline_mamba_spec)
         )
         return self.system["spec_sha256"]
 
@@ -889,12 +944,13 @@ class SpecManager(
         """Validate the sha256 hash of the spec which proves integrity unless we've been hacked.
 
         The stored hash is accepted when it matches the canonical digest
-        (``canonical_spec_sha256``) or, for one release of migration grace,
-        the legacy candidate derived from the stored file's own text with
-        the hash line blanked.  A mismatch fails with a pointer to the
-        re-stamp commands.  The check is non-mutating: the stored hash is
-        left in place; re-stamping happens via ``--spec-update`` or
-        ``hubenv relock``.
+        (``canonical_spec_sha256``) or the legacy (pre-canonical) digest
+        derived from the stored file's own text with the hash line blanked;
+        accepting both is permanent by design.  A mismatch fails with a
+        pointer to the re-stamp commands.  The check is non-mutating: the
+        stored hash is left in place; re-stamping happens via ``--spec-update``
+        or ``hubenv relock``, under the active hash mode
+        (``--spec-legacy-sha256`` selects the legacy digest).
 
         With ``defer_repair`` (``--spec-update-hash``), a missing or stale
         hash is reported as a warning instead of an error, so the run
@@ -918,7 +974,9 @@ class SpecManager(
         canonical = canonical_spec_sha256(self._spec, self.inline_mamba_spec)
         return self.logger.error(
             f"Spec-sha256 {expected_hash} did not match canonical hash {canonical}; "
-            "re-stamp with nbw --spec-update or hubenv relock."
+            "re-stamp with nbw --spec-update or hubenv relock (add "
+            "--spec-legacy-sha256 to stamp the pre-canonical digest for "
+            "older, pre-canonical consumers)."
         )
 
     # ---------------------------- validation ----------------------------------

@@ -616,6 +616,15 @@ def parse_args():
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
     )
     spec_group.add_argument(
+        "--spec-legacy-sha256",
+        action="store_true",
+        dest="spec_legacy_hash",
+        help="Stamp spec_sha256 with the pre-canonical (0.9.x) hash algorithm so "
+        "specs remain validatable by nb-wrangler releases that predate the "
+        "canonical digest.  Validation always accepts both digests; this selects "
+        "which one future stamps produce.",
+    )
+    spec_group.add_argument(
         "--spec-readonly",
         action="store_true",
         dest="spec_readonly",
