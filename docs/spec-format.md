@@ -288,6 +288,37 @@ This section contains specifications for the system environment. It is updated b
    - **date_updated**: The timestamp when the spec was last updated.
 
 
+## Spec Save and Integrity Contract
+
+`nbw` (and `hubenv`, which shares the same `SpecManager`) treats the spec file as
+curated content: writes are conservative, and integrity metadata is never churned.
+
+- **One digest routine, two accepted forms.** `spec_sha256` is always computed and
+  checked through a single designated routine. New stamps use the digest of the
+  active hash mode: the canonical (0.10+) digest by default, or the pre-0.10 legacy
+  digest when `--spec-legacy-sha256` is set. Validation permanently accepts either
+  form, so specs stamped under either algorithm keep validating on either release.
+- **Content-aware saving.** `date_updated` changes only when the actual spec content
+  changes (the content fingerprint ignores `date_updated` and `spec_sha256`
+  themselves). A save of unchanged content back to the source spec is a byte-for-byte
+  no-op — this is what makes `--reinstall` and `--data-reinstall` preserve the
+  existing hash and date: neither workflow mutates the source spec at all.
+- **Copies preserve verifiable metadata.** A spec copy (into a live environment
+  directory or a pantry shelf) of a spec whose stored hash validates is written
+  byte-for-byte identical: hash and date carry over untouched.
+- **Copies never propagate an unverifiable hash.** If the stored hash is missing or
+  matches neither accepted digest, a copy is written *without* the hash line (the
+  source keeps its stale hash untouched — sources are never mutated for
+  cleanliness). When a hash update is explicitly requested (`--spec-update`,
+  `--spec-update-hash`, or an `add_sha256` step), the hash is instead (re)stamped
+  under the active mode.
+- **`--spec-readonly`** refuses (error + abort) any save that *would* modify the
+  source spec — a content change or a requested hash repair.
+- **Atomic writes.** Every spec write goes through a temp file plus an atomic
+  rename, preserving existing file permissions; a crash can never leave a
+  truncated or missing spec.
+
+
 ### Custom Command Line Tools
 
 The `system.commands` section in the wrangler spec allows overriding the Mamba and pip executables used during curation. This is useful when working with different mamba/pip implementations across environments or for testing.

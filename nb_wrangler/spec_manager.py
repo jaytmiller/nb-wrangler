@@ -1,10 +1,11 @@
 import os
 import re
 import json
+import copy
+import tempfile
 import datetime
 from typing import Any, Optional
 from pathlib import Path
-import copy
 
 from . import utils
 from . import yaml_typed_values
@@ -675,6 +676,13 @@ class SpecManager(
         restores them via ``finally``.  This is the "content" used to detect a
         real change (stable across date/hash refreshes).  Specs without a
         ``system`` section are hashed unmodified.
+
+        NOTE: the pop/re-insert also normalizes the live key order to
+        ``date_updated`` before ``spec_sha256``.  That side effect is load-
+        bearing: every digest stamped since the canonical routine existed was
+        computed over this normalized order (the shipped sample-specs prove
+        it), and the canonical digest is key-order-sensitive.  Do not make
+        this non-mutating without re-stamping every existing spec.
         """
         system = self._spec.get("system")
         if not isinstance(system, dict):
@@ -782,18 +790,43 @@ class SpecManager(
                 "Not updating spec_sha256 sum; Removing potentially outdated sum."
             )
 
-    def _write_spec(self, output_path: Path | str) -> None:
-        """Write the current serialized spec to output_path."""
-        output_path = Path(output_path)
-        if output_path.exists():
+    def _strip_unverifiable_hash(self) -> None:
+        """Remove a stored ``spec_sha256`` that verifies under neither digest.
+
+        Called before writing a *copy*: an installed copy must carry either a
+        hash that validates or no hash at all, so a stale digest from the
+        source never propagates into a false integrity failure later.
+        """
+        system = self._spec.get("system")
+        if isinstance(system, dict) and system.pop("spec_sha256", None) is not None:
             self.logger.debug(
-                f"Output file {output_path} already exists and will be "
-                "removed and overwritten."
+                "Stored spec_sha256 is unverifiable; removed it from the copy."
             )
-            output_path.unlink()
+
+    def _write_spec(self, output_path: Path | str) -> None:
+        """Atomically write the current serialized spec to output_path.
+
+        Writes to a temp file in the destination directory, then
+        ``os.replace``s it into place: a crash mid-save can never truncate or
+        delete the spec, and an existing file's permissions are carried over.
+        """
+        output_path = Path(output_path)
         self.logger.debug(f"Writing spec to {output_path}.")
-        with output_path.open("w+") as f:
-            f.write(self.to_string())
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_mode = output_path.stat().st_mode if output_path.exists() else None
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(output_path.parent),
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(self.to_string())
+            tmp_path.chmod(existing_mode if existing_mode is not None else 0o644)
+            os.replace(tmp_path, output_path)
+        finally:
+            tmp_path.unlink(missing_ok=True)
         self.logger.debug(f"Spec file saved to {output_path}.")
 
     def save_spec_as(
@@ -802,44 +835,48 @@ class SpecManager(
         """Save the current YAML spec to a file.
 
         ``system.date_updated`` changes only when the actual content changes.
-        ``system.spec_sha256`` is refreshed when the content changes or, when
-        ``add_sha256`` is requested (e.g. ``--spec-update``), when the stored
-        hash is missing or no longer equals the digest of the active hash mode
-        (canonical, or legacy under ``--spec-legacy-sha256``).  An unchanged
-        save to the source with a mode-matching hash is a byte-for-byte
-        no-op; an unchanged copy is re-serialized as-is.  With
-        ``--spec-readonly``, any save to the source that would change it
-        (content change or hash repair) is refused (error + abort).
+        Validation permanently accepts both digests (canonical and legacy),
+        so an unchanged save to the source is a byte-for-byte no-op and an
+        unchanged copy with a verifiable hash is re-serialized as-is, hash
+        and date preserved.  When ``add_sha256`` is requested (e.g.
+        ``--spec-update``/``--spec-update-hash``), a hash that is missing or
+        does not equal the digest of the active hash mode (canonical, or
+        legacy under ``--spec-legacy-sha256``) is (re)stamped.  A copy never
+        carries an unverifiable hash forward: with ``add_sha256`` it is
+        repaired instead; without it the hash line is dropped from the copy
+        only — the source is never mutated for cleanliness.  With
+        ``--spec-readonly``, any save that would change the source (content
+        change or requested repair) is refused (error + abort).
         """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
             is_source = self._readonly_source_write(output_path)
             content_changed = self._content_changed()
-            hash_stale = add_sha256 and not self._stored_matches_active_mode()
-            if (
-                (content_changed or hash_stale)
-                and is_source
-                and self.config.spec_readonly
-            ):
+            stale = not self._stored_hash_is_valid()
+            repair = add_sha256 and not self._stored_matches_active_mode()
+            strip = (not add_sha256) and stale and (not is_source)
+            if (content_changed or repair) and is_source and self.config.spec_readonly:
                 return self.logger.error(
                     "--spec-readonly: refusing to modify source spec "
                     f"{self._source_file} (content_changed={content_changed}, "
-                    f"hash_stale={hash_stale})."
+                    f"hash_repair={repair})."
                 )
             if content_changed:
                 self._update_meta(add_sha256)
-            elif hash_stale:
+            elif repair:
                 hash = self.add_sha256()
                 self.logger.debug(f"Repairing stale spec_sha256 to {hash}.")
-            if (not content_changed and not hash_stale) and is_source:
+            elif strip:
+                self._strip_unverifiable_hash()
+            if is_source and not (content_changed or repair):
                 self.logger.debug(
                     f"Spec content unchanged; source {self._source_file} "
                     "left untouched."
                 )
             else:
                 self._write_spec(output_path)
-                if (content_changed or hash_stale) and is_source:
+                if is_source and (content_changed or repair):
                     self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
