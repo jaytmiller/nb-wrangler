@@ -515,16 +515,19 @@ class SpecManager(
 
         Priority chain:
         1. Explicit ``shelf_name`` in the spec header (trumps everything).
-        2. Resolved ``environment_name`` (applies python3 -> base mapping).
-        3. Fallback to ``moniker`` (filesystem-safe ``image_name``) when
-           environment_name cannot be determined.
+        2. ``moniker`` (filesystem-safe ``image_name``) — the historical
+           pantry layout.  Must not default to ``environment_name``:
+           existing pantries key shelves by moniker, and env names like
+           ``base`` (from a ``python3`` kernel) are shared across
+           environments and would collide and orphan legacy shelves.
+
+        Deliberately never touches ``kernel_name``/``environment_name`` so
+        external-spec specs resolve a shelf before their environment spec
+        has been compiled (which would raise).
         """
         header_shelf = self.header.get("shelf_name")
         if header_shelf is not None:
             return header_shelf
-        env_name = self.environment_name
-        if env_name is not None:
-            return env_name
         return self.moniker
 
     @property
