@@ -269,8 +269,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "name",
         nargs="?",
-        default="nb-wrangler",
-        help="Package name or glob pattern (default: nb-wrangler).",
+        default="nb-wrangler-images",
+        help="Package name or glob pattern (default: nb-wrangler-images).",
     )
     parser.add_argument(
         "--days",
