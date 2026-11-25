@@ -11,6 +11,7 @@ from .config import WranglerConfigurable
 from .logger import WranglerLoggable
 from .environment import WranglerEnvable
 from .constants import REPO_CLONE_TIMEOUT, DEFAULT_CLEANUP_PATTERNS
+from . import utils
 
 
 class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
@@ -713,17 +714,18 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
 
     def resolve_ref_to_sha(self, repo_name: str, ref: str) -> Optional[str]:
         """Resolve a git ref (branch, tag prefix, or hash) to its commit SHA.
-        If multiple tags share the given prefix, the highest semver tag is used.
+        If multiple patch tags share the given prefix (e.g. '2026.2.0',
+        '2026.2.10'), the highest patch tag is used.
         """
         repo_root = self.repos_dir / repo_name
         self.logger.info(f"Resolving ref '{ref}' to SHA in {repo_root}")
         # Fetch latest tags and refs
         self.git_fetch_tags(repo_root, check=False)
         all_tags = self.fetch_sorted_tags(repo_root)
-        # Filter tags that start with the provided ref as a prefix
-        matching_tags = [t for t in all_tags if t.startswith(ref)]
-        if matching_tags:
-            best_tag = matching_tags[0]  # already highest due to sorting
+        # Only '<ref>.<patch>' tags qualify, e.g. ref '2026.2' never
+        # matches '2026.3.0' or '2026.25.0'.
+        best_tag = utils.select_highest_patch_tag(all_tags, ref)
+        if best_tag:
             self.logger.info(f"Selected patch tag '{best_tag}' for ref prefix '{ref}'.")
             result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
             if result.returncode == 0:
@@ -770,10 +772,10 @@ class RepositoryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable)
         # Fetch latest tags and refs
         self.git_fetch_tags(repo_root, check=False)
         all_tags = self.fetch_sorted_tags(repo_root)
-        # Filter tags that start with the provided ref as a prefix
-        matching_tags = [t for t in all_tags if t.startswith(ref)]
-        if matching_tags:
-            best_tag = matching_tags[0]  # already highest due to sorting
+        # Only '<ref>.<patch>' tags qualify, e.g. ref '2026.2' never
+        # matches '2026.3.0' or '2026.25.0'.
+        best_tag = utils.select_highest_patch_tag(all_tags, ref)
+        if best_tag:
             result = self.run(f"git rev-parse {best_tag}", check=False, cwd=repo_root)
             if result.returncode == 0:
                 return (best_tag, result.stdout.strip())

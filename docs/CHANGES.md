@@ -50,6 +50,17 @@ The designated save path (`SpecManager.save_spec_as`) now pins the contract that
 - **`--spec-legacy-sha256` — mode-selectable spec stamping** (`nb_wrangler/cli.py`, `config.py`, `spec_manager.py`, `hubenv/env_spec.py`): canonical-digest specs were unreadable by 0.9.x nbw (mixed-line pipelines: curate on a 0.10 box, `--reinstall` on a 0.9.5 image build). Validation now accepts **both** digests permanently (canonical, or the legacy file-derived one); the flag selects which digest future stamps produce: `add_sha256()` stamps the byte-exact 0.9.x digest under the flag, and `hubenv` seed stamping (`_compute_spec_sha256`) honors the same config field. A hash in the *other* mode counts as "stale" for `add_sha256` saves, so `nbw --spec-legacy-sha256 --spec-update` (or plain `--spec-update`) converts a spec between digests; content-unchanged saves with a mode-matching hash stay byte-for-byte no-ops. Tests: `tests/test_legacy_hash_mode.py` (11 tests; legacy goldens computed with the real 0.9.5 `SpecManager`, single-doc and two-document specs, dual acceptance in both directions, conversion round-trips, no-op contract, hubenv parity, CLI wiring).
 
 ---
+
+**Unreleased** change notes (since v0.9.5):
+
+### Bug Fixes
+
+- **Tag-prefix refs now match on a dot boundary and sort numerically during repository cloning** (`nb_wrangler/repository.py`). `resolve_ref_to_sha()` and `resolve_ref_to_entry()` previously filtered candidate tags with `tag.startswith(ref)`, so a spec ref of `2026.2` also matched tags like `2026.25.0`, and they picked the "highest" tag by plain lexicographic sort, so `2026.2.9` beat `2026.2.10`. Both routines now share one selection routine: a ref only matches tags beginning `ref + "."` (e.g. `2026.2` → `2026.2.z` only; never `2026.3.0` or `2026.25.0`) and numeric patch suffixes compare numerically. This makes clone/checkout resolution agree with the `--print-repo-tags` routine, which already behaved this way.
+  - The version-prefix selection logic that previously lived only in `NotebookWrangler._select_highest_patch_tag()` moved to `nb_wrangler/utils.py` as `select_highest_patch_tag()` so the print and clone paths share one implementation.
+  - Updated tests: `tests/test_tag_prefix_resolution.py` now exercises real resolution routines (dot boundary excludes `2026.3.0`/`2026.25.0`; numeric `2026.2.10` beats `2026.2.9`) instead of hand-replicating the filter.
+
+---
+
 **v0.9.5** change notes (since v0.9.4):
 
 ### New Features

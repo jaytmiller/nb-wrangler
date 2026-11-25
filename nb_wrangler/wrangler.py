@@ -4,7 +4,6 @@ import os
 import sys
 from pathlib import Path
 from collections.abc import Callable
-from typing import Optional
 import copy
 
 from .constants import NBW_URI, LOG_FILE
@@ -744,32 +743,9 @@ class NotebookWrangler(
         self.logger.debug("ls-remote --tags output:", result.stdout)
         tags = _parse_ls_remote_tags(result)
         self.logger.debug("Parsed tags:", tags)
-        selected = self._select_highest_patch_tag(tags, ref)
+        selected = utils.select_highest_patch_tag(tags, ref)
         self.logger.debug("Highest tag:", selected)
         return selected if selected else ref
-
-    def _select_highest_patch_tag(self, tags: list[str], ref: str) -> Optional[str]:
-        """Return the tag ``x.y.z`` with the greatest numeric ``z`` for *ref*.
-
-        Tags are filtered to those starting with ``ref + "."`` (e.g. ``2026.2.``).
-        The suffix after ``ref + "."`` is parsed as an integer for sorting;
-        ties or non-numeric suffixes fall back to lexicographic comparison.
-        Returns ``None`` when no matching tags exist.
-        """
-        prefix = ref + "."
-        matching = [t for t in tags if t.startswith(prefix)]
-        if not matching:
-            return None
-
-        def _sort_key(tag: str) -> tuple:
-            z_part = tag[len(prefix) :]
-            try:
-                return (0, int(z_part))
-            except ValueError:
-                return (1, z_part)
-
-        matching.sort(key=_sort_key, reverse=True)
-        return matching[0]
 
     def _spec_list(self) -> bool:
         """List the available shelves/specs in the pantry."""
