@@ -4,7 +4,21 @@
 
 ## Overview
 
-`nb-wrangler` is a command-line tool that streamlines the curation of JupyterLab notebooks and their runtime environments. It automates the process of building and testing container images from notebook requirements, ensuring that notebooks have the correct dependencies to run successfully.
+`nb-wrangler` is a command-line tool suite that streamlines the curation of
+JupyterLab notebooks and their runtime environments. It automates the process of
+defining, building, and testing the environments (and data) that notebooks need,
+ensuring that notebooks have the correct dependencies to run successfully.
+
+A single codebase ships two command-line tools:
+
+- **`nbw`** — the wrangler itself: define a *spec* (notebook repositories,
+  selected notebooks, package lists, reference data), curate it into a locked
+  environment, test it, and reinstall it reproducibly.
+- **`hubenv`** — Persistent Platform Environments: create, archive ("can"),
+  restore, inspect, and remove live mamba environments on the science platforms
+  and locally, tracking each one as a *shelf* in the pantry. `hubenv` verbs are
+  thin wrappers over the same underlying machinery as `nbw`; they share one code
+  base and one spec schema.
 
 Key features include:
 
@@ -12,7 +26,7 @@ Key features include:
 - **Dependency Resolution:** Compiles `requirements.txt` files from multiple notebooks into a single, consistent set of versioned dependencies.
 - **Automated Testing:** Tests notebooks and their package imports to verify the environment.
 - **Data Management:** Manages the data required to run notebooks.
-- **Image Building:** Integrates with a build system to automatically create container images.
+- **Image Building:** Integrates with build pipelines to automatically create container images.
 - **Local Installs:** Works equally well doing local installs with no Docker overhead or learning curve.
 
 The project uses `micromamba` for environment management and `uv` for fast pip
@@ -29,10 +43,13 @@ Docker image creation for JupyterHub, at it's core nb-wrangler is merely definin
 5. Standard methods to locally install the notebooks, data, and Python
    environment and run the tests.
 
-All of the above don't even build Docker images directly,  but nb-wrangler does
-provide two ways to hand off the information to STScI's science-platform-images GitHub
-repository which can autonomously or manually build an image from a wrangler
-spec.
+None of the above even builds Docker images directly.  Production specs and the
+automated image-build pipelines have moved to the sister repository
+[spacetelescope/nb-wrangler-images](https://github.com/spacetelescope/nb-wrangler-images),
+whose GitHub Actions build and publish the mission images
+(`ghcr.io/spacetelescope/nb-wrangler-images`).  `nbw` still supports injecting a
+spec into the classic [science-platform-images](https://github.com/spacetelescope/science-platform-images)
+(SPI) repository layout as a transitional path for older build processes.
 
 Two other points are worthy of note:
 
@@ -59,6 +76,8 @@ pip install nb-wrangler
 This is a relatively new feature and because the wrangler itself works by creating multiple
 environments it is not always as reliable as the bootstrap method described below. If you do
 use this method it's advisable to create a dedicated nbwrangler environment to install to.
+`hubenv`'s table-formatted commands additionally need the optional extra:
+`pip install 'nb-wrangler[hubenv]'` (this only adds `tabulate`).
 
 #### Bootstrapping an Isolated Environment
 
@@ -163,6 +182,10 @@ The main reinstallation workflows are:
 - **`--data-reinstall`:** Installs the data required by the notebooks.
 - **`--test, --test-imports, --test-notebooks`:** Tests the notebook imports and notebooks themselves within the defined environment and data.
 
+`--reinstall` and `--data-reinstall` require the spec's `out` section to already
+hold the compiled outputs (they read the locked, precompiled spec rather than
+re-curating it), and they never mutate the source spec: an unchanged save is a
+byte-for-byte no-op that preserves the existing hash and date.
 
 Example:
 ```bash
@@ -187,6 +210,37 @@ to circle back to earlier steps, make fixes, and iterate.
 
 For more information on notebooks and environment curation see [Managing Notebook Selection and Environment](docs/notebooks_and_environment.md)
 For more information on supporting data see [Managing Notebook Reference Data](docs/data.md)
+
+## Persistent Platform Environments (hubenv)
+
+`hubenv` is the nb-wrangler CLI for managing persistent Jupyter environments
+directly on the science platforms (or anywhere else). It builds **live
+environments** with mamba, tracks them with a **shelf spec** in the pantry
+(`$NBW_PANTRY`, default `$HOME/.nbw-pantry`), and can package them as restorable
+archives ("cans") so they travel across machines and sessions.  Live, ephemeral
+storage lives under `$NBW_ROOT` (default `$HOME/.nbw-live`).
+
+Top-level verbs:
+
+```bash
+hubenv create …                      # seed a live env from requirements / mamba spec / wrangler spec / existing env
+hubenv save NAME / hubenv restore NAME   # archive a live env (can) / restore it elsewhere
+hubenv ensure NAME                   # idempotent restore (no-op if already live)
+hubenv ls / hubenv info NAME / hubenv status / hubenv doctor
+hubenv install NAME PKG / hubenv uninstall NAME PKG / hubenv relock NAME
+hubenv register NAME / hubenv unregister NAME
+hubenv activate NAME / hubenv deactivate    # eval-able shell snippets
+hubenv var ls|add|rm                 # environment variables on a shelf spec
+hubenv data ls|download|unpack|pack|clean
+hubenv export / hubenv completions
+```
+
+A shelf created by `hubenv` is a *full nbw wrangler spec*, so the same environment
+can be reproduced with `nbw <shelf-spec> --curate` / `--reinstall` as well.  `nbw`
+and `hubenv` deliberately share one spec schema and identical shelf naming; see
+[Names and how they are related](docs/naming.md).
+
+For a full walkthrough see the [hubenv HOWTO](docs/hubenv-howto.md).
 
 ## Advanced Usage
 
@@ -213,9 +267,21 @@ CLI flags (`--dev`, `--prod`) always override the environment variable. For exam
 
 For more details, see the [Spec Format documentation](docs/spec-format.md).
 
+### Spec Integrity
+
+Every spec carries a `spec_sha256` integrity hash computed by a single canonical
+routine, shared by `nbw` and `hubenv` by construction.  Validation accepts both
+the canonical (0.10+) digest and the legacy (pre-0.10) digest, so specs stamped
+under either algorithm keep validating.  New stamps use the canonical digest
+unless `--spec-legacy-sha256` selects the legacy form (useful in mixed pipelines
+that still run older releases).  Spec writes are atomic, content-aware (a save
+of unchanged content is a byte-for-byte no-op), and `--spec-readonly` refuses any
+save that would modify the source spec.  See "Spec Save and Integrity Contract"
+in the [Spec Format documentation](docs/spec-format.md).
+
 ### SPI Injection
 
-`nb-wrangler` can also inject the package and test requirements from a spec into the classic Science Platform Images (SPI) repository layout. This is a transitional feature to support older build processes.
+`nb-wrangler` can inject the package and test requirements from a spec into the classic Science Platform Images (SPI) repository layout. This is a transitional feature to support older build processes.
 
 See the [SPI Injection documentation](docs/inject-spi.md) for more details.
 
@@ -228,11 +294,11 @@ See the [SPI Injection documentation](docs/inject-spi.md) for more details.
 Workflows are commands that execute an ordered sequence of steps to accomplish some end-to-end task:
 
 - `--curate`: Run the full curation workflow to define notebooks and Python environment.
-- `--reinstall`: Reinstall an environment from a spec.
+- `--reinstall`: Reinstall an environment from a (precompiled) spec.
 - `--reset-curation`: Delete installation artifacts like the environment, install caches, and spec updates.
 - `--data-curate`: Curate data dependencies.
 - `--data-reinstall`: Reinstall data dependencies.
-- `--submit-for-build`: Submit a spec for an automated image build.
+- `--data-reset-curation`: Delete data downloads and spec data info so a follow-on `--data-curate` re-evaluates all data inputs.
 - `--inject-spi`: Inject a spec into the SPI repository.
 
 ### Environment Management
@@ -244,6 +310,8 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--env-unpack`: Unpack an environment from an archive.
 - `--env-register`: Register the environment as a Jupyter kernel.
 - `--env-unregister`: Unregister the environment from Jupyter.
+- `--env-activate`: Print a shell snippet (for `eval`/`source`) that activates the spec's environment by absolute path, including any data exports.
+- `--env-deactivate`: Print a shell snippet (for `eval`/`source`) that deactivates the current mamba environment.
 - `--env-compact`: Compact the wrangler installation by deleting package caches.
 - `--env-archive-format`: Override format for environment pack/unpack.
 - `--env-print-name`: Print the environment name for the spec.
@@ -264,6 +332,7 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--test-notebooks [REGEX]`: Test notebook execution. Can optionally take a comma-separated list of regex patterns to select specific notebooks.
 - `--test-notebooks-exclude [REGEX]`: Exclude notebooks from testing using a comma-separated list of regex patterns.
 - `--test-copy-shared [GLOB]`: Copy Python modules matching a glob pattern to the runtime directory where an individual import test is running with respect to a particular notebook.
+- `--test-isolate-notebook`: Isolate notebook tests by copying the notebook directory into a temporary directory (default: test in place).
 - `--jobs INT`: Number of parallel jobs for notebook testing.
 - `--timeout INT`: Timeout in seconds for notebook tests.
 
@@ -286,19 +355,21 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 - `--data-no-unpack-existing`: Skip unpack if the target directory exists.
 - `--data-symlinks`: Create symlinks from install locations to the pantry data directory.
 - `--data-no-symlinks`: Do not create symlinks during --data-unpack.
+- `--data-clean-symlinks`: Remove stale symlinks at install locations that no longer point to a valid target.
 
 ### Spec Management
 
 - `--spec-init FILENAME`: Generate a basic default `spec.yaml` template file.
 - `--spec-reset`: Reset the spec file to its original state (preserves `out.data`).
-- `--spec-add`: Add the spec to the pantry (a local collection of specs).
+- `--spec-add`: Add the spec to the pantry (a local collection of specs); creates a 'shelf' for one complete environment.
 - `--spec-list`: List available specs in the pantry.
 - `--spec-select [REGEX]`: Select a spec from the pantry by regex.
 - `--spec-validate`: Validate the spec file.
 - `--spec-update-hash`: Update spec SHA256 hash.
 - `--spec-ignore-hash`: Do not add or verify the spec hash.
+- `--spec-legacy-sha256`: Stamp `spec_sha256` with the pre-canonical (0.9.x) digest; validation always accepts both forms.
 - `--spec-readonly`: Treat the source spec as read-only; any modification (content change or hash repair) is refused.
-- `--spec-add-pip-hashes`: Record PyPI hashes for packages during compilation.
+- `--spec-disable-dev-overrides`: Deactivate the `dev_overrides` section of the spec (forces `--prod` mode).
 - `--print-wrangler-repo`: Print the nb-wrangler repository URL associated with this spec.
 - `--print-wrangler-ref`: Print the nb-wrangler repository ref associated with this spec.
 - `--print-repo-tags`: Print out the repositories sections of the spec with one URL and reference per line, using `git ls-remote --tags` to resolve version-prefix refs (e.g. `2026.2` → highest `2026.2.z` tag) without cloning.
@@ -307,26 +378,30 @@ Workflows are commands that execute an ordered sequence of steps to accomplish s
 ### Miscellaneous
 - `--verbose`: Enable DEBUG log output.
 - `-q`, `--quiet`: Suppress all log output to stderr; only stdout will be visible.
+- `--quiet-downloads`: Reduce download progress output (downloader output is captured and only shown, on failure, along with the error — handy for CI).
 - `--debug`: Drop into debugger on exceptions.
 - `--profile`: Run with cProfile and print stats.
 - `--reset-log`: Delete the log file.
 - `--log-times [MODE]`: Include timestamps in log messages (valid modes: absolute, elapsed, both, none).
 - `--color [MODE]`: Colorize log output.
+- `--version`: Print the version of nb-wrangler to stdout and stop.
+- `--mamba-cmd`, `--pip-cmd`: Override the mamba/pip executables regardless of env var or spec settings.
+- `--favor-commands [environment|spec]`: Discriminate between env vars and spec settings for `MAMBA_CMD`/`PIP_CMD` when both are defined.
 
 ### SPI Automation
-These flags automate Docker builds, testing, security scanning, and git operations during an `--inject-spi` workflow. See the [SPI Injection documentation](docs/inject-spi.md) for examples.
+These flags automate Docker builds and git operations during an `--inject-spi` workflow. See the [SPI Injection documentation](docs/inject-spi.md) for examples.
 
-- `--spi-branch NAME`: Create a new branch in the SPI repo with this name (auto-generated if omitted).
-- `--spi-commit-message MESSAGE...`: Commit message for the new branch. If not provided, a default message is used.
 - `--spi-image-name`: Print the image name corresponding to the current spec to stdout and exit.
 - `--spi-inject-reqs`: Copy the appropriate requirements fields from the wrangler spec into locations in the SPI repo clone.
-- `--spi-push-branch`: Push the new branch to the remote SPI repo.
-- `--spi-pr`: Create a pull request for the new branch in the SPI repo.
 - `--spi-prune-docker`: Prune old Docker images before a build to free space.  Only removes SPI images.
 - `--spi-image-build`: Trigger a Docker build in the SPI repo.  REQUIRED prior to the switches below.
 - `--spi-run-lab`: Run Jupyter Lab in a Docker container for the SPI deployment based on the current spec. Choose "Shutdown Jupyter Lab" from the lab File menu to exit cleanly when you're done.
 - `--spi-image-test [PARAMS]`: Run the image-test script for the SPI deployment. `PARAMS` is an optional single string of parameters passed to the nested image-test invocation; it is split on whitespace into individual arguments (quote each parameter and any attached value, e.g. `"\"--test-notebooks --dev\""`). If present without a value, an empty parameter list is used. You must specify either no parameters (`--test-imports`) or one of `--test-imports`, `--test-notebooks`, `--test-all` as your first parameter in the string. Use the form `--spi-image-test='parameters...'` for it to parse correctly with parameters.
 - `--spi-image-scan`: Run the image-scan script for the SPI deployment, scanning the built Docker image for security vulnerabilities.
+
+(The former `--spi-branch`, `--spi-commit-message`, `--spi-push-branch`, and
+`--spi-pr` git-workflow flags are obsolete and no longer accepted; production
+spec submission happens through nb-wrangler-images.)
 
 ### Docker Registry
 
@@ -355,7 +430,8 @@ For a full list of options, run `nbw --help`.
 - **Notebook (`.ipynb`):** Jupyter notebooks.
 - **Wrangler Spec (`spec.yaml`):** The main YAML file that defines the notebook repositories and Python environment. See the [spec format documentation](docs/spec-format.md) for details on the current spec format (version 2.3), which uses a `repositories` dictionary, named `selected_notebooks` blocks, top-level package lists, optional `assets`, `environment_vars`, `test_environment_vars`, and nested `system.commands` overrides.
 - **Notebook Repo:** A Git repository containing Jupyter notebooks.  e.g., [TIKE Content](https://github.com/spacetelescope/tike_content), [Roman Notebooks](https://github.com/spacetelescope/roman_notebooks)
-- **Science Platform Images (`SPI`):**  The GitHub repository where code for the docker images for the Science Platforms is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
+- **nb-wrangler-images:**  The GitHub repository where production wrangler specs and the automated image-build pipelines now live.  [nb-wrangler-images](https://github.com/spacetelescope/nb-wrangler-images)
+- **Science Platform Images (`SPI`):**  The GitHub repository where code for the classic science platform Docker images is kept.  [Science Platform Images](https://github.com/spacetelescope/science-platform-images)
 - **Refdata Spec (`refdata_dependencies.yaml`):** A YAML file in a notebook repository that specifies data dependencies. See the [refdata dependencies documentation](docs/refdata_dependencies.md).
 - **Requirements (`requirements.txt`):** A file specifying Python package dependencies for a notebook in its directory.
 - **Supporting Python (`.py`):** Any supporting Python files (`.py`) included in a notebook's directory.
@@ -369,4 +445,3 @@ Secondary goals,  include but are not limited to:
 - Building Docker images for curators or science platform admins or pipelines.
 - Testiing environments (importing all requested package) and notebooks.
 - Automating any/all of these tasks for notebook repos / curators and the science platforms.
-.

@@ -70,7 +70,7 @@ dockerfile_aux_sh: |
   apt-get update && apt-get install -y some-extra-pkg
 
 system:
-  spec_version: 1.0
+  spec_version: 2.3
   archive_format: .tar
   primary_repo: tike_content
   nb-wrangler:
@@ -309,9 +309,8 @@ curated content: writes are conservative, and integrity metadata is never churne
 - **Copies never propagate an unverifiable hash.** If the stored hash is missing or
   matches neither accepted digest, a copy is written *without* the hash line (the
   source keeps its stale hash untouched — sources are never mutated for
-  cleanliness). When a hash update is explicitly requested (`--spec-update`,
-  `--spec-update-hash`, or an `add_sha256` step), the hash is instead (re)stamped
-  under the active mode.
+  cleanliness). When a hash update is explicitly requested (`--spec-update-hash`,
+  or an `add_sha256` step), the hash is instead (re)stamped under the active mode.
 - **`--spec-readonly`** refuses (error + abort) any save that *would* modify the
   source spec — a content change or a requested hash repair.
 - **Atomic writes.** Every spec write goes through a temp file plus an atomic
@@ -338,7 +337,7 @@ The `favor` field controls precedence when both this spec setting and the `NBW_M
 
 Note that CLI flags `--mamba-cmd` and `--pip-cmd` always override both the spec and environment variable settings, regardless of `favor`.
 
-For more details on precedence rules, see [Wrangling with Custom Tools](docs/notebooks_and_environment.md#wrangling-with-custom-tools).
+For more details on precedence rules, see [Wrangling with custom tools](notebooks_and_environment.md#wrangling-with-custom-tools).
 
 ### **assets**
 
