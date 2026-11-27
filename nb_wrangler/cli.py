@@ -98,19 +98,19 @@ def parse_args():
         "SPI Automation",
         "Flags to automate Docker builds and git operations for --inject-spi.",
     )
-    # spi_group.add_argument(
-    #     "--spi-branch",
-    #     type=str,
-    #     default="",
-    #     # help=argparse.SUPPRESS,  # "Create a new branch in the SPI repo with this name."
-    # )
-    # spi_group.add_argument(
-    #     "--spi-commit-message",
-    #     nargs="+",
-    #     type=str,
-    #     default="",
-    #     # help=argparse.SUPPRESS,  # "Commit message for the new branch. If not provided, a default message will be used."
-    # )
+    spi_group.add_argument(
+        "--spi-branch",
+        type=str,
+        default="",
+        # help=argparse.SUPPRESS,  # "Create a new branch in the SPI repo with this name."
+    )
+    spi_group.add_argument(
+        "--spi-commit-message",
+        nargs="+",
+        type=str,
+        default="",
+        # help=argparse.SUPPRESS,  # "Commit message for the new branch. If not provided, a default message will be used."
+    )
     spi_group.add_argument(
         "--spi-prune-docker",
         action="store_true",
@@ -126,16 +126,16 @@ def parse_args():
         action="store_true",
         help="Trigger a Docker build in the SPI repo.",
     )
-    # spi_group.add_argument(
-    #     "--spi-push-branch",
-    #     action="store_true",
-    #     help="Push the new branch to the remote SPI repo.",
-    # )
-    # spi_group.add_argument(
-    #     "--spi-pr",
-    #     action="store_true",
-    #     help="Create a pull request for the new branch in the SPI repo.",
-    # )
+    spi_group.add_argument(
+        "--spi-push-branch",
+        action="store_true",
+        help="Push the new branch to the remote SPI repo.",
+    )
+    spi_group.add_argument(
+        "--spi-pr",
+        action="store_true",
+        help="Create a pull request for the new branch in the SPI repo.",
+    )
     spi_group.add_argument(
         "--spi-image-name",
         action="store_true",
