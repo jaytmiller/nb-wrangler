@@ -70,7 +70,7 @@ dockerfile_aux_sh: |
   apt-get update && apt-get install -y some-extra-pkg
 
 system:
-  spec_version: 1.0
+  spec_version: 2.3
   archive_format: .tar
   primary_repo: tike_content
   nb-wrangler:
@@ -91,7 +91,52 @@ This section provides metadata about the image and Python environment.
    - **display_name**: The name as it will appear in the JupyterLab kernel selection list (e.g., `TESS`).
    - **description**: A brief description of the image and its purpose.
    - **valid_on** and **expires_on**: Dates specifying when the image becomes valid and when it expires, respectively.
-   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments and is mutually exclusive with `environment_spec` or an inline mamba spec.
+   - **python_version**: The version of Python supported by the image (e.g., `3.11.13`). This is used for simple definition environments. It may also coexist with an inline mamba spec, in which case it takes precedence over the inline spec's `python=` pin (see [Two Environment-Definition Forms](#two-environment-definition-forms)).
+
+## Two Environment-Definition Forms
+
+A wrangler spec defines the kernel environment in exactly **one** of two
+forms (single-document "simple", or two-document "inline"). The two
+environment-definition methods (`python_version` in the header and an inline
+mamba spec) may now **coexist** in the inline form: when they disagree, the
+header wins over the inline mamba spec.  The external `environment_spec` form
+remains mutually exclusive with both.
+
+| Form | Documents | `image_spec_header` |
+|------|-----------|---------------------|
+| **Simple** | single YAML document | **requires** `kernel_name` **and** `python_version` |
+| **Inline** | two YAML documents (separated by `---`) | may also contain `kernel_name`/`python_version`; when present, they take precedence over the second document's `name`/python pin |
+
+In the **inline** form the second YAML document is a bare mamba spec that must have a `name`:
+
+```yaml
+# ---- first document (header + lists) ----
+image_spec_header:
+  image_name: hubenv-env
+  display_name: HubEnv
+  deployment_name: wrangler
+  valid_on: 1970-01-01
+  expires_on: 2099-12-31
+extra_mamba_packages:
+  - scipy
+extra_pip_packages:
+  - pandas
+environment_vars:
+  MY_VAR: "hello"
+---
+# ---- second document (inline mamba spec) ----
+name: hubenv-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - numpy
+  - pip
+  - pip:
+      - requests
+```
+
+The inline mamba spec is mamba-clean: it carries the environment's `name`, `channels`, and `dependencies` (including its `python=…` dependency), but **not** `environment_vars` — environment variables live in the first document's top-level `environment_vars`. When a second YAML document is present, the header may still carry `kernel_name`/`python_version`; they are now permitted, and when both the header and the second document define a value, the header wins (the second document's `name`/`python=…` pin is used only when the header does not define one). Name/python resolution follows the hierarchy CLI > wrangler spec header > inline mamba spec, and the inline validator (`_validate_inline_spec`) only requires the second document to be a dictionary with a `name`.
 
 ### **repositories**
 This section defines a dictionary of the git repositories that contain notebooks. Each repository is given a short, memorable name that will be used to refer to it in the `selected_notebooks` section.
@@ -243,6 +288,36 @@ This section contains specifications for the system environment. It is updated b
    - **date_updated**: The timestamp when the spec was last updated.
 
 
+## Spec Save and Integrity Contract
+
+`nbw` (and `hubenv`, which shares the same `SpecManager`) treats the spec file as
+curated content: writes are conservative, and integrity metadata is never churned.
+
+- **One digest routine, two accepted forms.** `spec_sha256` is always computed and
+  checked through a single designated routine. New stamps use the digest of the
+  active hash mode: the canonical (0.10+) digest by default, or the pre-0.10 legacy
+  digest when `--spec-legacy-sha256` is set. Validation permanently accepts either
+  form, so specs stamped under either algorithm keep validating on either release.
+- **Content-aware saving.** `date_updated` changes only when the actual spec content
+  changes (the content fingerprint ignores `date_updated` and `spec_sha256`
+  themselves). A save of unchanged content back to the source spec is a byte-for-byte
+  no-op — this is what makes `--reinstall` and `--data-reinstall` preserve the
+  existing hash and date: neither workflow mutates the source spec at all.
+- **Copies preserve verifiable metadata.** A spec copy (into a live environment
+  directory or a pantry shelf) of a spec whose stored hash validates is written
+  byte-for-byte identical: hash and date carry over untouched.
+- **Copies never propagate an unverifiable hash.** If the stored hash is missing or
+  matches neither accepted digest, a copy is written *without* the hash line (the
+  source keeps its stale hash untouched — sources are never mutated for
+  cleanliness). When a hash update is explicitly requested (`--spec-update-hash`,
+  or an `add_sha256` step), the hash is instead (re)stamped under the active mode.
+- **`--spec-readonly`** refuses (error + abort) any save that *would* modify the
+  source spec — a content change or a requested hash repair.
+- **Atomic writes.** Every spec write goes through a temp file plus an atomic
+  rename, preserving existing file permissions; a crash can never leave a
+  truncated or missing spec.
+
+
 ### Custom Command Line Tools
 
 The `system.commands` section in the wrangler spec allows overriding the Mamba and pip executables used during curation. This is useful when working with different mamba/pip implementations across environments or for testing.
@@ -262,7 +337,7 @@ The `favor` field controls precedence when both this spec setting and the `NBW_M
 
 Note that CLI flags `--mamba-cmd` and `--pip-cmd` always override both the spec and environment variable settings, regardless of `favor`.
 
-For more details on precedence rules, see [Wrangling with Custom Tools](docs/notebooks_and_environment.md#wrangling-with-custom-tools).
+For more details on precedence rules, see [Wrangling with custom tools](notebooks_and_environment.md#wrangling-with-custom-tools).
 
 ### **assets**
 

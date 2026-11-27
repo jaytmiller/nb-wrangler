@@ -115,3 +115,120 @@ class TestCatSpec:
 
         result = rm.cat_spec("nbs_test")
         assert result is None
+
+
+class TestParseShorthand:
+    def test_bare_shorthand(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        registry, project, tag = rm._parse_shorthand("_40")
+        assert registry == "ghcr.io"
+        assert project == "spacetelescope/nb-wrangler-images"
+        assert tag == "_40"
+
+    def test_project_colon_tag(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        registry, project, tag = rm._parse_shorthand("myproject:latest")
+        assert registry == "ghcr.io"
+        assert project == "spacetelescope/myproject"
+        assert tag == "latest"
+
+    def test_org_project_colon_tag(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        registry, project, tag = rm._parse_shorthand("myorg/myproj:tag")
+        assert registry == "ghcr.io"
+        assert project == "myorg/myproj"
+        assert tag == "tag"
+
+    def test_registry_org_project_colon_tag(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        registry, project, tag = rm._parse_shorthand("ghcr.io/myorg/myproj:tag")
+        assert registry == "ghcr.io"
+        assert project == "myorg/myproj"
+        assert tag == "tag"
+
+    def test_docker_registry(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        registry, project, tag = rm._parse_shorthand("docker.io/myimg:v1")
+        assert registry == "docker.io"
+        assert project == "myimg"
+        assert tag == "v1"
+
+
+class TestMatchTags:
+    def test_prefixed_match(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["nbw_v1", "nbw_v2", "nbs_v1"]
+        matches = rm._match_tags(tags, "v1", preferred_prefix="nbw_")
+        assert matches == ["nbw_v1"]
+
+    def test_fallback_to_direct_match(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["custom_v1", "nbw_v2"]
+        matches = rm._match_tags(tags, "*v1", preferred_prefix="nbw_")
+        assert matches == ["custom_v1"]
+
+    def test_no_prefix_matching(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["nbs_a1", "nbs_a2", "nbw_a1"]
+        matches = rm._match_tags(tags, "*a1")
+        assert matches == ["nbs_a1", "nbw_a1"]
+
+    def test_auto_glob(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["nbs_img1", "nbs_img2", "nbw_img1"]
+        matches = rm._match_tags(tags, "img", preferred_prefix="nbs_", auto_glob=True)
+        assert matches == ["nbs_img1", "nbs_img2"]
+
+    def test_already_prefixed_pattern(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["nbs_img1", "nbs_img2"]
+        matches = rm._match_tags(tags, "nbs_img*", preferred_prefix="nbs_")
+        assert matches == ["nbs_img1", "nbs_img2"]
+
+    def test_sorted_result(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        tags = ["nbs_z", "nbs_a", "nbs_m"]
+        matches = rm._match_tags(tags, "*")
+        assert matches == ["nbs_a", "nbs_m", "nbs_z"]
+
+
+class TestNeedsTagLookup:
+    def test_glob_pattern(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("Roman*40", "Roman*40", "") is True
+
+    def test_question_mark(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("v?", "v?", "") is True
+
+    def test_underscore_prefix(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("_40", "_40", "") is True
+
+    def test_shorthand_with_preferred_prefix(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("v1", "v1", "nbw_") is True
+
+    def test_literal_with_colon_and_no_prefix(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("latest", "myproj:latest", "") is False
+
+    def test_literal_with_colon_and_prefix(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        assert rm._needs_tag_lookup("latest", "myproj:latest", "nbw_") is False
+
+
+class TestResolveImageHelpers:
+    def test_glob_with_preferred_prefix(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        with patch.object(
+            rm, "_list_tags", return_value=["nbw_RomanNexus_40", "nbw_v1"]
+        ):
+            result = rm.resolve_image("Roman*40", preferred_prefix="nbw_")
+        assert result == "ghcr.io/spacetelescope/nb-wrangler-images:nbw_RomanNexus_40"
+
+    def test_tag_lookup_failure_falls_back_to_literal(self, tmp_path):
+        rm = _make_manager_with_mocks(tmp_path)
+        with patch.object(rm, "_list_tags", side_effect=ConnectionError("no net")):
+            result = rm.resolve_image("_v1")
+        assert ":_v1" in result

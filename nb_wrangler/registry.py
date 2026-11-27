@@ -82,25 +82,7 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not shorthand:
             return []
 
-        registry = DEFAULT_REGISTRY
-        project = DEFAULT_PROJECT
-        tag_pattern = shorthand
-
-        # If it contains a colon, it's [project]:[tag] or [registry]/[project]:[tag]
-        if ":" in shorthand:
-            path, tag_pattern = shorthand.split(":", 1)
-            if "/" in path:
-                parts = path.split("/")
-                if "." in parts[0] or len(parts) > 2:
-                    registry = parts[0]
-                    project = "/".join(parts[1:])
-                else:
-                    project = path
-            else:
-                if "/" in project:
-                    project = f"{project.split('/')[0]}/{path}"
-                else:
-                    project = path
+        registry, project, tag_pattern = self._parse_shorthand(shorthand)
 
         try:
             tags = self._list_tags(registry, project)
@@ -114,25 +96,12 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
 
         # Specs are prefixed with nbs_
         preferred_prefix = "nbs_"
-        matches = []
+        matches = self._match_tags(tags, pattern, preferred_prefix, auto_glob=True)
 
-        # Try matching with nbs_ prefix first if not already present
-        if not pattern.startswith(preferred_prefix):
-            prefix_pattern = preferred_prefix + pattern
-            # If the pattern doesn't end with a glob, assume it's a prefix match or exact match
-            if not any(c in prefix_pattern for c in "*?"):
-                prefix_pattern += "*"
-            matches = [t for t in tags if fnmatch.fnmatch(t, prefix_pattern)]
-
-        if not matches:
-            # Fallback to direct pattern match
-            matches = [t for t in tags if fnmatch.fnmatch(t, pattern)]
-
-        # Further filter to ensure we only return nbs_ tags if we didn't use the prefix pattern
+        # When the pattern wasn't already prefixed, keep only nbs_ tags
         if not pattern.startswith(preferred_prefix):
             matches = [t for t in matches if t.startswith(preferred_prefix)]
 
-        matches.sort()
         return matches
 
     def resolve_image(self, shorthand: str, preferred_prefix: str = "") -> str:
@@ -146,71 +115,122 @@ class RegistryManager(WranglerConfigurable, WranglerLoggable, WranglerEnvable):
         if not shorthand:
             return ""
 
-        # If it looks like a full URI (has protocol or registry with port/multiple components and a tag), return as is
+        # Full URIs are returned as-is
         if "://" in shorthand or (shorthand.count("/") >= 2 and ":" in shorthand):
             return shorthand
 
+        registry, project, tag_pattern = self._parse_shorthand(shorthand)
+
+        if self._needs_tag_lookup(tag_pattern, shorthand, preferred_prefix):
+            resolved = self._resolve_tag_from_registry(
+                shorthand, registry, project, tag_pattern, preferred_prefix
+            )
+            if resolved:
+                return resolved
+
+        # Fallback: assemble literal URI
+        literal_tag = shorthand if ":" not in shorthand else tag_pattern
+        return f"{registry}/{project}:{literal_tag}"
+
+    # -- Parsing / matching helpers -------------------------------------
+
+    def _parse_shorthand(self, shorthand: str) -> tuple[str, str, str]:
+        """Parse a shorthand image spec into (registry, project, tag_pattern).
+
+        Handles forms like:
+            _40                       -> (DEFAULT_REGISTRY, DEFAULT_PROJECT, "_40")
+            myproject:latest          -> (DEFAULT_REGISTRY, DEFAULT_PROJECT/myproject, "latest")
+            myorg/myproj:tag          -> (DEFAULT_REGISTRY, myorg/myproj, "tag")
+            ghcr.io/myorg/myproj:tag  -> (ghcr.io, myorg/myproj, "tag")
+        """
         registry = DEFAULT_REGISTRY
         project = DEFAULT_PROJECT
         tag_pattern = shorthand
 
-        # If it contains a colon, it's [project]:[tag] or [registry]/[project]:[tag]
         if ":" in shorthand:
             path, tag_pattern = shorthand.split(":", 1)
             if "/" in path:
                 parts = path.split("/")
-                # If the first part has a dot, it's likely a registry (e.g., ghcr.io, docker.io)
                 if "." in parts[0] or len(parts) > 2:
                     registry = parts[0]
                     project = "/".join(parts[1:])
                 else:
                     project = path
             else:
-                # If it's just a single name, assume it's the project name under the default org
                 if "/" in project:
                     project = f"{project.split('/')[0]}/{path}"
                 else:
                     project = path
 
-        # If it's a glob or a suffix (starts with _), or we just want to expand it
-        if (
+        return registry, project, tag_pattern
+
+    @staticmethod
+    def _needs_tag_lookup(
+        tag_pattern: str, shorthand: str, preferred_prefix: str
+    ) -> bool:
+        """Return True if tags must be listed from the registry to resolve."""
+        return (
             "*" in tag_pattern
             or "?" in tag_pattern
             or tag_pattern.startswith("_")
-            or (":" not in shorthand and preferred_prefix)
-        ):
-            try:
-                tags = self._list_tags(registry, project)
-            except Exception as e:
-                self.logger.debug(f"Failed to list tags for {registry}/{project}: {e}")
-                tags = []
+            or (":" not in shorthand and bool(preferred_prefix))
+        )
 
-            if tags:
-                pattern = tag_pattern
-                if tag_pattern.startswith("_"):
-                    pattern = "*" + tag_pattern
+    def _match_tags(
+        self,
+        tags: list[str],
+        pattern: str,
+        preferred_prefix: str = "",
+        *,
+        auto_glob: bool = False,
+    ) -> list[str]:
+        """Match *tags* against *pattern*, trying *preferred_prefix* first.
 
-                # Try with preferred prefix first
-                matches = []
-                if preferred_prefix and not tag_pattern.startswith(preferred_prefix):
-                    prefix_pattern = preferred_prefix + pattern
-                    matches = [t for t in tags if fnmatch.fnmatch(t, prefix_pattern)]
+        When *preferred_prefix* is given and *pattern* does not already
+        start with it, the prefix is prepended before matching.  If
+        *auto_glob* is true and the prefix pattern has no wildcard, a
+        trailing ``*`` is appended.  A direct match on *pattern* is
+        tried as a fallback.  Returns a sorted list of matches.
+        """
+        matches: list[str] = []
+        if preferred_prefix and not pattern.startswith(preferred_prefix):
+            prefix_pattern = preferred_prefix + pattern
+            if auto_glob and not any(c in prefix_pattern for c in "*?"):
+                prefix_pattern += "*"
+            matches = [t for t in tags if fnmatch.fnmatch(t, prefix_pattern)]
 
-                if not matches:
-                    matches = [t for t in tags if fnmatch.fnmatch(t, pattern)]
+        if not matches:
+            matches = [t for t in tags if fnmatch.fnmatch(t, pattern)]
 
-                if matches:
-                    # Sort to get the latest (usually highest run number or date)
-                    matches.sort()
-                    tag = matches[-1]
-                    self.logger.info(f"Resolved shorthand '{shorthand}' to tag '{tag}'")
-                    return f"{registry}/{project}:{tag}"
+        matches.sort()
+        return matches
 
-        # Fallback to literal if no matches or not a glob
-        # If it didn't have a registry/project, add them
-        if ":" not in shorthand:
-            return f"{registry}/{project}:{shorthand}"
-        return f"{registry}/{project}:{tag_pattern}"
+    def _resolve_tag_from_registry(
+        self,
+        shorthand: str,
+        registry: str,
+        project: str,
+        tag_pattern: str,
+        preferred_prefix: str,
+    ) -> Optional[str]:
+        """List tags from the registry and return the best matching full URI."""
+        try:
+            tags = self._list_tags(registry, project)
+        except Exception as e:
+            self.logger.debug(f"Failed to list tags for {registry}/{project}: {e}")
+            return None
+
+        if not tags:
+            return None
+
+        pattern = "*" + tag_pattern if tag_pattern.startswith("_") else tag_pattern
+        matches = self._match_tags(tags, pattern, preferred_prefix)
+        if not matches:
+            return None
+
+        tag = matches[-1]
+        self.logger.info(f"Resolved shorthand '{shorthand}' to tag '{tag}'")
+        return f"{registry}/{project}:{tag}"
 
     def _list_tags(self, registry: str, project: str) -> list[str]:
         """List tags for a repository in a registry."""

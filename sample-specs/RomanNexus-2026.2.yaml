@@ -37,7 +37,7 @@ system:
     # choose this over any env var setting but not CLI
     favor: spec
   date_updated: '2026-08-09T09:33:52.258563'
-  spec_sha256: f041f10a2cdb74cd3fa2ce8fc477881e16e270bbe760eb077bcb2493951d54db
+  spec_sha256: f0d2471c00fe2e5e658902ee2c53eebcdecead65f6337ed4eb82a46684485843
 
 # Supported notebooks that will define the environment and by sync'ed to the science platform.
 selected_notebooks:

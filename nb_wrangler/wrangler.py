@@ -1,9 +1,9 @@
 """Main NotebookWrangler class orchestrating the curation process."""
 
 import os
+import sys
 from pathlib import Path
 from collections.abc import Callable
-from typing import Optional
 import copy
 
 from .constants import NBW_URI, LOG_FILE
@@ -17,7 +17,7 @@ from .compiler import RequirementsCompiler
 from .notebook_tester import NotebookTester
 from .injector import get_injector
 from .registry import RegistryManager
-from .pantry import NbwPantry
+from .pantry import NbwPantrySet
 from .data_wrangler import DataWrangler
 from .wrangler_mixin import WranglerWorkflowMixin
 from . import utils
@@ -61,7 +61,7 @@ class NotebookWrangler(
         self.spec_manager = SpecManager.load_and_validate(self.config.spec_file)
         if self.spec_manager is None:
             raise RuntimeError("SpecManager is not initialized.  Cannot continue.")
-        self.pantry = NbwPantry()
+        self.pantry = NbwPantrySet.from_env()
         self.pantry_shelf = self.pantry.get_shelf(self.spec_manager.shelf_name)
         if self.config.repos_dir == NBW_URI:
             self.config.repos_dir = self.pantry_shelf.notebook_repos_path
@@ -119,7 +119,7 @@ class NotebookWrangler(
         return self.environment_name
 
     @property
-    def kernel_display_name(self) -> str:
+    def kernel_display_name(self) -> str | None:
         """More readable version of kernel name visible in JupyterLab menu."""
         return (
             self.spec_manager.display_name
@@ -467,6 +467,7 @@ class NotebookWrangler(
             (self.config.env_register, self._register_environment),
             (self.config.env_unregister, self._unregister_environment),
             (self.config.env_print_name, self._env_print_name),
+            (self.config.env_activate, self._env_activate),
             (self.config.spec_add, self._spec_add),
             (self.config.spec_list, self._spec_list),
             (self.config.data_collect, self.data_wrangler.collect),
@@ -742,37 +743,14 @@ class NotebookWrangler(
         self.logger.debug("ls-remote --tags output:", result.stdout)
         tags = _parse_ls_remote_tags(result)
         self.logger.debug("Parsed tags:", tags)
-        selected = self._select_highest_patch_tag(tags, ref)
+        selected = utils.select_highest_patch_tag(tags, ref)
         self.logger.debug("Highest tag:", selected)
         return selected if selected else ref
-
-    def _select_highest_patch_tag(self, tags: list[str], ref: str) -> Optional[str]:
-        """Return the tag ``x.y.z`` with the greatest numeric ``z`` for *ref*.
-
-        Tags are filtered to those starting with ``ref + "."`` (e.g. ``2026.2.``).
-        The suffix after ``ref + "."`` is parsed as an integer for sorting;
-        ties or non-numeric suffixes fall back to lexicographic comparison.
-        Returns ``None`` when no matching tags exist.
-        """
-        prefix = ref + "."
-        matching = [t for t in tags if t.startswith(prefix)]
-        if not matching:
-            return None
-
-        def _sort_key(tag: str) -> tuple:
-            z_part = tag[len(prefix) :]
-            try:
-                return (0, int(z_part))
-            except ValueError:
-                return (1, z_part)
-
-        matching.sort(key=_sort_key, reverse=True)
-        return matching[0]
 
     def _spec_list(self) -> bool:
         """List the available shelves/specs in the pantry."""
         self.logger.info("Listing available shelves/specs in pantry.")
-        return self.pantry.list_shelves()
+        return self.pantry.print_shelves()
 
     def _collect_repo_urls(self) -> list[str]:
         """Gather notebook repo URLs plus the SPI repo URL from the spec output."""
@@ -975,8 +953,9 @@ class NotebookWrangler(
             return self.logger.warning(
                 "Ignoring spec_sha256 checksum validation. Spec integrity unknown."
             )
-        else:
-            return self.spec_manager.validate_sha256()
+        return self.spec_manager.validate_sha256(
+            defer_repair=self.config.spec_update_hash
+        )
 
     def _validate_spec(self) -> bool:
         if not self.spec_manager.validate():
@@ -1083,6 +1062,32 @@ class NotebookWrangler(
             print(self.resolved_environment_name)
             return True
         return self.logger.error("Could not determine environment name.")
+
+    def _env_activate(self) -> bool:
+        """Emit a shell snippet that activates the spec's environment by path."""
+        from . import activation
+
+        if not self.resolved_environment_name:
+            return self.logger.error(
+                "Could not determine environment name to activate."
+            )
+        env_path = self.env_manager.env_live_path(self.resolved_environment_name)
+        data_exports = [
+            ln for ln in (self.data_wrangler.get_exports() or "").splitlines() if ln
+        ]
+        self.logger.debug(
+            f"Activating environment {env_path} via {self.config.mamba_command}"
+        )
+        snippet = activation.emit_activation(
+            str(self.env_manager.nbw_mm_dir),
+            self.config.mamba_command,
+            activation.detect_shell(),
+            str(env_path),
+            name=self.resolved_environment_name,
+            extra_exports=data_exports,
+        )
+        sys.stdout.write(snippet)
+        return True
 
     def _setup_environment(self) -> bool:
         env_vars = self._get_environment_vars()

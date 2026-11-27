@@ -1,9 +1,11 @@
 import os
 import re
+import json
+import copy
+import tempfile
 import datetime
 from typing import Any, Optional
 from pathlib import Path
-import copy
 
 from . import utils
 from . import yaml_typed_values
@@ -34,6 +36,61 @@ def is_base_env_name(env_name: str | None) -> bool:
     reach this function.
     """
     return env_name == "base"
+
+
+# ---------------------------------------------------------------------------
+# Canonical spec-hashing (single source of the spec_sha256 algorithm)
+# ---------------------------------------------------------------------------
+
+
+def _plain_data(value):
+    """Convert *value* to plain Python structures.
+
+    A JSON round-trip strips all ruamel comment/quote metadata (plus normalizes
+    JSON-able scalars), so the result serializes identically no matter which
+    dumps ran earlier in the process.  Falls back to a deep copy for values
+    a JSON round-trip cannot express.
+    """
+    try:
+        return json.loads(json.dumps(value, default=str))
+    except (TypeError, ValueError):
+        return copy.deepcopy(value)
+
+
+def canonical_spec_sha256(spec: dict, inline_mamba_spec: dict | None = None) -> str:
+    """THE canonical ``spec_sha256`` digest for a wrangler spec.
+
+    Hashes a deterministic serialization: the spec (including any inline
+    mamba document) converted to plain Python data with
+    ``system.spec_sha256`` present-and-blank in the hashed text.  The digest
+    is therefore independent of in-process dump history (ruamel comment
+    state is a known source of order-dependent digests) and treats an
+    absent ``spec_sha256`` key the same as a blank one.  Stamping
+    (``SpecManager.add_sha256``) and validation (``SpecManager.validate_sha256``)
+    both go through this single routine — see ``test_spec_hash_stable.py``.
+    """
+    document = _plain_data(spec)
+    system = document.get("system")
+    if isinstance(system, dict):
+        system["spec_sha256"] = ""
+    text = utils.yaml_dumps(document)
+    if inline_mamba_spec is not None:
+        text += "\n---\n" + utils.yaml_dumps(_plain_data(inline_mamba_spec))
+    return utils.sha256_str(text)
+
+
+def legacy_spec_sha256(source_text: str) -> str:
+    """Legacy (pre-canonical, 0.9.x) digest from a spec file's own text.
+
+    Hashes the file text with the ``spec_sha256`` value blanked: the way
+    on-disk hashes were recorded before the canonical routine existed.
+    Permanently accepted by validation (see ``SpecManager.validate_sha256``)
+    and re-producible by stamping under ``--spec-legacy-sha256``.
+    """
+    blanked = re.sub(
+        r"(?m)^(?P<i>\s*spec_sha256:).*$", lambda m: m.group("i") + " ''", source_text
+    )
+    return utils.sha256_str(blanked)
 
 
 _OVERRIDES_SCHEMA: dict[str, Any] = {
@@ -71,6 +128,7 @@ class SpecManager(
         self._is_validated = False
         self._source_file: Path = Path()
         self._initial_spec_sha256 = None
+        self._baseline_content_fp: str | None = None
 
         self.validator = SpecValidator(self)
 
@@ -139,10 +197,15 @@ class SpecManager(
     def environment_name(self) -> str | None:
         """The conda/micromamba environment name used for environment operations.
 
-        Normally identical to kernel_name, but follows the convention that the
-        'python3' kernel and 'base' conda environment refer to the same thing.
+        Priority chain:
+        1. Explicit ``environment_name`` in the spec header (trumps everything).
+        2. ``kernel_name`` with the ``python3`` -> ``base`` mapping applied.
+        3. Fallback to ``image_name`` when ``kernel_name`` is unspecified.
         """
-        return kernel_name_to_env_name(self.kernel_name)
+        header_env = self.header.get("environment_name")
+        if header_env is not None:
+            return header_env
+        return kernel_name_to_env_name(self.kernel_name) or self.image_name
 
     def get_resolved_kernel_name(self) -> str | None:
         """Get the most reliable kernel name available.
@@ -162,7 +225,7 @@ class SpecManager(
         return kernel_name_to_env_name(self.get_resolved_kernel_name())
 
     @property
-    def display_name(self) -> str:  # readable name in lab menu
+    def display_name(self) -> str | None:  # readable name in lab menu
         return self.header.get("display_name", self.kernel_name)
 
     @property
@@ -450,7 +513,24 @@ class SpecManager(
 
     @property
     def shelf_name(self) -> str:
-        return self.moniker  # + "-" + self.spec_id
+        """Directory name where persistent code/data/archives are stored.
+
+        Priority chain:
+        1. Explicit ``shelf_name`` in the spec header (trumps everything).
+        2. ``moniker`` (filesystem-safe ``image_name``) — the historical
+           pantry layout.  Must not default to ``environment_name``:
+           existing pantries key shelves by moniker, and env names like
+           ``base`` (from a ``python3`` kernel) are shared across
+           environments and would collide and orphan legacy shelves.
+
+        Deliberately never touches ``kernel_name``/``environment_name`` so
+        external-spec specs resolve a shelf before their environment spec
+        has been compiled (which would raise).
+        """
+        header_shelf = self.header.get("shelf_name")
+        if header_shelf is not None:
+            return header_shelf
+        return self.moniker
 
     @property
     def archive_format(self) -> str:
@@ -562,6 +642,7 @@ class SpecManager(
             else:
                 self.inline_mamba_spec = None
             self.logger.debug(f"Loaded spec from {str(spec_file)}.")
+            self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
             return self.logger.exception(e, f"Failed to load YAML spec: {e}")
@@ -588,31 +669,215 @@ class SpecManager(
         output_filepath = self.output_spec(output_dir)
         return self.save_spec_as(output_filepath, add_sha256=add_sha256)
 
+    def _content_fp(self) -> str:
+        """Fingerprint of the spec ignoring ``date_updated`` and ``spec_sha256``.
+
+        Temporarily blanks those two fields, hashes the serialized spec, then
+        restores them via ``finally``.  This is the "content" used to detect a
+        real change (stable across date/hash refreshes).  Specs without a
+        ``system`` section are hashed unmodified.
+
+        NOTE: the pop/re-insert also normalizes the live key order to
+        ``date_updated`` before ``spec_sha256``.  That side effect is load-
+        bearing: every digest stamped since the canonical routine existed was
+        computed over this normalized order (the shipped sample-specs prove
+        it), and the canonical digest is key-order-sensitive.  Do not make
+        this non-mutating without re-stamping every existing spec.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return utils.sha256_str(self.to_string())
+        date_present = "date_updated" in system
+        hash_present = "spec_sha256" in system
+        orig_date = system.get("date_updated")
+        orig_hash = system.get("spec_sha256")
+        system.pop("date_updated", None)
+        system.pop("spec_sha256", None)
+        try:
+            return utils.sha256_str(self.to_string())
+        finally:
+            if date_present:
+                system["date_updated"] = orig_date
+            if hash_present:
+                system["spec_sha256"] = orig_hash
+
+    def _content_changed(self) -> bool:
+        """True when actual content differs from the loaded source baseline."""
+        if self._baseline_content_fp is None:
+            return True
+        return self._content_fp() != self._baseline_content_fp
+
+    def _stored_hash_is_valid(self) -> bool:
+        """True when the stored ``spec_sha256`` matches the canonical digest or
+        the legacy (pre-canonical, file-derived) digest.
+
+        Accepting both digests is permanent by design: specs stamped under
+        either algorithm stay validatable by this code, while the active
+        hash mode (``--spec-legacy-sha256`` or not) decides which digest
+        future stamps produce.
+
+        Non-mutating counterpart of ``validate_sha256`` (which reports rather
+        than re-stamps); specs without any stored hash return False.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return False
+        stored = system.get("spec_sha256")
+        if not stored:
+            return False
+        if stored == canonical_spec_sha256(self._spec, self.inline_mamba_spec):
+            return True
+        legacy = self._legacy_file_hash()
+        return legacy is not None and stored == legacy
+
+    def _legacy_digest(self) -> str:
+        """Digest exactly as releases before the canonical routine computed
+        ``spec_sha256``: the in-memory spec with the hash field blanked,
+        serialized through the round-trip dumper (comments and scalar styles
+        preserved; inline mamba document appended), then hashed.  Byte-exact
+        replica of 0.9.x ``add_sha256``.
+        """
+        system = self._spec.get("system")
+        if not isinstance(system, dict):
+            return utils.sha256_str(self.to_string())
+        had_hash = "spec_sha256" in system
+        orig_hash = system.get("spec_sha256")
+        system["spec_sha256"] = ""
+        try:
+            digest = utils.sha256_str(self.to_string())
+        finally:
+            if had_hash:
+                system["spec_sha256"] = orig_hash
+            else:
+                system.pop("spec_sha256")
+        return digest
+
+    def _stored_matches_active_mode(self) -> bool:
+        """True when the stored hash equals the digest the active hash mode
+        produces for the current content.
+
+        Validation accepts both digests permanently; this is what drives
+        re-stamping: a spec carrying a digest from the other algorithm is
+        'stale' for an ``add_sha256`` save, so ``--spec-update`` converts it
+        to the mode the selected consumers (older releases under
+        ``--spec-legacy-sha256``) can validate.
+        """
+        stored = self.system.get("spec_sha256")
+        if not stored:
+            return False
+        active = (
+            self._legacy_digest()
+            if self.config.spec_legacy_hash
+            else canonical_spec_sha256(self._spec, self.inline_mamba_spec)
+        )
+        return stored == active
+
+    def _readonly_source_write(self, output_path: Path | str) -> bool:
+        """True when output_path is the loaded source spec file itself."""
+        if not self._source_file:
+            return False
+        return Path(output_path).resolve() == self._source_file.resolve()
+
+    def _update_meta(self, add_sha256: bool) -> None:
+        """Refresh date/hash metadata after a real content change."""
+        self.refresh_date_updated()
+        if add_sha256:
+            hash = self.add_sha256()
+            self.logger.debug(f"Setting spec_sha256 to {hash}.")
+        else:
+            self.system.pop("spec_sha256", None)
+            self.logger.debug(
+                "Not updating spec_sha256 sum; Removing potentially outdated sum."
+            )
+
+    def _strip_unverifiable_hash(self) -> None:
+        """Remove a stored ``spec_sha256`` that verifies under neither digest.
+
+        Called before writing a *copy*: an installed copy must carry either a
+        hash that validates or no hash at all, so a stale digest from the
+        source never propagates into a false integrity failure later.
+        """
+        system = self._spec.get("system")
+        if isinstance(system, dict) and system.pop("spec_sha256", None) is not None:
+            self.logger.debug(
+                "Stored spec_sha256 is unverifiable; removed it from the copy."
+            )
+
+    def _write_spec(self, output_path: Path | str) -> None:
+        """Atomically write the current serialized spec to output_path.
+
+        Writes to a temp file in the destination directory, then
+        ``os.replace``s it into place: a crash mid-save can never truncate or
+        delete the spec, and an existing file's permissions are carried over.
+        """
+        output_path = Path(output_path)
+        self.logger.debug(f"Writing spec to {output_path}.")
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        existing_mode = output_path.stat().st_mode if output_path.exists() else None
+        fd, tmp_name = tempfile.mkstemp(
+            dir=str(output_path.parent),
+            prefix=f".{output_path.name}.",
+            suffix=".tmp",
+        )
+        tmp_path = Path(tmp_name)
+        try:
+            with os.fdopen(fd, "w") as f:
+                f.write(self.to_string())
+            tmp_path.chmod(existing_mode if existing_mode is not None else 0o644)
+            os.replace(tmp_path, output_path)
+        finally:
+            tmp_path.unlink(missing_ok=True)
+        self.logger.debug(f"Spec file saved to {output_path}.")
+
     def save_spec_as(
         self, output_filepath: Path | str, add_sha256: bool = False
     ) -> bool:
-        """Save the current YAML spec to a file."""
+        """Save the current YAML spec to a file.
+
+        ``system.date_updated`` changes only when the actual content changes.
+        Validation permanently accepts both digests (canonical and legacy),
+        so an unchanged save to the source is a byte-for-byte no-op and an
+        unchanged copy with a verifiable hash is re-serialized as-is, hash
+        and date preserved.  When ``add_sha256`` is requested (e.g.
+        ``--spec-update``/``--spec-update-hash``), a hash that is missing or
+        does not equal the digest of the active hash mode (canonical, or
+        legacy under ``--spec-legacy-sha256``) is (re)stamped.  A copy never
+        carries an unverifiable hash forward: with ``add_sha256`` it is
+        repaired instead; without it the hash line is dropped from the copy
+        only — the source is never mutated for cleanliness.  With
+        ``--spec-readonly``, any save that would change the source (content
+        change or requested repair) is refused (error + abort).
+        """
         self.logger.debug(f"Saving spec file to {output_filepath}.")
         try:
             output_path = Path(output_filepath)
-            self.refresh_date_updated()
-            if add_sha256:
+            is_source = self._readonly_source_write(output_path)
+            content_changed = self._content_changed()
+            stale = not self._stored_hash_is_valid()
+            repair = add_sha256 and not self._stored_matches_active_mode()
+            strip = (not add_sha256) and stale and (not is_source)
+            if (content_changed or repair) and is_source and self.config.spec_readonly:
+                return self.logger.error(
+                    "--spec-readonly: refusing to modify source spec "
+                    f"{self._source_file} (content_changed={content_changed}, "
+                    f"hash_repair={repair})."
+                )
+            if content_changed:
+                self._update_meta(add_sha256)
+            elif repair:
                 hash = self.add_sha256()
-                self.logger.debug(f"Setting spec_sha256 to {hash}.")
+                self.logger.debug(f"Repairing stale spec_sha256 to {hash}.")
+            elif strip:
+                self._strip_unverifiable_hash()
+            if is_source and not (content_changed or repair):
+                self.logger.debug(
+                    f"Spec content unchanged; source {self._source_file} "
+                    "left untouched."
+                )
             else:
-                self.system.pop("spec_sha256", None)
-                self.logger.debug(
-                    "Not updating spec_sha256 sum; Removing potentially outdated sum."
-                )
-            if output_path.exists():
-                self.logger.debug(
-                    f"Output file {output_filepath} already exists and will be removed and overwritten."
-                )
-                output_path.unlink()  # Remove existing file if it
-            self.logger.debug(f"Writing spec to {output_filepath}.")
-            with output_path.open("w+") as f:
-                f.write(self.to_string())
-            self.logger.debug(f"Spec file saved to {output_filepath}.")
+                self._write_spec(output_path)
+                if is_source and (content_changed or repair):
+                    self._baseline_content_fp = self._content_fp()
             return True
         except Exception as e:
             return self.logger.exception(
@@ -691,25 +956,65 @@ class SpecManager(
         return hash
 
     def add_sha256(self) -> str:
-        self.system["spec_sha256"] = ""
-        self.system["spec_sha256"] = utils.sha256_str(self.to_string())
+        """Stamp ``spec_sha256`` with the digest of the active hash mode.
+
+        Canonical (default) or legacy pre-0.10 digest under
+        ``--spec-legacy-sha256``; validation accepts both either way.
+        """
+        self.system["spec_sha256"] = (
+            self._legacy_digest()
+            if self.config.spec_legacy_hash
+            else canonical_spec_sha256(self._spec, self.inline_mamba_spec)
+        )
         return self.system["spec_sha256"]
 
-    def validate_sha256(self) -> bool:
-        """Validate the sha256 hash of the spec which proves integrity unless we've been hacked."""
+    def _legacy_file_hash(self) -> str | None:
+        """Legacy migration candidate from the stored source file, or None."""
+        if self._source_file is None or not self._source_file.is_file():
+            return None
+        try:
+            return legacy_spec_sha256(self._source_file.read_text())
+        except OSError:
+            return None
+
+    def validate_sha256(self, defer_repair: bool = False) -> bool:
+        """Validate the sha256 hash of the spec which proves integrity unless we've been hacked.
+
+        The stored hash is accepted when it matches the canonical digest
+        (``canonical_spec_sha256``) or the legacy (pre-canonical) digest
+        derived from the stored file's own text with the hash line blanked;
+        accepting both is permanent by design.  A mismatch fails with a
+        pointer to the re-stamp commands.  The check is non-mutating: the
+        stored hash is left in place; re-stamping happens via ``--spec-update``
+        or ``hubenv relock``, under the active hash mode
+        (``--spec-legacy-sha256`` selects the legacy digest).
+
+        With ``defer_repair`` (``--spec-update-hash``), a missing or stale
+        hash is reported as a warning instead of an error, so the run
+        continues to the later ``--spec-update-hash`` step that re-stamps it.
+        """
         expected_hash = self.system.get("spec_sha256")
         if not expected_hash:
+            if defer_repair:
+                return self.logger.warning(
+                    "Spec has no spec_sha256 hash; --spec-update-hash will stamp one."
+                )
             return self.logger.error("Spec has no spec_sha256 hash to validate.")
-        self.logger.debug(f"Validating spec_sha256 checksum {expected_hash}.")
-        actual_hash = self.add_sha256()
-        if expected_hash == actual_hash:
+        if self._stored_hash_is_valid():
             self.logger.debug(f"Spec-sha256 {expected_hash} validated.")
             return True
-        else:
-            self.logger.error(
-                f"Spec-sha256 {expected_hash} did not match actual hash {actual_hash}."
+        if defer_repair:
+            return self.logger.warning(
+                f"Spec-sha256 {expected_hash} is stale or incorrect; "
+                "--spec-update-hash will re-stamp it during this run."
             )
-            return False
+        canonical = canonical_spec_sha256(self._spec, self.inline_mamba_spec)
+        return self.logger.error(
+            f"Spec-sha256 {expected_hash} did not match canonical hash {canonical}; "
+            "re-stamp with nbw --spec-update or hubenv relock (add "
+            "--spec-legacy-sha256 to stamp the pre-canonical digest for "
+            "older, pre-canonical consumers)."
+        )
 
     # ---------------------------- validation ----------------------------------
 
@@ -724,7 +1029,9 @@ class SpecManager(
             "python_version",
             "deployment_name",
             "kernel_name",
+            "environment_name",
             "display_name",
+            "shelf_name",
             "manager",
         ],
         "repositories": ["url", "ref"],

@@ -1,3 +1,34 @@
+**v0.10.0** (unreleased) change notes (since v0.9.5):
+
+### Breaking Changes
+
+- **Relaxed wrangler spec format: header name/python may now coexist with an inline mamba spec** (`nb_wrangler/spec_validator.py`, `nb_wrangler/hubenv/env_spec.py`): the validator previously rejected `kernel_name`/`python_version` in the `image_spec_header` when a second YAML document (inline mamba spec) was present; that mutual exclusivity is lifted. When both sides define a value, the header wins over the inline spec (hierarchy: CLI > wrangler spec header > inline mamba spec) and the override is logged at INFO. Saved shelf specs now always record the effective `kernel_name`/`python_version` in the header, including inline-form ones, so CLI `--name`/`--python` overrides are captured in the header. Every previously valid spec remains valid; `nbw` consumers (e.g. curation) read the header value first, which equals the effective value hubenv recorded.
+
+### Spec-Save Contract (shared `SpecManager` core)
+
+The designated save path (`SpecManager.save_spec_as`) now pins the contract that
+`--reinstall`/`--data-reinstall` rely on — existing hash information and
+`date_updated` are preserved unless content actually changes (`docs/spec-format.md`
+
+§ "Spec Save and Integrity Contract"):
+
+- **Copies never propagate an unverifiable hash** (`nb_wrangler/spec_manager.py`): a spec copy (installed-env directory or pantry shelf) whose stored hash verifies under *neither* accepted digest is written with the hash line dropped; when a hash update was explicitly requested (`add_sha256`, e.g. `--spec-update-hash`), the copy's hash is repaired/stamped instead. The *source* spec is still never mutated for cleanliness — an unchanged source save stays a byte-for-byte no-op, stale hash and all. Previously an unverifiable stored hash was copied verbatim into the installed copy, producing false integrity failures on later validation.
+- **Spec writes are atomic** (`_write_spec`): every write goes through a temp file in the destination directory plus `os.replace`, preserving existing permission bits; a crash can no longer truncate or delete a spec mid-save.
+- **`_content_fp`'s key-order normalization is load-bearing** (`nb_wrangler/spec_manager.py`): the content fingerprint deliberately keeps its pop/re-insert of `date_updated`/`spec_sha256` on the live ruamel structure. That side effect normalizes key order, and every digest ever stamped (including the shipped `sample-specs/` and the legacy 0.9.x goldens) was computed over that normalized order — the canonical digest is key-order-sensitive. Converting it to the "obvious" non-mutating plain-data implementation silently changes digests for any spec whose on-disk key order differs (proved out empirically on `fnc-test-spec.yaml`); do not do it without re-stamping every existing spec.
+
+### Bug Fixes
+
+- **Spec-hash stability: one canonical `spec_sha256` algorithm** (`nb_wrangler/spec_manager.py` — new `canonical_spec_sha256()` / `legacy_spec_sha256()`; `nb_wrangler/hubenv/env_spec.py`). The branches historically computed `spec_sha256` over different serializations that could disagree with each other and with stored hashes depending on which dumps had run earlier in the same process (ruamel comment state, absent-vs-blank hash key) — validation could fail on unmodified specs and re-stamped hashes could disagree across runs. There is now a single canonical digest: the spec (including any inline mamba document) converted to plain Python data (JSON round-trip strips all ruamel comment/quote metadata) with `system.spec_sha256` present-and-blank, which `SpecManager.add_sha256()` stamps, `SpecManager.validate_sha256()` / `_stored_hash_is_valid()` check (non-mutating), and hubenv's seed stamping (`env_spec._compute_spec_sha256()`) shares, so the two apps agree by construction in any process history. `validate_sha256()` accepts, for **one release of migration grace**, a stored hash that matches the legacy candidate (the stored file's own text with the hash line blanked); anything else fails with a pointer to `nbw --spec-update` / `hubenv relock` to re-stamp. The shipped `sample-specs/` were re-stamped to the canonical digest (hash line only — every other byte preserved, including the previously-unstable `tike-wrangler-k1.yaml` case). New regression suite: `tests/test_spec_hash_stable.py` (9 tests: dump-history stability incl. two-document and commented specs, absent-vs-blank normalization, non-mutation, shipped-sample validation, stamp→save→reload→validate round-trip, legacy acceptance, rejection, hubenv/nbw parity).
+- **Tag-prefix refs now match on a dot boundary and sort numerically during repository cloning** (`nb_wrangler/repository.py`). `resolve_ref_to_sha()` and `resolve_ref_to_entry()` previously filtered candidate tags with `tag.startswith(ref)`, so a spec ref of `2026.2` also matched tags like `2026.25.0`, and they picked the "highest" tag by plain lexicographic sort, so `2026.2.9` beat `2026.2.10`. Both routines now share one selection routine: a ref only matches tags beginning `ref + "."` (e.g. `2026.2` → `2026.2.z` only; never `2026.3.0` or `2026.25.0`) and numeric patch suffixes compare numerically. This makes clone/checkout resolution agree with the `--print-repo-tags` routine, which already behaved this way.
+  - The version-prefix selection logic that previously lived only in `NotebookWrangler._select_highest_patch_tag()` moved to `nb_wrangler/utils.py` as `select_highest_patch_tag()` so the print and clone paths share one implementation.
+  - Updated tests: `tests/test_tag_prefix_resolution.py` now exercises real resolution routines (dot boundary excludes `2026.3.0`/`2026.25.0`; numeric `2026.2.10` beats `2026.2.9`) instead of hand-replicating the filter.
+
+### New Features
+
+- **`--spec-legacy-sha256` — mode-selectable spec stamping** (`nb_wrangler/cli.py`, `config.py`, `spec_manager.py`, `hubenv/env_spec.py`): canonical-digest specs were unreadable by 0.9.x nbw (mixed-line pipelines: curate on a 0.10 box, `--reinstall` on a 0.9.5 image build). Validation now accepts **both** digests permanently (canonical, or the legacy file-derived one); the flag selects which digest future stamps produce: `add_sha256()` stamps the byte-exact 0.9.x digest under the flag, and `hubenv` seed stamping (`_compute_spec_sha256`) honors the same config field. A hash in the *other* mode counts as "stale" for `add_sha256` saves, so `nbw --spec-legacy-sha256 --spec-update` (or plain `--spec-update`) converts a spec between digests; content-unchanged saves with a mode-matching hash stay byte-for-byte no-ops. Tests: `tests/test_legacy_hash_mode.py` (11 tests; legacy goldens computed with the real 0.9.5 `SpecManager`, single-doc and two-document specs, dual acceptance in both directions, conversion round-trips, no-op contract, hubenv parity, CLI wiring).
+
+---
+
 **v0.9.5** change notes (since v0.9.4):
 
 ### New Features
@@ -35,8 +66,6 @@
 - **`wrangler_run` now injects `MAMBA_ROOT_PREFIX`** (`nb_wrangler/environment.py`). When a system-level micromamba is installed, shell init scripts set `MAMBA_ROOT_PREFIX` (and `MAMBA_EXE`) to the system installation. Without an explicit override, subprocess calls could find the wrong `micromamba` binary or look for environments in the wrong directory, leading to PEP 668 errors from system Python. `wrangler_run` now always sets `MAMBA_ROOT_PREFIX` to nb-wrangler's own `NBW_MM` directory in the subprocess environment.
 - **Removed `MAMBA_ROOT_PREFIX` / `CONDA_ROOT_PREFIX` fallbacks from `NBW_ROOT` and `NBW_MM`** (`nb_wrangler/constants.py`). These fallbacks caused nb-wrangler to adopt a system-level micromamba's root prefix as its own installation directory, causing environment lookups to fail. `NBW_ROOT` and `NBW_MM` now default strictly to `~/.nbw-live` and `~/.nbw-live/mm` respectively.
 
-### `--quiet` Flag Behavior
-
 - **`--quiet`/`-q` now suppresses startup version log** (`nb_wrangler/cli.py`). The `WranglerLogger` is now constructed with `quiet=args.quiet`, so the `Wrangler version:` INFO message is suppressed when `--quiet` is passed. Previously, version output was guarded by an `if not args.quiet` check that bypassed the logger's own quiet mode.
 - **`--env-print-name --quiet` suppresses all output except environment name** (`nb_wrangler/cli.py`). Specifying no spec results in no output but exit status 1.
 
@@ -57,6 +86,14 @@
 ### Bug Fixes
 
 - **Fixed `--packages-ignore-versions` path bug** (`nb_wrangler/compiler.py`). `_strip_versions_from_requirements` previously embedded the *full filesystem path* of each requirements file into the stripped output filename (e.g. `stripped_/home/.../aperture_photometry/requirements.txt_abc123.txt`). Path separators were interpreted as directory separators, so the stripped file was written to a nested path that never matched what the compiler subsequently looked for, causing a `FileNotFoundError`. The filename now uses only `Path(req_file).name`, keeping stripped files flat in the output directory while the sha256 hash continues to disambiguate duplicate basenames.
+
+### Behavior Changes
+
+- **`--print-repo-tags` now resolves tags against the live remote** (`nb_wrangler/wrangler.py`).
+  _Provenance note: this rework was previously listed under v0.9.0, but per git history (commits `fdc3011`, `fb76b8b`) it first landed after the `v0.9.1` tag; the note was moved here for accuracy against the actual released code._
+  - Uses `git ls-remote --tags <url>` (no clone required) to enumerate tags for each repo URL.
+  - Version-prefix refs (e.g. `2026.2`) are resolved to the highest `x.y.z` tag with the greatest numeric `z`.
+  - Non-version refs (e.g. `main`) are returned as-is when no matching tags are found.
 
 ---
 
@@ -108,10 +145,7 @@
   - New top-level `environment_vars:` spec section, like variables in `refdata_dependencies.yaml` but specified directly in the wrangler spec; merged into refdata during data collection.
   - New `test_environment_vars:` spec section injects test-scoped env vars via `_inject_test_env_vars()` before notebook/import tests run.
 
-- **`--print-repo-tags` Enhancement**
-  - Now uses `git ls-remote --tags` (no clone required) to enumerate tags for each repo URL.
-  - Version-prefix refs (e.g. `2026.2`) are resolved to the highest `x.y.z` tag with the greatest numeric `z`.
-  - Non-version refs (e.g. `main`) are returned as-is when no matching tags are found.
+- **`--print-repo-tags` flag** added to print one `url ref` line per spec repository. As of this release it printed the spec's `ref`/`resolved_ref` without querying remotes; the `git ls-remote --tags` rework shipped in **v0.9.2** (see those notes).
 
 ### Spec & Validation
 

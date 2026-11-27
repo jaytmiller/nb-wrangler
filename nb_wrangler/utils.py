@@ -112,6 +112,34 @@ def hex_time():
 # -------------------------------------------------------------------------
 
 
+def select_highest_patch_tag(tags: list[str], ref: str) -> str | None:
+    """Return the tag '<ref>.<z>' with the greatest patch z, or None.
+
+    Only tags starting with ``ref + "."`` are candidates, so a ref of
+    ``2026.2`` never matches ``2026.3.0`` (a different release line) nor
+    ``2026.25.0`` (a two-digit minor version). Numeric patch suffixes are
+    compared numerically, so ``2026.2.10`` beats ``2026.2.9``; non-numeric
+    suffixes compare lexicographically among themselves.
+    """
+    prefix = ref + "."
+    matching = [t for t in tags if t.startswith(prefix)]
+    if not matching:
+        return None
+
+    def _sort_key(tag: str) -> tuple:
+        z_part = tag[len(prefix) :]
+        try:
+            return (0, int(z_part))
+        except ValueError:
+            return (1, z_part)
+
+    matching.sort(key=_sort_key, reverse=True)
+    return matching[0]
+
+
+# -------------------------------------------------------------------------
+
+
 class DataHandlingError(RuntimeError):
     """There was an error validating or retrieving some form of remote data."""
 

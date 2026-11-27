@@ -87,6 +87,8 @@ class WranglerConfig:
     packages_ignore_versions: bool = False
     env_archive_format: str = ""
     env_print_name: bool = False
+    env_activate: bool = False
+    env_deactivate: bool = False
     env_kernel_cleanup: bool = False
 
     packages_compile: bool = False
@@ -116,6 +118,8 @@ class WranglerConfig:
     spec_ignore_hash: bool = False
     spec_update_hash: bool = False
     spec_disable_dev_overrides: bool = False
+    spec_readonly: bool = False
+    spec_legacy_hash: bool = False
 
     data_env_vars_mode: str = DEFAULT_DATA_ENV_VARS_MODE
     data_print_exports: bool = False
@@ -145,6 +149,9 @@ class WranglerConfig:
     print_repo_tags: bool = False
     spec_list: bool = False
     spec_add: bool = False
+
+    hubenv_command: Optional[str] = None
+    hubenv_args: Optional[argparse.Namespace] = None
 
     spi_branch: str = ""
     spi_commit_message: str = ""
@@ -200,6 +207,7 @@ class WranglerConfig:
             spec_disable_dev_overrides=getattr(
                 args, "spec_disable_dev_overrides", False
             ),
+            spec_legacy_hash=getattr(args, "spec_legacy_hash", False),
             env_init=args.env_init,
             env_pack=args.env_pack,
             env_unpack=args.env_unpack,
@@ -211,6 +219,8 @@ class WranglerConfig:
             env_compact=args.env_compact,
             packages_ignore_versions=args.packages_ignore_versions,
             env_print_name=args.env_print_name,
+            env_activate=getattr(args, "env_activate", False),
+            env_deactivate=getattr(args, "env_deactivate", False),
             env_kernel_cleanup=args.env_kernel_cleanup,
             packages_compile=args.packages_compile,
             packages_install=args.packages_install,
@@ -232,6 +242,7 @@ class WranglerConfig:
             spec_validate=args.spec_validate,
             spec_ignore_hash=args.spec_ignore_hash,
             spec_update_hash=args.spec_update_hash,
+            spec_readonly=args.spec_readonly,
             data_reset_spec=args.data_reset_spec,
             data_collect=args.data_collect,
             data_list=args.data_list,

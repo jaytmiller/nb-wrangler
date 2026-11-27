@@ -2,6 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 from nb_wrangler.config import WranglerConfig, set_args_config
+from nb_wrangler.utils import select_highest_patch_tag
 
 
 def _make_result(returncode=0, stdout=""):
@@ -156,7 +157,9 @@ class TestFetchSortedTagsOrdering:
         # among 2026.2.* strings, '2' < 'a' < 'b' etc lexicographically.
         assert tags == ["main", "2026.2.2", "2026.2.10", "2026.2.1", "2026.2.0"]
 
-    def test_tag_prefix_match_picks_first_highest(self, tmp_path):
+    def test_resolve_ref_to_sha_dot_boundary_and_numeric(self, tmp_path):
+        """Ref '2026.2' must pick 2026.2.10 over 2026.2.9 numerically and
+        must not capture 2026.3.0 (other release) or 2026.25.0 (no dot boundary)."""
         set_args_config(
             WranglerConfig(
                 workflows=[],
@@ -169,15 +172,68 @@ class TestFetchSortedTagsOrdering:
         test_repo_dir = tmp_path / "repos" / "prefix_test"
         test_repo_dir.mkdir(parents=True)
         (test_repo_dir / ".git").mkdir()
+        expected_sha = "aabbccdd11223344556677889900aabbccddeeff"
 
         def fake_run(*a, **k):
             cmd = a[0] if a else ""
-            if "fetch" in cmd:
-                return _make_result(stdout="")
-            return _make_result(stdout="v1.2.3\n2026.2.0\n2026.2.1\n2026.2.2\nmain")
+            if "rev-parse" in cmd:
+                if cmd.endswith("2026.2.10"):
+                    return _make_result(stdout=expected_sha)
+                return _make_result(returncode=1, stdout="")
+            if "tag" in cmd:
+                return _make_result(
+                    stdout="2026.2.9\n2026.2.10\n2026.25.0\n2026.3.0\nmain"
+                )
+            return _make_result(stdout="")
 
         with patch.object(rm, "run", side_effect=fake_run):
-            tags = rm.fetch_sorted_tags(test_repo_dir)
-        matching = [t for t in tags if t.startswith("2026.2")]
-        assert "2026.2.2" in matching
-        assert matching[0] == "2026.2.2"
+            sha = rm.resolve_ref_to_sha("prefix_test", "2026.2")
+        assert sha == expected_sha
+
+    def test_resolve_ref_to_entry_dot_boundary(self, tmp_path):
+        """resolve_ref_to_entry must reject 2026.3.0 and 2026.25.0 for ref 2026.2."""
+        set_args_config(
+            WranglerConfig(
+                workflows=[],
+                spec_file="",
+                repos_dir=tmp_path / "repos",
+                output_dir=tmp_path / "output",
+            )
+        )
+        rm = _make_repo_manager(tmp_path / "repos")
+        test_repo_dir = tmp_path / "repos" / "entry_test"
+        test_repo_dir.mkdir(parents=True)
+        (test_repo_dir / ".git").mkdir()
+
+        def fake_run(*a, **k):
+            cmd = a[0] if a else ""
+            if "rev-parse" in cmd:
+                if cmd.endswith("2026.2.1"):
+                    return _make_result(stdout="cafe123")
+                return _make_result(returncode=1, stdout="")
+            if "tag" in cmd:
+                return _make_result(stdout="2026.2.0\n2026.2.1\n2026.3.0\nmain")
+            return _make_result(stdout="")
+
+        with patch.object(rm, "run", side_effect=fake_run):
+            entry = rm.resolve_ref_to_entry("entry_test", "2026.2")
+        assert entry == ("2026.2.1", "cafe123")
+
+
+class TestSelectHighestPatchTag:
+    """Pure-function tests for nb_wrangler.utils.select_highest_patch_tag."""
+
+    def test_dot_boundary_excludes_other_releases(self):
+        tags = ["2026.2.0", "2026.2.2", "2026.3.0", "2026.25.0", "main"]
+        assert select_highest_patch_tag(tags, "2026.2") == "2026.2.2"
+
+    def test_numeric_patch_beats_lexicographic(self):
+        tags = ["2026.2.9", "2026.2.10", "2026.3.0"]
+        assert select_highest_patch_tag(tags, "2026.2") == "2026.2.10"
+
+    def test_no_matching_tags_returns_none(self):
+        assert select_highest_patch_tag(["main", "v1.2.3"], "2026.2") is None
+
+    def test_exact_patch_selection(self):
+        tags = ["2026.2.0", "2026.2.2", "2026.3.0"]
+        assert select_highest_patch_tag(tags, "2026.3") == "2026.3.0"

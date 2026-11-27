@@ -31,7 +31,7 @@ system:
 
 
 
-  spec_sha256: 06d4918a6c36980f623200e9ac9364f34975565548ae0c0b57612a94bda9443d
+  spec_sha256: 83b4d727d8139e601aa3ebb61851095c4c95049aeafb4dce8156a78a9fbaba9d
 out:
   repositories:
     nb-wrangler:

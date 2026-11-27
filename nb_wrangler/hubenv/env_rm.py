@@ -1,0 +1,205 @@
+"""env rm subcommand: delete environments from live and/or archive."""
+
+import shutil
+import sys
+from fnmatch import fnmatch
+from pathlib import Path
+
+from nb_wrangler.environment import EnvironmentManager
+from nb_wrangler.hubenv._common import get_logger
+from nb_wrangler.hubenv.config import PantryStore
+from nb_wrangler.hubenv.env_restore import remove_at_boot_snippet
+
+
+def cmd_env_rm(args) -> int:
+    """Handle ``hubenv rm`` — delete envs from live and/or archive.
+
+    Orchestrates: resolve targets -> dry-run check -> validate ->
+    confirm -> execute.
+    """
+    config = PantryStore()
+
+    target_type = args.target or "both"
+    targets = resolve_rm_targets(config, args.names, target_type, args.pantry)
+
+    if not targets:
+        get_logger().error("No matching environments found.")
+        return 1
+
+    if args.dry_run:
+        print_rm_plan(targets)
+        return 0
+
+    if validate_rm_targets(targets, config):
+        return 1
+
+    print_rm_plan(targets)
+    return confirm_and_rm(targets, args.yes)
+
+
+def validate_rm_targets(targets, config) -> bool:
+    """Return True if validation fails (error already printed)."""
+    errors = check_rm_readonly(targets)
+    if errors:
+        for msg in errors:
+            get_logger().error(msg)
+        get_logger().error(
+            "Set NBW_PANTRY to a writable path or use --pantry <writable-path>."
+        )
+        return True
+
+    unsafe = [t for t in targets if not is_safe_rm_path(t, config)]
+    if unsafe:
+        for t in unsafe:
+            get_logger().error(
+                f"Refusing to delete path outside safe roots: {t['path']}"
+            )
+        return True
+    return False
+
+
+def confirm_and_rm(targets, yes: bool) -> int:
+    """Prompt for confirmation then execute deletions."""
+    if not yes:
+        if not prompt_rm_confirmation():
+            get_logger().error("Aborted.")
+            return 1
+    return 1 if do_rm(targets) > 0 else 0
+
+
+def resolve_rm_targets(config, patterns, target_type, pantry_filter):
+    """Resolve NAME patterns against live envs and/or shelves."""
+    targets = []
+    if target_type in ("live", "both"):
+        targets.extend(resolve_live_targets(config, patterns))
+    if target_type in ("archived", "both"):
+        targets.extend(resolve_shelf_targets(config, patterns, pantry_filter))
+    return targets
+
+
+def resolve_live_targets(config, patterns):
+    """Resolve patterns against live envs under NBW_MM/envs/."""
+    live_envs = config.list_live_envs()
+    return [
+        {"type": "live", "name": e["name"], "path": e["path"], "writable": True}
+        for e in live_envs
+        if matches_any_pattern(e["name"], patterns)
+    ]
+
+
+def resolve_shelf_targets(config, patterns, pantry_filter):
+    """Resolve patterns against shelves across pantries."""
+    pantry_dir = Path(pantry_filter) if pantry_filter else None
+    shelves = config.list_shelves(pantry=pantry_dir)
+    return [
+        {
+            "type": "shelf",
+            "name": s["name"],
+            "path": s["path"],
+            "pantry": s["pantry"],
+            "writable": s["writable"],
+        }
+        for s in shelves
+        if matches_any_pattern(s["name"], patterns)
+    ]
+
+
+def matches_any_pattern(name, patterns):
+    """Check if *name* matches any of the glob *patterns*."""
+    return any(fnmatch(name, p) for p in patterns)
+
+
+def check_rm_readonly(targets):
+    """Return list of error messages for read-only targets."""
+    errors = []
+    for t in targets:
+        if t["type"] == "shelf" and not t["writable"]:
+            errors.append(
+                f"cannot delete '{t['name']}' from read-only pantry: {t['pantry']}"
+            )
+    return errors
+
+
+def is_safe_rm_path(target, config):
+    """Check that a resolved rm target path is under a safe root."""
+    path = target["path"].resolve()
+    if target["type"] == "live":
+        safe_root = config.live_envs_root.resolve()
+        return path.is_relative_to(safe_root)
+    for pantry in config.pantry_dirs:
+        safe_root = (pantry / "shelves").resolve()
+        if path.is_relative_to(safe_root):
+            return True
+    return False
+
+
+def print_rm_plan(targets):
+    """Print the planned deletions."""
+    print("The following will be removed:")
+    for t in targets:
+        if t["type"] == "live":
+            print(f"  [live]   {t['name']:<20} -> {t['path']}")
+        else:
+            print(f"  [shelf]  {t['name']:<20} -> {t['path']}  ({t['pantry']})")
+
+
+def prompt_rm_confirmation():
+    """Prompt for confirmation. Returns True if confirmed."""
+    print("Proceed? (y/N): ", end="", file=sys.stderr, flush=True)
+    try:
+        response = input().strip().lower()
+    except EOFError:
+        return False
+    return response in ("y", "yes")
+
+
+def do_rm(targets):
+    """Delete the resolved targets. Returns number of failures."""
+    failures = 0
+    for t in targets:
+        path = t["path"]
+        if not path.exists():
+            print(f"Already gone: {t['type']} '{t['name']}'")
+            continue
+        try:
+            if t["type"] == "live":
+                ok = delete_live_env(t["name"])
+            else:
+                shutil.rmtree(path)
+                ok = True
+            if ok:
+                print(f"Removed {t['type']} '{t['name']}' at {path}")
+                remove_at_boot_snippet(t["name"])
+            else:
+                get_logger().warning(f"Could not remove {t['name']}")
+                failures += 1
+        except OSError as e:
+            get_logger().warning(f"Could not remove {t['name']}: {e}")
+            failures += 1
+    cleanup_empty_shelf_dirs(targets)
+    return failures
+
+
+def delete_live_env(name: str) -> bool:
+    """Unregister the kernel and delete a live mamba env via EnvironmentManager."""
+    em = EnvironmentManager()
+    em.unregister_environment(name)
+    return em.delete_environment(name)
+
+
+def cleanup_empty_shelf_dirs(targets):
+    """Best-effort removal of now-empty shelves/ directories."""
+    seen = set()
+    for t in targets:
+        if t["type"] != "shelf":
+            continue
+        shelves_dir = t["pantry"] / "shelves"
+        if shelves_dir in seen:
+            continue
+        seen.add(shelves_dir)
+        if shelves_dir.exists():
+            try:
+                if not list(shelves_dir.iterdir()):
+                    shutil.rmtree(shelves_dir)
+            except OSError:
+                pass

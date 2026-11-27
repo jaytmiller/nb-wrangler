@@ -98,19 +98,19 @@ def parse_args():
         "SPI Automation",
         "Flags to automate Docker builds and git operations for --inject-spi.",
     )
-    spi_group.add_argument(
-        "--spi-branch",
-        type=str,
-        default="",
-        # help=argparse.SUPPRESS,  # "Create a new branch in the SPI repo with this name."
-    )
-    spi_group.add_argument(
-        "--spi-commit-message",
-        nargs="+",
-        type=str,
-        default="",
-        # help=argparse.SUPPRESS,  # "Commit message for the new branch. If not provided, a default message will be used."
-    )
+    # spi_group.add_argument(
+    #     "--spi-branch",
+    #     type=str,
+    #     default="",
+    #     # help=argparse.SUPPRESS,  # "Create a new branch in the SPI repo with this name."
+    # )
+    # spi_group.add_argument(
+    #     "--spi-commit-message",
+    #     nargs="+",
+    #     type=str,
+    #     default="",
+    #     # help=argparse.SUPPRESS,  # "Commit message for the new branch. If not provided, a default message will be used."
+    # )
     spi_group.add_argument(
         "--spi-prune-docker",
         action="store_true",
@@ -126,16 +126,16 @@ def parse_args():
         action="store_true",
         help="Trigger a Docker build in the SPI repo.",
     )
-    spi_group.add_argument(
-        "--spi-push-branch",
-        action="store_true",
-        help="Push the new branch to the remote SPI repo.",
-    )
-    spi_group.add_argument(
-        "--spi-pr",
-        action="store_true",
-        help="Create a pull request for the new branch in the SPI repo.",
-    )
+    # spi_group.add_argument(
+    #     "--spi-push-branch",
+    #     action="store_true",
+    #     help="Push the new branch to the remote SPI repo.",
+    # )
+    # spi_group.add_argument(
+    #     "--spi-pr",
+    #     action="store_true",
+    #     help="Create a pull request for the new branch in the SPI repo.",
+    # )
     spi_group.add_argument(
         "--spi-image-name",
         action="store_true",
@@ -290,6 +290,19 @@ def parse_args():
         "--env-print-name",
         action="store_true",
         help="Print the environment name associated with this spec to stdout.",
+    )
+    env_group.add_argument(
+        "--env-activate",
+        action="store_true",
+        dest="env_activate",
+        help="Print a shell snippet (for eval/source) that activates the spec's "
+        "environment by absolute path, including any data exports.",
+    )
+    env_group.add_argument(
+        "--env-deactivate",
+        action="store_true",
+        dest="env_deactivate",
+        help="Print a shell snippet (for eval/source) that deactivates the current mamba environment.",
     )
     packages_group = parser.add_argument_group(
         "Packages", "Setup and management of spec'ed Python packages managed by pip."
@@ -602,6 +615,23 @@ def parse_args():
         dest="spec_ignore_hash",
         help="Spec SHA256 hashes will not be added or verified upon re-installation.  Modifier to --validate and validation in general.",
     )
+    spec_group.add_argument(
+        "--spec-legacy-sha256",
+        action="store_true",
+        dest="spec_legacy_hash",
+        help="Stamp spec_sha256 with the pre-canonical (0.9.x) hash algorithm so "
+        "specs remain validatable by nb-wrangler releases that predate the "
+        "canonical digest.  Validation always accepts both digests; this selects "
+        "which one future stamps produce.",
+    )
+    spec_group.add_argument(
+        "--spec-readonly",
+        action="store_true",
+        dest="spec_readonly",
+        help="Treat the source spec as read-only: no step writes to it.  Any save "
+        "that would change it (content change or hash repair) is refused "
+        "(error + abort).  Unchanged saves are byte-for-byte no-ops.",
+    )
     dev_group.add_argument(
         "--spec-disable-dev-overrides",
         action="store_true",
@@ -691,11 +721,61 @@ def parse_args():
     return parsed
 
 
+def _activate_by_name(name: str) -> bool:
+    """Emit the shared shell-activation snippet treating `name` as an
+    existing mamba environment name (rather than a spec), when that makes sense.
+
+    Returns True if a snippet was emitted (the caller should exit 0); returns
+    False so the spec-based path can proceed when `name` is an existing file,
+    an explicit URI, or does not match a live environment (in which case the
+    normal spec loading reports the problem).
+
+    Mirrors the `--env-deactivate` fast path above: uses environment
+    constants only, so it needs no global config setup.
+    """
+    from pathlib import Path
+
+    if "://" in name or Path(name).exists():
+        return False
+    from . import activation
+    from . import constants
+    from .spec_manager import is_base_env_name
+
+    mm_dir = Path(os.environ.get("NBW_MM") or constants.NBW_MM)
+    env_path = mm_dir if is_base_env_name(name) else mm_dir / "envs" / name
+    if not env_path.is_dir():
+        return False
+    snippet = activation.emit_activation(
+        str(mm_dir),
+        constants.NBW_MAMBA_CMD,
+        activation.detect_shell(),
+        str(env_path),
+        name=name,
+    )
+    sys.stdout.write(snippet)
+    return True
+
+
 def main() -> int:
     """Main entry point for the CLI."""
     args = parse_args()
     if args.version:
         print(constants.__version__)
+        return 0
+    if args.env_deactivate:
+        from . import activation
+
+        from .constants import NBW_MAMBA_CMD
+
+        sys.stdout.write(
+            activation.emit_deactivate(NBW_MAMBA_CMD, activation.detect_shell())
+        )
+        return 0
+    if (
+        args.env_activate
+        and args.spec_uri is not None
+        and _activate_by_name(args.spec_uri)
+    ):
         return 0
     if args.spec_init or args.docker_cat or args.docker_list:
         return _main(args)

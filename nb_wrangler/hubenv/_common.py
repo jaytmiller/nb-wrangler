@@ -1,0 +1,107 @@
+"""Shared helpers for hubenv command modules.
+
+Contains helpers used across multiple subcommand modules to avoid
+circular imports between command modules.
+"""
+
+from collections import defaultdict
+from pathlib import Path
+from typing import Optional, TYPE_CHECKING
+
+from nb_wrangler.config import get_args_config
+from nb_wrangler.logger import get_configured_logger
+from nb_wrangler.hubenv.config import PantryStore
+
+if TYPE_CHECKING:
+    from nb_wrangler.config import WranglerConfig
+
+
+class HubenvError(Exception):
+    """Base error for hubenv with a clean message and exit code."""
+
+    def __init__(self, message: str, exit_code: int = 1):
+        super().__init__(message)
+        self.message = message
+        self.exit_code = exit_code
+
+
+def get_logger():
+    """Return the configured logger for hubenv commands."""
+    return get_configured_logger()
+
+
+def get_config() -> "WranglerConfig":
+    """Return the current WranglerConfig (must be set via _setup_config)."""
+    return get_args_config()
+
+
+def store_for(args) -> PantryStore:
+    """Return a PantryStore scoped to args.pantry if set, else the default chain."""
+    if getattr(args, "pantry", None):
+        return PantryStore(paths=[Path(args.pantry)])
+    return PantryStore()
+
+
+def tabulated(rows: list, **kwargs) -> str:
+    """Render ``rows`` as an ASCII table via the optional ``tabulate`` dependency.
+
+    ``tabulate`` is needed only for hubenv's human-readable tables
+    (status/info/doctor), not by ``nbw`` itself, so it is imported lazily here
+    instead of at module import time; a plain ``nbw`` install therefore works
+    without it.  Using one of the hubenv table commands without ``tabulate``
+    raises a clean error with an actionable install hint.
+    """
+    try:
+        from tabulate import tabulate
+    except ImportError as exc:
+        raise HubenvError(
+            "The optional 'tabulate' dependency is required for this command. "
+            "Install it with: pip install tabulate "
+            "(or: pip install 'nb-wrangler[hubenv]')."
+        ) from exc
+    return tabulate(rows, **kwargs)
+
+
+def print_exports(name: str, store: PantryStore) -> None:
+    """Print eval-able shell exports for environment activation."""
+    print(f"export NBW_ACTIVE_ENV={name}")
+    print(f"export NBW_ENV_ROOT={store.live_envs_root / name}")
+
+
+def var_export_lines(name: str, store: PantryStore) -> list[str]:
+    """Return ``export KEY=VALUE`` lines for ``name``'s shelf ``environment_vars``.
+
+    Matches the line format of ``hubenv var ls NAME --export`` so that
+    ``hubenv activate`` stays byte-equivalent in its variable exports.
+    Returns an empty list when the shelf has no spec or variables defined.
+    """
+    try:
+        from nb_wrangler.hubenv.env_spec import load_hubenv_spec
+
+        env_vars = load_hubenv_spec(store, name).get("environment_vars") or {}
+    except Exception:
+        return []
+    return [f"export {key}={value}" for key, value in sorted(env_vars.items())]
+
+
+def print_no_writable_pantry(forced_path: Optional[str]) -> None:
+    """Print a clear error for no writable pantry."""
+    if forced_path:
+        get_logger().error(f"Pantry '{forced_path}' is read-only or does not exist.")
+    else:
+        get_logger().error(
+            "No writable pantry found. Set NBW_PANTRY to a writable path."
+        )
+
+
+def print_shadowing_warnings(shelves: list[dict]) -> None:
+    """Warn when a name appears in multiple pantries."""
+    by_name: dict[str, list[Path]] = defaultdict(list)
+    for entry in shelves:
+        by_name[entry["name"]].append(entry["pantry"])
+    for name, pantries in by_name.items():
+        if len(pantries) > 1:
+            get_logger().warning(
+                f"'{name}' shadowed across pantries: "
+                + ", ".join(str(p) for p in pantries)
+            )
